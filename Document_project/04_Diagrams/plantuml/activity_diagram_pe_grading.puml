@@ -1,0 +1,69 @@
+@startuml
+skinparam activityShape roundBox
+skinparam defaultTextAlignment center
+skinparam shadowing false
+title Main Activity Flow - AITA Automated PE Grading System
+
+|#LightBlue|Student / Client|
+start
+:Nộp bài thi PE (.zip) qua Web/Mobile App;
+:Gửi HTTP POST request kèm JWT Token;
+
+|#LightGreen|Backend API Gateway|
+:Xác thực người dùng (JWT & RBAC);
+if (Tệp tin có hợp lệ?) then (KHÔNG - Lỗi định dạng/Size)
+    :Trả về lỗi 400 Bad Request;
+    stop
+else (CÓ)
+    :Lưu file .zip vào bộ nhớ tạm / S3;
+    :Khởi tạo bản ghi Submission (Status: PENDING);
+    :Đẩy công việc Chấm bài (GradingJob) vào Redis Queue;
+    :Trả về HTTP 202 Accepted cho Client;
+endif
+
+|#LightYellow|Redis Queue & Worker|
+:Worker tiếp nhận GradingJob từ Redis Queue;
+:Giải nén file .zip (Unzip Artifact);
+:Loại bỏ các file rác (__MACOSX, .DS_Store);
+:Nhận diện môn học & cấu trúc bài làm (PRF192 -> .c | PRO192/CSD201 -> .java);
+
+if (Cấu trúc bài nộp hợp lệ?) then (KHÔNG - Thiếu file mã nguồn)
+    :Cập nhật trạng thái: INVALID_ARTIFACT;
+    :Lưu log lỗi vào Database;
+    stop
+else (CÓ)
+    :Tải cấu hình đề thi & Test cases ẩn từ Database;
+endif
+
+|#LightPink|Docker Sandbox Engine|
+:Khởi tạo Docker Container cô lập\n(Image: GCC cho C / JDK cho Java);
+:Mount mã nguồn & file Test Harness vào Container;
+:Thực thi Biên dịch (gcc / javac);
+
+if (Biên dịch thành công?) then (KHÔNG)
+    :Ghi nhận lỗi COMPILE_ERROR;
+    :Bỏ qua bước chạy Testcase;
+else (CÓ)
+    :Thực thi các Test cases ẩn;
+    :Kiểm tra giới hạn Thời gian (Timeout) & Bộ nhớ (Memory);
+    :So sánh kết quả đầu ra (stdout / Text file);
+    :Tổng hợp danh sách Testcases Pass/Fail;
+endif
+
+|#Thistle|AI Engine & LLM Provider|
+:Đọc mã nguồn C/Java + Kết quả Testcases + RubricRule;
+:Tải mẫu PromptTemplate tương ứng môn học;
+:Gọi AI Key Rotator để lấy active AiApiKey;
+:Gửi Prompt + Code đến LLM Provider API;
+:Nhận kết quả phân tích chất lượng code (Semantic Assessment);
+
+|#LightGreen|Backend API Gateway|
+:Tính toán điểm tổng hợp (Testcases + Rubric);
+:Lưu kết quả chi tiết & AI Feedback vào Database (MySQL);
+:Cập nhật trạng thái Submission: COMPLETED;
+
+|#LightBlue|Student / Client|
+:Nhận thông báo hoàn thành chấm bài;
+:Xem kết quả điểm số, lỗi Testcase & gợi ý từ AI Tutor;
+stop
+@enduml

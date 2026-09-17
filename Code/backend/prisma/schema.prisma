@@ -1,0 +1,327 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  LECTURER
+  STUDENT
+}
+
+enum SubmissionType {
+  ZIP_FILE
+  GIT_REPO
+}
+
+enum SubmissionStatus {
+  PENDING
+  PROCESSING
+  GRADED
+  FAILED
+}
+
+enum JobStatus {
+  QUEUED
+  RUNNING_SANDBOX
+  RUNNING_AI
+  COMPLETED
+  FAILED
+}
+
+enum AiProvider {
+  OPENAI
+  GEMINI
+  CLAUDE
+}
+
+enum MessageSender {
+  STUDENT
+  AI
+}
+
+enum TestType {
+  BASIC
+  EDGE_CASE
+  PERFORMANCE
+  EXCEPTION
+}
+
+model User {
+  id              String   @id @default(uuid())
+  email           String   @unique
+  passwordHash    String   @map("password_hash")
+  fullName        String   @map("full_name")
+  role            Role     @default(STUDENT)
+  avatarUrl       String?  @map("avatar_url")
+  githubUsername  String?  @map("github_username")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  coursesTaught   Course[] @relation("LecturerCourses")
+  enrollments     CourseEnrollment[]
+  submissions     Submission[]
+  tutorConversations AiTutorConversation[]
+  gitContributions GitContribution[]
+
+  @@map("users")
+}
+
+model Course {
+  id          String   @id @default(uuid())
+  code        String
+  name        String
+  description String?  @db.Text
+  lecturerId  String   @map("lecturer_id")
+  semester    String
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  lecturer    User     @relation("LecturerCourses", fields: [lecturerId], references: [id])
+  teams       Team[]
+  enrollments CourseEnrollment[]
+  assignments Assignment[]
+
+  @@map("courses")
+}
+
+model Team {
+  id          String   @id @default(uuid())
+  courseId    String   @map("course_id")
+  name        String
+  gitRepoUrl  String?  @map("git_repo_url")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  enrollments CourseEnrollment[]
+  submissions Submission[]
+  gitContributions GitContribution[]
+
+  @@map("teams")
+}
+
+model CourseEnrollment {
+  id        String   @id @default(uuid())
+  courseId  String   @map("course_id")
+  studentId String   @map("student_id")
+  teamId    String?  @map("team_id")
+  joinedAt  DateTime @default(now()) @map("joined_at")
+
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  team      Team?    @relation(fields: [teamId], references: [id], onDelete: SetNull)
+
+  @@unique([courseId, studentId])
+  @@map("course_enrollments")
+}
+
+model Assignment {
+  id               String       @id @default(uuid())
+  courseId         String       @map("course_id")
+  title            String
+  description      String       @db.LongText
+  allowedLanguages String       @default("JAVA,PYTHON,CPP,CSHARP") @map("allowed_languages")
+  deadline         DateTime
+  maxScore         Decimal      @default(10.00) @db.Decimal(5, 2) @map("max_score")
+  isTeamWork       Boolean      @default(false) @map("is_team_work")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+
+  course           Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  rubricRules      RubricRule[]
+  testCases        TestCase[]
+  submissions      Submission[]
+  solutions        AssignmentSolution[]
+
+  @@map("assignments")
+}
+
+model AssignmentSolution {
+  id                 String     @id @default(uuid())
+  assignmentId       String     @map("assignment_id")
+  questionNo         String     @map("question_no") // 'Q1', 'Q2', 'Q3', 'Q4'
+  solutionCode       String     @db.LongText @map("solution_code")
+  explanationNotes   String     @db.LongText @map("explanation_notes")
+  complexityExpected String?    @map("complexity_expected") // e.g. 'O(n log n)'
+  createdAt          DateTime   @default(now()) @map("created_at")
+
+  assignment         Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  @@index([assignmentId, questionNo])
+  @@map("assignment_solutions")
+}
+
+model RubricRule {
+  id                String            @id @default(uuid())
+  assignmentId      String            @map("assignment_id")
+  name              String
+  description       String?           @db.Text
+  maxScore          Decimal           @default(2.00) @db.Decimal(5, 2) @map("max_score")
+  weightPercent     Decimal           @default(20.00) @db.Decimal(5, 2) @map("weight_percent")
+  promptInstruction String            @db.Text @map("prompt_instruction")
+  orderIndex        Int               @default(0) @map("order_index")
+  createdAt         DateTime          @default(now()) @map("created_at")
+
+  assignment        Assignment        @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  aiGradingResults  AiGradingResult[]
+
+  @@map("rubric_rules")
+}
+
+model TestCase {
+  id             String                 @id @default(uuid())
+  assignmentId   String                 @map("assignment_id")
+  inputData      String                 @db.LongText @map("input_data")
+  expectedOutput String                 @db.LongText @map("expected_output")
+  isHidden       Boolean                @default(false) @map("is_hidden")
+  timeLimitMs    Int                    @default(2000) @map("time_limit_ms")
+  memoryLimitMb  Int                    @default(256) @map("memory_limit_mb")
+  score          Decimal                @default(1.00) @db.Decimal(5, 2)
+  rationale      String?                @db.Text
+  testType       TestType               @default(BASIC) @map("test_type")
+  createdAt      DateTime               @default(now()) @map("created_at")
+
+  assignment     Assignment             @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  results        SubmissionTestResult[]
+
+  @@map("test_cases")
+}
+
+model Submission {
+  id             String                 @id @default(uuid())
+  assignmentId   String                 @map("assignment_id")
+  studentId      String                 @map("student_id")
+  teamId         String?                @map("team_id")
+  submissionType SubmissionType         @default(ZIP_FILE) @map("submission_type")
+  fileUrl        String?                @map("file_url")
+  gitCommitHash  String?                @map("git_commit_hash")
+  totalScore     Decimal?               @db.Decimal(5, 2) @map("total_score")
+  status         SubmissionStatus       @default(PENDING)
+  submittedAt    DateTime               @default(now()) @map("submitted_at")
+
+  assignment     Assignment             @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student        User                   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  team           Team?                  @relation(fields: [teamId], references: [id], onDelete: SetNull)
+
+  gradingJob     GradingJob?
+  testResults    SubmissionTestResult[]
+  aiResults      AiGradingResult[]
+  conversations  AiTutorConversation[]
+
+  @@map("submissions")
+}
+
+model GradingJob {
+  id           String     @id @default(uuid())
+  submissionId String     @unique @map("submission_id")
+  priority     Int        @default(2) // 1: High, 2: Normal, 3: Low
+  status       JobStatus  @default(QUEUED)
+  retryCount   Int        @default(0) @map("retry_count")
+  maxRetries   Int        @default(3) @map("max_retries")
+  errorLog     String?    @db.LongText @map("error_log")
+  durationMs   Int?       @map("duration_ms")
+  queuedAt     DateTime   @default(now()) @map("queued_at")
+  startedAt    DateTime?  @map("started_at")
+  completedAt  DateTime?  @map("completed_at")
+
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([status, priority, queuedAt])
+  @@map("grading_jobs")
+}
+
+model SubmissionTestResult {
+  id              String     @id @default(uuid())
+  submissionId    String     @map("submission_id")
+  testCaseId      String     @map("test_case_id")
+  passed          Boolean    @default(false)
+  actualOutput    String?    @db.LongText @map("actual_output")
+  executionTimeMs Int?       @map("execution_time_ms")
+  memoryUsedKb    Int?       @map("memory_used_kb")
+  errorMessage    String?    @db.Text @map("error_message")
+  createdAt       DateTime   @default(now()) @map("created_at")
+
+  submission      Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  testCase        TestCase   @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+
+  @@map("submission_test_results")
+}
+
+model AiApiKey {
+  id               String            @id @default(uuid())
+  provider         AiProvider        @default(GEMINI)
+  apiKeyEncrypted  String            @map("api_key_encrypted")
+  isActive         Boolean           @default(true) @map("is_active")
+  requestCount     Int               @default(0) @map("request_count")
+  rateLimitPerMin  Int               @default(60) @map("rate_limit_per_min")
+  lastUsedAt       DateTime?         @map("last_used_at")
+  createdAt        DateTime          @default(now()) @map("created_at")
+
+  aiGradingResults AiGradingResult[]
+
+  @@map("ai_api_keys")
+}
+
+model AiGradingResult {
+  id           String      @id @default(uuid())
+  submissionId String      @map("submission_id")
+  rubricRuleId String      @map("rubric_rule_id")
+  apiKeyUsedId String?     @map("api_key_used_id")
+  scoreGiven   Decimal     @default(0.00) @db.Decimal(5, 2) @map("score_given")
+  aiFeedback   String      @db.LongText @map("ai_feedback")
+  rawResponse  Json?       @map("raw_response")
+  createdAt    DateTime    @default(now()) @map("created_at")
+
+  submission   Submission  @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  rubricRule   RubricRule  @relation(fields: [rubricRuleId], references: [id], onDelete: Cascade)
+  apiKeyUsed   AiApiKey?   @relation(fields: [apiKeyUsedId], references: [id], onDelete: SetNull)
+
+  @@map("ai_grading_results")
+}
+
+model AiTutorConversation {
+  id           String           @id @default(uuid())
+  submissionId String           @map("submission_id")
+  studentId    String           @map("student_id")
+  createdAt    DateTime         @default(now()) @map("created_at")
+
+  submission   Submission       @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  student      User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  messages     AiTutorMessage[]
+
+  @@map("ai_tutor_conversations")
+}
+
+model AiTutorMessage {
+  id             String               @id @default(uuid())
+  conversationId String               @map("conversation_id")
+  sender         MessageSender
+  message        String               @db.LongText
+  createdAt      DateTime             @default(now()) @map("created_at")
+
+  conversation   AiTutorConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@map("ai_tutor_messages")
+}
+
+model GitContribution {
+  id             String    @id @default(uuid())
+  teamId         String    @map("team_id")
+  studentId      String    @map("student_id")
+  githubUsername String    @map("github_username")
+  commitCount    Int       @default(0) @map("commit_count")
+  additions      Int       @default(0)
+  deletions      Int       @default(0)
+  lastCommitAt   DateTime? @map("last_commit_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  team           Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  student        User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, studentId])
+  @@map("git_contributions")
+}

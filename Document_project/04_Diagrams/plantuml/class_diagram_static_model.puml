@@ -1,0 +1,137 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam defaultTextAlignment center
+skinparam shadowing false
+skinparam roundCorner 8
+
+title Static Modeling - Domain Class Diagram (AITA System - FPT University)
+
+class User {
+  + userId : String
+  + email : String
+  + passwordHash : String
+  + fullName : String
+  + role : String
+  + githubUsername : String
+}
+
+class Course {
+  + courseId : String
+  + code : String
+  + name : String
+  + semester : String
+  + description : String
+}
+
+class Team {
+  + teamId : String
+  + name : String
+  + gitRepoUrl : String
+}
+
+class Assignment {
+  + assignmentId : String
+  + title : String
+  + description : String
+  + allowedLanguages : String
+  + deadline : DateTime
+  + maxScore : Real
+  + isTeamWork : Boolean
+}
+
+class TestCase {
+  + testCaseId : String
+  + inputData : String
+  + expectedOutput : String
+  + isHidden : Boolean
+  + timeLimitMs : Integer
+  + memoryLimitMb : Integer
+  + score : Real
+}
+
+class RubricRule {
+  + rubricId : String
+  + name : String
+  + maxScore : Real
+  + weightPercent : Real
+  + promptInstruction : String
+}
+
+class Submission {
+  + submissionId : String
+  + submissionType : String
+  + fileUrl : String
+  + gitCommitHash : String
+  + totalScore : Real
+  + status : String
+  + submittedAt : DateTime
+}
+
+class GradingJob {
+  + jobId : String
+  + priority : Integer
+  + status : String
+  + retryCount : Integer
+  + maxRetries : Integer
+  + errorLog : String
+  + durationMs : Integer
+  + queuedAt : DateTime
+}
+
+class SubmissionTestResult {
+  + resultId : String
+  + passed : Boolean
+  + actualOutput : String
+  + executionTimeMs : Integer
+  + memoryUsedKb : Integer
+}
+
+class AiApiKey {
+  + keyId : String
+  + provider : String
+  + apiKeyEncrypted : String
+  + isActive : Boolean
+  + requestCount : Integer
+  + rateLimitPerMin : Integer
+}
+
+class AiGradingResult {
+  + resultId : String
+  + scoreGiven : Real
+  + aiFeedback : String
+}
+
+class GitContribution {
+  + contributionId : String
+  + commitCount : Integer
+  + additions : Integer
+  + deletions : Integer
+  + lastCommitAt : DateTime
+}
+
+' ================= Associations with Multiplicities & Labels (FPT Standard) =================
+User "1" -- "0..*" Course : Teaches >
+Course "1" -- "1..*" User : Enrolls >
+Course "1" -- "0..*" Team : Has >
+User "1..*" -- "0..1" Team : Belongs to >
+
+Course "1" -- "1..*" Assignment : Contains >
+Assignment "1" -- "1..*" TestCase : Defines >
+Assignment "1" -- "1..*" RubricRule : Evaluates with >
+
+User "1" -- "0..*" Submission : Submits >
+Assignment "1" -- "0..*" Submission : Receives >
+Team "0..1" -- "0..*" Submission : Owns >
+
+Submission "1" -- "1" GradingJob : Queued as >
+Submission "1" -- "1..*" SubmissionTestResult : Produces >
+TestCase "1" -- "0..*" SubmissionTestResult : Evaluates in >
+
+Submission "1" -- "1..*" AiGradingResult : Evaluated by >
+RubricRule "1" -- "0..*" AiGradingResult : Guided for >
+AiApiKey "1" -- "0..*" AiGradingResult : Used by >
+
+Team "1" -- "1..*" GitContribution : Tracks >
+User "1" -- "0..*" GitContribution : Contributed by >
+
+@enduml
