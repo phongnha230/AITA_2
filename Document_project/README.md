@@ -9,6 +9,7 @@ Toàn bộ tài liệu phân tích, thiết kế và sơ đồ kỹ thuật củ
 ## 📂 01_General (Tổng Quan & Quy Định)
 - [AITA_Project_Master_Document.md](01_General/AITA_Project_Master_Document.md): Tài liệu tổng quan dự án, mục tiêu, 5 Research Spikes và lộ trình 10 tuần.
 - [AI_PROMPT_LOG.md](01_General/AI_PROMPT_LOG.md): Nhật ký lưu trữ prompt AI phục vụ tiêu chí **Transparency & Explainability** bắt buộc của SWD392.
+- [PROJECT_RUN_GUIDE.md](01_General/PROJECT_RUN_GUIDE.md): **[HƯỚNG DẪN CHẠY DỰ ÁN]** Hướng dẫn chi tiết cách chạy dự án cho 2 trường hợp: Có dùng Docker và KHÔNG dùng Docker.
 
 ---
 
