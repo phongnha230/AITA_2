@@ -99,3 +99,38 @@ export const requireRole = (...allowedRoles: ('ADMIN' | 'LECTURER' | 'STUDENT')[
 - Tạo đề thi: `router.post('/assignments', verifyToken, requireRole('LECTURER'), AssignmentController.create);`
 - Thêm API Key: `router.post('/admin/ai-keys', verifyToken, requireRole('ADMIN'), AdminController.addKey);`
 - Nộp bài thi: `router.post('/submissions', verifyToken, requireRole('STUDENT'), SubmissionController.submit);`
+
+---
+
+## 5. QUY CHẾ THI THEO LỚP & HỒ SƠ QUẢN TRỊ NGƯỜI DÙNG (COURSE ENROLLMENT & USER 360°)
+
+### 5.1. Cơ chế Thi theo Lớp học (Course-Based Enrollment)
+Hệ thống AITA quản lý kỳ thi PE theo mô hình **Lớp học (Course-based)**, không mở thi tự do trôi nổi:
+1. **Liên kết bắt buộc:** Mỗi đề thi `assignments` bắt buộc phải có `course_id` trỏ về một lớp học cụ thể của một Giảng viên tạo ra.
+2. **Điều kiện làm bài:** Sinh viên bắt buộc phải có bản ghi trong bảng `course_enrollments` (được Giảng viên import qua Excel/CSV hoặc tham gia lớp) thì mới xem được đề và nộp bài.
+3. **Bảo mật đề thi:** Sinh viên lớp khác hoặc người ngoài khi truy cập link đề thi sẽ bị hệ thống chặn với mã lỗi `403 Forbidden`.
+
+### 5.2. Đặc tả Hồ sơ Quản trị Người dùng 360° (Admin User Detail Drawer)
+Khi Admin truy cập `/admin/users` và **click vào một tài khoản cụ thể**, hệ thống hiển thị Drawer thông tin chuyên biệt theo Role:
+
+#### A. Thao tác Chung cho mọi Tài khoản:
+- **Thông tin định danh:** Họ tên, Email FPT, Ngày tạo, Lần đăng nhập cuối, Trạng thái (`ACTIVE` / `BANNED`).
+- **Nút hành động Admin:**
+  * Dropdown chuyển đổi Role trực tiếp (`STUDENT` $\leftrightarrow$ `LECTURER` $\leftrightarrow$ `ADMIN`).
+  * Khóa / Mở khóa tài khoản (Ban/Unban) khi có dấu hiệu gian lận hoặc vi phạm an ninh mạng.
+  * Reset mật khẩu về mặc định khi người dùng báo mất quyền truy cập.
+
+#### B. Khi Click vào GIẢNG VIÊN (`LECTURER`):
+- **Thẻ thống kê KPI:** Số lớp đang phụ trách, Tổng số sinh viên đang dạy, Số lượng đề thi PE đã tạo.
+- **Danh sách Lớp học phụ trách:** Bảng các lớp (Mã lớp, Môn học PRF192/PRO192/CSD201, Sĩ số, Học kỳ).
+- **Phân công lớp mới:** Cho phép Admin gán thêm lớp cho giảng viên hoặc chuyển quyền phụ trách lớp khi giảng viên nghỉ phép.
+- **Kho Đề thi đã tạo:** Danh sách các bài thi PE do thầy/cô này thiết lập.
+- **Nhật ký Chấm thi:** Lịch sử giảng viên sửa điểm hoặc bấm Re-grade bài làm cho sinh viên.
+
+#### C. Khi Click vào SINH VIÊN (`STUDENT`):
+- **Thông tin Sinh viên:** Mã số sinh viên (MSSV), Chuyên ngành đào tạo.
+- **Lớp học đang tham gia:** Danh sách lớp học kèm tên Giảng viên giảng dạy.
+- **Lịch sử Thi & Điểm số:** Toàn bộ các bài thi PE đã nộp, điểm tổng kết (Sandbox 7.0 + AI Rubric 3.0), số lần submit file ZIP.
+- **Nhật ký An toàn & Kỹ thuật (Security Audit Log):**
+  * Ghi nhận các trường hợp bài nộp bị Docker Sandbox chặn do vi phạm an toàn (lệnh `rm -rf`, `fork()` bomb, gọi socket ra ngoài internet).
+  * Địa chỉ IP và thời gian nộp bài (phục vụ đối soát khi giám thị nghi vấn thi hộ).

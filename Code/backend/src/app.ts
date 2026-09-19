@@ -1,10 +1,8 @@
 import express, { Express } from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
+import { env } from './infrastructure/config/env.js';
 import healthRouter from './presentation/routes/health.route.js';
 import { errorHandler } from './presentation/middlewares/error.middleware.js';
-
-dotenv.config();
 
 const app: Express = express();
 

@@ -18,6 +18,7 @@ Toàn bộ tài liệu phân tích, thiết kế và sơ đồ kỹ thuật củ
 - [RBAC_Roles_and_Permissions.md](02_Requirements_SRS/RBAC_Roles_and_Permissions.md): Ma trận phân quyền chi tiết (ADMIN, LECTURER, STUDENT) và bảng CRUD Database permissions.
 - [4_FPT_PE_Mechanisms_and_Task_Breakdown.md](02_Requirements_SRS/4_FPT_PE_Mechanisms_and_Task_Breakdown.md): Phân tích chuyên sâu 2 luồng chấm PE đặc thù FPT (môn C vs môn Java PRO/CSD).
 - [Backend_Task_Allocation_6_Members.md](02_Requirements_SRS/Backend_Task_Allocation_6_Members.md): **[CHÍNH THỨC]** Kế hoạch phân chia 100% Backend cho 6 người (Bỏ GitHub, tập trung chấm ZIP, không chồng chéo).
+- [Frontend_Pages_and_Prompts_By_Role.md](02_Requirements_SRS/Frontend_Pages_and_Prompts_By_Role.md): **[THIẾT KẾ GIAO DIỆN & PROMPT]** Danh sách các trang theo phân quyền Role và bộ Prompt copy-paste sinh mã Frontend.
 - [Team_6_Fullstack_Task_Allocation.md](02_Requirements_SRS/Team_6_Fullstack_Task_Allocation.md): Kế hoạch phân chia Full-stack tham chiếu (cả FE + BE).
 
 ---
