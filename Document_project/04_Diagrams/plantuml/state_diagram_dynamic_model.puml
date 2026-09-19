@@ -1,0 +1,47 @@
+@startuml
+skinparam defaultTextAlignment center
+skinparam shadowing false
+skinparam roundCorner 8
+skinparam nodesep 60
+skinparam ranksep 60
+
+title Dynamic Modeling - State Machine Diagram: GradingJob Lifecycle
+
+skinparam state {
+    BackgroundColor WhiteSmoke
+    BorderColor DarkSlateGray
+    ArrowColor Navy
+    FontSize 12
+}
+
+state "1. QUEUED" as QUEUED #FCF3CF : Job nằm trong hàng đợi Redis BullMQ\nChờ Worker rảnh tiếp nhận
+
+state "2. RUNNING_SANDBOX" as RUNNING_SANDBOX #D6EAF8 : Docker nạp mã nguồn, biên dịch (gcc/javac)\nChạy kiểm thử an toàn (256MB RAM, timeout 2s)
+
+state "3. RUNNING_AI" as RUNNING_AI #E8DAEF : RAG truy xuất ý đồ testcase & đáp án mẫu\nXoay vòng API key, Gemini chấm điểm Rubric
+
+state "4. COMPLETED" as COMPLETED #D4EFDF : Tổng hợp điểm: Sandbox (max 7) + AI (max 3)\nTrạng thái bài nộp: GRADED (Đã có điểm)
+
+state "5. FAILED" as FAILED #FADBD8 : Thất bại sau 3 lần retry\nLưu log chi tiết lỗi cho Quản trị viên
+
+[*] --> QUEUED : Sinh viên nộp file .zip
+
+QUEUED --> RUNNING_SANDBOX : Worker lấy job ra chạy
+
+RUNNING_SANDBOX --> RUNNING_AI : [Có testcase bị Fail / TLE]\nKích hoạt RAG AI
+
+RUNNING_SANDBOX --> COMPLETED : [100% Pass hoặc Compile Error]\nHoàn tất không cần gọi AI
+
+RUNNING_AI --> COMPLETED : Chấm xong Rubric &\nSinh phản hồi Socratic
+
+' Nhánh Retry lỗi & Thất bại
+RUNNING_SANDBOX -left-> QUEUED : Lỗi hệ thống [retry < 3]
+RUNNING_AI -left-> QUEUED : Lỗi API / Rate limit [retry < 3]
+
+RUNNING_SANDBOX -right-> FAILED : [retry >= 3]
+RUNNING_AI -right-> FAILED : [retry >= 3]
+
+COMPLETED --> [*] : Sinh viên xem bảng điểm
+FAILED --> [*] : Kết thúc xử lý lỗi
+
+@enduml

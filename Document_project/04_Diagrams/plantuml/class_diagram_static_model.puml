@@ -3,135 +3,207 @@ skinparam classAttributeIconSize 0
 skinparam defaultTextAlignment center
 skinparam shadowing false
 skinparam roundCorner 8
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 70
 
 title Static Modeling - Domain Class Diagram (AITA System - FPT University)
 
-class User {
-  + userId : String
-  + email : String
-  + passwordHash : String
-  + fullName : String
-  + role : String
-  + githubUsername : String
+' ==============================================================================
+' 1. IAM & ACADEMIC MANAGEMENT
+' ==============================================================================
+package "1. IAM & Academic Management" #F8F9FA {
+    class User {
+        + id : String <<PK>>
+        + email : String
+        + passwordHash : String
+        + fullName : String
+        + role : Role
+        + avatarUrl : String
+        + createdAt : DateTime
+    }
+
+    class Course {
+        + id : String <<PK>>
+        + code : String
+        + name : String
+        + description : String
+        + lecturerId : String <<FK>>
+        + semester : String
+        + createdAt : DateTime
+    }
+
+    class CourseEnrollment {
+        + id : String <<PK>>
+        + courseId : String <<FK>>
+        + studentId : String <<FK>>
+        + joinedAt : DateTime
+    }
 }
 
-class Course {
-  + courseId : String
-  + code : String
-  + name : String
-  + semester : String
-  + description : String
+' ==============================================================================
+' 2. EXAM, TESTCASE & RAG KNOWLEDGE BASE
+' ==============================================================================
+package "2. Exam Specifications & RAG Knowledge" #F0F4F8 {
+    class Assignment {
+        + id : String <<PK>>
+        + courseId : String <<FK>>
+        + title : String
+        + description : String
+        + allowedLanguages : String
+        + deadline : DateTime
+        + maxScore : Decimal
+        + createdAt : DateTime
+    }
+
+    class AssignmentSolution {
+        + id : String <<PK>>
+        + assignmentId : String <<FK>>
+        + questionNo : String
+        + solutionCode : String
+        + explanationNotes : String
+        + complexityExpected : String
+        + createdAt : DateTime
+    }
+
+    class TestCase {
+        + id : String <<PK>>
+        + assignmentId : String <<FK>>
+        + questionNo : String
+        + testType : TestType
+        + outputFileName : String
+        + inputData : String
+        + expectedOutput : String
+        + timeLimitMs : Integer
+        + memoryLimitMb : Integer
+        + score : Decimal
+        + rationale : String
+        + isHidden : Boolean
+    }
+
+    class RubricRule {
+        + id : String <<PK>>
+        + assignmentId : String <<FK>>
+        + name : String
+        + description : String
+        + maxScore : Decimal
+        + weightPercent : Decimal
+        + promptInstruction : String
+        + orderIndex : Integer
+    }
 }
 
-class Team {
-  + teamId : String
-  + name : String
-  + gitRepoUrl : String
+' ==============================================================================
+' 3. SUBMISSION & DOCKER EXECUTION ENGINE
+' ==============================================================================
+package "3. Submission & Docker Execution Engine" #F9FBE7 {
+    class Submission {
+        + id : String <<PK>>
+        + assignmentId : String <<FK>>
+        + studentId : String <<FK>>
+        + submissionType : SubmissionType
+        + fileUrl : String
+        + stagedPath : String
+        + sandboxScore : Decimal
+        + aiScore : Decimal
+        + totalScore : Decimal
+        + status : SubmissionStatus
+        + submittedAt : DateTime
+    }
+
+    class GradingJob {
+        + id : String <<PK>>
+        + submissionId : String <<FK, Unique>>
+        + priority : Integer
+        + status : JobStatus
+        + retryCount : Integer
+        + maxRetries : Integer
+        + errorLog : String
+        + durationMs : Integer
+        + queuedAt : DateTime
+        + completedAt : DateTime
+    }
+
+    class SubmissionTestResult {
+        + id : String <<PK>>
+        + submissionId : String <<FK>>
+        + testCaseId : String <<FK>>
+        + passed : Boolean
+        + actualOutput : String
+        + executionTimeMs : Integer
+        + memoryUsedKb : Integer
+        + errorMessage : String
+    }
 }
 
-class Assignment {
-  + assignmentId : String
-  + title : String
-  + description : String
-  + allowedLanguages : String
-  + deadline : DateTime
-  + maxScore : Real
-  + isTeamWork : Boolean
+' ==============================================================================
+' 4. AI EVALUATION & SOCRATIC TUTOR
+' ==============================================================================
+package "4. AI Evaluation & Socratic Tutor" #F3E5F5 {
+    class AiApiKey {
+        + id : String <<PK>>
+        + provider : AiProvider
+        + apiKeyEncrypted : String
+        + isActive : Boolean
+        + requestCount : Integer
+        + rateLimitPerMin : Integer
+    }
+
+    class AiGradingResult {
+        + id : String <<PK>>
+        + submissionId : String <<FK>>
+        + rubricRuleId : String <<FK>>
+        + apiKeyUsedId : String <<FK, Nullable>>
+        + scoreGiven : Decimal
+        + aiFeedback : String
+        + rawResponse : JSON
+        + createdAt : DateTime
+    }
+
+    class AiTutorConversation {
+        + id : String <<PK>>
+        + submissionId : String <<FK>>
+        + studentId : String <<FK>>
+        + createdAt : DateTime
+    }
+
+    class AiTutorMessage {
+        + id : String <<PK>>
+        + conversationId : String <<FK>>
+        + sender : MessageSender
+        + message : String
+        + createdAt : DateTime
+    }
 }
 
-class TestCase {
-  + testCaseId : String
-  + inputData : String
-  + expectedOutput : String
-  + isHidden : Boolean
-  + timeLimitMs : Integer
-  + memoryLimitMb : Integer
-  + score : Real
-}
+' ==============================================================================
+' CLEAN DIRECTIONAL RELATIONSHIPS (TOP-TO-BOTTOM & ORTHOGONAL)
+' ==============================================================================
+' Tier 1: User & Course
+User "1" -right-> "0..*" Course : Teaches >
+Course "1" -down-> "0..*" CourseEnrollment : Has >
+User "1" -down-> "0..*" CourseEnrollment : Enrolls >
 
-class RubricRule {
-  + rubricId : String
-  + name : String
-  + maxScore : Real
-  + weightPercent : Real
-  + promptInstruction : String
-}
+' Tier 2: Course & Exam Specifications
+Course "1" -down-> "1..*" Assignment : Offers >
+Assignment "1" -down-> "0..*" AssignmentSolution : Model Solutions (RAG) >
+Assignment "1" -down-> "1..*" TestCase : Defines >
+Assignment "1" -down-> "1..*" RubricRule : Evaluates with >
 
-class Submission {
-  + submissionId : String
-  + submissionType : String
-  + fileUrl : String
-  + gitCommitHash : String
-  + totalScore : Real
-  + status : String
-  + submittedAt : DateTime
-}
+' Tier 3: Submission & Sandbox Engine
+User "1" -down-> "0..*" Submission : Submits (Individual ZIP) >
+Assignment "1" -down-> "0..*" Submission : Receives >
+Submission "1" -right-> "0..1" GradingJob : Dispatches Queue >
+Submission "1" -down-> "0..*" SubmissionTestResult : Produces >
+TestCase "1" -down-> "0..*" SubmissionTestResult : Evaluates in >
 
-class GradingJob {
-  + jobId : String
-  + priority : Integer
-  + status : String
-  + retryCount : Integer
-  + maxRetries : Integer
-  + errorLog : String
-  + durationMs : Integer
-  + queuedAt : DateTime
-}
+' Tier 4: AI Semantic Grading & Tutor Chat
+Submission "1" -down-> "0..*" AiGradingResult : Evaluated by >
+RubricRule "1" -down-> "0..*" AiGradingResult : Applies >
+AiApiKey "0..1" -right-> "0..*" AiGradingResult : Rotates >
 
-class SubmissionTestResult {
-  + resultId : String
-  + passed : Boolean
-  + actualOutput : String
-  + executionTimeMs : Integer
-  + memoryUsedKb : Integer
-}
-
-class AiApiKey {
-  + keyId : String
-  + provider : String
-  + apiKeyEncrypted : String
-  + isActive : Boolean
-  + requestCount : Integer
-  + rateLimitPerMin : Integer
-}
-
-class AiGradingResult {
-  + resultId : String
-  + scoreGiven : Real
-  + aiFeedback : String
-}
-
-class GitContribution {
-  + contributionId : String
-  + commitCount : Integer
-  + additions : Integer
-  + deletions : Integer
-  + lastCommitAt : DateTime
-}
-
-' ================= Associations with Multiplicities & Labels (FPT Standard) =================
-User "1" -- "0..*" Course : Teaches >
-Course "1" -- "1..*" User : Enrolls >
-Course "1" -- "0..*" Team : Has >
-User "1..*" -- "0..1" Team : Belongs to >
-
-Course "1" -- "1..*" Assignment : Contains >
-Assignment "1" -- "1..*" TestCase : Defines >
-Assignment "1" -- "1..*" RubricRule : Evaluates with >
-
-User "1" -- "0..*" Submission : Submits >
-Assignment "1" -- "0..*" Submission : Receives >
-Team "0..1" -- "0..*" Submission : Owns >
-
-Submission "1" -- "1" GradingJob : Queued as >
-Submission "1" -- "1..*" SubmissionTestResult : Produces >
-TestCase "1" -- "0..*" SubmissionTestResult : Evaluates in >
-
-Submission "1" -- "1..*" AiGradingResult : Evaluated by >
-RubricRule "1" -- "0..*" AiGradingResult : Guided for >
-AiApiKey "1" -- "0..*" AiGradingResult : Used by >
-
-Team "1" -- "1..*" GitContribution : Tracks >
-User "1" -- "0..*" GitContribution : Contributed by >
+Submission "1" -down-> "0..*" AiTutorConversation : Context for >
+AiTutorConversation "1" -right-> "1..*" AiTutorMessage : Contains >
 
 @enduml

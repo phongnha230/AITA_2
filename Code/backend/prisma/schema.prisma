@@ -175,6 +175,8 @@ model RubricRule {
 model TestCase {
   id             String                 @id @default(uuid())
   assignmentId   String                 @map("assignment_id")
+  questionNo     String                 @default("Q1") @map("question_no")
+  outputFileName String?                @map("output_file_name")
   inputData      String                 @db.LongText @map("input_data")
   expectedOutput String                 @db.LongText @map("expected_output")
   isHidden       Boolean                @default(false) @map("is_hidden")
@@ -188,6 +190,7 @@ model TestCase {
   assignment     Assignment             @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
   results        SubmissionTestResult[]
 
+  @@index([assignmentId, questionNo])
   @@map("test_cases")
 }
 
@@ -198,7 +201,10 @@ model Submission {
   teamId         String?                @map("team_id")
   submissionType SubmissionType         @default(ZIP_FILE) @map("submission_type")
   fileUrl        String?                @map("file_url")
+  stagedPath     String?                @map("staged_path")
   gitCommitHash  String?                @map("git_commit_hash")
+  sandboxScore   Decimal?               @db.Decimal(5, 2) @map("sandbox_score")
+  aiScore        Decimal?               @db.Decimal(5, 2) @map("ai_score")
   totalScore     Decimal?               @db.Decimal(5, 2) @map("total_score")
   status         SubmissionStatus       @default(PENDING)
   submittedAt    DateTime               @default(now()) @map("submitted_at")

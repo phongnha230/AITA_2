@@ -106,6 +106,8 @@ CREATE TABLE rubric_rules (
 CREATE TABLE test_cases (
     id VARCHAR(36) PRIMARY KEY,
     assignment_id VARCHAR(36) NOT NULL,
+    question_no VARCHAR(10) NOT NULL DEFAULT 'Q1', -- 'Q1', 'Q2', 'Q3', 'Q4' (phục vụ phân loại bài thi PRO/CSD)
+    output_file_name VARCHAR(50) NULL, -- vd: 'f1.txt' (nếu NULL thì so sánh qua stdout console; có giá trị thì so sánh File I/O CSD201)
     input_data LONGTEXT NOT NULL,
     expected_output LONGTEXT NOT NULL,
     is_hidden BOOLEAN NOT NULL DEFAULT FALSE,
@@ -116,7 +118,7 @@ CREATE TABLE test_cases (
     test_type ENUM('BASIC', 'EDGE_CASE', 'PERFORMANCE', 'EXCEPTION') NOT NULL DEFAULT 'BASIC',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_testcases_assignment FOREIGN KEY (assignment_id) REFERENCES assignments(id) ON DELETE CASCADE,
-    INDEX idx_testcases_assignment (assignment_id)
+    INDEX idx_testcases_assignment (assignment_id, question_no)
 ) ENGINE=InnoDB;
 
 -- Kho Tri Thức Đáp Án Mẫu & Solution Notes phục vụ RAG (Lập chỉ mục vào Vector DB)
@@ -141,9 +143,12 @@ CREATE TABLE submissions (
     student_id VARCHAR(36) NOT NULL,
     team_id VARCHAR(36) NULL,
     submission_type ENUM('ZIP_FILE', 'GIT_REPO') NOT NULL DEFAULT 'ZIP_FILE',
-    file_url VARCHAR(255) NULL,
+    file_url VARCHAR(255) NULL, -- Đường dẫn file .zip gốc lưu trữ
+    staged_path VARCHAR(255) NULL, -- Đường dẫn thư mục mã nguồn đã giải nén & lọc sạch rác để mount Docker
     git_commit_hash VARCHAR(64) NULL,
-    total_score DECIMAL(5,2) NULL,
+    sandbox_score DECIMAL(5,2) NULL, -- Điểm testcase thực thi (max 7.00)
+    ai_score DECIMAL(5,2) NULL, -- Điểm đánh giá ngữ nghĩa Rubric (max 3.00)
+    total_score DECIMAL(5,2) NULL, -- Tổng điểm = sandbox_score + ai_score (thang 10)
     status ENUM('PENDING', 'PROCESSING', 'GRADED', 'FAILED') NOT NULL DEFAULT 'PENDING',
     submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_submissions_assignment FOREIGN KEY (assignment_id) REFERENCES assignments(id) ON DELETE CASCADE,

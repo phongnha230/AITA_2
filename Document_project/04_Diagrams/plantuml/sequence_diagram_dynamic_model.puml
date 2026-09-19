@@ -1,0 +1,178 @@
+@startuml
+skinparam defaultTextAlignment center
+skinparam shadowing false
+skinparam roundCorner 8
+skinparam sequenceMessageAlign center
+skinparam BoxPadding 10
+skinparam ParticipantPadding 10
+
+title Dynamic Modeling - Sequence Diagram: Automated PE Grading with Sandbox & RAG (UC06)
+
+actor "Student\n(Sinh viên)" as Student #LightBlue
+
+box "Presentation Layer" #WhiteSmoke
+    participant "SubmissionController" as SubCtrl #LightGreen
+end box
+
+box "Application Layer (Use Cases)" #WhiteSmoke
+    participant "SubmitAssignmentUseCase" as SubmitUC #LightYellow
+    participant "ProcessGradingJobUseCase" as GradeUC #LightYellow
+end box
+
+box "Infrastructure - Storage & Queue" #WhiteSmoke
+    participant "ZipExtractorService" as ZipSvc #Lavender
+    participant "BullMQQueue\n(Redis)" as Queue #Gold
+    participant "BullMQWorker" as Worker #Gold
+end box
+
+box "Infrastructure - Docker Sandbox" #WhiteSmoke
+    participant "SandboxRunnerFactory" as Factory #LightPink
+    participant "DockerSandboxRunner\n(C / Java)" as Sandbox #LightPink
+end box
+
+box "Infrastructure - RAG & AI Tutor" #WhiteSmoke
+    participant "RagKnowledgeFacade\n(ChromaDB)" as RAG #Thistle
+    participant "ApiKeyRotator" as KeyRotator #Thistle
+    participant "LLMProvider\n(Gemini / OpenAI)" as LLM #Thistle
+end box
+
+database "MySQL Database\n(Prisma ORM)" as DB #LightCyan
+
+' ==============================================================================
+' PHASE 1: SUBMISSION & STAGING
+' ==============================================================================
+autonumber "<b>[00]</b>"
+Student -> SubCtrl : POST /api/v1/submissions (multipart/form-data: submission.zip)
+activate SubCtrl
+
+SubCtrl -> SubmitUC : execute(studentId, assignmentId, file)
+activate SubmitUC
+
+SubmitUC -> ZipSvc : extractAndSanitize(fileBuffer, workspaceDir)
+activate ZipSvc
+note over ZipSvc
+  1. Giải nén file .zip
+  2. Đệ quy xóa thư mục rác __MACOSX, .DS_Store, Thumbs.db
+  3. Nhận diện cấu trúc: C (.c đơn lẻ) hoặc Java (Q1, Q2, Q3, Q4)
+end note
+ZipSvc --> SubmitUC : stagedPath (đường dẫn mã nguồn sạch)
+deactivate ZipSvc
+
+SubmitUC -> DB : INSERT INTO submissions (status = 'PENDING', staged_path)
+DB --> SubmitUC : submission record created
+
+SubmitUC -> Queue : addGradingJob(submissionId, stagedPath, priority)
+Queue --> SubmitUC : bullJobId enqueued
+
+SubmitUC -> DB : INSERT INTO grading_jobs (submission_id, status = 'QUEUED', priority)
+DB --> SubmitUC : job record created
+
+SubmitUC --> SubCtrl : { submissionId, status: "QUEUED" }
+deactivate SubmitUC
+
+SubCtrl --> Student : HTTP 202 Accepted { submissionId, message: "Job is queued" }
+deactivate SubCtrl
+
+' ==============================================================================
+' PHASE 2: REDIS WORKER & DOCKER SANDBOX EXECUTION
+' ==============================================================================
+== BẮT ĐẦU CHU TRÌNH CHẤM BẤT ĐỒNG BỘ ==
+
+Worker -> Queue : popNextJob()
+activate Worker
+Queue --> Worker : jobData { submissionId, stagedPath }
+
+Worker -> GradeUC : process(jobData)
+activate GradeUC
+
+GradeUC -> DB : UPDATE grading_jobs SET status = 'RUNNING_SANDBOX'
+GradeUC -> DB : SELECT * FROM assignments JOIN test_cases WHERE assignment_id = ...
+DB --> GradeUC : assignment & testcases list (với rationale & output_file_name)
+
+GradeUC -> Factory : createRunner(language: 'C' | 'JAVA')
+activate Factory
+Factory --> GradeUC : runnerInstance (CSandboxRunner | JavaSandboxRunner)
+deactivate Factory
+
+GradeUC -> Sandbox : execute(stagedPath, testCases)
+activate Sandbox
+note over Sandbox
+  - Mount thư mục stagedPath vào container cô lập
+  - Giới hạn cgroups: 256MB RAM, timeout 2000ms
+  - Compile: gcc -O2 hoặc javac
+  - PRF192: Stdio redirection (< input.txt > output.txt)
+  - CSD201: File I/O diff (nạp data.txt -> so khớp f1.txt, f2.txt)
+end note
+
+alt Lỗi biên dịch (Compile Error)
+    Sandbox --> GradeUC : { compileError: "Syntax Error...", testResults: [] }
+    GradeUC -> DB : UPDATE submissions SET sandbox_score = 0, status = 'FAILED'
+else Biên dịch thành công & Chạy Testcases
+    Sandbox --> GradeUC : { compileError: null, testResults: [...], passedCount, failedCount }
+end
+deactivate Sandbox
+
+GradeUC -> DB : BULK INSERT INTO submission_test_results (actual_output, passed, exec_time, mem)
+GradeUC -> DB : UPDATE submissions SET sandbox_score = calculatedSandboxScore (max 7.0)
+
+' ==============================================================================
+' PHASE 3: RAG VECTOR SEARCH & AI SEMANTIC GRADING
+' ==============================================================================
+== TRUY XUẤT RAG & CHẤM ĐIỂM NGỮ NGHĨA AI ==
+
+alt Có Testcase bị FAIL / TLE / Wrong Answer
+    GradeUC -> DB : UPDATE grading_jobs SET status = 'RUNNING_AI'
+    
+    GradeUC -> RAG : getFailedTestContext(assignmentId, failedTestcaseIds)
+    activate RAG
+    note over RAG
+      Vector Search ChromaDB:
+      - Ý đồ kiểm tra testcase: test_cases.rationale
+      - Đáp án mẫu: assignment_solutions (complexity, notes)
+    end note
+    RAG --> GradeUC : ragContext { expectedComplexity: "O(n log n)", rationale, solutionSnippet }
+    deactivate RAG
+
+    GradeUC -> KeyRotator : getNextActiveApiKey()
+    activate KeyRotator
+    KeyRotator --> GradeUC : activeApiKey (xoay vòng Round-Robin)
+    deactivate KeyRotator
+
+    GradeUC -> LLM : evaluateSemantic(studentCode, ragContext, rubricRules, activeApiKey)
+    activate LLM
+    note over LLM
+      Prompt phân tích sư phạm (Socratic):
+      - Đối chiếu code thực tế vs Rationale RAG
+      - Phát hiện độ phức tạp thuật toán O(n^2)
+      - Chấm điểm tiêu chí Rubric (max 3.0)
+      - Sinh hướng dẫn khắc phục mà KHÔNG lộ code giải
+    end note
+    LLM --> GradeUC : { rubricScores: [...], totalAiScore: 2.5, pedagogicalFeedback: "..." }
+    deactivate LLM
+
+    GradeUC -> DB : BULK INSERT INTO ai_grading_results (rubric_rule_id, score_given, ai_feedback)
+    GradeUC -> DB : UPDATE submissions SET ai_score = 2.5
+else Toàn bộ Testcases đều PASS (100% Pass)
+    GradeUC -> DB : UPDATE submissions SET ai_score = 3.0 (Điểm tối đa)
+end
+
+' ==============================================================================
+' PHASE 4: TỔNG HỢP KẾT QUẢ & HOÀN TẤT
+' ==============================================================================
+GradeUC -> DB : UPDATE submissions SET total_score = (sandbox_score + ai_score), status = 'GRADED'
+GradeUC -> DB : UPDATE grading_jobs SET status = 'COMPLETED', completed_at = NOW()
+GradeUC --> Worker : jobCompleted
+deactivate GradeUC
+deactivate Worker
+
+' ==============================================================================
+' PHASE 5: CLIENT XEM BÁO CÁO ĐIỂM CHI TIẾT
+' ==============================================================================
+Student -> SubCtrl : GET /api/v1/submissions/{id}/report
+activate SubCtrl
+SubCtrl -> DB : SELECT * FROM submissions JOIN submission_test_results JOIN ai_grading_results
+DB --> SubCtrl : fullReportData
+SubCtrl --> Student : HTTP 200 OK (ScoreReport: Sandbox 7.0 + AI 3.0 = Total Score, Test Details & Socratic Feedback)
+deactivate SubCtrl
+
+@enduml
