@@ -2,6 +2,7 @@ import express, { Express } from 'express';
 import cors from 'cors';
 import { env } from './infrastructure/config/env.js';
 import healthRouter from './presentation/routes/health.route.js';
+import submissionRouter from './presentation/routes/submission.route.js';
 import { errorHandler } from './presentation/middlewares/error.middleware.js';
 
 const app: Express = express();
@@ -23,6 +24,7 @@ app.get('/', (req, res) => {
 
 // API Routes
 app.use('/api/v1', healthRouter);
+app.use('/api/v1', submissionRouter);
 
 // Global Error Handler
 app.use(errorHandler);
