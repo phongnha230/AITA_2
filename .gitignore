@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# API Testing (Bruno)
+bruno/
+**/bruno/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Build and distribution
+dist/
+**/dist/
+.next/
+**/out/
+build/
+
+# Runtime uploads and workspace temp
+uploads/
+**/uploads/
+workspaces/
+**/workspaces/
+*.log
+npm-debug.log*
+
+# System files
+.DS_Store
+Thumbs.db
