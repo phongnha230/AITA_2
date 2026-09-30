@@ -27,6 +27,7 @@ Toàn bộ tài liệu phân tích, thiết kế và sơ đồ kỹ thuật củ
 - [2_Database_Schema.sql](03_Architecture_Database/2_Database_Schema.sql): Kịch bản SQL tạo Database MySQL hoàn chỉnh (GradingJob có priority, RubricRule, AiApiKey rotation).
 - [3_System_Architecture_and_Code_Plan.md](03_Architecture_Database/3_System_Architecture_and_Code_Plan.md): Kiến trúc Clean Architecture, 3 Design Patterns và kế hoạch 10 tuần.
 - [4_Core_Concepts_Static_Dynamic_RAG_Sandbox.md](03_Architecture_Database/4_Core_Concepts_Static_Dynamic_RAG_Sandbox.md): **[BẮT BUỘC ĐỌC]** Cẩm nang giải thích chuyên sâu các khái niệm cốt lõi: Mô hình tĩnh vs Mô hình động, Cơ chế RAG, Docker Sandbox và Bộ câu hỏi phản biện bảo vệ đồ án (Defense Q&A).
+- [5_Design_Patterns.md](03_Architecture_Database/5_Design_Patterns.md): **[MẪU THIẾT KẾ]** Tài liệu toàn diện về các Design Patterns (Factory, Adapter, Facade, Strategy, Observer, Template Method, v.v.) áp dụng trong mã nguồn và bộ câu hỏi phản biện.
 
 ---
 
