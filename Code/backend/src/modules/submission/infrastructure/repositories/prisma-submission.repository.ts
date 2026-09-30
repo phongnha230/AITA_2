@@ -154,8 +154,38 @@ export class PrismaSubmissionRepository implements ISubmissionRepository {
 
   async updateGitMetadata(
     id: string,
-    data: { commitCount?: number; locChurn?: number; gitCommitHash?: string }
+    data: {
+      commitCount?: number;
+      locChurn?: number;
+      gitCommitHash?: string;
+      contributors?: Array<{
+        authorName: string;
+        authorEmail: string;
+        commitCount: number;
+        linesAdded: number;
+        linesDeleted: number;
+        contributionPct: number;
+      }>;
+    }
   ): Promise<Submission> {
+    if (data.contributors && data.contributors.length > 0) {
+      await this.prisma.gitContributor.deleteMany({
+        where: { submissionId: id },
+      });
+
+      await this.prisma.gitContributor.createMany({
+        data: data.contributors.map((c) => ({
+          submissionId: id,
+          authorName: c.authorName,
+          authorEmail: c.authorEmail,
+          commitCount: c.commitCount,
+          linesAdded: c.linesAdded,
+          linesDeleted: c.linesDeleted,
+          contributionPct: c.contributionPct,
+        })),
+      });
+    }
+
     const raw = await this.prisma.submission.update({
       where: { id },
       data: {
@@ -172,4 +202,5 @@ export class PrismaSubmissionRepository implements ISubmissionRepository {
     return this.toDomain(raw);
   }
 }
+
 

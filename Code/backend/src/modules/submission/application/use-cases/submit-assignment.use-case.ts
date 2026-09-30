@@ -81,7 +81,9 @@ export class SubmitAssignmentUseCase {
           commitCount: gitResult.commitCount,
           locChurn: gitResult.locChurn,
           gitCommitHash: gitResult.resolvedCommitHash,
+          contributors: gitResult.contributors,
         });
+
 
         await gradingDispatcher.dispatch(submission.id, gitResult.stagedPath);
 

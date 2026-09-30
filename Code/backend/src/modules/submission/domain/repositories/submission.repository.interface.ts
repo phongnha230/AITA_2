@@ -20,7 +20,20 @@ export interface ISubmissionRepository {
   updateZipFilePath(id: string, zipFilePath: string): Promise<Submission>;
   updateGitMetadata(
     id: string,
-    data: { commitCount?: number; locChurn?: number; gitCommitHash?: string }
+    data: {
+      commitCount?: number;
+      locChurn?: number;
+      gitCommitHash?: string;
+      contributors?: Array<{
+        authorName: string;
+        authorEmail: string;
+        commitCount: number;
+        linesAdded: number;
+        linesDeleted: number;
+        contributionPct: number;
+      }>;
+    }
   ): Promise<Submission>;
 }
+
 

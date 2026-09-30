@@ -7,19 +7,29 @@ import { ValidationError } from '../../../../shared/domain/exceptions/app.error.
 
 const execFileAsync = promisify(execFile);
 
+export interface ContributorMetric {
+  authorName: string;
+  authorEmail: string;
+  commitCount: number;
+  linesAdded: number;
+  linesDeleted: number;
+  contributionPct: number;
+}
+
 export interface GitIngestionResult {
   stagedPath: string;
   commitCount: number;
   locChurn: number;
   resolvedCommitHash: string;
   extractedVercelUrl?: string;
+  contributors: ContributorMetric[];
 }
 
 export class GitIngestionService {
   constructor(private readonly workspace: WorkspaceService = workspaceService) {}
 
   /**
-   * Clone Git repository sinh viên, checkout commit và phân tích metadata (Commit count, LOC churn)
+   * Clone Git repository sinh viên, checkout commit và phân tích metadata (Commit count, LOC churn, Contributor breakdown)
    */
   public async cloneAndAnalyze(
     gitRepoUrl: string,
@@ -67,9 +77,40 @@ export class GitIngestionService {
         commitCount = 1;
       }
 
-      // 4. Tính toán mức độ biến động code (LOC Churn)
+      // 4. Tính toán mức độ biến động code (LOC Churn) & bóc tách từng tác giả (Contributors)
       let locChurn = 0;
+      const contributorsMap = new Map<
+        string,
+        { name: string; email: string; commits: number; added: number; deleted: number }
+      >();
+
       try {
+        const { stdout: shortlogOut } = await execFileAsync(
+          'git',
+          ['shortlog', '-sne', '--no-merges', 'HEAD'],
+          {
+            cwd: workspacePath,
+            timeout: 10000,
+          }
+        );
+
+        const lines = shortlogOut.split('\n').filter(Boolean);
+        for (const line of lines) {
+          const match = line.trim().match(/^(\d+)\s+(.+?)\s+<([^>]+)>/);
+          if (match) {
+            const count = parseInt(match[1], 10) || 0;
+            const name = match[2].trim();
+            const email = match[3].trim().toLowerCase();
+            contributorsMap.set(email, {
+              name,
+              email,
+              commits: count,
+              added: 0,
+              deleted: 0,
+            });
+          }
+        }
+
         const { stdout: statOut } = await execFileAsync(
           'git',
           ['log', '--shortstat', '--no-merges'],
@@ -79,7 +120,6 @@ export class GitIngestionService {
           }
         );
 
-        // Regex tìm "X insertions(+), Y deletions(-)"
         const insertionMatches = statOut.match(/(\d+)\s+insertion/g) || [];
         const deletionMatches = statOut.match(/(\d+)\s+deletion/g) || [];
 
@@ -101,7 +141,26 @@ export class GitIngestionService {
         locChurn = 0;
       }
 
-      // 5. Kiểm tra có config Vercel / Target URL hay không
+      // 5. Tính % đóng góp của từng thành viên
+      const contributors: ContributorMetric[] = [];
+      const totalCommits = Array.from(contributorsMap.values()).reduce(
+        (sum, c) => sum + c.commits,
+        0
+      );
+
+      for (const c of contributorsMap.values()) {
+        const pct = totalCommits > 0 ? Number(((c.commits / totalCommits) * 100).toFixed(2)) : 100;
+        contributors.push({
+          authorName: c.name,
+          authorEmail: c.email,
+          commitCount: c.commits,
+          linesAdded: c.added,
+          linesDeleted: c.deleted,
+          contributionPct: pct,
+        });
+      }
+
+      // 6. Kiểm tra có config Vercel / Target URL hay không
       let extractedVercelUrl: string | undefined;
       try {
         const vercelPath = path.join(workspacePath, 'vercel.json');
@@ -119,9 +178,9 @@ export class GitIngestionService {
         locChurn,
         resolvedCommitHash: resolvedHash,
         extractedVercelUrl,
+        contributors,
       };
     } catch (err: any) {
-      // Dọn dẹp thư mục nếu clone lỗi
       await this.workspace.cleanupWorkspace(submissionId);
       throw new Error(`[GitIngestionService] Lỗi khi clone và xử lý Git repo: ${err.message}`);
     }
@@ -129,3 +188,4 @@ export class GitIngestionService {
 }
 
 export const gitIngestionService = new GitIngestionService();
+
