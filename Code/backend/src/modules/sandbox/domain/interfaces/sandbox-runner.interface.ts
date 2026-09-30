@@ -1,11 +1,11 @@
 export type TestExecutionStatus =
-  | "PASSED"
-  | "WRONG_ANSWER"
-  | "TIME_LIMIT_EXCEEDED"
-  | "MEMORY_LIMIT_EXCEEDED"
-  | "RUNTIME_ERROR"
-  | "COMPILE_ERROR"
-  | "FILE_NOT_FOUND";
+  | 'PASSED'
+  | 'WRONG_ANSWER'
+  | 'TIME_LIMIT_EXCEEDED'
+  | 'MEMORY_LIMIT_EXCEEDED'
+  | 'RUNTIME_ERROR'
+  | 'COMPILE_ERROR'
+  | 'FILE_NOT_FOUND';
 
 export interface TestCaseInput {
   id: string;
@@ -42,12 +42,12 @@ export interface SandboxExecutionSummary {
 
 export interface ISandboxRunner {
   /**
-   * Biên dịch và chạy toàn bộ testcases cho bài nộp
+   * Biên dịch và chạy toàn bộ testcases cho bài nộp trong môi trường Docker cô lập
    * @param stagedFolderPath Đường dẫn thư mục code sạch đã giải nén
    * @param testCases Danh sách testcases
    */
   execute(
     stagedFolderPath: string,
-    testCases: TestCaseInput[],
+    testCases: TestCaseInput[]
   ): Promise<SandboxExecutionSummary>;
 }

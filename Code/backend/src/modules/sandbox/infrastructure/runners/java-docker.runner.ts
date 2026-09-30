@@ -1,15 +1,15 @@
-import { exec, spawn } from "child_process";
-import * as fs from "fs";
-import * as path from "path";
-import { promisify } from "util";
-import env from "../../config/env";
-import { OutputComparator } from "../comparator/output-comparator";
+import { exec, spawn } from 'child_process';
+import * as fs from 'fs';
+import * as path from 'path';
+import { promisify } from 'util';
+import { env } from '../../../../infrastructure/config/env.js';
+import { OutputComparator } from '../comparator/output-comparator.js';
 import {
   ISandboxRunner,
   SandboxExecutionSummary,
   TestCaseInput,
   TestCaseResult,
-} from "../interfaces/sandbox-runner.interface";
+} from '../../domain/interfaces/sandbox-runner.interface.js';
 
 const execAsync = promisify(exec);
 
@@ -26,18 +26,18 @@ export class JavaDockerRunner implements ISandboxRunner {
 
   public async execute(
     stagedFolderPath: string,
-    testCases: TestCaseInput[],
+    testCases: TestCaseInput[]
   ): Promise<SandboxExecutionSummary> {
     const isDocker = await this.isDockerDaemonRunning();
-    const binDir = path.join(stagedFolderPath, "bin");
+    const binDir = path.join(stagedFolderPath, 'bin');
     if (!fs.existsSync(binDir)) fs.mkdirSync(binDir, { recursive: true });
 
     // 1. Quét tìm tất cả các file .java
-    const javaFiles = this.getAllFiles(stagedFolderPath, ".java");
+    const javaFiles = this.getAllFiles(stagedFolderPath, '.java');
     if (javaFiles.length === 0) {
       return {
         success: false,
-        compileError: "COMPILE_ERROR: Không tìm thấy file .java nào trong bài nộp.",
+        compileError: 'COMPILE_ERROR: Không tìm thấy file .java nào trong bài nộp.',
         totalTests: testCases.length,
         passedTests: 0,
         totalScore: 0,
@@ -49,7 +49,7 @@ export class JavaDockerRunner implements ISandboxRunner {
     // 2. Biên dịch javac
     const compileCmd = isDocker
       ? `docker run --rm --network none -v "${path.resolve(stagedFolderPath)}":/app -w /app openjdk:17-alpine sh -c "javac -encoding UTF-8 -d ./bin $(find . -name '*.java')"`
-      : `javac -encoding UTF-8 -d "${binDir}" ${javaFiles.map((f: string) => `"${f}"`).join(" ")}`;
+      : `javac -encoding UTF-8 -d "${binDir}" ${javaFiles.map((f: string) => `"${f}"`).join(' ')}`;
 
     try {
       await execAsync(compileCmd, { cwd: stagedFolderPath, timeout: 20000 });
@@ -86,7 +86,7 @@ export class JavaDockerRunner implements ISandboxRunner {
       passedTests: passedCount,
       totalScore: Number(totalScore.toFixed(2)),
       maxScore: Number(
-        testCases.reduce((sum, tc) => sum + tc.score, 0).toFixed(2),
+        testCases.reduce((sum, tc) => sum + tc.score, 0).toFixed(2)
       ),
       results,
     };
@@ -95,7 +95,7 @@ export class JavaDockerRunner implements ISandboxRunner {
   private async runSingleTestCase(
     stagedFolderPath: string,
     tc: TestCaseInput,
-    isDocker: boolean,
+    isDocker: boolean
   ): Promise<TestCaseResult> {
     const startTime = Date.now();
     const questionDir = path.join(stagedFolderPath, tc.questionNo);
@@ -103,62 +103,62 @@ export class JavaDockerRunner implements ISandboxRunner {
 
     // Nạp file data.txt cho đề thi CSD201
     if (tc.outputFileName) {
-      fs.writeFileSync(path.join(workDir, "data.txt"), tc.inputData);
+      fs.writeFileSync(path.join(workDir, 'data.txt'), tc.inputData);
     }
 
     return new Promise((resolve) => {
-      let stdout = "";
-      let stderr = "";
+      let stdout = '';
+      let stderr = '';
       let isTimedOut = false;
 
       let childProcess: any;
       if (isDocker) {
-        childProcess = spawn("docker", [
-          "run",
-          "--rm",
-          "-i",
-          "--network",
-          "none",
-          "--memory",
+        childProcess = spawn('docker', [
+          'run',
+          '--rm',
+          '-i',
+          '--network',
+          'none',
+          '--memory',
           `${tc.memoryLimitMb}m`,
-          "-v",
+          '-v',
           `${path.resolve(stagedFolderPath)}:/app`,
-          "-w",
-          `/app${fs.existsSync(questionDir) ? "/" + tc.questionNo : ""}`,
-          "openjdk:17-alpine",
-          "java",
-          "-Xmx256m",
-          "-cp",
-          "/app/bin:./bin:.",
-          "Main",
+          '-w',
+          `/app${fs.existsSync(questionDir) ? '/' + tc.questionNo : ''}`,
+          'openjdk:17-alpine',
+          'java',
+          '-Xmx256m',
+          '-cp',
+          '/app/bin:./bin:.',
+          'Main',
         ]);
       } else {
         childProcess = spawn(
-          "java",
-          ["-Xmx256m", "-cp", `${path.join(stagedFolderPath, "bin")};.`, "Main"],
-          { cwd: workDir },
+          'java',
+          ['-Xmx256m', '-cp', `${path.join(stagedFolderPath, 'bin')};.`, 'Main'],
+          { cwd: workDir }
         );
       }
 
       const timer = setTimeout(() => {
         isTimedOut = true;
-        childProcess.kill("SIGKILL");
+        childProcess.kill('SIGKILL');
       }, tc.timeLimitMs);
 
-      childProcess.stdout?.on("data", (d: Buffer) => {
+      childProcess.stdout?.on('data', (d: Buffer) => {
         stdout += d.toString();
       });
-      childProcess.stderr?.on("data", (d: Buffer) => {
+      childProcess.stderr?.on('data', (d: Buffer) => {
         stderr += d.toString();
       });
 
       // Nếu là console PRO192 thì bơm menu lựa chọn qua stdin
       if (tc.inputData && !tc.outputFileName) {
-        childProcess.stdin?.write(tc.inputData + "\n");
+        childProcess.stdin?.write(tc.inputData + '\n');
         childProcess.stdin?.end();
       }
 
-      childProcess.on("close", (code: number) => {
+      childProcess.on('close', (code: number) => {
         clearTimeout(timer);
         const duration = Date.now() - startTime;
 
@@ -167,7 +167,7 @@ export class JavaDockerRunner implements ISandboxRunner {
             testCaseId: tc.id,
             questionNo: tc.questionNo,
             passed: false,
-            status: "TIME_LIMIT_EXCEEDED",
+            status: 'TIME_LIMIT_EXCEEDED',
             actualOutput: stdout,
             expectedOutput: tc.expectedOutput,
             executionTimeMs: duration,
@@ -184,8 +184,8 @@ export class JavaDockerRunner implements ISandboxRunner {
               testCaseId: tc.id,
               questionNo: tc.questionNo,
               passed: false,
-              status: "FILE_NOT_FOUND",
-              actualOutput: "",
+              status: 'FILE_NOT_FOUND',
+              actualOutput: '',
               expectedOutput: tc.expectedOutput,
               executionTimeMs: duration,
               memoryUsedKb: 0,
@@ -193,13 +193,13 @@ export class JavaDockerRunner implements ISandboxRunner {
             });
           }
 
-          const fileContent = fs.readFileSync(generatedFilePath, "utf-8");
+          const fileContent = fs.readFileSync(generatedFilePath, 'utf-8');
           const isMatch = OutputComparator.compare(fileContent, tc.expectedOutput);
           return resolve({
             testCaseId: tc.id,
             questionNo: tc.questionNo,
             passed: isMatch,
-            status: isMatch ? "PASSED" : "WRONG_ANSWER",
+            status: isMatch ? 'PASSED' : 'WRONG_ANSWER',
             actualOutput: fileContent,
             expectedOutput: tc.expectedOutput,
             executionTimeMs: duration,
@@ -213,7 +213,7 @@ export class JavaDockerRunner implements ISandboxRunner {
           testCaseId: tc.id,
           questionNo: tc.questionNo,
           passed: isMatch,
-          status: isMatch ? "PASSED" : (code !== 0 ? "RUNTIME_ERROR" : "WRONG_ANSWER"),
+          status: isMatch ? 'PASSED' : code !== 0 ? 'RUNTIME_ERROR' : 'WRONG_ANSWER',
           actualOutput: stdout,
           expectedOutput: tc.expectedOutput,
           executionTimeMs: duration,
@@ -230,7 +230,7 @@ export class JavaDockerRunner implements ISandboxRunner {
     for (const file of list) {
       const fullPath = path.join(dir, file);
       const stat = fs.statSync(fullPath);
-      if (stat && stat.isDirectory() && file !== "bin") {
+      if (stat && stat.isDirectory() && file !== 'bin') {
         results = results.concat(this.getAllFiles(fullPath, ext));
       } else if (file.endsWith(ext)) {
         results.push(fullPath);

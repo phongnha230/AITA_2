@@ -6,13 +6,13 @@ export class OutputComparator {
    * - Bỏ dòng trống thừa ở đầu và cuối file
    */
   public static normalize(text: string): string {
-    if (!text) return "";
+    if (!text) return '';
     return text
-      .replace(/\r\n/g, "\n")
-      .replace(/\r/g, "\n")
-      .split("\n")
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .split('\n')
       .map((line) => line.trimEnd())
-      .join("\n")
+      .join('\n')
       .trim();
   }
 

@@ -24,6 +24,7 @@ app.get('/', (_req, res) => {
       courses: '/api/v1/courses',
       assignments: '/api/v1/assignments',
       submissions: '/api/v1/submissions',
+      sandbox: '/api/v1/sandbox',
     },
   });
 });

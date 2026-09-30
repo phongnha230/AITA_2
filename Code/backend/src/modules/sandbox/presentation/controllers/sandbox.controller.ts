@@ -4,17 +4,18 @@ import * as path from 'path';
 import * as crypto from 'crypto';
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import env from '../../infrastructure/config/env.js';
-import { SandboxRunnerFactory } from '../../infrastructure/sandbox/sandbox-runner.factory.js';
-import { SandboxService } from '../../infrastructure/sandbox/services/sandbox.service.js';
-import { TestCaseInput } from '../../infrastructure/sandbox/interfaces/sandbox-runner.interface.js';
+import { env } from '../../../../infrastructure/config/env.js';
+import { SandboxRunnerFactory } from '../../infrastructure/sandbox-runner.factory.js';
+import { SandboxService } from '../../application/services/sandbox.service.js';
+import { TestCaseInput } from '../../domain/interfaces/sandbox-runner.interface.js';
+import { sendSuccess } from '../../../../shared/presentation/utils/api-response.util.js';
+import { ValidationError } from '../../../../shared/domain/exceptions/app.error.js';
 
 const execAsync = promisify(exec);
 
 export class SandboxController {
   /**
    * GET /api/v1/sandbox/status
-   * Kiểm tra tình trạng môi trường Sandbox (Docker, Compilers)
    */
   public static async getStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -34,14 +35,14 @@ export class SandboxController {
         javaVersion = 'NOT_INSTALLED';
       }
 
-      res.status(200).json({
-        success: true,
-        message: 'Sandbox Execution Engine Status',
-        data: {
+      sendSuccess(
+        res,
+        {
           status: 'READY',
           useDockerSandboxConfig: env.USE_DOCKER_SANDBOX,
           dockerDaemonRunning: dockerAvailable,
-          activeMode: dockerAvailable && env.USE_DOCKER_SANDBOX ? 'DOCKER_ISOLATED' : 'LOCAL_NATIVE',
+          activeMode:
+            dockerAvailable && env.USE_DOCKER_SANDBOX ? 'DOCKER_ISOLATED' : 'LOCAL_NATIVE',
           localJavaVersion: javaVersion,
           supportedLanguages: ['C', 'CPP', 'PRF192', 'JAVA', 'PRO192', 'CSD201'],
           limits: {
@@ -50,7 +51,8 @@ export class SandboxController {
             networkIsolation: true,
           },
         },
-      });
+        'Sandbox Execution Engine Status'
+      );
     } catch (error) {
       next(error);
     }
@@ -58,7 +60,6 @@ export class SandboxController {
 
   /**
    * POST /api/v1/sandbox/execute
-   * Chạy trực tiếp mã nguồn gửi qua request body để test sandbox
    */
   public static async executeCode(req: Request, res: Response, next: NextFunction): Promise<void> {
     const tempDir = path.resolve(env.WORKSPACE_DIR, `api_test_${crypto.randomUUID()}`);
@@ -66,27 +67,17 @@ export class SandboxController {
       const { language = 'JAVA', sourceCode, fileName, testCases } = req.body;
 
       if (!sourceCode || typeof sourceCode !== 'string') {
-        res.status(400).json({
-          success: false,
-          message: 'Trường sourceCode (mã nguồn) là bắt buộc và phải là chuỗi.',
-        });
-        return;
+        throw new ValidationError('Trường sourceCode (mã nguồn) là bắt buộc và phải là chuỗi.');
       }
 
       if (!Array.isArray(testCases) || testCases.length === 0) {
-        res.status(400).json({
-          success: false,
-          message: 'Trường testCases là bắt buộc và phải là mảng không rỗng.',
-        });
-        return;
+        throw new ValidationError('Trường testCases là bắt buộc và phải là mảng không rỗng.');
       }
 
-      // 1. Tạo thư mục tạm thời gian thực
       if (!fs.existsSync(tempDir)) {
         fs.mkdirSync(tempDir, { recursive: true });
       }
 
-      // 2. Lưu file mã nguồn
       const langUpper = (language as string).toUpperCase();
       let codeFileName = fileName;
       if (!codeFileName) {
@@ -99,7 +90,6 @@ export class SandboxController {
 
       fs.writeFileSync(path.join(tempDir, codeFileName), sourceCode, 'utf-8');
 
-      // 3. Chuẩn hóa testcases
       const formattedTestCases: TestCaseInput[] = testCases.map((tc: any, index: number) => ({
         id: tc.id || `tc-${index + 1}`,
         questionNo: tc.questionNo || 'Q1',
@@ -111,19 +101,13 @@ export class SandboxController {
         score: Number(tc.score) || 1.0,
       }));
 
-      // 4. Khởi tạo Runner qua Factory và thực thi
       const runner = SandboxRunnerFactory.createRunner(language);
       const summary = await runner.execute(tempDir, formattedTestCases);
 
-      res.status(200).json({
-        success: true,
-        message: 'Thực thi kiểm thử Sandbox hoàn tất',
-        data: summary,
-      });
+      sendSuccess(res, summary, 'Thực thi kiểm thử Sandbox hoàn tất');
     } catch (error: any) {
       next(error);
     } finally {
-      // Dọn dẹp thư mục tạm
       if (fs.existsSync(tempDir)) {
         try {
           fs.rmSync(tempDir, { recursive: true, force: true });
@@ -134,7 +118,6 @@ export class SandboxController {
 
   /**
    * POST /api/v1/sandbox/grade/:submissionId
-   * Chấm điểm bài nộp theo ID trong CSDL
    */
   public static async gradeSubmission(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -142,20 +125,11 @@ export class SandboxController {
       const { languageOverride } = req.body;
 
       if (!submissionId) {
-        res.status(400).json({
-          success: false,
-          message: 'submissionId là bắt buộc trong URL.',
-        });
-        return;
+        throw new ValidationError('submissionId là bắt buộc trong URL.');
       }
 
       const summary = await SandboxService.gradeSubmission(submissionId, languageOverride);
-
-      res.status(200).json({
-        success: true,
-        message: `Chấm điểm bài nộp ${submissionId} thành công`,
-        data: summary,
-      });
+      sendSuccess(res, summary, `Chấm điểm bài nộp ${submissionId} thành công`);
     } catch (error) {
       next(error);
     }
