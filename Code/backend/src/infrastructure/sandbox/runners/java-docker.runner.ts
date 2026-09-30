@@ -14,11 +14,21 @@ import {
 const execAsync = promisify(exec);
 
 export class JavaDockerRunner implements ISandboxRunner {
+  private async isDockerDaemonRunning(): Promise<boolean> {
+    if (!env.USE_DOCKER_SANDBOX) return false;
+    try {
+      await execAsync('docker ps', { timeout: 2000 });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   public async execute(
     stagedFolderPath: string,
     testCases: TestCaseInput[],
   ): Promise<SandboxExecutionSummary> {
-    const isDocker = env.USE_DOCKER_SANDBOX;
+    const isDocker = await this.isDockerDaemonRunning();
     const binDir = path.join(stagedFolderPath, "bin");
     if (!fs.existsSync(binDir)) fs.mkdirSync(binDir, { recursive: true });
 
