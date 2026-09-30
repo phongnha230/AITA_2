@@ -25,7 +25,7 @@ export class HealthController {
 
     // Kiểm tra Redis
     try {
-      await redisConnection.connect().catch(() => {});
+      await redisConnection.connect().catch(() => { });
       const pong = await redisConnection.ping();
       healthStatus.services.redis = pong === 'PONG' ? 'CONNECTED' : 'UNEXPECTED_RESPONSE';
     } catch (err: any) {
