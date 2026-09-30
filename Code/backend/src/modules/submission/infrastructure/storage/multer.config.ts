@@ -3,8 +3,8 @@ import fs from 'node:fs';
 import crypto from 'node:crypto';
 import multer, { FileFilterCallback } from 'multer';
 import { Request } from 'express';
-import { env } from '../config/env.js';
-import { ValidationError } from '../../shared/errors/app-error.js';
+import { env } from '../../../../infrastructure/config/env.js';
+import { ValidationError } from '../../../../shared/domain/exceptions/app.error.js';
 
 const ZIP_UPLOAD_DIR = path.resolve(env.UPLOAD_DIR, 'submissions-zip-tmp');
 fs.mkdirSync(ZIP_UPLOAD_DIR, { recursive: true });

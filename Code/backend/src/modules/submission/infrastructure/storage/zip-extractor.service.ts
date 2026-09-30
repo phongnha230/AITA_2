@@ -7,7 +7,7 @@ import {
   IArtifactExtractor,
 } from '../../application/services/artifact-extractor.interface.js';
 import { WorkspaceService, workspaceService } from './workspace.service.js';
-import { ValidationError } from '../../shared/errors/app-error.js';
+import { ValidationError } from '../../../../shared/domain/exceptions/app.error.js';
 
 const JUNK_DIR_NAMES = new Set(['__MACOSX']);
 const JUNK_FILE_NAMES = new Set(['.DS_Store', 'Thumbs.db']);
@@ -17,7 +17,6 @@ function isJunkPathSegment(segment: string): boolean {
   return JUNK_DIR_NAMES.has(segment) || JUNK_FILE_NAMES.has(segment) || segment.startsWith('._');
 }
 
-/** Rejects zip entries that fall outside `__MACOSX`, `.DS_Store`, `Thumbs.db`, AppleDouble (`._*`) junk. */
 function isJunkZipEntry(entryName: string): boolean {
   const segments = entryName.split(/[/\\]/).filter(Boolean);
   return segments.some(isJunkPathSegment);
@@ -56,11 +55,18 @@ async function walkDirectory(rootDir: string): Promise<DirectoryTree> {
   return { files, dirs };
 }
 
-function detectStructure(tree: DirectoryTree): { structureType: ArtifactStructureType; detectedEntries: string[] } {
+function detectStructure(tree: DirectoryTree): {
+  structureType: ArtifactStructureType;
+  detectedEntries: string[];
+} {
   const cFiles = tree.files.filter((file) => file.toLowerCase().endsWith('.c'));
   const questionDirs = tree.dirs
     .filter((dir) => QUESTION_DIR_PATTERN.test(path.basename(dir)))
-    .filter((dir) => tree.files.some((file) => file.startsWith(dir + path.sep) && file.toLowerCase().endsWith('.java')));
+    .filter((dir) =>
+      tree.files.some(
+        (file) => file.startsWith(dir + path.sep) && file.toLowerCase().endsWith('.java')
+      )
+    );
 
   if (questionDirs.length > 0) {
     return {
@@ -82,7 +88,10 @@ function detectStructure(tree: DirectoryTree): { structureType: ArtifactStructur
 export class ZipExtractorService implements IArtifactExtractor {
   constructor(private readonly workspace: WorkspaceService = workspaceService) {}
 
-  public async extractAndStage(zipFilePath: string, submissionId: string): Promise<ArtifactStagingResult> {
+  public async extractAndStage(
+    zipFilePath: string,
+    submissionId: string
+  ): Promise<ArtifactStagingResult> {
     let zip: AdmZip;
     try {
       zip = new AdmZip(zipFilePath);
@@ -108,7 +117,10 @@ export class ZipExtractorService implements IArtifactExtractor {
       const destinationPath = path.resolve(stagedPath, entry.entryName);
 
       // Zip-slip guard: refuse to write outside the sandboxed staging directory.
-      if (!destinationPath.startsWith(resolvedStagedPath + path.sep) && destinationPath !== resolvedStagedPath) {
+      if (
+        !destinationPath.startsWith(resolvedStagedPath + path.sep) &&
+        destinationPath !== resolvedStagedPath
+      ) {
         throw new ValidationError('Phát hiện đường dẫn bất thường trong file .zip (zip-slip)');
       }
 
@@ -116,8 +128,6 @@ export class ZipExtractorService implements IArtifactExtractor {
       await fs.promises.writeFile(destinationPath, entry.getData());
     }
 
-    // Defensive recursive sweep in case any junk survived extraction
-    // (e.g. produced by nested archives already unpacked on disk).
     const tree = await walkDirectory(stagedPath);
     const { structureType, detectedEntries } = detectStructure(tree);
 
