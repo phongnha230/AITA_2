@@ -6,6 +6,7 @@ import courseRouter from '../../modules/course/presentation/routes/course.route.
 import assignmentRouter from '../../modules/assignment/presentation/routes/assignment.route.js';
 import submissionRouter from '../../modules/submission/presentation/routes/submission.route.js';
 import sandboxRouter from '../../modules/sandbox/presentation/routes/sandbox.route.js';
+import aiRouter from '../../modules/ai/presentation/routes/ai.route.js';
 
 const router = Router();
 
@@ -17,7 +18,9 @@ router.use('/courses', courseRouter);
 router.use('/assignments', assignmentRouter);
 router.use('/submissions', submissionRouter);
 router.use('/sandbox', sandboxRouter);
+router.use('/ai', aiRouter);
 
 export default router;
+
 
 

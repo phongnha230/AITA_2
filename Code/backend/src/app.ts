@@ -25,6 +25,7 @@ app.get('/', (_req, res) => {
       assignments: '/api/v1/assignments',
       submissions: '/api/v1/submissions',
       sandbox: '/api/v1/sandbox',
+      ai: '/api/v1/ai',
     },
   });
 });
