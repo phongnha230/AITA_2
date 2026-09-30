@@ -151,4 +151,25 @@ export class PrismaSubmissionRepository implements ISubmissionRepository {
 
     return this.toDomain(raw);
   }
+
+  async updateGitMetadata(
+    id: string,
+    data: { commitCount?: number; locChurn?: number; gitCommitHash?: string }
+  ): Promise<Submission> {
+    const raw = await this.prisma.submission.update({
+      where: { id },
+      data: {
+        ...(data.commitCount !== undefined ? { commitCount: data.commitCount } : {}),
+        ...(data.locChurn !== undefined ? { locChurn: data.locChurn } : {}),
+        ...(data.gitCommitHash ? { gitCommitHash: data.gitCommitHash } : {}),
+      },
+      include: {
+        user: { select: { id: true, fullName: true, email: true } },
+        assignment: { select: { id: true, title: true, courseId: true } },
+      },
+    });
+
+    return this.toDomain(raw);
+  }
 }
+
