@@ -30,6 +30,12 @@ const envSchema = z.object({
   JWT_REFRESH_SECRET: z.string().min(16, 'JWT_REFRESH_SECRET must be at least 16 characters'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('30d'),
 
+  // Google OAuth 2.0
+  GOOGLE_CLIENT_ID: z.string().optional().default(''),
+  GOOGLE_CLIENT_SECRET: z.string().optional().default(''),
+  GOOGLE_CALLBACK_URL: z.string().default('http://localhost:5000/api/v1/auth/google/callback'),
+  FRONTEND_URL: z.string().default('http://localhost:3000'),
+
   // Storage & Workspaces
   UPLOAD_DIR: z.string().default('./uploads'),
   WORKSPACE_DIR: z.string().default('./workspaces'),
