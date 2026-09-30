@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# API Testing (Bruno)
+bruno/
+**/bruno/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Build and distribution
+dist/
+**/dist/
+.next/
+**/out/
+build/
+
+# Runtime uploads and workspace temp
+uploads/
+**/uploads/
+workspaces/
+**/workspaces/
+*.log
+npm-debug.log*
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Office Docs and Report Generation Scripts
+*.docx
+*.xlsx
+build_full_specification_doc.js
+create_aita_report.js
+generate_full_english_report.js
+

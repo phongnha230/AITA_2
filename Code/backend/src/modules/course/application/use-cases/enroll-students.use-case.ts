@@ -1,0 +1,16 @@
+import { ICourseRepository } from '../../domain/repositories/course.repository.interface.js';
+import { NotFoundError } from '../../../../shared/domain/exceptions/app.error.js';
+
+export class EnrollStudentsUseCase {
+  constructor(private readonly courseRepository: ICourseRepository) {}
+
+  async execute(courseId: string, studentIds: string[]): Promise<{ enrolledCount: number }> {
+    const course = await this.courseRepository.findById(courseId);
+    if (!course) {
+      throw new NotFoundError(`Khóa học với ID: ${courseId}`);
+    }
+
+    const count = await this.courseRepository.enrollStudents(courseId, studentIds);
+    return { enrolledCount: count };
+  }
+}
