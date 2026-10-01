@@ -10,6 +10,7 @@ import assignmentRouter from '../../modules/assignment/presentation/routes/assig
 import submissionRouter from '../../modules/submission/presentation/routes/submission.route.js';
 import sandboxRouter from '../../modules/sandbox/presentation/routes/sandbox.route.js';
 import aiRouter from '../../modules/ai/presentation/routes/ai.route.js';
+import teamRouter from '../../modules/team/presentation/routes/team.route.js';
 
 
 const router = Router();
@@ -53,6 +54,8 @@ router.use('/assignments', assignmentRouter);
 router.use('/submissions', submissionRouter);
 
 router.use('/sandbox', sandboxRouter);
+router.use('/ai', aiRouter);
+router.use('/teams', teamRouter);
 
 router.use('/ai', aiRouter);
 

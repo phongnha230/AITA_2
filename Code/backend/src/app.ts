@@ -26,6 +26,7 @@ app.get('/', (_req, res) => {
       submissions: '/api/v1/submissions',
       sandbox: '/api/v1/sandbox',
       ai: '/api/v1/ai',
+      teams: '/api/v1/teams',
     },
   });
 });
