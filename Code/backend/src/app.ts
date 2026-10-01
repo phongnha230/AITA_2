@@ -1,32 +1,38 @@
 import express, { Express } from 'express';
 import cors from 'cors';
-import { env } from './infrastructure/config/env.js';
-import healthRouter from './presentation/routes/health.route.js';
-import courseRouter from './presentation/routes/course.route.js';
-import assignmentRouter from './presentation/routes/assignment.route.js';
-import { errorHandler } from './presentation/middlewares/error.middleware.js';
+import apiRouter from './presentation/routes/index.js';
+import { errorHandler } from './shared/presentation/middlewares/error.middleware.js';
 
 const app: Express = express();
 
-// Middlewares
+// Global Middlewares
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Base Route
-app.get('/', (req, res) => {
+// Base / Welcome Route
+app.get('/', (_req, res) => {
   res.json({
     project: 'AITA - AI-powered Teaching Assistant System',
     version: '1.0.0',
     course: 'SWD392 - AI-Assisted System Design',
-    docs: '/api/v1/health',
+    status: 'online',
+    endpoints: {
+      health: '/api/v1/health',
+      auth: '/api/v1/auth',
+      users: '/api/v1/users',
+      courses: '/api/v1/courses',
+      assignments: '/api/v1/assignments',
+      submissions: '/api/v1/submissions',
+      sandbox: '/api/v1/sandbox',
+      ai: '/api/v1/ai',
+      teams: '/api/v1/teams',
+    },
   });
 });
 
-// API Routes
-app.use('/api/v1', healthRouter);
-app.use('/api/v1/courses', courseRouter);
-app.use('/api/v1/assignments', assignmentRouter);
+// API Routes (V1)
+app.use('/api/v1', apiRouter);
 
 // Global Error Handler
 app.use(errorHandler);

@@ -1,10 +1,10 @@
-generator client {
-  provider = "prisma-client-js"
-}
-
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
 }
 
 enum Role {
@@ -13,321 +13,464 @@ enum Role {
   STUDENT
 }
 
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING_ACTIVATION
+}
+
+enum AssignmentEnv {
+  C_GCC
+  JAVA_JDK
+  REACT_JS
+  NODE_JS
+  WEB_VANILLA
+}
+
+
 enum SubmissionType {
-  ZIP_FILE
-  GIT_REPO
+  INDIVIDUAL
+  GROUP
+}
+
+enum AssignmentStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+  ARCHIVED
+}
+
+enum RationaleTag {
+  FUNCTIONAL
+  BOUNDARY
+  EDGE
+  PERFORMANCE
+  SECURITY
+}
+
+enum ComparisonMode {
+  STDIO
+  FILE_TO_FILE
+}
+
+enum SubmissionChannel {
+  ZIP_UPLOAD
+  GIT_COMMIT
 }
 
 enum SubmissionStatus {
   PENDING
-  PROCESSING
+  QUEUED
+  RUNNING_SANDBOX
+  RUNNING_AI
   GRADED
   FAILED
 }
 
+enum ApiProvider {
+  GEMINI
+  OPENAI
+}
+
 enum JobStatus {
   QUEUED
+  PREPROCESSING
   RUNNING_SANDBOX
   RUNNING_AI
   COMPLETED
   FAILED
+  RETRYING
 }
 
-enum AiProvider {
-  OPENAI
-  GEMINI
-  CLAUDE
+enum ErrorStage {
+  STAGING
+  SANDBOX_COMPILATION
+  SANDBOX_EXECUTION
+  AI_EVALUATION
+  SYSTEM
 }
 
-enum MessageSender {
-  STUDENT
-  AI
+enum TestCaseVerdict {
+  PASSED
+  FAILED
+  TIME_LIMIT_EXCEEDED
+  MEMORY_LIMIT_EXCEEDED
+  RUNTIME_ERROR
+  OUTPUT_LIMIT_EXCEEDED
 }
 
-enum TestType {
-  BASIC
-  EDGE_CASE
-  PERFORMANCE
-  EXCEPTION
+enum ConversationStatus {
+  ACTIVE
+  CLOSED
+}
+
+enum MessageSenderRole {
+  USER
+  MODEL
+  SYSTEM
 }
 
 model User {
-  id              String   @id @default(uuid())
-  email           String   @unique
-  passwordHash    String   @map("password_hash")
-  fullName        String   @map("full_name")
-  role            Role     @default(STUDENT)
-  avatarUrl       String?  @map("avatar_url")
-  githubUsername  String?  @map("github_username")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  id               String               @id @default(uuid()) @db.Char(36)
+  email            String               @unique @db.VarChar(191)
+  fullName         String               @map("full_name") @db.VarChar(100)
+  avatarUrl        String?              @map("avatar_url") @db.VarChar(500)
+  role             Role                 @default(STUDENT)
+  status           UserStatus           @default(ACTIVE)
+  googleId         String?              @unique @map("google_id") @db.VarChar(100)
+  passwordHash     String?              @map("password_hash") @db.VarChar(255)
+  refreshTokenHash String?              @map("refresh_token_hash") @db.VarChar(255)
+  lastLoginAt      DateTime?            @map("last_login_at")
+  createdAt        DateTime             @default(now()) @map("created_at")
+  updatedAt        DateTime             @updatedAt @map("updated_at")
 
-  coursesTaught   Course[] @relation("LecturerCourses")
-  enrollments     CourseEnrollment[]
-  submissions     Submission[]
-  tutorConversations AiTutorConversation[]
-  gitContributions GitContribution[]
+  coursesTaught    Course[]             @relation("LecturerCourses")
+  enrollments      CourseEnrollment[]
+  assignmentsCreated Assignment[]       @relation("AssignmentCreator")
+  submissions      Submission[]
+  conversations    AiTutorConversation[]
+  teamsLed         Team[]               @relation("TeamLeader")
+  teamMemberships  TeamMember[]
 
+  @@index([role, status], name: "idx_users_role_status")
   @@map("users")
 }
 
 model Course {
-  id          String   @id @default(uuid())
-  code        String
-  name        String
-  description String?  @db.Text
-  lecturerId  String   @map("lecturer_id")
-  semester    String
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id          String             @id @default(uuid()) @db.Char(36)
+  code        String             @db.VarChar(50)
+  name        String             @db.VarChar(200)
+  semester    String             @db.VarChar(20)
+  lecturerId  String             @map("lecturer_id") @db.Char(36)
+  isActive             Boolean            @default(true) @map("is_active")
+  enrollmentCode       String?            @unique @map("enrollment_code") @db.VarChar(20)
+  codeExpiresAt        DateTime?          @map("code_expires_at")
+  createdAt            DateTime           @default(now()) @map("created_at")
+  updatedAt            DateTime           @updatedAt @map("updated_at")
 
-  lecturer    User     @relation("LecturerCourses", fields: [lecturerId], references: [id])
-  teams       Team[]
-  enrollments CourseEnrollment[]
-  assignments Assignment[]
+  lecturer             User               @relation("LecturerCourses", fields: [lecturerId], references: [id], onDelete: Restrict)
+  enrollments          CourseEnrollment[]
+  assignments          Assignment[]
+  teams                Team[]
 
+  @@unique([code, semester], name: "uk_course_code_semester")
+
+  @@index([lecturerId], name: "idx_courses_lecturer")
+  @@index([enrollmentCode], name: "idx_courses_enrollment_code")
   @@map("courses")
 }
 
-model Team {
-  id          String   @id @default(uuid())
-  courseId    String   @map("course_id")
-  name        String
-  gitRepoUrl  String?  @map("git_repo_url")
-  createdAt   DateTime @default(now()) @map("created_at")
-
-  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  enrollments CourseEnrollment[]
-  submissions Submission[]
-  gitContributions GitContribution[]
-
-  @@map("teams")
-}
-
 model CourseEnrollment {
-  id        String   @id @default(uuid())
-  courseId  String   @map("course_id")
-  studentId String   @map("student_id")
-  teamId    String?  @map("team_id")
-  joinedAt  DateTime @default(now()) @map("joined_at")
+  id         String   @id @default(uuid()) @db.Char(36)
+  courseId   String   @map("course_id") @db.Char(36)
+  studentId  String   @map("student_id") @db.Char(36)
+  groupLabel String?  @map("group_label") @db.VarChar(50)
+  enrolledAt DateTime @default(now()) @map("enrolled_at")
 
-  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  team      Team?    @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  student    User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
-  @@unique([courseId, studentId])
+  @@unique([courseId, studentId], name: "uk_enrollment_course_student")
+  @@index([studentId], name: "idx_enrollment_student")
+  @@index([courseId, groupLabel], name: "idx_enrollment_course_group")
   @@map("course_enrollments")
 }
 
 model Assignment {
-  id               String       @id @default(uuid())
-  courseId         String       @map("course_id")
-  title            String
-  description      String       @db.LongText
-  allowedLanguages String       @default("JAVA,PYTHON,CPP,CSHARP") @map("allowed_languages")
-  deadline         DateTime
-  maxScore         Decimal      @default(10.00) @db.Decimal(5, 2) @map("max_score")
-  isTeamWork       Boolean      @default(false) @map("is_team_work")
-  createdAt        DateTime     @default(now()) @map("created_at")
-  updatedAt        DateTime     @updatedAt @map("updated_at")
+  id                 String               @id @default(uuid()) @db.Char(36)
+  courseId           String               @map("course_id") @db.Char(36)
+  title              String               @db.VarChar(255)
+  description        String?              @db.LongText
+  environment        AssignmentEnv
+  submissionType     SubmissionType       @default(INDIVIDUAL) @map("submission_type")
+  startTime          DateTime             @map("start_time")
+  deadline           DateTime
+  maxFileSizeBytes   BigInt               @default(52428800) @map("max_file_size_bytes")
+  allowGitSubmission Boolean              @default(true) @map("allow_git_submission")
+  allowZipSubmission Boolean              @default(true) @map("allow_zip_submission")
+  status             AssignmentStatus     @default(DRAFT)
+  createdBy          String               @map("created_by") @db.Char(36)
+  createdAt          DateTime             @default(now()) @map("created_at")
+  updatedAt          DateTime             @updatedAt @map("updated_at")
 
-  course           Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  rubricRules      RubricRule[]
-  testCases        TestCase[]
-  submissions      Submission[]
-  solutions        AssignmentSolution[]
+  course             Course               @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  creator            User                 @relation("AssignmentCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  testCases          TestCase[]
+  rubricRules        RubricRule[]
+  solutions          AssignmentSolution[]
+  submissions        Submission[]
 
+  @@index([courseId, status], name: "idx_assignments_course_status")
+  @@index([deadline], name: "idx_assignments_deadline")
   @@map("assignments")
 }
 
-model AssignmentSolution {
-  id                 String     @id @default(uuid())
-  assignmentId       String     @map("assignment_id")
-  questionNo         String     @map("question_no") // 'Q1', 'Q2', 'Q3', 'Q4'
-  solutionCode       String     @db.LongText @map("solution_code")
-  explanationNotes   String     @db.LongText @map("explanation_notes")
-  complexityExpected String?    @map("complexity_expected") // e.g. 'O(n log n)'
-  createdAt          DateTime   @default(now()) @map("created_at")
-
-  assignment         Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-
-  @@index([assignmentId, questionNo])
-  @@map("assignment_solutions")
-}
-
-model RubricRule {
-  id                String            @id @default(uuid())
-  assignmentId      String            @map("assignment_id")
-  name              String
-  description       String?           @db.Text
-  maxScore          Decimal           @default(2.00) @db.Decimal(5, 2) @map("max_score")
-  weightPercent     Decimal           @default(20.00) @db.Decimal(5, 2) @map("weight_percent")
-  promptInstruction String            @db.Text @map("prompt_instruction")
-  orderIndex        Int               @default(0) @map("order_index")
-  createdAt         DateTime          @default(now()) @map("created_at")
-
-  assignment        Assignment        @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  aiGradingResults  AiGradingResult[]
-
-  @@map("rubric_rules")
-}
-
 model TestCase {
-  id             String                 @id @default(uuid())
-  assignmentId   String                 @map("assignment_id")
-  questionNo     String                 @default("Q1") @map("question_no")
-  outputFileName String?                @map("output_file_name")
-  inputData      String                 @db.LongText @map("input_data")
-  expectedOutput String                 @db.LongText @map("expected_output")
-  isHidden       Boolean                @default(false) @map("is_hidden")
-  timeLimitMs    Int                    @default(2000) @map("time_limit_ms")
-  memoryLimitMb  Int                    @default(256) @map("memory_limit_mb")
-  score          Decimal                @default(1.00) @db.Decimal(5, 2)
-  rationale      String?                @db.Text
-  testType       TestType               @default(BASIC) @map("test_type")
-  createdAt      DateTime               @default(now()) @map("created_at")
+  id                 String             @id @default(uuid()) @db.Char(36)
+  assignmentId       String             @map("assignment_id") @db.Char(36)
+  orderIndex         Int                @default(1) @map("order_index")
+  label              String             @db.VarChar(100)
+  rationaleTag       RationaleTag       @default(FUNCTIONAL) @map("rationale_tag")
+  isHidden           Boolean            @default(false) @map("is_hidden")
+  timeLimitMs        Int                @default(2000) @map("time_limit_ms")
+  memoryLimitKb      Int                @default(262144) @map("memory_limit_kb")
+  points             Decimal            @default(1.00) @db.Decimal(4, 2)
+  comparisonMode     ComparisonMode     @default(STDIO) @map("comparison_mode")
+  stdinInput         String?            @map("stdin_input") @db.MediumText
+  expectedStdout     String?            @map("expected_stdout") @db.MediumText
+  inputFileName      String?            @map("input_file_name") @db.VarChar(100)
+  inputFileContent   String?            @map("input_file_content") @db.MediumText
+  expectedFileName   String?            @map("expected_file_name") @db.VarChar(100)
+  expectedFileContent String?           @map("expected_file_content") @db.MediumText
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
 
-  assignment     Assignment             @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  results        SubmissionTestResult[]
+  assignment         Assignment         @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  testResults        SubmissionTestResult[]
 
-  @@index([assignmentId, questionNo])
+  @@index([assignmentId, orderIndex], name: "idx_testcases_assignment")
   @@map("test_cases")
 }
 
+model RubricRule {
+  id            String     @id @default(uuid()) @db.Char(36)
+  assignmentId  String     @map("assignment_id") @db.Char(36)
+  criterionName String     @map("criterion_name") @db.VarChar(150)
+  description   String     @db.Text
+  maxPoints     Decimal    @map("max_points") @db.Decimal(4, 2)
+  weight        Decimal    @default(1.00) @db.Decimal(5, 2)
+  orderIndex    Int        @default(1) @map("order_index")
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+
+  assignment    Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  @@index([assignmentId], name: "idx_rubric_assignment")
+  @@map("rubric_rules")
+}
+
+model AssignmentSolution {
+  id           String     @id @default(uuid()) @db.Char(36)
+  assignmentId String     @map("assignment_id") @db.Char(36)
+  title        String     @db.VarChar(200)
+  sourceCode   String     @map("source_code") @db.LongText
+  explanation  String?    @db.LongText
+  chromaDocId  String?    @map("chroma_doc_id") @db.VarChar(128)
+  isActive     Boolean    @default(true) @map("is_active")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  @@index([assignmentId], name: "idx_solutions_assignment")
+  @@map("assignment_solutions")
+}
+
 model Submission {
-  id             String                 @id @default(uuid())
-  assignmentId   String                 @map("assignment_id")
-  studentId      String                 @map("student_id")
-  teamId         String?                @map("team_id")
-  submissionType SubmissionType         @default(ZIP_FILE) @map("submission_type")
-  fileUrl        String?                @map("file_url")
-  stagedPath     String?                @map("staged_path")
-  gitCommitHash  String?                @map("git_commit_hash")
-  sandboxScore   Decimal?               @db.Decimal(5, 2) @map("sandbox_score")
-  aiScore        Decimal?               @db.Decimal(5, 2) @map("ai_score")
-  totalScore     Decimal?               @db.Decimal(5, 2) @map("total_score")
-  status         SubmissionStatus       @default(PENDING)
-  submittedAt    DateTime               @default(now()) @map("submitted_at")
+  id                String               @id @default(uuid()) @db.Char(36)
+  assignmentId      String               @map("assignment_id") @db.Char(36)
+  userId            String               @map("user_id") @db.Char(36)
+  teamId            String?              @map("team_id") @db.Char(36)
+  groupLabel        String?              @map("group_label") @db.VarChar(50)
+  submissionChannel SubmissionChannel    @map("submission_channel")
+  zipFilePath       String?              @map("zip_file_path") @db.VarChar(500)
+  zipFileSize       BigInt?              @map("zip_file_size")
+  gitRepoUrl        String?              @map("git_repo_url") @db.VarChar(500)
+  gitCommitHash     String?              @map("git_commit_hash") @db.VarChar(64)
+  status            SubmissionStatus     @default(PENDING)
+  sandboxScore      Decimal?             @default(0.00) @map("sandbox_score") @db.Decimal(4, 2)
+  aiScore           Decimal?             @default(0.00) @map("ai_score") @db.Decimal(4, 2)
+  finalScore        Decimal?             @default(0.00) @map("final_score") @db.Decimal(4, 2)
+  compileSuccess    Boolean?             @map("compile_success")
+  compileOutput     String?              @map("compile_output") @db.LongText
+  submittedAt       DateTime             @default(now()) @map("submitted_at")
+  gradedAt          DateTime?            @map("graded_at")
+  locChurn          Int?                 @default(0) @map("loc_churn")
+  commitCount       Int?                 @default(0) @map("commit_count")
 
-  assignment     Assignment             @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  student        User                   @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  team           Team?                  @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  assignment        Assignment           @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  user              User                 @relation(fields: [userId], references: [id], onDelete: Restrict)
+  team              Team?                @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  gradingJob        GradingJob?
+  testResults       SubmissionTestResult[]
+  aiGradingResult   AiGradingResult?
+  conversations     AiTutorConversation[]
+  gitContributors   GitContributor[]
 
-  gradingJob     GradingJob?
-  testResults    SubmissionTestResult[]
-  aiResults      AiGradingResult[]
-  conversations  AiTutorConversation[]
-
+  @@index([assignmentId, userId, submittedAt], name: "idx_sub_assignment_user")
+  @@index([teamId], name: "idx_sub_team")
+  @@index([status, submittedAt], name: "idx_sub_status_queue")
+  @@index([userId, finalScore], name: "idx_sub_user_scores")
   @@map("submissions")
 }
 
+model AiApiKey {
+  id                   String       @id @default(uuid()) @db.Char(36)
+  provider             ApiProvider  @default(GEMINI)
+  keyAlias             String       @map("key_alias") @db.VarChar(100)
+  keyHint              String       @map("key_hint") @db.VarChar(16)
+  encryptedSecret      String       @map("encrypted_secret") @db.LongText
+  iv                   String       @db.VarChar(64)
+  authTag              String       @map("auth_tag") @db.VarChar(64)
+  dailyRequestLimit    Int          @default(1500) @map("daily_request_limit")
+  currentRequestsToday Int          @default(0) @map("current_requests_today")
+  rpmLimit             Int          @default(60) @map("rpm_limit")
+  consecutiveFailures  Int          @default(0) @map("consecutive_failures")
+  isActive             Boolean      @default(true) @map("is_active")
+  lastUsedAt           DateTime?    @map("last_used_at")
+  createdAt            DateTime     @default(now()) @map("created_at")
+  updatedAt            DateTime     @updatedAt @map("updated_at")
+
+  gradingJobs          GradingJob[]
+
+  @@index([provider, isActive, currentRequestsToday, lastUsedAt], name: "idx_ai_keys_rotator")
+  @@map("ai_api_keys")
+}
+
 model GradingJob {
-  id           String     @id @default(uuid())
-  submissionId String     @unique @map("submission_id")
-  priority     Int        @default(2) // 1: High, 2: Normal, 3: Low
-  status       JobStatus  @default(QUEUED)
-  retryCount   Int        @default(0) @map("retry_count")
-  maxRetries   Int        @default(3) @map("max_retries")
-  errorLog     String?    @db.LongText @map("error_log")
-  durationMs   Int?       @map("duration_ms")
-  queuedAt     DateTime   @default(now()) @map("queued_at")
-  startedAt    DateTime?  @map("started_at")
-  completedAt  DateTime?  @map("completed_at")
+  id               String      @id @default(uuid()) @db.Char(36)
+  submissionId     String      @unique @map("submission_id") @db.Char(36)
+  bullmqJobId      String?     @map("bullmq_job_id") @db.VarChar(100)
+  priority         Int         @default(5)
+  status           JobStatus   @default(QUEUED)
+  sandboxWorkerId  String?     @map("sandbox_worker_id") @db.VarChar(100)
+  assignedApiKeyId String?     @map("assigned_api_key_id") @db.Char(36)
+  queuedAt         DateTime    @default(now()) @map("queued_at")
+  sandboxStartedAt DateTime?   @map("sandbox_started_at")
+  sandboxEndedAt   DateTime?   @map("sandbox_ended_at")
+  aiStartedAt      DateTime?   @map("ai_started_at")
+  aiEndedAt        DateTime?   @map("ai_ended_at")
+  errorStage       ErrorStage? @map("error_stage")
+  systemLogs       String?     @map("system_logs") @db.LongText
+  retryCount       Int         @default(0) @map("retry_count")
 
-  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  submission       Submission  @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  assignedApiKey   AiApiKey?   @relation(fields: [assignedApiKeyId], references: [id], onDelete: SetNull)
 
-  @@index([status, priority, queuedAt])
+  @@index([status, priority, queuedAt], name: "idx_grading_jobs_scheduler")
   @@map("grading_jobs")
 }
 
 model SubmissionTestResult {
-  id              String     @id @default(uuid())
-  submissionId    String     @map("submission_id")
-  testCaseId      String     @map("test_case_id")
-  passed          Boolean    @default(false)
-  actualOutput    String?    @db.LongText @map("actual_output")
-  executionTimeMs Int?       @map("execution_time_ms")
-  memoryUsedKb    Int?       @map("memory_used_kb")
-  errorMessage    String?    @db.Text @map("error_message")
-  createdAt       DateTime   @default(now()) @map("created_at")
+  id               String          @id @default(uuid()) @db.Char(36)
+  submissionId     String          @map("submission_id") @db.Char(36)
+  testCaseId       String          @map("test_case_id") @db.Char(36)
+  verdict          TestCaseVerdict
+  executionTimeMs  Int             @default(0) @map("execution_time_ms")
+  memoryUsedKb     Int             @default(0) @map("memory_used_kb")
+  actualStdout     String?         @map("actual_stdout") @db.MediumText
+  actualFileOutput String?         @map("actual_file_output") @db.MediumText
+  exitCode         Int             @default(0) @map("exit_code")
+  earnedPoints     Decimal         @default(0.00) @map("earned_points") @db.Decimal(4, 2)
+  diffLog          String?         @map("diff_log") @db.LongText
+  createdAt        DateTime        @default(now()) @map("created_at")
 
-  submission      Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
-  testCase        TestCase   @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+  submission       Submission      @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  testCase         TestCase        @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
 
+  @@unique([submissionId, testCaseId], name: "uk_test_result_sub_tc")
+  @@index([submissionId, verdict], name: "idx_str_submission")
   @@map("submission_test_results")
 }
 
-model AiApiKey {
-  id               String            @id @default(uuid())
-  provider         AiProvider        @default(GEMINI)
-  apiKeyEncrypted  String            @map("api_key_encrypted")
-  isActive         Boolean           @default(true) @map("is_active")
-  requestCount     Int               @default(0) @map("request_count")
-  rateLimitPerMin  Int               @default(60) @map("rate_limit_per_min")
-  lastUsedAt       DateTime?         @map("last_used_at")
-  createdAt        DateTime          @default(now()) @map("created_at")
-
-  aiGradingResults AiGradingResult[]
-
-  @@map("ai_api_keys")
-}
-
 model AiGradingResult {
-  id           String      @id @default(uuid())
-  submissionId String      @map("submission_id")
-  rubricRuleId String      @map("rubric_rule_id")
-  apiKeyUsedId String?     @map("api_key_used_id")
-  scoreGiven   Decimal     @default(0.00) @db.Decimal(5, 2) @map("score_given")
-  aiFeedback   String      @db.LongText @map("ai_feedback")
-  rawResponse  Json?       @map("raw_response")
-  createdAt    DateTime    @default(now()) @map("created_at")
+  id                      String     @id @default(uuid()) @db.Char(36)
+  submissionId            String     @unique @map("submission_id") @db.Char(36)
+  overallAiScore          Decimal    @default(0.00) @map("overall_ai_score") @db.Decimal(4, 2)
+  rubricBreakdownJson     Json       @map("rubric_breakdown_json")
+  detectedTimeComplexity  String?    @map("detected_time_complexity") @db.VarChar(50)
+  detectedSpaceComplexity String?    @map("detected_space_complexity") @db.VarChar(50)
+  codeQualityFeedback     String     @map("code_quality_feedback") @db.LongText
+  ragContextUsed          Json?      @map("rag_context_used")
+  tokensConsumed          Int        @default(0) @map("tokens_consumed")
+  evaluatedAt             DateTime   @default(now()) @map("evaluated_at")
 
-  submission   Submission  @relation(fields: [submissionId], references: [id], onDelete: Cascade)
-  rubricRule   RubricRule  @relation(fields: [rubricRuleId], references: [id], onDelete: Cascade)
-  apiKeyUsed   AiApiKey?   @relation(fields: [apiKeyUsedId], references: [id], onDelete: SetNull)
+  submission              Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
 
   @@map("ai_grading_results")
 }
 
 model AiTutorConversation {
-  id           String           @id @default(uuid())
-  submissionId String           @map("submission_id")
-  studentId    String           @map("student_id")
-  createdAt    DateTime         @default(now()) @map("created_at")
+  id           String             @id @default(uuid()) @db.Char(36)
+  submissionId String             @map("submission_id") @db.Char(36)
+  studentId    String             @map("student_id") @db.Char(36)
+  title        String             @default("Socratic Debug Session") @db.VarChar(255)
+  status       ConversationStatus @default(ACTIVE)
+  createdAt    DateTime           @default(now()) @map("created_at")
+  updatedAt    DateTime           @updatedAt @map("updated_at")
 
-  submission   Submission       @relation(fields: [submissionId], references: [id], onDelete: Cascade)
-  student      User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  submission   Submission         @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  student      User               @relation(fields: [studentId], references: [id], onDelete: Cascade)
   messages     AiTutorMessage[]
 
+  @@index([submissionId, studentId], name: "idx_tutor_conv_sub_student")
   @@map("ai_tutor_conversations")
 }
 
 model AiTutorMessage {
-  id             String               @id @default(uuid())
-  conversationId String               @map("conversation_id")
-  sender         MessageSender
-  message        String               @db.LongText
-  createdAt      DateTime             @default(now()) @map("created_at")
+  id                  String            @id @default(uuid()) @db.Char(36)
+  conversationId      String            @map("conversation_id") @db.Char(36)
+  senderRole          MessageSenderRole @map("sender_role")
+  content             String            @db.LongText
+  hasLeakageDetected  Boolean           @default(false) @map("has_leakage_detected")
+  tokenCount          Int               @default(0) @map("token_count")
+  createdAt           DateTime          @default(now()) @map("created_at")
 
-  conversation   AiTutorConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversation        AiTutorConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
+  @@index([conversationId, createdAt], name: "idx_tutor_messages_conv_created")
   @@map("ai_tutor_messages")
 }
 
-model GitContribution {
-  id             String    @id @default(uuid())
-  teamId         String    @map("team_id")
-  studentId      String    @map("student_id")
-  githubUsername String    @map("github_username")
-  commitCount    Int       @default(0) @map("commit_count")
-  additions      Int       @default(0)
-  deletions      Int       @default(0)
-  lastCommitAt   DateTime? @map("last_commit_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
+model Team {
+  id           String       @id @default(uuid()) @db.Char(36)
+  courseId     String       @map("course_id") @db.Char(36)
+  name         String       @db.VarChar(100)
+  leaderId     String       @map("leader_id") @db.Char(36)
+  projectTitle String?      @map("project_title") @db.VarChar(255)
+  gitRepoUrl   String?      @map("git_repo_url") @db.VarChar(500)
+  deployedUrl  String?      @map("deployed_url") @db.VarChar(500)
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
 
-  team           Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  student        User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course       Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  leader       User         @relation("TeamLeader", fields: [leaderId], references: [id], onDelete: Restrict)
+  members      TeamMember[]
+  submissions  Submission[]
 
-  @@unique([teamId, studentId])
-  @@map("git_contributions")
+  @@unique([courseId, name], name: "uk_course_team_name")
+  @@index([courseId], name: "idx_teams_course")
+  @@map("teams")
 }
+
+model TeamMember {
+  id        String   @id @default(uuid()) @db.Char(36)
+  teamId    String   @map("team_id") @db.Char(36)
+  userId    String   @map("user_id") @db.Char(36)
+  role      String   @default("MEMBER") @db.VarChar(50) // LEADER | MEMBER
+  joinedAt  DateTime @default(now()) @map("joined_at")
+
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId], name: "uk_team_member")
+  @@index([userId], name: "idx_team_members_user")
+  @@map("team_members")
+}
+
+model GitContributor {
+  id              String     @id @default(uuid()) @db.Char(36)
+  submissionId    String     @map("submission_id") @db.Char(36)
+  authorName      String     @map("author_name") @db.VarChar(100)
+  authorEmail     String     @map("author_email") @db.VarChar(191)
+  commitCount     Int        @default(0) @map("commit_count")
+  linesAdded      Int        @default(0) @map("lines_added")
+  linesDeleted    Int        @default(0) @map("lines_deleted")
+  contributionPct Decimal    @default(0.00) @map("contribution_pct") @db.Decimal(5, 2)
+  createdAt       DateTime   @default(now()) @map("created_at")
+
+  submission      Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId], name: "idx_contributors_submission")
+  @@map("git_contributors")
+}

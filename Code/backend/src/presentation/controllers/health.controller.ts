@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../../infrastructure/database/prisma.client.js';
-import { redisConnection } from '../../infrastructure/queue/redis.client.js';
+import { redisConnection } from '../../infrastructure/redis/redis.client.js';
+
 
 export class HealthController {
   public static async checkHealth(req: Request, res: Response): Promise<void> {
