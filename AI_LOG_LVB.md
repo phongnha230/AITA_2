@@ -215,3 +215,47 @@ Trong quá trình phát triển phân hệ Thành viên 2, toàn bộ lịch s�
 ### 4.3. Kết Quả Kiểm Tra
 - **Type-Check:** Lệnh `npx tsc --noEmit` hoàn thành với **0 lỗi (Exit code: 0)**.
 - **Tính độc lập:** Tuân thủ nguyên tắc Zero-Conflict, không can thiệp code của các thành viên khác trong nhóm.
+
+---
+
+## 5. BẢNG THEO DÕI PROMPT CHI TIẾT (PROMPT & CONTEXT LOG - 7 CỘT CHUẨN)
+*(Đồng bộ 100% cấu trúc Bảng 1 của `AI_PROMPT_LOG.md`)*
+
+| STT | Ngày | Thành viên | Công cụ AI | Mục đích / Bài toán | Câu Prompt chi tiết (Context & Prompt) | Kết quả sinh ra & Tinh chỉnh của sinh viên |
+|:---:|:---:|:---:|:---:|:---|:---|:---|
+| **1** | 28/09/2026 | Lê Văn Bảo (TV2) | Antigravity / Claude | Khảo sát yêu cầu SRS & Lập kế hoạch `/plan` phân hệ Quản lý Khóa học, Đề thi PE, Test Cases & Rubrics | *"Bạn hãy đóng vai trò là Senior Backend Architect. Hãy rà soát toàn bộ cấu trúc dự án AITA, đặc biệt là tài liệu phân công nhiệm vụ backend (`Backend_Task_Allocation_6_Members.md`). Tôi là Thành viên 2 phụ trách phân hệ Quản lý Khóa học, Đề thi PE, Test Cases và Rubric Rules. Hãy lập kế hoạch chi tiết bằng lệnh `/plan` để liệt kê chính xác các file cần tạo mới/chỉnh sửa theo kiến trúc Clean Architecture, đảm bảo nguyên tắc Zero-Conflict với các thành viên khác."* | Phân tích SRS, đề xuất 2 phương án kiến trúc, xác định chính xác danh sách file thuộc `use-cases/`, `controllers/`, `routes/` và đăng ký trong `app.ts`. Lưu tại `member_2_implementation_plan.md`. |
+| **2** | 28/09/2026 | Lê Văn Bảo (TV2) | Antigravity / Claude | Lựa chọn phương án triển khai & sinh mã nguồn Backend Clean Architecture | *"Tôi duyệt chọn Phương án 2 (Siêu rút gọn): Các Use Case sẽ thao tác trực tiếp thông qua Prisma Client mà không qua các tầng trừu tượng Repository trung gian nhằm tối ưu thời gian phát triển và đảm bảo tính độc lập tuyệt đối. Hãy tiến hành sinh mã nguồn theo phương án này."* | Sinh 10 file code TypeScript hoàn chỉnh: 5 Use Cases, 2 Controllers, 2 Routes, cập nhật `app.ts`. Hỗ trợ các trường đặc thù FPT PE (`outputFileName` cho CSD201, `rationale`, `testType` cho AI RAG). Sinh viên kiểm tra biên dịch `tsc` 0 lỗi. |
+| **3** | 28/09/2026 | Lê Văn Bảo (TV2) | Antigravity | Xử lý sự cố môi trường & xung đột cổng mạng Local (`EADDRINUSE: 5000`) | *"Server gặp lỗi `Error: listen EADDRINUSE: address already in use : 5000` do tiến trình cũ đang chiếm dụng cổng 5000. Hãy cung cấp cho tôi lệnh PowerShell trên Windows để tra cứu PID và buộc dừng (kill process) tiến trình đang chiếm port 5000 ngay lập tức."* | AI cung cấp câu lệnh `Get-Process -Id (Get-NetTCPConnection -LocalPort 5000).OwningProcess \| Stop-Process -Force` để giải phóng port 5000 ngay lập tức. Giúp sinh viên chạy server local thành công. |
+| **4** | 28/09/2026 | Lê Văn Bảo (TV2) | Antigravity | Xây dựng bộ tự động kiểm thử API Collection bằng Extension Bruno | *"Hãy tạo đầy đủ các file `.bru` đại diện cho trọn vẹn chu trình CRUD (Create, Read, Update, Delete) cho tất cả các tài nguyên thuộc phạm vi Thành viên 2 (Khóa học, Ghi danh, Đề thi PE, Test Cases, Rubrics), đảm bảo có sẵn mẫu body JSON chuẩn để chỉ cần bấm Run là test được ngay."* | Tạo trọn bộ 19 file `.bru` phân chia theo thư mục `/courses/` và `/assignments/`, cấu hình environment `local.json` chứa biến môi trường. Hướng dẫn cấu hình loại trừ `bruno/` vào `.gitignore` để bảo vệ mã nguồn. |
+
+---
+
+## 6. BẢNG BÁO CÁO SỬ DỤNG AI ĐỒNG BỘ ĐỊNH DẠNG SWD392 (EXCEL COMPLIANT - 10 CỘT)
+*(Dùng để sao chép trực tiếp vào file báo cáo nộp giảng viên `SWD392_G2_V2.xlsx`)*
+
+| No. | Design Phase | Task / Activity | AI Tool Used | AI Output | Student's Validation / Modification | Evidence / Link | Quantitative Measure | Value Added (1-5) | Risks / Limitations Observed |
+|:---:|:---|:---|:---|:---|:---|:---|:---|:---:|:---|
+| 1 | Detailed Design & Planning | Lập kế hoạch `/plan` phân hệ Quản lý Khóa học & Đề thi PE (TV2) | Antigravity / Claude | Kế hoạch kiến trúc phân lớp, danh sách file Use Cases, Controllers, Routes | Rà soát đối chiếu tài liệu SRS và `Backend_Task_Allocation_6_Members.md`, chốt phương án gọi Prisma trực tiếp | `member_2_implementation_plan.md` | Giảm 80% thời gian phân tích cấu trúc mã nguồn | 5 | Cần kiểm tra kỹ phạm vi các file để tránh sửa nhầm file của thành viên khác |
+| 2 | Implementation & Coding | Triển khai mã nguồn Backend CRUD Khóa học, Đề thi, Test Cases & Rubrics | Antigravity / Claude | 10 file mã nguồn TypeScript (5 Use Cases, 2 Controllers, 2 Routes, cập nhật `app.ts`) | Kiểm tra logic lọc testcase ẩn với sinh viên (`?role=STUDENT`), kiểm tra kiểu dữ liệu `Decimal` cho điểm Rubric, chạy `tsc --noEmit` đạt 0 lỗi | `Code/backend/src/application/use-cases/`, `src/presentation/` | Tiết kiệm 6 giờ viết boilerplate code và định tuyến Express | 5 | AI có thể sinh thiếu validate dữ liệu đầu vào hoặc lỗi kiểu dữ liệu nếu schema thay đổi -> cần chạy Type-check thường xuyên |
+| 3 | Deployment & Debugging | Khắc phục sự cố xung đột cổng mạng & chạy Local không cần Docker | Antigravity | Quy trình cấu hình `.env`, lệnh script khởi chạy và lệnh PowerShell tắt port 5000 | Tự chạy lệnh PowerShell giải phóng port, cấu hình `DATABASE_URL` kết nối MySQL local | `src/server.ts`, `.env` | Tiết kiệm 45 phút tra cứu lỗi hệ thống Windows | 4 | Lệnh kill process buộc dừng tiến trình có thể ảnh hưởng service khác nếu không xác định đúng PID |
+| 4 | Testing & Verification | Xây dựng bộ tự động kiểm thử Bruno API Collection cho toàn bộ TV2 | Antigravity | Bộ 19 request Bruno (`.bru`) kèm mẫu JSON Body, script kiểm tra CRUD Khóa học và Đề thi | Import vào Extension Bruno, kiểm thử từng endpoint, xác thực mã phản hồi HTTP 200/201/204, bổ sung `bruno/` vào `.gitignore` | `bruno/` (local workspace), `.gitignore` | Giảm 75% thời gian tạo request test thủ công trên Postman | 5 | Cần chú ý biến môi trường `courseId`, `assignmentId` phải được cập nhật tương ứng với ID thực tế trong database |
+
+---
+
+## 7. NGUYÊN TẮC GIẢI TRÌNH MÃ NGUỒN & LIVE DEFENSE (EXPLAINABILITY CHECKLIST DÀNH CHO TV2)
+Mỗi sinh viên khi bảo vệ đồ án SWD392 cần nắm vững 3 câu hỏi cốt lõi sau để giải trình trước Hội đồng:
+
+1. **Đoạn code này xử lý nghiệp vụ gì trong Module của mình?**
+   - Phân hệ TV2 quản lý toàn bộ vòng đời của Khóa học (Lớp học, môn học, ghi danh sinh viên), Đề thi thực hành (PE), Bộ nạp Test Cases (I/O, timeout, memory, outputFileName) và Barem Rubric Rules phục vụ trực tiếp cho TV5 (Sandbox chạy code) và TV6 (AI chấm điểm ngữ nghĩa).
+
+2. **Tại sao lại chọn cấu trúc dữ liệu / thuật toán / design pattern này thay vì cách khác?**
+   - Lựa chọn **Kiến trúc Clean Architecture rút gọn**: Use Cases gọi trực tiếp Prisma Client mà không qua lớp Repository trung gian nhằm loại bỏ boilerplate thừa, tăng tốc độ phát triển và đảm bảo tính độc lập tuyệt đối giữa các thành viên (Zero-Conflict).
+   - Tách biệt rõ ràng tầng nghiệp vụ (`application/use-cases/`) và tầng giao tiếp HTTP (`presentation/controllers/`, `presentation/routes/`).
+
+3. **Nếu giảng viên yêu cầu đổi logic tại chỗ (Live Debugging), xử lý như thế nào trong 3-5 phút?**
+   - *Yêu cầu 1: Ẩn testcase bảo mật khi Sinh viên xem đề thi?*  
+     -> Mở `src/application/use-cases/assignments/get-assignment-detail.use-case.ts`, chỉ ra điều kiện: nếu `role === 'STUDENT'` thì Prisma chỉ query `where: { isHidden: false }`.
+   - *Yêu cầu 2: Đổi cơ chế chấm thi môn CSD201 so khớp file `f1.txt`, `f2.txt`?*  
+     -> Mở `manage-testcases.use-case.ts`, chỉ ra trường `outputFileName` đã được hỗ trợ trong schema và API nạp testcase.
+   - *Yêu cầu 3: Bắt buộc tổng tỷ trọng Rubric không vượt quá 100%?*  
+     -> Mở `manage-rubrics.use-case.ts`, chỉ ra đoạn kiểm tra tổng weight: `items.reduce((sum, item) => sum + item.weight, 0) > 100` để throw Exception `BAD_REQUEST`.
