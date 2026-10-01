@@ -9,6 +9,7 @@ Toàn bộ tài liệu phân tích, thiết kế và sơ đồ kỹ thuật củ
 ## 📂 01_General (Tổng Quan & Quy Định)
 - [AITA_Project_Master_Document.md](01_General/AITA_Project_Master_Document.md): Tài liệu tổng quan dự án, mục tiêu, 5 Research Spikes và lộ trình 10 tuần.
 - [AI_PROMPT_LOG.md](01_General/AI_PROMPT_LOG.md): Nhật ký lưu trữ prompt AI phục vụ tiêu chí **Transparency & Explainability** bắt buộc của SWD392.
+- [AI_PROMPT_LOG_MEMBER_4_NGUYEN_VAN_DIEP.md](01_General/AI_PROMPT_LOG_MEMBER_4_NGUYEN_VAN_DIEP.md): **[NHẬT KÝ PROMPT CÁ NHÂN]** Nhật ký sử dụng AI chi tiết của Thành viên 4: Nguyễn Văn Điệp (QE180203 - Module Docker Sandbox).
 - [PROJECT_RUN_GUIDE.md](01_General/PROJECT_RUN_GUIDE.md): **[HƯỚNG DẪN CHẠY DỰ ÁN]** Hướng dẫn chi tiết cách chạy dự án cho 2 trường hợp: Có dùng Docker và KHÔNG dùng Docker.
 
 ---
@@ -27,6 +28,7 @@ Toàn bộ tài liệu phân tích, thiết kế và sơ đồ kỹ thuật củ
 - [2_Database_Schema.sql](03_Architecture_Database/2_Database_Schema.sql): Kịch bản SQL tạo Database MySQL hoàn chỉnh (GradingJob có priority, RubricRule, AiApiKey rotation).
 - [3_System_Architecture_and_Code_Plan.md](03_Architecture_Database/3_System_Architecture_and_Code_Plan.md): Kiến trúc Clean Architecture, 3 Design Patterns và kế hoạch 10 tuần.
 - [4_Core_Concepts_Static_Dynamic_RAG_Sandbox.md](03_Architecture_Database/4_Core_Concepts_Static_Dynamic_RAG_Sandbox.md): **[BẮT BUỘC ĐỌC]** Cẩm nang giải thích chuyên sâu các khái niệm cốt lõi: Mô hình tĩnh vs Mô hình động, Cơ chế RAG, Docker Sandbox và Bộ câu hỏi phản biện bảo vệ đồ án (Defense Q&A).
+- [5_Design_Patterns.md](03_Architecture_Database/5_Design_Patterns.md): **[MẪU THIẾT KẾ]** Tài liệu toàn diện về các Design Patterns (Factory, Adapter, Facade, Strategy, Observer, Template Method, v.v.) áp dụng trong mã nguồn và bộ câu hỏi phản biện.
 
 ---
 

@@ -16,7 +16,25 @@ Theo chuẩn kiến trúc phần mềm và giáo trình SWD392 (Chapter 7 & 8):
 
 ---
 
-## 2. MÔ HÌNH HÓA TĨNH (STATIC MODELING - DOMAIN CLASS DIAGRAM)
+## 2. MÔ HÌNH HÓA USE CASE & TĨNH (USE CASE & STATIC MODELING)
+
+### 2.1. Sơ đồ Use Case tổng thể (Use Case Diagram)
+*File sơ đồ:* [Usecase Diagram.jpg](plantuml/Usecase%20Diagram.jpg)
+
+![Usecase Diagram](plantuml/Usecase%20Diagram.jpg)
+
+Sơ đồ phân định ranh giới hệ thống **AITA System (PE Zipped Grading)** với 3 Actor người dùng và 3 Actor hệ thống bên ngoài:
+- **Admin:** Quản trị người dùng & RBAC (`UC02`), Cấu hình xoay vòng AI Key (`UC03`), Giám sát hàng đợi Redis & Docker Sandbox (`UC04`).
+- **Lecturer:** Đăng nhập (`UC01`), Tạo bài tập PE C/Java (`UC05`), Quản lý mẫu Prompt AI (`UC06`), Trích xuất phân tích Git commit (`UC12`).
+- **Student:** Đăng nhập (`UC01`), Nộp bài PE `.zip` / Git (`UC07`), Tương tác hỏi đáp với 24/7 AI Tutor (`UC11`), Xem đóng góp Git cá nhân (`UC12`).
+- **Quan hệ `<<include>>` cốt lõi:**
+  - `UC07` (Nộp bài PE) $\xrightarrow{\ll include\gg}$ `UC08` (Giải nén & Validate file zip sạch).
+  - `UC08` $\xrightarrow{\ll include\gg}$ `UC09` (Chạy testcase trong Docker Sandbox Service).
+  - `UC07` / `UC09` $\xrightarrow{\ll include\gg}$ `UC10` (Chấm ngữ nghĩa AI kết nối LLM Provider API).
+
+---
+
+### 2.2. Mô hình hóa tĩnh (Domain Class Diagram - 14 thực thể)
 *Mã nguồn PlantUML:* [class_diagram_static_model.puml](plantuml/class_diagram_static_model.puml) (Nhấn `Alt + D` trong VS Code để xem).
 
 ### 2.1. Phân chia 4 Package miền nghiệp vụ (Bố cục 4 Tầng từ trên xuống dưới)
@@ -61,8 +79,34 @@ Theo chuẩn kiến trúc phần mềm và giáo trình SWD392 (Chapter 7 & 8):
 
 ## 3. MÔ HÌNH HÓA ĐỘNG (DYNAMIC MODELING)
 
-### 3.1. Sơ đồ tuần tự (Sequence Diagram - UC06: Chấm bài PE tự động)
+### 3.1. Sơ đồ tuần tự mức hệ thống (High-Level System Sequence Diagram)
+*File sơ đồ:* [Sequence Diagram.jpg](plantuml/Sequence%20Diagram.jpg)
+
+![Sequence Diagram](plantuml/Sequence%20Diagram.jpg)
+
+Sơ đồ trình bày chu trình chấm bất đồng bộ 15 bước giữa các bên liên quan:
+1. Sinh viên nộp file `Assignment.zip` qua Web/Mobile Client.
+2. Client gửi `POST /api/submissions (Upload File)`.
+3. API Gateway / Backend lưu bản ghi trạng thái `Pending` vào Database.
+4. Đẩy job chấm `submission_id` vào hàng đợi Redis Queue.
+5. Phản hồi ngay `HTTP 202 (Đã tiếp nhận)` cho Client (dưới 150ms), loại bỏ hoàn toàn nguy cơ timeout.
+6. BullMQ Worker lấy job (`Worker Pop Job`).
+7. Giải nén và lọc sạch file rác OS staging (`Unzip & Validate Artifacts`).
+8. Khởi chạy container cô lập với cgroups (`Run Container / Execute Testcases`).
+9. Nhận kết quả thực thi kiểm thử (`Pass/Fail, ExecTime, Memory`).
+10. Gửi `POST /chat/completions` (Mã nguồn + Prompt RAG + Test Result) đến LLM Provider API.
+11. Nhận phản hồi sư phạm Socratic và đánh giá điểm rubric (`Return Semantic Feedback & Rating`).
+12. Cập nhật trạng thái `Completed` và lưu toàn bộ kết quả vào Database.
+13. Client thực hiện polling `GET /api/submissions/{id}`.
+14. Hệ thống trả về điểm Testcase và nhận xét định hướng từ AI.
+15. Client hiển thị giao diện báo cáo điểm chi tiết cho sinh viên.
+
+---
+
+### 3.2. Sơ đồ tuần tự chi tiết Clean Architecture (Detailed Inter-Service Sequence Diagram)
 *Mã nguồn PlantUML:* [sequence_diagram_dynamic_model.puml](plantuml/sequence_diagram_dynamic_model.puml)
+
+![Detailed Sequence Diagram](plantuml/sequence_diagram_dynamic_model.png)
 
 Sơ đồ tuần tự mô tả chi tiết 5 giai đoạn tương tác động xuyên suốt các tầng Clean Architecture:
 1. **Giai đoạn 1 (Submission & Staging):**
@@ -90,7 +134,24 @@ Sơ đồ tuần tự mô tả chi tiết 5 giai đoạn tương tác động xu
 
 ---
 
-### 3.2. Sơ đồ máy trạng thái (State Machine Diagram - Vòng đời chấm bài)
+### 3.3. Sơ đồ cộng tác / truyền thông (UML Communication Diagram)
+*File sơ đồ:* [Communication Diagram.jpg](plantuml/Communication%20Diagram.jpg)
+
+![Communication Diagram](plantuml/Communication%20Diagram.jpg)
+
+Trong khi Sequence Diagram nhấn mạnh yếu tố thời gian, Communication Diagram thể hiện cấu trúc liên kết và đường truyền thông điệp giữa các đối tượng cộng tác:
+- **1:** `Student` $\to$ `Web Client`: Submit Zip File
+- **2:** `Web Client` $\to$ `Submission Controller`: POST /submit
+- **3:** `Submission Controller` $\to$ `Unzip Service`: Extract & Validate Zip
+- **4:** `Unzip Service` $\to$ `Docker Engine`: Run Test Cases
+- **5:** `Docker Engine` $\to$ `Submission Controller`: Return Test Results
+- **6:** `Submission Controller` $\to$ `AI Service`: Analyze Code Semantic
+- **7:** `AI Service` $\to$ `Submission Controller`: Return AI Feedback
+- **8:** `Submission Controller` $\to$ `Web Client`: Display Final Report
+
+---
+
+### 3.4. Sơ đồ máy trạng thái (State Machine Diagram - Vòng đời chấm bài)
 *Mã nguồn PlantUML:* [state_diagram_dynamic_model.puml](plantuml/state_diagram_dynamic_model.puml)
 
 Biểu diễn chu trình chuyển đổi trạng thái của `GradingJob` và `Submission`:

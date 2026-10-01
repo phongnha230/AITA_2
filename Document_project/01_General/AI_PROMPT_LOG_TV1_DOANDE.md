@@ -1,4 +1,4 @@
-# NHẬT KÝ SỬ DỤNG TRỢ LÝ AI (AI PROMPT LOG) - DỰ ÁN AITA.
+# NHẬT KÝ SỬ DỤNG TRỢ LÝ AI (AI PROMPT LOG) - DỰ ÁN AITA
 
 * **Dự án:** Hệ thống Chấm thi Thực hành Lập trình Tự động AITA (Next.js + Express.js + MySQL + Docker Sandbox + RAG ChromaDB)
 * **Môn học:** SWD392 - Software Architecture & Design
