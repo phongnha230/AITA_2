@@ -1,10 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
 export default function AuthCallbackPage() {
+  return (
+    <Suspense fallback={<CallbackLoading />}>
+      <AuthCallbackContent />
+    </Suspense>
+  );
+}
+
+function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +59,18 @@ export default function AuthCallbackPage() {
           <p className="text-sm text-slate-400">Vui lòng chờ trong giây lát trong khi hệ thống đồng bộ dữ liệu.</p>
         </div>
       )}
+    </div>
+  );
+}
+
+function CallbackLoading() {
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-slate-900 p-4 text-center text-white">
+      <Loader2 className="h-10 w-10 animate-spin text-orange-500" />
+      <h2 className="text-xl font-bold">Đang xác thực Google OAuth...</h2>
+      <p className="text-sm text-slate-400">
+        Vui lòng chờ trong giây lát trong khi hệ thống đồng bộ dữ liệu.
+      </p>
     </div>
   );
 }
