@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Boxes, Cpu, MemoryStick, RefreshCw, Server, SlidersHorizontal } from 'lucide-react';
 import { CPU_SERIES, RAM_SERIES } from '../../mocks/ops.mock';
 import { AreaChart } from '../ui/AreaChart';
@@ -9,10 +10,16 @@ import { Card } from '../ui/Card';
 import { PageHeader } from '../ui/PageHeader';
 import { ProgressBar } from '../ui/ProgressBar';
 import { StatCard } from '../ui/StatCard';
+import { useToast } from '../ui/Toast';
+import { SandboxConfigModal } from './SandboxConfigModal';
 import { AuditLog } from './AuditLog';
 import { NodesTable } from './NodesTable';
 
-export const DockerPage: React.FC = () => (
+export const DockerPage: React.FC = () => {
+  const toast = useToast();
+  const [configOpen, setConfigOpen] = useState(false);
+  const [pulse, setPulse] = useState(0);
+  return (
   <>
     <PageHeader
       eyebrow={
@@ -25,8 +32,8 @@ export const DockerPage: React.FC = () => (
       description="Theo dõi sức khỏe tài nguyên vật lý, trạng thái container cách ly, CPU/RAM limits và an toàn bảo mật Seccomp/AppArmor của hệ thống chấm thi tự động phân tán."
       actions={
         <>
-          <Button><RefreshCw className="h-4 w-4" /> Làm mới tức thì</Button>
-          <Button variant="primary"><SlidersHorizontal className="h-4 w-4" /> Cấu hình Sandbox</Button>
+          <Button onClick={() => { setPulse((p) => p + 1); toast.success('Đã làm mới telemetry cụm Docker.'); }}><RefreshCw className="h-4 w-4" /> Làm mới tức thì</Button>
+          <Button variant="primary" onClick={() => setConfigOpen(true)}><SlidersHorizontal className="h-4 w-4" /> Cấu hình Sandbox</Button>
         </>
       }
     />
@@ -62,6 +69,8 @@ export const DockerPage: React.FC = () => (
     </section>
 
     <NodesTable />
-    <AuditLog />
+    <AuditLog pulse={pulse} />
+    <SandboxConfigModal open={configOpen} onClose={() => setConfigOpen(false)} />
   </>
-);
+  );
+};

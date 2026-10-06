@@ -47,6 +47,8 @@ export const AddKeyModal: React.FC<AddKeyModalProps> = ({ open, onClose, onCreat
             <select value={form.provider} onChange={(e) => setForm({ ...form, provider: e.target.value as AiProvider })} className={inputClass}>
               <option value="GEMINI">Google Gemini</option>
               <option value="OPENAI">OpenAI</option>
+              <option value="ANTHROPIC">Anthropic (mock only)</option>
+              <option value="DEEPSEEK">DeepSeek (mock only)</option>
             </select>
           </FormField>
           <FormField label="Tên gợi nhớ (alias)">

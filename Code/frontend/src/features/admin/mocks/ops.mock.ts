@@ -46,29 +46,6 @@ export const RAM_SERIES = [90, 100, 110, 125, 140, 160, 190, 230, 298, 240, 180,
 export const JOBS_PER_MIN = [20, 40, 80, 110, 70, 55, 75, 148, 90, 60, 40, 85, 88];
 export const JOBS_AVG_MS = [30, 38, 45, 55, 48, 40, 42, 50, 46, 38, 30, 36, 38];
 
-export type JobState = 'Processing' | 'Queued' | 'Failed' | 'Completed';
-
-export interface QueueJob {
-  id: string;
-  name: string;
-  detail: string;
-  student: string;
-  course: string;
-  queue: 'docker-eval-queue' | 'ai-rubric-queue';
-  progressLabel: string;
-  percent: number;
-  duration: string;
-  state: JobState;
-}
-
-export const QUEUE_JOBS: QueueJob[] = [
-  { id: 'job-c8f921d7', name: 'sandbox-compile-q3', detail: 'GCC 13.2 / C++20 Sandbox', student: 'Nguyễn Hoàng Long', course: 'CSD201 • HE172450', queue: 'docker-eval-queue', progressLabel: '6/7 testcases', percent: 85, duration: '1.4s', state: 'Processing' },
-  { id: 'job-a773bc81', name: 'pe-grade-csd201-he172450', detail: 'Claude-3-5-Sonnet Rubric Engine', student: 'Trần Mai Phương', course: 'PRN211 • SE160912', queue: 'ai-rubric-queue', progressLabel: 'Phân tích Clean Code', percent: 62, duration: '3.1s', state: 'Processing' },
-  { id: 'job-90b1ec44', name: 'sandbox-compile-q1', detail: 'OpenJDK 21 / Maven Sandbox', student: 'Lê Tuấn Anh', course: 'JPD123 • HE180123', queue: 'docker-eval-queue', progressLabel: 'Trong hàng đợi', percent: 0, duration: '0.0s', state: 'Queued' },
-  { id: 'job-fe88a102', name: 'sandbox-compile-q4', detail: 'Runtime Error: Segfault 139', student: 'Vũ Minh Đức', course: 'PRF192 • HE179088', queue: 'docker-eval-queue', progressLabel: 'Dừng tại Test 3 (Crash)', percent: 42, duration: '4.8s (Timeout)', state: 'Failed' },
-  { id: 'job-11b069d2', name: 'pe-grade-csd201-he170021', detail: 'Đã đồng bộ Gradebook', student: 'Đỗ Bảo Ngọc', course: 'CSD201 • HE170021', queue: 'ai-rubric-queue', progressLabel: 'Hoàn tất 10/10 tiêu chí', percent: 100, duration: '1.9s', state: 'Completed' },
-];
-
 export interface DockerNode {
   index: string;
   name: string;
@@ -138,3 +115,23 @@ export const SAMPLE_STUDENT: StudentProfile = {
   ],
   securityFlags: [{ reason: 'Sandbox chặn timeout / fork-bomb (CSD201)', ip: '10.14.22.31' }],
 };
+
+export interface ClassInfo {
+  code: string;
+  title: string;
+  students: number;
+}
+
+export const CLASS_CATALOG: ClassInfo[] = [
+  { code: 'PRF192_SE19C', title: 'C Programming Fundamentals', students: 38 },
+  { code: 'CSD201_SE1802', title: 'Data Structures & Algorithms', students: 40 },
+  { code: 'PRO192_IA1802', title: 'Object-Oriented Programming (Java)', students: 42 },
+  { code: 'PRN211_SE1805', title: 'Basic Cross-Platform App (.NET)', students: 36 },
+  { code: 'SWP391_SE1810', title: 'Software Development Project', students: 30 },
+  { code: 'DBI202_AI1801', title: 'Database Systems', students: 44 },
+  { code: 'JPD123_SE1803', title: 'Japanese Programming Basics', students: 28 },
+];
+
+export const DEFAULT_LECTURER_CLASSES = CLASS_CATALOG.slice(0, 3).map((c) => c.code);
+
+export const DEPARTMENT_OPTIONS = ['Kỹ thuật phần mềm', 'An toàn thông tin', 'Trí tuệ nhân tạo', 'Hệ thống thông tin', 'Khoa học máy tính'];

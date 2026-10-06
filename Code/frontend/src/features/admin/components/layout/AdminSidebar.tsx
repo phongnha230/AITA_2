@@ -1,9 +1,13 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
+import { Modal } from '../ui/Modal';
 import { usePathname } from 'next/navigation';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, RotateCcw } from 'lucide-react';
 import { cn } from '../../../../lib/cn';
+import { USE_MOCK } from '../../../../config/mock';
+import { resetMockDb } from '../../mocks/mock-db';
 import { ADMIN_NAV } from './admin-nav';
 
 interface AdminSidebarProps {
@@ -13,9 +17,19 @@ interface AdminSidebarProps {
 
 export const AdminSidebar: React.FC<AdminSidebarProps> = ({ open, onNavigate }) => {
   const pathname = usePathname();
+  const [helpOpen, setHelpOpen] = useState(false);
 
   return (
     <>
+      <Modal open={helpOpen} title="Tài liệu & Hỗ trợ kỹ thuật" onClose={() => setHelpOpen(false)}>
+        <ul className="space-y-3 text-sm text-slate-700">
+          <li><strong>SRS &amp; RBAC:</strong> <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">Document_project/02_Requirements_SRS</code></li>
+          <li><strong>Hướng dẫn chạy dự án:</strong> <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">Code/RUN_GUIDE.md</code></li>
+          <li><strong>Quy chuẩn Frontend:</strong> <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">Code/frontend/RULE.md</code></li>
+          <li><strong>Mock mode:</strong> dữ liệu lưu ở localStorage (<code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">aita_mock_db_v1</code>); đặt <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">NEXT_PUBLIC_USE_MOCK=false</code> để gọi API thật.</li>
+          <li><strong>Phím tắt:</strong> <kbd className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">Ctrl/⌘ + K</kbd> focus ô tìm kiếm ở trang Người dùng.</li>
+        </ul>
+      </Modal>
       {open && <div className="fixed inset-0 z-40 bg-slate-900/40 lg:hidden" onClick={onNavigate} aria-hidden />}
       <aside
         className={cn(
@@ -62,10 +76,22 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ open, onNavigate }) 
             </span>
           </div>
           <p className="text-[11px] text-slate-500">Hạ tầng đồng bộ chuẩn kiểm thử phân tán</p>
-          <p className="flex items-center gap-1.5 pt-1 text-xs font-semibold text-blue-600">
+          <button type="button" onClick={() => setHelpOpen(true)} className="flex items-center gap-1.5 pt-1 text-xs font-semibold text-blue-600 hover:underline">
             <BookOpen className="h-3.5 w-3.5" />
             Tài liệu &amp; Hỗ trợ kỹ thuật
-          </p>
+          </button>
+          {USE_MOCK && (
+            <button
+              type="button"
+              onClick={() => {
+                resetMockDb();
+                window.location.reload();
+              }}
+              className="flex w-full items-center gap-1.5 border-t border-slate-200 pt-2 text-left text-[11px] font-medium text-amber-600 hover:text-amber-700"
+            >
+              <RotateCcw className="h-3 w-3" /> Mock mode: đặt lại dữ liệu mẫu
+            </button>
+          )}
         </div>
       </aside>
     </>

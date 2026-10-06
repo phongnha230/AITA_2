@@ -2,12 +2,14 @@
 
 import { useState } from 'react';
 import { getErrorMessage } from '../../../../lib/errors';
+import { generatePassword } from '../../../../lib/password';
 import { AlertBox } from '../../../../components/feedback/AlertBox';
 import { adminUserService } from '../../services/admin-user.service';
 import { Button } from '../ui/Button';
 import { FormField, inputClass } from '../ui/FormField';
 import { Modal } from '../ui/Modal';
 import type { UserRole } from '../../types/admin.types';
+import { TempPasswordModal, type TempCredentials } from './TempPasswordModal';
 import { ROLES } from './user-style';
 
 interface UserFormModalProps {
@@ -16,10 +18,13 @@ interface UserFormModalProps {
   onCreated: () => void;
 }
 
+const EMPTY = { fullName: '', email: '', role: 'STUDENT' as UserRole };
+
 export const UserFormModal: React.FC<UserFormModalProps> = ({ open, onClose, onCreated }) => {
-  const [form, setForm] = useState({ fullName: '', email: '', password: '', role: 'STUDENT' as UserRole });
+  const [form, setForm] = useState(EMPTY);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [credentials, setCredentials] = useState<TempCredentials | null>(null);
 
   const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm((f) => ({ ...f, [key]: e.target.value }));
@@ -28,9 +33,11 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({ open, onClose, onC
     e.preventDefault();
     setSubmitting(true);
     setError(null);
+    const password = generatePassword();
     try {
-      await adminUserService.create({ ...form, password: form.password || undefined });
-      setForm({ fullName: '', email: '', password: '', role: 'STUDENT' });
+      await adminUserService.create({ ...form, password });
+      setCredentials({ title: 'Tài khoản đã được tạo', fullName: form.fullName, email: form.email, password });
+      setForm(EMPTY);
       onCreated();
       onClose();
     } catch (err) {
@@ -41,34 +48,32 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({ open, onClose, onC
   };
 
   return (
-    <Modal open={open} title="Tạo tài khoản mới" onClose={onClose}>
-      <form onSubmit={submit} className="space-y-5">
-        {error && <AlertBox message={error} />}
-        <FormField label="Họ và tên">
-          <input required minLength={2} value={form.fullName} onChange={set('fullName')} className={inputClass} placeholder="Nguyễn Văn A" />
-        </FormField>
-        <FormField label="Email FPT">
-          <input required type="email" value={form.email} onChange={set('email')} className={inputClass} placeholder="anvhe123456@fpt.edu.vn" />
-        </FormField>
-        <div className="grid gap-5 sm:grid-cols-2">
-          <FormField label="Vai trò">
+    <>
+      <Modal open={open} title="Tạo tài khoản mới" onClose={onClose}>
+        <form onSubmit={submit} className="space-y-5">
+          {error && <AlertBox message={error} />}
+          <FormField label="Họ và tên">
+            <input required minLength={2} value={form.fullName} onChange={set('fullName')} className={inputClass} placeholder="Nguyễn Văn A" />
+          </FormField>
+          <FormField label="Email FPT">
+            <input required type="email" value={form.email} onChange={set('email')} className={inputClass} placeholder="anvhe123456@fpt.edu.vn" />
+          </FormField>
+          <FormField label="Vai trò" hint="Mật khẩu tạm thời sẽ được tạo ngẫu nhiên; người dùng đổi mật khẩu mới sau khi đăng nhập.">
             <select value={form.role} onChange={set('role')} className={inputClass}>
               {ROLES.map((r) => (
                 <option key={r}>{r}</option>
               ))}
             </select>
           </FormField>
-          <FormField label="Mật khẩu" hint="Để trống để dùng mật khẩu mặc định.">
-            <input type="password" minLength={6} value={form.password} onChange={set('password')} className={inputClass} placeholder="••••••" />
-          </FormField>
-        </div>
-        <div className="flex justify-end gap-2 pt-2">
-          <Button onClick={onClose}>Hủy</Button>
-          <Button type="submit" variant="primary" disabled={submitting}>
-            {submitting ? 'Đang tạo...' : 'Tạo tài khoản'}
-          </Button>
-        </div>
-      </form>
-    </Modal>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button onClick={onClose}>Hủy</Button>
+            <Button type="submit" variant="primary" disabled={submitting}>
+              {submitting ? 'Đang tạo...' : 'Tạo tài khoản'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+      <TempPasswordModal credentials={credentials} onClose={() => setCredentials(null)} />
+    </>
   );
 };

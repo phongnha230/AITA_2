@@ -3,7 +3,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Boxes, Cpu, Download, KeyRound, Layers, RefreshCw, Server, Users, Wallet } from 'lucide-react';
-import { THROUGHPUT_AI, THROUGHPUT_SUBMISSIONS } from '../../mocks/ops.mock';
+import { downloadFile } from '../../../../lib/download';
+import { LIVE_SESSIONS, OPS_EVENTS, THROUGHPUT_AI, THROUGHPUT_SUBMISSIONS } from '../../mocks/ops.mock';
+import { useToast } from '../ui/Toast';
 import { AreaChart } from '../ui/AreaChart';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
@@ -22,10 +24,29 @@ const QUICK_LINKS = [
 ];
 
 export const DashboardPage: React.FC = () => {
+  const toast = useToast();
   const [spinning, setSpinning] = useState(false);
+  const [updatedAt, setUpdatedAt] = useState<string | null>(null);
+
   const refresh = () => {
     setSpinning(true);
-    setTimeout(() => setSpinning(false), 800);
+    setTimeout(() => {
+      setSpinning(false);
+      setUpdatedAt(new Date().toLocaleTimeString('vi-VN'));
+      toast.success('Đã làm mới dữ liệu vận hành.');
+    }, 800);
+  };
+
+  const exportReport = () => {
+    const report = {
+      generatedAt: new Date().toISOString(),
+      exam: 'Spring 2025',
+      kpis: { sessions: 12, examinees: 428, sandboxPods: '42/150', queueProcessed: 2450, queued: 14, aiBudget: '$142.6/$500' },
+      liveSessions: LIVE_SESSIONS,
+      events: OPS_EVENTS,
+    };
+    downloadFile('aita-ops-report.json', JSON.stringify(report, null, 2), 'application/json');
+    toast.success('Đã xuất báo cáo vận hành (JSON).');
   };
 
   return (
@@ -43,8 +64,8 @@ export const DashboardPage: React.FC = () => {
         description="Bảng điều khiển trung tâm giám sát hạ tầng chấm bài Docker Sandbox, luồng hàng đợi Redis, ngân sách AI và hoạt động thi thực hành toàn trường theo thời gian thực."
         actions={
           <>
-            <Button><Download className="h-4 w-4" /> Xuất báo cáo</Button>
-            <Button variant="primary" onClick={refresh}>
+            <Button onClick={exportReport}><Download className="h-4 w-4" /> Xuất báo cáo</Button>
+            <Button variant="primary" onClick={refresh} title={updatedAt ? `Cập nhật lúc ${updatedAt}` : undefined}>
               Làm mới (15s) <RefreshCw className={`h-4 w-4 ${spinning ? 'animate-spin' : ''}`} />
             </Button>
           </>

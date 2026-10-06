@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import { ChevronRight, Home, LogOut, Menu, User as UserIcon } from 'lucide-react';
+import { USE_MOCK } from '../../../../config/mock';
 import { authService, type User } from '../../../auth/services/auth.service';
 import { ADMIN_NAV } from './admin-nav';
 
@@ -54,7 +55,16 @@ export const AdminTopbar: React.FC<AdminTopbarProps> = ({ user, onMenuClick }) =
           </div>
           <button
             type="button"
-            onClick={() => authService.logout()}
+            onClick={() => {
+              if (USE_MOCK) {
+                // No /login page yet: end the mock session and go to the public landing page.
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.href = '/';
+              } else {
+                authService.logout();
+              }
+            }}
             title="Đăng xuất"
             aria-label="Đăng xuất"
             className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-500 transition-colors hover:bg-rose-50 hover:text-rose-600"
