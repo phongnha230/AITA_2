@@ -59,7 +59,7 @@ export class PrismaAiTutorRepository implements IAiTutorRepository {
       },
       orderBy: { updatedAt: 'desc' },
     });
-    return list.map((r) => this.toConversationDomain(r));
+    return list.map((r: any) => this.toConversationDomain(r));
   }
 
   async findConversationBySubmissionAndStudent(
@@ -114,6 +114,6 @@ export class PrismaAiTutorRepository implements IAiTutorRepository {
       where: { conversationId },
       orderBy: { createdAt: 'asc' },
     });
-    return list.map((m) => this.toMessageDomain(m));
+    return list.map((m: any) => this.toMessageDomain(m));
   }
 }

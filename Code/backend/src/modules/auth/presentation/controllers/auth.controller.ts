@@ -3,6 +3,7 @@ import { LoginUseCase } from '../../application/use-cases/login.use-case.js';
 import { RegisterUseCase } from '../../application/use-cases/register.use-case.js';
 import { GoogleLoginUseCase } from '../../application/use-cases/google-login.use-case.js';
 import { ChangePasswordUseCase } from '../../application/use-cases/change-password.use-case.js';
+import { RefreshTokenUseCase } from '../../application/use-cases/refresh-token.use-case.js';
 import { sendSuccess } from '../../../../shared/presentation/utils/api-response.util.js';
 import { UnauthorizedError } from '../../../../shared/domain/exceptions/app.error.js';
 import { env } from '../../../../infrastructure/config/env.js';
@@ -12,13 +13,26 @@ export class AuthController {
     private readonly loginUseCase: LoginUseCase,
     private readonly registerUseCase: RegisterUseCase,
     private readonly googleLoginUseCase: GoogleLoginUseCase,
-    private readonly changePasswordUseCase: ChangePasswordUseCase
+    private readonly changePasswordUseCase: ChangePasswordUseCase,
+    private readonly refreshTokenUseCase?: RefreshTokenUseCase
   ) {}
 
   login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const result = await this.loginUseCase.execute(req.body);
       sendSuccess(res, result, 'Đăng nhập thành công!');
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  refreshToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!this.refreshTokenUseCase) {
+        throw new Error('RefreshTokenUseCase is not injected');
+      }
+      const result = await this.refreshTokenUseCase.execute(req.body);
+      sendSuccess(res, result, 'Làm mới token thành công!');
     } catch (error) {
       next(error);
     }

@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import { SiteShell } from '../components/common/SiteShell';
+import { ServiceWorkerCleaner } from '@/components/ServiceWorkerCleaner';
 import './globals.css';
 
-const inter = Inter({ subsets: ['latin', 'vietnamese'], display: 'swap' });
+const inter = Inter({ subsets: ['latin', 'vietnamese'] });
 
 export const metadata: Metadata = {
   title: 'AITA - AI-powered Teaching Assistant System',
@@ -18,7 +18,8 @@ export default function RootLayout({
   return (
     <html lang="vi">
       <body className={`${inter.className} min-h-screen bg-slate-50 text-slate-900 antialiased`}>
-        <SiteShell>{children}</SiteShell>
+        <ServiceWorkerCleaner />
+        {children}
       </body>
     </html>
   );

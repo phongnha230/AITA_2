@@ -12,6 +12,21 @@ import {
 } from '../../domain/interfaces/sandbox-runner.interface.js';
 
 const execAsync = promisify(exec);
+const MAX_OUTPUT_BYTES = 5 * 1024 * 1024; // 5MB max output buffer
+const MAX_GENERATED_FILE_BYTES = 10 * 1024 * 1024; // 10MB max generated file size
+
+function killProcessTree(childProcess: any): void {
+  if (!childProcess || !childProcess.pid) return;
+  try {
+    if (process.platform === 'win32') {
+      exec(`taskkill /pid ${childProcess.pid} /T /F`, () => {});
+    } else {
+      childProcess.kill('SIGKILL');
+    }
+  } catch {
+    // Process already exited
+  }
+}
 
 export class JavaDockerRunner implements ISandboxRunner {
   private async isDockerDaemonRunning(): Promise<boolean> {
@@ -48,7 +63,7 @@ export class JavaDockerRunner implements ISandboxRunner {
 
     // 2. Biên dịch javac
     const compileCmd = isDocker
-      ? `docker run --rm --network none -v "${path.resolve(stagedFolderPath)}":/app -w /app openjdk:17-alpine sh -c "javac -encoding UTF-8 -d ./bin $(find . -name '*.java')"`
+      ? `docker run --rm --network none --cpus 1.0 --pids-limit 50 --cap-drop ALL --security-opt no-new-privileges -v "${path.resolve(stagedFolderPath)}":/app -w /app openjdk:17-alpine sh -c "javac -encoding UTF-8 -d ./bin $(find . -name '*.java')"`
       : `javac -encoding UTF-8 -d "${binDir}" ${javaFiles.map((f: string) => `"${f}"`).join(' ')}`;
 
     try {
@@ -110,6 +125,7 @@ export class JavaDockerRunner implements ISandboxRunner {
       let stdout = '';
       let stderr = '';
       let isTimedOut = false;
+      let isOutputLimitExceeded = false;
 
       let childProcess: any;
       if (isDocker) {
@@ -119,6 +135,14 @@ export class JavaDockerRunner implements ISandboxRunner {
           '-i',
           '--network',
           'none',
+          '--cpus',
+          '1.0',
+          '--pids-limit',
+          '50',
+          '--cap-drop',
+          'ALL',
+          '--security-opt',
+          'no-new-privileges',
           '--memory',
           `${tc.memoryLimitMb}m`,
           '-v',
@@ -142,14 +166,22 @@ export class JavaDockerRunner implements ISandboxRunner {
 
       const timer = setTimeout(() => {
         isTimedOut = true;
-        childProcess.kill('SIGKILL');
+        killProcessTree(childProcess);
       }, tc.timeLimitMs);
 
       childProcess.stdout?.on('data', (d: Buffer) => {
+        if (stdout.length + d.length > MAX_OUTPUT_BYTES) {
+          isOutputLimitExceeded = true;
+          killProcessTree(childProcess);
+          return;
+        }
         stdout += d.toString();
       });
+
       childProcess.stderr?.on('data', (d: Buffer) => {
-        stderr += d.toString();
+        if (stderr.length + d.length <= MAX_OUTPUT_BYTES) {
+          stderr += d.toString();
+        }
       });
 
       // Nếu là console PRO192 thì bơm menu lựa chọn qua stdin
@@ -176,6 +208,20 @@ export class JavaDockerRunner implements ISandboxRunner {
           });
         }
 
+        if (isOutputLimitExceeded) {
+          return resolve({
+            testCaseId: tc.id,
+            questionNo: tc.questionNo,
+            passed: false,
+            status: 'OUTPUT_LIMIT_EXCEEDED',
+            actualOutput: stdout.slice(0, 1000) + '... [TRUNCATED]',
+            expectedOutput: tc.expectedOutput,
+            executionTimeMs: duration,
+            memoryUsedKb: 0,
+            errorMessage: 'Output Limit Exceeded: Chương trình in quá 5MB dữ liệu (vòng lặp in vô tận).',
+          });
+        }
+
         // Kiểm tra File-to-File Diff cho môn CSD201
         if (tc.outputFileName) {
           const generatedFilePath = path.join(workDir, tc.outputFileName);
@@ -190,6 +236,22 @@ export class JavaDockerRunner implements ISandboxRunner {
               executionTimeMs: duration,
               memoryUsedKb: 0,
               errorMessage: `FILE_NOT_FOUND: Không tìm thấy file '${tc.outputFileName}' mà chương trình phải tạo ra.`,
+            });
+          }
+
+          // Kiểm tra dung lượng file kết quả tránh tràn bộ nhớ
+          const stat = fs.statSync(generatedFilePath);
+          if (stat.size > MAX_GENERATED_FILE_BYTES) {
+            return resolve({
+              testCaseId: tc.id,
+              questionNo: tc.questionNo,
+              passed: false,
+              status: 'OUTPUT_LIMIT_EXCEEDED',
+              actualOutput: '[FILE EXCEEDS 10MB]',
+              expectedOutput: tc.expectedOutput,
+              executionTimeMs: duration,
+              memoryUsedKb: 0,
+              errorMessage: `OUTPUT_LIMIT_EXCEEDED: File '${tc.outputFileName}' vượt quá dung lượng cho phép (10MB).`,
             });
           }
 

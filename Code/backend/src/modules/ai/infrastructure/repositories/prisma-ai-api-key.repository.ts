@@ -53,7 +53,7 @@ export class PrismaAiApiKeyRepository implements IAiApiKeyRepository {
     const list = await this.prisma.aiApiKey.findMany({
       orderBy: { createdAt: 'desc' },
     });
-    return list.map((r) => this.toDomain(r));
+    return list.map((r: any) => this.toDomain(r));
   }
 
   async create(data: CreateAiApiKeyData): Promise<AiApiKey> {

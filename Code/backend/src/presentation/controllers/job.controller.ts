@@ -88,4 +88,56 @@ export class JobController {
       });
     }
   }
+
+  /**
+   * GET /jobs/:submissionId/events
+   *
+   * Server-Sent Events (SSE) để Frontend nhận trạng thái chấm bài theo thời gian thực (Realtime stream)
+   */
+  public static async streamJobEvents(
+    req: Request,
+    res: Response
+  ): Promise<void> {
+    const { submissionId } = req.params;
+
+    if (!submissionId) {
+      res.status(400).json({ success: false, message: 'submissionId is required.' });
+      return;
+    }
+
+    // Thiết lập SSE Headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders?.();
+
+    let isClientConnected = true;
+
+    req.on('close', () => {
+      isClientConnected = false;
+    });
+
+    const interval = setInterval(async () => {
+      if (!isClientConnected) {
+        clearInterval(interval);
+        return;
+      }
+
+      try {
+        const jobStatus = await getGradingJobStatus(submissionId);
+        if (jobStatus) {
+          res.write(`data: ${JSON.stringify(jobStatus)}\n\n`);
+
+          // Nếu job đã hoàn tất (COMPLETED hoặc FAILED), đóng stream an toàn
+          if (jobStatus.status === 'COMPLETED' || jobStatus.status === 'FAILED') {
+            clearInterval(interval);
+            res.write(`event: end\ndata: ${JSON.stringify({ finished: true, status: jobStatus.status })}\n\n`);
+            res.end();
+          }
+        }
+      } catch (err: any) {
+        console.error('[JobController SSE] Error polling job status:', err.message);
+      }
+    }, 1000);
+  }
 }
