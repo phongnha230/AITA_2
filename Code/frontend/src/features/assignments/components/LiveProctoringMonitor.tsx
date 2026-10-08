@@ -35,6 +35,11 @@ import {
 } from 'lucide-react';
 import { assignmentService } from '../services/assignment.service';
 import { Assignment } from '../types/assignment.types';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+
 
 interface StudentExamStation {
   id: string;
@@ -620,7 +625,7 @@ export const LiveProctoringMonitor: React.FC = () => {
       )}
 
       {/* 1. TOP HEADER & LIVE EXAM CONTROLS BANNER */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+      <Card className="rounded-2xl border-slate-200 shadow-2xs p-6 bg-white flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
             <span className="flex h-2.5 w-2.5 relative">
@@ -632,7 +637,7 @@ export const LiveProctoringMonitor: React.FC = () => {
             </span>
             <span className="text-slate-300">•</span>
             <div className="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200/80 px-2.5 py-1 rounded-lg border border-slate-200 transition">
-              <Building2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+              <Building2 className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
               <select
                 value={selectedRoom}
                 onChange={(e) => {
@@ -656,9 +661,9 @@ export const LiveProctoringMonitor: React.FC = () => {
               {selectedAssignment ? selectedAssignment.title : 'Kỳ thi Thực hành PE PRF192 - Spring 2025'}
             </h1>
             {selectedAssignment?.course && (
-              <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 shrink-0">
+              <Badge variant="outline" className="px-2.5 py-1 text-xs font-bold bg-indigo-50 text-indigo-700 border-indigo-200 shrink-0">
                 {selectedAssignment.course.code}
-              </span>
+              </Badge>
             )}
           </div>
 
@@ -670,7 +675,7 @@ export const LiveProctoringMonitor: React.FC = () => {
             <select
               value={selectedAssignmentId}
               onChange={(e) => setSelectedAssignmentId(e.target.value)}
-              className="text-xs font-medium bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 max-w-xs truncate"
+              className="text-xs font-medium bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 max-w-xs truncate"
             >
               {loadingAssignments && <option value="">Đang tải đề thi...</option>}
               {!loadingAssignments && assignments.length === 0 && (
@@ -697,7 +702,7 @@ export const LiveProctoringMonitor: React.FC = () => {
         {/* Digital Countdown Timer & Quick Controls */}
         <div className="flex flex-wrap items-center gap-3">
           <div className="px-5 py-3 rounded-2xl bg-slate-950 text-white border border-slate-800 flex items-center gap-3 shadow-md">
-            <Clock className={`w-5 h-5 ${secondsLeft < 600 ? 'text-rose-500 animate-pulse' : 'text-blue-400'}`} />
+            <Clock className={`w-5 h-5 ${secondsLeft < 600 ? 'text-rose-500 animate-pulse' : 'text-indigo-400'}`} />
             <div>
               <div className="text-[10px] text-slate-400 font-mono uppercase tracking-wider">
                 Thời gian còn lại
@@ -713,10 +718,12 @@ export const LiveProctoringMonitor: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setIsPaused(!isPaused)}
               title={isPaused ? 'Tiếp tục tính giờ' : 'Tạm dừng ca thi'}
-              className="p-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold transition flex items-center gap-1.5"
+              className="h-10 px-3 rounded-xl border-slate-200 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold transition flex items-center gap-1.5 shadow-2xs"
             >
               {isPaused ? (
                 <>
@@ -729,29 +736,33 @@ export const LiveProctoringMonitor: React.FC = () => {
                   <span className="hidden sm:inline">Tạm dừng</span>
                 </>
               )}
-            </button>
+            </Button>
 
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => handleExtendTime(5)}
-              className="px-3 py-2.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold transition flex items-center gap-1"
+              className="h-10 px-3 rounded-xl border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition flex items-center gap-1 shadow-2xs"
             >
               <PlusCircle className="w-3.5 h-3.5" />
               <span>+5 Phút</span>
-            </button>
+            </Button>
 
-            <button
+            <Button
+              size="sm"
               onClick={() => setBroadcastModal(true)}
-              className="px-3.5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/20 transition flex items-center gap-1.5"
+              className="h-10 px-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-xs transition flex items-center gap-1.5"
             >
               <Megaphone className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Phát thông báo</span>
-            </button>
+            </Button>
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* 2. STATS OVERVIEW CARDS & PROGRESS BAR */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5">
+      <Card className="rounded-2xl border-slate-200 shadow-2xs p-6 bg-white space-y-5">
+
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 flex items-center gap-3.5">
             <div className="w-11 h-11 rounded-xl bg-slate-200/80 text-slate-700 flex items-center justify-center shrink-0">
@@ -828,69 +839,79 @@ export const LiveProctoringMonitor: React.FC = () => {
             />
           </div>
         </div>
-      </div>
+      </Card>
+
 
       {/* 3. FILTER TABS, SEARCH & VIEW SWITCHER */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <Card className="rounded-2xl border-slate-200 shadow-2xs p-4 bg-white flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl text-xs font-bold">
-          <button
+          <Button
+            variant={filter === 'all' ? 'default' : 'ghost'}
+            size="sm"
             onClick={() => setFilter('all')}
-            className={`px-3.5 py-1.5 rounded-lg transition ${
+            className={`h-8 px-3.5 rounded-lg text-xs font-bold transition ${
               filter === 'all'
-                ? 'bg-white text-slate-900 shadow-sm'
+                ? 'bg-white hover:bg-white text-slate-900 shadow-xs'
                 : 'text-slate-500 hover:text-slate-800'
             }`}
           >
             Tất cả ({totalCount})
-          </button>
+          </Button>
 
-          <button
+          <Button
+            variant={filter === 'working' ? 'default' : 'ghost'}
+            size="sm"
             onClick={() => setFilter('working')}
-            className={`px-3.5 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
+            className={`h-8 px-3.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
               filter === 'working'
-                ? 'bg-blue-600 text-white shadow-sm'
+                ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs'
                 : 'text-slate-500 hover:text-slate-800'
             }`}
           >
             <Hourglass className="w-3.5 h-3.5" />
             <span>Đang làm bài ({workingCount})</span>
-          </button>
+          </Button>
 
-          <button
+          <Button
+            variant={filter === 'submitted' ? 'default' : 'ghost'}
+            size="sm"
             onClick={() => setFilter('submitted')}
-            className={`px-3.5 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
+            className={`h-8 px-3.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
               filter === 'submitted'
-                ? 'bg-emerald-600 text-white shadow-sm'
+                ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs'
                 : 'text-slate-500 hover:text-slate-800'
             }`}
           >
             <CheckCircle className="w-3.5 h-3.5" />
             <span>Đã nộp bài ({submittedCount})</span>
-          </button>
+          </Button>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           {/* Export CSV Button */}
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             onClick={handleExportAttendanceCsv}
             title="Xuất biên bản danh sách phòng thi ra CSV"
-            className="px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
+            className="h-9 px-3 rounded-xl border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition flex items-center gap-1.5 shadow-2xs"
           >
             <Download className="w-3.5 h-3.5 text-emerald-600" />
             <span>Xuất biên bản ca thi (CSV)</span>
-          </button>
+          </Button>
 
           <div className="relative flex-1 sm:w-64">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <Input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Tìm theo tên, MSSV, số máy (PC-01)..."
-              className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              className="pl-9 h-9 bg-white border-slate-200 rounded-xl text-xs placeholder:text-slate-400 focus-visible:ring-indigo-500 shadow-2xs"
             />
           </div>
+
 
           <div className="flex items-center border border-slate-200 rounded-xl overflow-hidden bg-slate-50 p-0.5">
             <button
@@ -913,7 +934,8 @@ export const LiveProctoringMonitor: React.FC = () => {
             </button>
           </div>
         </div>
-      </div>
+      </Card>
+
 
       {/* 4. MAIN STUDENT STATIONS DISPLAY */}
       {viewMode === 'grid' ? (

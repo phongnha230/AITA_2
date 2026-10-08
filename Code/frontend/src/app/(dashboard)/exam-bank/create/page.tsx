@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { CreateExamWizard } from '../../../../features/assignments/components/CreateExamWizard';
+import { CreateExamWizard } from '@/features/assignments/components/CreateExamWizard';
 
 export default function CreateExamPage() {
   return (
@@ -8,3 +8,4 @@ export default function CreateExamPage() {
     </Suspense>
   );
 }
+

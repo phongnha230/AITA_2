@@ -175,8 +175,17 @@ export const CoursesOverview: React.FC<CoursesOverviewProps> = ({
             <option value="ACTIVE">Đang mở (Active)</option>
             <option value="ARCHIVED">Đã lưu trữ</option>
           </select>
+
+          <Button
+            onClick={onOpenCreateModal}
+            className="h-9 px-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition shadow-xs flex items-center gap-1.5 whitespace-nowrap active:scale-95"
+          >
+            <Plus className="w-4 h-4 shrink-0" />
+            <span>Tạo Khóa Học</span>
+          </Button>
         </div>
       </div>
+
 
       {/* Course Grid */}
       {courses.length > 0 ? (

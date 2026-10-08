@@ -34,6 +34,11 @@ import {
 } from 'lucide-react';
 import JSZip from 'jszip';
 import { assignmentService } from '../services/assignment.service';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+
 import {
   AssignmentEnv,
   Course,
@@ -751,29 +756,28 @@ public class MyCar implements ICar {
     <div className="space-y-6 max-w-5xl mx-auto pb-16 font-sans">
       {/* TOP BREADCRUMB & HEADER */}
       <div className="flex items-center justify-between">
-        <Link
-          href="/exam-bank"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Quay lại Ngân hàng đề thi</span>
-        </Link>
-        <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+        <Button asChild variant="ghost" size="sm" className="h-8 px-2 text-xs font-semibold text-slate-500 hover:text-slate-800">
+          <Link href="/exam-bank">
+            <ArrowLeft className="w-4 h-4 mr-1.5" />
+            <span>Quay lại Ngân hàng đề thi</span>
+          </Link>
+        </Button>
+        <Badge variant="outline" className="text-xs font-bold px-2.5 py-1 bg-indigo-50 text-indigo-700 border-indigo-200">
           Khảo thí PE • Chấm tự động
-        </span>
+        </Badge>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <Card className="rounded-2xl border-slate-200 shadow-2xs p-6 bg-white flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
             {editId ? (
-              <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-300">
+              <Badge variant="outline" className="text-[11px] font-bold bg-amber-50 text-amber-800 border-amber-300">
                 CHẾ ĐỘ CHỈNH SỬA (EDIT MODE)
-              </span>
+              </Badge>
             ) : (
-              <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+              <Badge variant="outline" className="text-[11px] font-bold bg-indigo-50 text-indigo-700 border-indigo-200">
                 TẠO MỚI (CREATE MODE)
-              </span>
+              </Badge>
             )}
           </div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">
@@ -787,25 +791,30 @@ public class MyCar implements ICar {
         </div>
         {!editId && (
           <div className="flex flex-wrap items-center gap-2 shrink-0">
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
               onClick={handleLoadSamplePrf192}
-              className="px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1.5 shadow-sm transition"
+              className="h-9 px-3.5 rounded-xl text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300 flex items-center gap-1.5 shadow-2xs transition"
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-600" />
               <span>⚡ Mẫu C (PRF192)</span>
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
               onClick={handleLoadSamplePro192}
-              className="px-3.5 py-2 rounded-xl text-xs font-bold bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-300 flex items-center gap-1.5 shadow-sm transition"
+              className="h-9 px-3.5 rounded-xl text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border-indigo-300 flex items-center gap-1.5 shadow-2xs transition"
             >
-              <Code2 className="w-3.5 h-3.5 text-blue-600" />
+              <Code2 className="w-3.5 h-3.5 text-indigo-600" />
               <span>☕ Mẫu Java (PRO192 / CSD201)</span>
-            </button>
+            </Button>
           </div>
         )}
-      </div>
+      </Card>
+
 
       {submitSuccess && (
         <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2 animate-bounce">

@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import { ChevronLeft, Plus, FileCode2 } from 'lucide-react';
 import { Course } from '../types/course.types';
 import { useCourseDetail } from '../hooks/useCourseDetail';
@@ -23,6 +24,7 @@ export const CourseDetailManagement: React.FC<CourseDetailManagementProps> = ({
   onBackToOverview,
   onShowToast,
 }) => {
+  const router = useRouter();
   const {
     course,
     joinCode,
@@ -48,14 +50,14 @@ export const CourseDetailManagement: React.FC<CourseDetailManagementProps> = ({
 
   const activeCourse = course || initialCourse;
 
-  // Handoff Handlers for Assignment & PE Exam (Strict Design Boundaries)
+  // Real Handoff Handlers for Assignment & PE Exam (Connected to Bao's module)
   const handleTriggerHandoff = (type: 'ASSIGNMENT' | 'PE_EXAM') => {
     if (type === 'ASSIGNMENT') {
-      console.log('Trigger External Module: [ASSIGNMENT MODULE] - Handoff button clicked');
-      onShowToast("🔗 [Placeholder Trigger] Đã kích hoạt chuyển tiếp sang Module 'Tạo Assignment'");
+      onShowToast("Đang chuyển tiếp sang Module 'Tạo Assignment'...");
+      router.push(`/exam-bank/create?courseId=${activeCourse.id}&type=ASSIGNMENT`);
     } else {
-      console.log('Trigger External Module: [PE EXAM MODULE] - Handoff button clicked');
-      onShowToast("🚀 [Placeholder Trigger] Đã kích hoạt chuyển tiếp sang Module 'Tạo đề thi PE'");
+      onShowToast("Đang chuyển tiếp sang Module 'Tạo Đề Thi PE'...");
+      router.push(`/exam-bank/create?courseId=${activeCourse.id}&courseCode=${activeCourse.code}`);
     }
   };
 
