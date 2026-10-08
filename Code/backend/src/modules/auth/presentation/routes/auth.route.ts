@@ -4,6 +4,7 @@ import { LoginUseCase } from '../../application/use-cases/login.use-case.js';
 import { RegisterUseCase } from '../../application/use-cases/register.use-case.js';
 import { GoogleLoginUseCase } from '../../application/use-cases/google-login.use-case.js';
 import { ChangePasswordUseCase } from '../../application/use-cases/change-password.use-case.js';
+import { RefreshTokenUseCase } from '../../application/use-cases/refresh-token.use-case.js';
 import { PrismaUserRepository } from '../../../user/infrastructure/repositories/prisma-user.repository.js';
 import { BcryptHasherService } from '../../infrastructure/services/bcrypt-hasher.service.js';
 import { JwtTokenService } from '../../infrastructure/services/jwt-token.service.js';
@@ -13,6 +14,7 @@ import { validateBody } from '../../../../shared/presentation/middlewares/valida
 import {
   LoginSchema,
   RegisterSchema,
+  RefreshTokenSchema,
   ChangePasswordSchema,
   GoogleLoginCodeSchema,
   GoogleIdTokenSchema,
@@ -31,17 +33,20 @@ const loginUseCase = new LoginUseCase(userRepository, passwordHasher, tokenServi
 const registerUseCase = new RegisterUseCase(userRepository, passwordHasher, tokenService);
 const googleLoginUseCase = new GoogleLoginUseCase(userRepository, oauthService, tokenService);
 const changePasswordUseCase = new ChangePasswordUseCase(userRepository, passwordHasher);
+const refreshTokenUseCase = new RefreshTokenUseCase(userRepository, tokenService);
 
 const authController = new AuthController(
   loginUseCase,
   registerUseCase,
   googleLoginUseCase,
-  changePasswordUseCase
+  changePasswordUseCase,
+  refreshTokenUseCase
 );
 
 // Traditional Email/Password Auth
 router.post('/login', validateBody(LoginSchema), authController.login);
 router.post('/register', validateBody(RegisterSchema), authController.register);
+router.post('/refresh-token', validateBody(RefreshTokenSchema), authController.refreshToken);
 router.get('/me', authenticateJWT, authController.me);
 router.post('/change-password', authenticateJWT, validateBody(ChangePasswordSchema), authController.changePassword);
 

@@ -1,10 +1,10 @@
-import React from 'react';
-import { LecturerLayout } from '../../components/layout/LecturerLayout';
+import type { ReactNode } from 'react';
+import { LecturerAuthGuard } from '@/features/courses/components/LecturerAuthGuard';
 
-export default function DashboardLayout({
+export default function LecturerDashboardLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
-  return <LecturerLayout>{children}</LecturerLayout>;
+  return <LecturerAuthGuard>{children}</LecturerAuthGuard>;
 }

@@ -185,6 +185,8 @@ model Assignment {
   submissionType     SubmissionType       @default(INDIVIDUAL) @map("submission_type")
   startTime          DateTime             @map("start_time")
   deadline           DateTime
+  durationMinutes    Int?                 @default(90) @map("duration_minutes")
+  accessCode         String?              @map("access_code") @db.VarChar(50)
   maxFileSizeBytes   BigInt               @default(52428800) @map("max_file_size_bytes")
   allowGitSubmission Boolean              @default(true) @map("allow_git_submission")
   allowZipSubmission Boolean              @default(true) @map("allow_zip_submission")
@@ -222,6 +224,7 @@ model TestCase {
   inputFileContent   String?            @map("input_file_content") @db.MediumText
   expectedFileName   String?            @map("expected_file_name") @db.VarChar(100)
   expectedFileContent String?           @map("expected_file_content") @db.MediumText
+  paperCode          String?            @map("paper_code") @db.VarChar(50)
   createdAt          DateTime           @default(now()) @map("created_at")
   updatedAt          DateTime           @updatedAt @map("updated_at")
 
@@ -272,6 +275,7 @@ model Submission {
   userId            String               @map("user_id") @db.Char(36)
   teamId            String?              @map("team_id") @db.Char(36)
   groupLabel        String?              @map("group_label") @db.VarChar(50)
+  paperCode         String?              @map("paper_code") @db.VarChar(50)
   submissionChannel SubmissionChannel    @map("submission_channel")
   zipFilePath       String?              @map("zip_file_path") @db.VarChar(500)
   zipFileSize       BigInt?              @map("zip_file_size")

@@ -31,7 +31,7 @@ const aiTutorRepository = new PrismaAiTutorRepository(prisma);
 const apiKeyRotatorFacade = new ApiKeyRotatorFacade(aiApiKeyRepository);
 const ragKnowledgeFacade = new RagKnowledgeFacade();
 
-const gradeSubmissionAiUseCase = new GradeSubmissionAiUseCase(
+export const gradeSubmissionAiUseCase = new GradeSubmissionAiUseCase(
   aiGradingRepository,
   apiKeyRotatorFacade,
   ragKnowledgeFacade

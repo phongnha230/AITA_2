@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { UserController } from '../controllers/user.controller.js';
 import { GetProfileUseCase } from '../../application/use-cases/get-profile.use-case.js';
+import { GetStudentPortfolioUseCase } from '../../application/use-cases/get-student-portfolio.use-case.js';
+import { GetLecturerDashboardUseCase } from '../../application/use-cases/get-lecturer-dashboard.use-case.js';
 import { UpdateProfileUseCase } from '../../application/use-cases/update-profile.use-case.js';
 import { GetUsersUseCase } from '../../application/use-cases/get-users.use-case.js';
 import { GetUserByIdUseCase } from '../../application/use-cases/get-user-by-id.use-case.js';
@@ -29,6 +31,8 @@ const userRepository = new PrismaUserRepository(prisma);
 const passwordHasher = new BcryptHasherService();
 
 const getProfileUseCase = new GetProfileUseCase(userRepository);
+const getStudentPortfolioUseCase = new GetStudentPortfolioUseCase(prisma);
+const getLecturerDashboardUseCase = new GetLecturerDashboardUseCase(prisma);
 const updateProfileUseCase = new UpdateProfileUseCase(userRepository);
 const getUsersUseCase = new GetUsersUseCase(userRepository);
 const getUserByIdUseCase = new GetUserByIdUseCase(userRepository);
@@ -39,6 +43,8 @@ const adminResetPasswordUseCase = new AdminResetPasswordUseCase(userRepository, 
 
 const userController = new UserController(
   getProfileUseCase,
+  getStudentPortfolioUseCase,
+  getLecturerDashboardUseCase,
   updateProfileUseCase,
   getUsersUseCase,
   getUserByIdUseCase,
@@ -48,8 +54,10 @@ const userController = new UserController(
   adminResetPasswordUseCase
 );
 
-// --- 1. User Self-Service Endpoints ---
+// --- 1. User & Lecturer Self-Service Endpoints ---
 router.get('/profile', authenticateJWT, userController.getProfile);
+router.get('/portfolio', authenticateJWT, userController.getStudentPortfolio);
+router.get('/lecturer-dashboard', authenticateJWT, authorizeRoles('LECTURER', 'ADMIN'), userController.getLecturerDashboard);
 router.patch('/profile', authenticateJWT, validateBody(UpdateProfileSchema), userController.updateProfile);
 
 // --- 2. Admin Management Endpoints (Requires ADMIN Role) ---

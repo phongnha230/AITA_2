@@ -14,6 +14,7 @@ export class PrismaSubmissionRepository implements ISubmissionRepository {
       assignmentId: raw.assignmentId,
       userId: raw.userId,
       groupLabel: raw.groupLabel,
+      paperCode: raw.paperCode,
       submissionChannel: raw.submissionChannel,
       zipFilePath: raw.zipFilePath,
       zipFileSize: raw.zipFileSize ? Number(raw.zipFileSize) : null,
@@ -52,6 +53,7 @@ export class PrismaSubmissionRepository implements ISubmissionRepository {
         assignmentId: data.assignmentId,
         userId: data.userId,
         groupLabel: data.groupLabel ?? null,
+        paperCode: data.paperCode ? data.paperCode.trim().toUpperCase() : null,
         submissionChannel: data.submissionChannel,
         zipFilePath: data.zipFilePath ?? null,
         zipFileSize: data.zipFileSize ? BigInt(data.zipFileSize) : null,
@@ -123,7 +125,7 @@ export class PrismaSubmissionRepository implements ISubmissionRepository {
       orderBy: { submittedAt: 'desc' },
     });
 
-    return rawList.map((r) => this.toDomain(r));
+    return rawList.map((r: any) => this.toDomain(r));
   }
 
   async updateStatus(id: string, status: SubmissionStatus): Promise<Submission> {

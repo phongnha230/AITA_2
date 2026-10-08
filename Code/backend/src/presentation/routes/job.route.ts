@@ -18,5 +18,14 @@ router.get(
   JobController.getJobStatus
 );
 
+/**
+ * GET /jobs/:submissionId/events
+ *
+ * Server-Sent Events (SSE) để Frontend lắng nghe tiến trình chấm bài Realtime.
+ */
+router.get(
+  '/:submissionId/events',
+  JobController.streamJobEvents
+);
 
 export default router;

@@ -1,5 +1,7 @@
-import { LecturerDashboard } from '../../../features/dashboard/components/LecturerDashboard';
+'use client';
 
-export default function LecturerDashboardPage() {
+import { LecturerDashboard } from '@/features/courses/components/LecturerDashboard';
+
+export default function DashboardPage() {
   return <LecturerDashboard />;
 }

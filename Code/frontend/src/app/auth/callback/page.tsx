@@ -1,10 +1,22 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
-export default function AuthCallbackPage() {
+function AuthCallbackLoading() {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 text-white p-4">
+      <div className="flex flex-col items-center gap-4 text-center">
+        <Loader2 className="w-10 h-10 animate-spin text-orange-500" />
+        <h2 className="text-xl font-bold">Đang xác thực Google OAuth...</h2>
+        <p className="text-sm text-slate-400">Vui lòng chờ trong giây lát trong khi hệ thống đồng bộ dữ liệu.</p>
+      </div>
+    </div>
+  );
+}
+
+function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
@@ -16,12 +28,16 @@ export default function AuthCallbackPage() {
     const redirectTo = searchParams.get('redirectTo') || '/dashboard';
     const err = searchParams.get('error');
 
+    let errTimer: ReturnType<typeof setTimeout> | undefined;
+
     if (err) {
       setError(err);
-      setTimeout(() => {
+      errTimer = setTimeout(() => {
         router.replace(`/login?error=${encodeURIComponent(err)}`);
       }, 2000);
-      return;
+      return () => {
+        if (errTimer) clearTimeout(errTimer);
+      };
     }
 
     if (token) {
@@ -29,10 +45,16 @@ export default function AuthCallbackPage() {
       if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
       if (role) localStorage.setItem('user_role', role);
 
-      // Fetch user profile or redirect directly
-      router.replace(redirectTo);
+      const destination =
+        role === 'STUDENT'
+          ? '/student/dashboard'
+          : role === 'ADMIN'
+            ? '/admin/ai-keys'
+            : redirectTo || '/student/dashboard';
+
+      router.replace(destination);
     } else {
-      router.replace('/login?error=invalid_callback');
+      router.replace('/login');
     }
   }, [router, searchParams]);
 
@@ -45,12 +67,16 @@ export default function AuthCallbackPage() {
           <p className="text-xs text-slate-500 mt-4">Đang chuyển hướng về trang đăng nhập...</p>
         </div>
       ) : (
-        <div className="flex flex-col items-center gap-4 text-center">
-          <Loader2 className="w-10 h-10 animate-spin text-orange-500" />
-          <h2 className="text-xl font-bold">Đang xác thực Google OAuth...</h2>
-          <p className="text-sm text-slate-400">Vui lòng chờ trong giây lát trong khi hệ thống đồng bộ dữ liệu.</p>
-        </div>
+        <AuthCallbackLoading />
       )}
     </div>
+  );
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense fallback={<AuthCallbackLoading />}>
+      <AuthCallbackContent />
+    </Suspense>
   );
 }
