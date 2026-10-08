@@ -9,6 +9,7 @@ import { AdminCreateUserUseCase } from '../../application/use-cases/admin-create
 import { AdminCreateBatchUsersUseCase } from '../../application/use-cases/admin-create-batch-users.use-case.js';
 import { AdminUpdateUserUseCase } from '../../application/use-cases/admin-update-user.use-case.js';
 import { AdminResetPasswordUseCase } from '../../application/use-cases/admin-reset-password.use-case.js';
+import { GetAdminDashboardUseCase } from '../../application/use-cases/get-admin-dashboard.use-case.js';
 import { sendSuccess } from '../../../../shared/presentation/utils/api-response.util.js';
 import { UnauthorizedError } from '../../../../shared/domain/exceptions/app.error.js';
 
@@ -23,8 +24,21 @@ export class UserController {
     private readonly adminCreateUserUseCase: AdminCreateUserUseCase,
     private readonly adminCreateBatchUsersUseCase: AdminCreateBatchUsersUseCase,
     private readonly adminUpdateUserUseCase: AdminUpdateUserUseCase,
-    private readonly adminResetPasswordUseCase: AdminResetPasswordUseCase
+    private readonly adminResetPasswordUseCase: AdminResetPasswordUseCase,
+    private readonly getAdminDashboardUseCase?: GetAdminDashboardUseCase
   ) {}
+
+  getAdminDashboard = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!this.getAdminDashboardUseCase) {
+        throw new Error('GetAdminDashboardUseCase chưa được khởi tạo.');
+      }
+      const data = await this.getAdminDashboardUseCase.execute();
+      sendSuccess(res, data, 'Lấy bảng điều khiển tổng quan quản trị viên thành công.');
+    } catch (error) {
+      next(error);
+    }
+  };
 
   getProfile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {

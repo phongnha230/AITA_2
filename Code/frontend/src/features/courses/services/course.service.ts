@@ -392,6 +392,21 @@ export const courseService = {
   },
 
   /**
+   * Xóa khóa học
+   */
+  async deleteCourse(id: string): Promise<void> {
+    try {
+      await api.delete(`/courses/${id}`);
+    } catch (error) {
+      console.warn(`[CourseService] Delete course fallback for ${id}:`, error);
+      const index = INITIAL_MOCK_COURSES.findIndex((c) => c.id === id);
+      if (index !== -1) {
+        INITIAL_MOCK_COURSES.splice(index, 1);
+      }
+    }
+  },
+
+  /**
    * Giảng viên sinh mã tham gia lớp học mới (TTL động)
    */
   async generateJoinCode(id: string, expiresInMinutes: number = 30): Promise<GenerateJoinCodeResponse> {

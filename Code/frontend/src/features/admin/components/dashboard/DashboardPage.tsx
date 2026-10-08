@@ -68,19 +68,29 @@ const ROOM_CLUSTER_LOAD = [
   { label: 'LAB 306', value: 18, secondaryValue: 22, subLabel: 'Phòng dự phòng' },
 ];
 
+import { adminDashboardService, type AdminDashboardData } from '../../services/admin-dashboard.service';
+
 export const DashboardPage: React.FC = () => {
   const toast = useToast();
   const [spinning, setSpinning] = useState(false);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
+  const [realData, setRealData] = useState<AdminDashboardData | null>(null);
 
-  const refresh = () => {
+  const loadData = React.useCallback(async () => {
+    const res = await adminDashboardService.getDashboard();
+    if (res) setRealData(res);
+  }, []);
+
+  React.useEffect(() => {
+    void loadData();
+  }, [loadData]);
+
+  const refresh = async () => {
     setSpinning(true);
-    const timer = setTimeout(() => {
-      setSpinning(false);
-      setUpdatedAt(new Date().toLocaleTimeString('vi-VN'));
-      toast.success('Đã cập nhật toàn bộ biểu đồ & dữ liệu vận hành thời gian thực.');
-    }, 600);
-    return () => clearTimeout(timer);
+    await loadData();
+    setSpinning(false);
+    setUpdatedAt(new Date().toLocaleTimeString('vi-VN'));
+    toast.success('Đã cập nhật toàn bộ biểu đồ & dữ liệu vận hành thời gian thực.');
   };
 
   const exportReport = () => {
@@ -265,13 +275,15 @@ export const DashboardPage: React.FC = () => {
                 <PieIcon className="h-4 w-4 text-purple-600" />
                 Phân bổ Kết quả Chấm Sandbox
               </h2>
-              <p className="text-xs text-slate-500">Thống kê 428 bài nộp gần nhất trên toàn bộ các ca thi</p>
+              <p className="text-xs text-slate-500">
+                Thống kê {realData?.kpis.totalSubmissions ? `${realData.kpis.totalSubmissions} bài nộp thực tế` : '428 bài nộp gần nhất'} trên toàn bộ các ca thi
+              </p>
             </div>
             <div className="rounded-xl bg-slate-50 p-4">
               <DonutChart
-                data={SUBMISSION_OUTCOMES}
+                data={realData?.submissionOutcomes || SUBMISSION_OUTCOMES}
                 centerLabel="Bài nộp"
-                centerValue={428}
+                centerValue={realData?.kpis.totalSubmissions || 428}
               />
             </div>
           </Card>
@@ -287,7 +299,7 @@ export const DashboardPage: React.FC = () => {
             </div>
             <div className="rounded-xl bg-slate-50 p-4">
               <DonutChart
-                data={LANGUAGE_DISTRIBUTION}
+                data={realData?.languageDistribution || LANGUAGE_DISTRIBUTION}
                 centerLabel="Tổng bài"
                 centerValue="100%"
                 size={160}

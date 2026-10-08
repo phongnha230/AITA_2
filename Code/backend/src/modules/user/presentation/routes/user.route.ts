@@ -24,6 +24,8 @@ import {
 } from '../../application/dtos/user.dto.js';
 import { AdminResetPasswordSchema } from '../../../auth/application/dtos/auth.dto.js';
 
+import { GetAdminDashboardUseCase } from '../../application/use-cases/get-admin-dashboard.use-case.js';
+
 const router = Router();
 
 // Composition Root for User & Admin Management
@@ -33,6 +35,7 @@ const passwordHasher = new BcryptHasherService();
 const getProfileUseCase = new GetProfileUseCase(userRepository);
 const getStudentPortfolioUseCase = new GetStudentPortfolioUseCase(prisma);
 const getLecturerDashboardUseCase = new GetLecturerDashboardUseCase(prisma);
+const getAdminDashboardUseCase = new GetAdminDashboardUseCase(prisma);
 const updateProfileUseCase = new UpdateProfileUseCase(userRepository);
 const getUsersUseCase = new GetUsersUseCase(userRepository);
 const getUserByIdUseCase = new GetUserByIdUseCase(userRepository);
@@ -51,13 +54,15 @@ const userController = new UserController(
   adminCreateUserUseCase,
   adminCreateBatchUsersUseCase,
   adminUpdateUserUseCase,
-  adminResetPasswordUseCase
+  adminResetPasswordUseCase,
+  getAdminDashboardUseCase
 );
 
 // --- 1. User & Lecturer Self-Service Endpoints ---
 router.get('/profile', authenticateJWT, userController.getProfile);
 router.get('/portfolio', authenticateJWT, userController.getStudentPortfolio);
 router.get('/lecturer-dashboard', authenticateJWT, authorizeRoles('LECTURER', 'ADMIN'), userController.getLecturerDashboard);
+router.get('/admin-dashboard', authenticateJWT, authorizeRoles('ADMIN'), userController.getAdminDashboard);
 router.patch('/profile', authenticateJWT, validateBody(UpdateProfileSchema), userController.updateProfile);
 
 // --- 2. Admin Management Endpoints (Requires ADMIN Role) ---

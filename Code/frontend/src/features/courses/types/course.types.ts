@@ -71,6 +71,7 @@ export interface CreateCoursePayload {
   semester: string;
   lecturerId?: string;
   capacity?: number;
+  room?: string;
 }
 
 export interface UpdateCoursePayload {

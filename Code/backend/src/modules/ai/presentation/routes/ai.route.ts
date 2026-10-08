@@ -98,6 +98,12 @@ router.post(
   validateBody(CreateAiApiKeySchema),
   aiApiKeyController.createKey
 );
+router.patch(
+  '/api-keys/:id/toggle',
+  authenticateJWT,
+  authorizeRoles('ADMIN'),
+  aiApiKeyController.toggleKey
+);
 router.delete(
   '/api-keys/:id',
   authenticateJWT,

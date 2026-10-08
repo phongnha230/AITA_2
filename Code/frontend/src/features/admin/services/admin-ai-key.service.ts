@@ -46,11 +46,14 @@ export const adminAiKeyService = {
   },
 
   async setActive(id: string, isActive: boolean): Promise<void> {
-    if (!USE_MOCK) throw new Error('Backend chưa có API bật/tắt khóa.');
-    await mockDelay(120);
-    const db = loadMockDb();
-    db.aiKeys = db.aiKeys.map((k) => (k.id === id ? { ...k, isActive, updatedAt: new Date().toISOString() } : k));
-    saveMockDb(db);
+    if (USE_MOCK) {
+      await mockDelay(120);
+      const db = loadMockDb();
+      db.aiKeys = db.aiKeys.map((k) => (k.id === id ? { ...k, isActive, updatedAt: new Date().toISOString() } : k));
+      saveMockDb(db);
+      return;
+    }
+    await api.patch(`/ai/api-keys/${id}/toggle`, { isActive });
   },
 
   /** Pings every active key. Mock mode simulates fresh latency measurements. */

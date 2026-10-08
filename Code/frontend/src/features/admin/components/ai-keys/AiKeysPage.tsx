@@ -175,7 +175,7 @@ export const AiKeysPage: React.FC = () => {
           allCount={filtered.length}
           page={page}
           pages={pages}
-          canToggle={USE_MOCK}
+          canToggle={true}
           onPage={setPage}
           onToggle={(k, next) =>
             void guard(async () => {
