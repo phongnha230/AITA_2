@@ -68,11 +68,11 @@ export class LoginUseCase {
     const refreshToken = this.tokenService.generateRefreshToken(tokenPayload);
 
     // 5. Xác định trang chuyển hướng theo Role
-    let redirectTo = '/student/assignments';
+    let redirectTo = '/student/dashboard';
     if (user.role === 'ADMIN') {
       redirectTo = '/admin/dashboard';
     } else if (user.role === 'LECTURER') {
-      redirectTo = '/lecturer/courses';
+      redirectTo = '/dashboard';
     }
 
     return {

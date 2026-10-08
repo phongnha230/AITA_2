@@ -41,6 +41,14 @@ function AuthCallbackContent() {
       };
     }
 
+    if (token) {
+      localStorage.setItem('token', token);
+      localStorage.setItem('aita_token', token);
+    }
+    if (refreshToken) {
+      localStorage.setItem('refreshToken', refreshToken);
+    }
+
     // Verify session using HttpOnly Cookie
     authService
       .getCurrentUser()
@@ -50,12 +58,16 @@ function AuthCallbackContent() {
           if (user.role) localStorage.setItem('user_role', user.role);
 
           const targetRole = user.role || role;
-          const destination =
-            targetRole === 'STUDENT'
-              ? '/student/dashboard'
-              : targetRole === 'ADMIN'
-                ? '/admin/ai-keys'
-                : redirectTo || '/student/dashboard';
+          let destination = '/student/dashboard';
+          if (targetRole === 'ADMIN') {
+            destination = '/admin/dashboard';
+          } else if (targetRole === 'LECTURER') {
+            destination = '/dashboard';
+          } else if (targetRole === 'STUDENT') {
+            destination = '/student/dashboard';
+          } else if (redirectTo && !redirectTo.includes('lecturer/courses')) {
+            destination = redirectTo;
+          }
 
           router.replace(destination);
         } else {

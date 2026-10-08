@@ -50,7 +50,7 @@ export default function LoginForm() {
       } else if (role === 'LECTURER') {
         destination = '/dashboard';
       } else if (role === 'ADMIN') {
-        destination = response.redirectTo || '/admin/ai-keys';
+        destination = response.redirectTo || '/admin/dashboard';
       } else if (response.redirectTo?.startsWith('/') && !response.redirectTo.startsWith('//')) {
         destination = response.redirectTo;
       }

@@ -11,27 +11,13 @@ import {
 
 export const assignmentService = {
   /**
-   * Đảm bảo đã có token Giảng viên trong localStorage.
-   * Nếu chưa có sẽ tự động đăng nhập tài khoản Giảng viên mặc định của hệ thống.
+   * Đảm bảo đã có phiên đăng nhập của Giảng viên / Quản trị viên
    */
   async ensureLecturerAuth(): Promise<string> {
     if (typeof window === 'undefined') return '';
     const user = authService.getStoredUser();
     if (user && (user.role === 'LECTURER' || user.role === 'ADMIN')) return user.id;
-
-    try {
-      const res = await api.post('/auth/login', {
-        username: 'lecturer@fpt.edu.vn',
-        password: 'password123',
-      });
-      if (res.data?.data?.user) {
-        localStorage.setItem('user', JSON.stringify(res.data.data.user));
-        return res.data.data.user.id;
-      }
-    } catch (err) {
-      console.warn('Auto login failed:', err);
-    }
-    return '';
+    return user?.id || '';
   },
 
   /**
@@ -51,12 +37,31 @@ export const assignmentService = {
    */
   async getAssignments(courseId?: string): Promise<Assignment[]> {
     await this.ensureLecturerAuth();
-    const url = courseId ? `/assignments?courseId=${courseId}` : '/assignments';
-    const res = await api.get(url);
-    const data = res.data?.data;
-    if (Array.isArray(data)) return data;
-    if (data && typeof data === 'object') return [data];
-    return [];
+    if (courseId) {
+      const res = await api.get(`/assignments/course/${courseId}`);
+      const data = res.data?.data;
+      if (Array.isArray(data)) return data;
+      if (data && typeof data === 'object') return [data];
+      return [];
+    }
+
+    try {
+      const courses = await this.getCourses();
+      if (!courses || courses.length === 0) return [];
+      const assignmentsPerCourse = await Promise.all(
+        courses.map(async (c) => {
+          try {
+            const res = await api.get(`/assignments/course/${c.id}`);
+            return Array.isArray(res.data?.data) ? res.data.data : [];
+          } catch {
+            return [];
+          }
+        })
+      );
+      return assignmentsPerCourse.flat();
+    } catch {
+      return [];
+    }
   },
 
   /**

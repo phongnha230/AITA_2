@@ -20,6 +20,13 @@ export const authService = {
     const response = await api.post('/auth/login', { username, password });
     const data = response.data.data;
     if (typeof window !== 'undefined') {
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('aita_token', data.token);
+      }
+      if (data.refreshToken) {
+        localStorage.setItem('refreshToken', data.refreshToken);
+      }
       localStorage.setItem('user', JSON.stringify(data.user));
       localStorage.setItem('user_role', data.user.role);
     }
@@ -30,6 +37,13 @@ export const authService = {
     const response = await api.post('/auth/register', data);
     const authData = response.data.data;
     if (typeof window !== 'undefined') {
+      if (authData.token) {
+        localStorage.setItem('token', authData.token);
+        localStorage.setItem('aita_token', authData.token);
+      }
+      if (authData.refreshToken) {
+        localStorage.setItem('refreshToken', authData.refreshToken);
+      }
       localStorage.setItem('user', JSON.stringify(authData.user));
       if (authData.user.role) localStorage.setItem('user_role', authData.user.role);
     }
