@@ -12,9 +12,14 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('token');
-      if (token && config.headers) {
-        config.headers.Authorization = `Bearer ${token}`;
+      const token = localStorage.getItem('token') || localStorage.getItem('aita_token');
+      if (token) {
+        if (!localStorage.getItem('token')) {
+          localStorage.setItem('token', token);
+        }
+        if (config.headers) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
       }
     }
     return config;
@@ -31,6 +36,10 @@ api.interceptors.response.use(
       if (!window.location.pathname.startsWith('/login') && !window.location.pathname.startsWith('/register')) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        localStorage.removeItem('aita_token');
+        localStorage.removeItem('aita_user');
+        localStorage.removeItem('user_role');
+        localStorage.removeItem('refreshToken');
         window.location.href = '/login?error=session_expired';
       }
     }

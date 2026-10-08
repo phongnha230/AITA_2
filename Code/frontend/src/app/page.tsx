@@ -67,7 +67,6 @@ export default function Home() {
             <a href="/" className="transition hover:text-indigo-600">Trang chủ</a>
             <a href="#features" className="transition hover:text-indigo-600">Tính năng</a>
             <a href="#system-health" className="transition hover:text-indigo-600">Trạng thái Hệ thống</a>
-            <a href="/login" className="transition hover:text-indigo-600">Đăng nhập</a>
           </nav>
         </div>
       </header>

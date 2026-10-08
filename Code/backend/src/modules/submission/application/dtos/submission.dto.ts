@@ -4,6 +4,8 @@ export const SubmitAssignmentSchema = z
   .object({
     assignmentId: z.string().uuid({ message: 'assignmentId phải là UUID hợp lệ' }),
     groupLabel: z.string().max(50).optional(),
+    paperCode: z.string().max(50).optional(),
+    accessCode: z.string().max(50).optional(),
     submissionChannel: z.enum(['ZIP_UPLOAD', 'GIT_COMMIT'], {
       errorMap: () => ({ message: "submissionChannel phải là 'ZIP_UPLOAD' hoặc 'GIT_COMMIT'" }),
     }),

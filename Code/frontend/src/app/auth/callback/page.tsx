@@ -4,11 +4,15 @@ import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
-export default function AuthCallbackPage() {
+function AuthCallbackLoading() {
   return (
-    <Suspense fallback={<CallbackLoading />}>
-      <AuthCallbackContent />
-    </Suspense>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 text-white p-4">
+      <div className="flex flex-col items-center gap-4 text-center">
+        <Loader2 className="w-10 h-10 animate-spin text-orange-500" />
+        <h2 className="text-xl font-bold">Đang xác thực Google OAuth...</h2>
+        <p className="text-sm text-slate-400">Vui lòng chờ trong giây lát trong khi hệ thống đồng bộ dữ liệu.</p>
+      </div>
+    </div>
   );
 }
 
@@ -53,24 +57,16 @@ function AuthCallbackContent() {
           <p className="text-xs text-slate-500 mt-4">Đang chuyển hướng về trang đăng nhập...</p>
         </div>
       ) : (
-        <div className="flex flex-col items-center gap-4 text-center">
-          <Loader2 className="w-10 h-10 animate-spin text-orange-500" />
-          <h2 className="text-xl font-bold">Đang xác thực Google OAuth...</h2>
-          <p className="text-sm text-slate-400">Vui lòng chờ trong giây lát trong khi hệ thống đồng bộ dữ liệu.</p>
-        </div>
+        <AuthCallbackLoading />
       )}
     </div>
   );
 }
 
-function CallbackLoading() {
+export default function AuthCallbackPage() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-slate-900 p-4 text-center text-white">
-      <Loader2 className="h-10 w-10 animate-spin text-orange-500" />
-      <h2 className="text-xl font-bold">Đang xác thực Google OAuth...</h2>
-      <p className="text-sm text-slate-400">
-        Vui lòng chờ trong giây lát trong khi hệ thống đồng bộ dữ liệu.
-      </p>
-    </div>
+    <Suspense fallback={<AuthCallbackLoading />}>
+      <AuthCallbackContent />
+    </Suspense>
   );
 }

@@ -150,13 +150,19 @@
           alertBox.className = 'p-3.5 rounded-lg text-sm bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 block';
           alertBox.innerText = `Xin chào ${data.data.user.fullName}! Đang chuyển hướng...`;
 
-          // Lưu Access Token vào localStorage
+          // Lưu Access Token vào localStorage (canonical: token/user + backward-compat: aita_token/aita_user)
+          localStorage.setItem('token', data.data.token);
+          localStorage.setItem('user', JSON.stringify(data.data.user));
           localStorage.setItem('aita_token', data.data.token);
           localStorage.setItem('aita_user', JSON.stringify(data.data.user));
 
           // Chuyển hướng theo Role sau 1 giây
           setTimeout(() => {
-            window.location.href = data.data.redirectTo || '/admin/dashboard';
+            if (data.data.user.role === 'STUDENT') {
+              window.location.href = '/student/dashboard';
+            } else {
+              window.location.href = data.data.redirectTo || '/admin/dashboard';
+            }
           }, 1000);
         } else {
           throw new Error(data.message || 'Đăng nhập thất bại.');
