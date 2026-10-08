@@ -4,10 +4,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Modal } from '../ui/Modal';
 import { usePathname } from 'next/navigation';
-import { BookOpen, RotateCcw } from 'lucide-react';
+import { BookOpen } from 'lucide-react';
 import { cn } from '../../../../lib/cn';
-import { USE_MOCK } from '../../../../config/mock';
-import { resetMockDb } from '../../mocks/mock-db';
 import { ADMIN_NAV } from './admin-nav';
 
 interface AdminSidebarProps {
@@ -25,8 +23,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ open, onNavigate }) 
         <ul className="space-y-3 text-sm text-slate-700">
           <li><strong>SRS &amp; RBAC:</strong> <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">Document_project/02_Requirements_SRS</code></li>
           <li><strong>Hướng dẫn chạy dự án:</strong> <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">Code/RUN_GUIDE.md</code></li>
-          <li><strong>Quy chuẩn Frontend:</strong> <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">Code/frontend/RULE.md</code></li>
-          <li><strong>Mock mode:</strong> dữ liệu lưu ở localStorage (<code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">aita_mock_db_v1</code>); đặt <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">NEXT_PUBLIC_USE_MOCK=false</code> để gọi API thật.</li>
+          <li><strong>Quy chuẩn kết nối:</strong> Toàn bộ dữ liệu được đồng bộ trực tiếp với Backend API (MySQL/Prisma).</li>
           <li><strong>Phím tắt:</strong> <kbd className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">Ctrl/⌘ + K</kbd> focus ô tìm kiếm ở trang Người dùng.</li>
         </ul>
       </Modal>
@@ -80,18 +77,6 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ open, onNavigate }) 
             <BookOpen className="h-3.5 w-3.5" />
             Tài liệu &amp; Hỗ trợ kỹ thuật
           </button>
-          {USE_MOCK && (
-            <button
-              type="button"
-              onClick={() => {
-                resetMockDb();
-                window.location.reload();
-              }}
-              className="flex w-full items-center gap-1.5 border-t border-slate-200 pt-2 text-left text-[11px] font-medium text-amber-600 hover:text-amber-700"
-            >
-              <RotateCcw className="h-3 w-3" /> Mock mode: đặt lại dữ liệu mẫu
-            </button>
-          )}
         </div>
       </aside>
     </>

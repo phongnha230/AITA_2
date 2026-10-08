@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { adminSettingsService } from '../../services/admin-settings.service';
-import { DEFAULT_SETTINGS } from '../../mocks/mock-db';
-import type { SandboxSettings } from '../../types/admin.types';
+import { DEFAULT_ADMIN_SETTINGS, type SandboxSettings } from '../../types/admin.types';
 import { Button } from '../ui/Button';
 import { FormField, inputClass } from '../ui/FormField';
 import { Modal } from '../ui/Modal';
@@ -19,7 +18,7 @@ const num = (v: string, fallback: number) => (Number.isFinite(Number(v)) && v !=
 
 export const SandboxConfigModal: React.FC<SandboxConfigModalProps> = ({ open, onClose }) => {
   const toast = useToast();
-  const [form, setForm] = useState<SandboxSettings>(DEFAULT_SETTINGS.sandbox);
+  const [form, setForm] = useState<SandboxSettings>(DEFAULT_ADMIN_SETTINGS.sandbox);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -67,7 +66,7 @@ export const SandboxConfigModal: React.FC<SandboxConfigModalProps> = ({ open, on
           ))}
         </ul>
         <div className="flex justify-end gap-2">
-          <Button onClick={() => setForm(DEFAULT_SETTINGS.sandbox)}>Mặc định</Button>
+          <Button onClick={() => setForm(DEFAULT_ADMIN_SETTINGS.sandbox)}>Mặc định</Button>
           <Button type="submit" variant="primary" disabled={saving}>{saving ? 'Đang lưu...' : 'Lưu cấu hình'}</Button>
         </div>
       </form>

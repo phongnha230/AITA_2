@@ -1,12 +1,12 @@
-import { loadSettings, mockDelay, saveSettings } from '../mocks/mock-db';
-import type { AdminSettings } from '../types/admin.types';
+import { DEFAULT_ADMIN_SETTINGS, type AdminSettings } from '../types/admin.types';
 
-/** Router / Sandbox / worker settings. No backend endpoint yet, so these persist in localStorage only. */
+let currentSettings: AdminSettings = { ...DEFAULT_ADMIN_SETTINGS };
+
 export const adminSettingsService = {
-  get: (): AdminSettings => loadSettings(),
+  get: (): AdminSettings => ({ ...currentSettings }),
 
   async save(patch: Partial<AdminSettings>): Promise<AdminSettings> {
-    await mockDelay(200);
-    return saveSettings(patch);
+    currentSettings = { ...currentSettings, ...patch };
+    return { ...currentSettings };
   },
 };

@@ -3,22 +3,20 @@
 import { useEffect, useState } from 'react';
 import { SlidersHorizontal } from 'lucide-react';
 import { adminSettingsService } from '../../services/admin-settings.service';
-import { DEFAULT_SETTINGS } from '../../mocks/mock-db';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { useToast } from '../ui/Toast';
-import type { RouterSettings as RouterSettingsValue } from '../../types/admin.types';
+import { DEFAULT_ADMIN_SETTINGS, type RouterSettings as RouterSettingsValue } from '../../types/admin.types';
 
 const STRATEGIES: { id: RouterSettingsValue['strategy']; title: string; desc: string }[] = [
   { id: 'round-robin', title: 'Round Robin', desc: 'Xoay đều qua các khóa đang hoạt động.' },
   { id: 'least-loaded', title: 'Least Loaded', desc: 'Ưu tiên khóa có RPM/Quota trống nhiều nhất.' },
 ];
 
-/** No router-config endpoint exists yet, so this persists to localStorage via the settings service. */
 export const RouterSettings: React.FC = () => {
   const toast = useToast();
-  const [saved, setSaved] = useState<RouterSettingsValue>(DEFAULT_SETTINGS.router);
-  const [draft, setDraft] = useState<RouterSettingsValue>(DEFAULT_SETTINGS.router);
+  const [saved, setSaved] = useState<RouterSettingsValue>(DEFAULT_ADMIN_SETTINGS.router);
+  const [draft, setDraft] = useState<RouterSettingsValue>(DEFAULT_ADMIN_SETTINGS.router);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -77,7 +75,7 @@ export const RouterSettings: React.FC = () => {
         <div className="flex justify-between text-[11px] text-slate-400"><span>10.000 (tối thiểu)</span><span>50.000 (khuyến nghị)</span><span>100.000 (đồ án tốt nghiệp)</span></div>
       </div>
       <div className="flex justify-end gap-2">
-        <Button onClick={() => { setDraft(DEFAULT_SETTINGS.router); toast.info('Đã khôi phục giá trị mặc định (chưa lưu).'); }}>Khôi phục mặc định</Button>
+        <Button onClick={() => { setDraft(DEFAULT_ADMIN_SETTINGS.router); toast.info('Đã khôi phục giá trị mặc định (chưa lưu).'); }}>Khôi phục mặc định</Button>
         <Button variant="primary" disabled={!dirty || saving} onClick={() => void save()}>{saving ? 'Đang lưu...' : 'Lưu cấu hình Router'}</Button>
       </div>
     </Card>

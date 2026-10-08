@@ -83,6 +83,22 @@ export interface AdminSettings {
   workersPaused: boolean;
 }
 
+export const DEFAULT_ADMIN_SETTINGS: AdminSettings = {
+  router: {
+    strategy: 'least-loaded',
+    tokensPerExam: 4000,
+  },
+  sandbox: {
+    cpuLimit: 2,
+    ramLimitMb: 1024,
+    timeoutMs: 10000,
+    networkDisabled: true,
+    seccompEnforced: true,
+    forkBombShield: true,
+  },
+  workersPaused: false,
+};
+
 export interface AiApiKey {
   id: string;
   provider: AiProvider;
