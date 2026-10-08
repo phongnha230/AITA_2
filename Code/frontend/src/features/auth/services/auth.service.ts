@@ -63,7 +63,7 @@ export const authService = {
       localStorage.removeItem('aita_user');
       localStorage.removeItem('user_role');
       localStorage.removeItem('refreshToken');
-      window.location.href = '/login';
+      window.location.href = '/student/dashboard';
     }
   },
 

@@ -31,7 +31,7 @@ function AuthCallbackContent() {
     if (err) {
       setError(err);
       setTimeout(() => {
-        router.replace(`/login?error=${encodeURIComponent(err)}`);
+        router.replace('/student/dashboard');
       }, 2000);
       return;
     }
@@ -44,7 +44,7 @@ function AuthCallbackContent() {
       // Fetch user profile or redirect directly
       router.replace(redirectTo);
     } else {
-      router.replace('/login?error=invalid_callback');
+      router.replace('/student/dashboard');
     }
   }, [router, searchParams]);
 

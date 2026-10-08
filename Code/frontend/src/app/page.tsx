@@ -67,6 +67,12 @@ export default function Home() {
             <a href="/" className="transition hover:text-indigo-600">Trang chủ</a>
             <a href="#features" className="transition hover:text-indigo-600">Tính năng</a>
             <a href="#system-health" className="transition hover:text-indigo-600">Trạng thái Hệ thống</a>
+            <a
+              href="/student/dashboard"
+              className="rounded-lg bg-indigo-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-indigo-700"
+            >
+              Cổng Sinh viên
+            </a>
           </nav>
         </div>
       </header>
@@ -83,6 +89,14 @@ export default function Home() {
         <p className="mt-4 text-lg text-slate-600 max-w-2xl mx-auto">
           Nền tảng tự động hóa chấm thi thực hành (PE), thực thi code cô lập trong Docker Sandbox và đánh giá chất lượng mã nguồn chuyên sâu bằng AI (Đại học FPT - Môn SWD392).
         </p>
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <a
+            href="/student/dashboard"
+            className="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-md transition-all hover:bg-indigo-700 hover:shadow-lg hover:-translate-y-0.5"
+          >
+            Vào Cổng Sinh viên (Student Portal) &rarr;
+          </a>
+        </div>
       </section>
 
       {/* System Health Check Section */}
