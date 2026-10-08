@@ -36,6 +36,16 @@ export const authService = {
     return authData;
   },
 
+  async sendOtp(email: string, fullName?: string): Promise<{ success: boolean; message: string }> {
+    const response = await api.post('/auth/send-otp', { email, fullName });
+    return response.data;
+  },
+
+  async verifyOtp(email: string, otp: string): Promise<{ valid: boolean }> {
+    const response = await api.post('/auth/verify-otp', { email, otp });
+    return response.data.data;
+  },
+
   async getGoogleAuthUrl(): Promise<string> {
     const response = await api.get('/auth/google');
     return response.data.data.url;

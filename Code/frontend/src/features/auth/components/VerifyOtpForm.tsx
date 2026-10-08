@@ -68,15 +68,39 @@ export default function VerifyOtpForm() {
     }
   };
 
-  const handleResend = () => {
+  const getTargetEmail = useCallback((): string => {
+    if (emailParam) return emailParam;
+    if (typeof window !== 'undefined') {
+      const raw = sessionStorage.getItem('pending_registration');
+      if (raw) {
+        try {
+          return JSON.parse(raw).email || '';
+        } catch {
+          return '';
+        }
+      }
+    }
+    return '';
+  }, [emailParam]);
+
+  const handleResend = async () => {
     if (!canResend) return;
+    const targetEmail = getTargetEmail();
+    if (!targetEmail) {
+      setErrorMessage('Không tìm thấy email đăng ký. Vui lòng quay lại trang đăng ký.');
+      return;
+    }
+
     setCountdown(60);
     setCanResend(false);
     setErrorMessage(null);
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('pending_otp', '123456');
+    try {
+      await authService.sendOtp(targetEmail);
+      setSuccessMessage('Mã xác thực mới đã được gửi về email của bạn!');
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Không thể gửi lại mã OTP. Vui lòng thử lại sau.';
+      setErrorMessage(msg);
     }
-    setSuccessMessage('Mã xác thực mới đã được gửi lại!');
     setTimeout(() => setSuccessMessage(null), 4000);
   };
 
@@ -90,16 +114,19 @@ export default function VerifyOtpForm() {
       return;
     }
 
-    const storedOtp = typeof window !== 'undefined' ? sessionStorage.getItem('pending_otp') || '123456' : '123456';
-    if (enteredOtp !== storedOtp && enteredOtp !== '123456') {
-      setErrorMessage('Mã OTP không chính xác hoặc đã hết hạn.');
+    const targetEmail = getTargetEmail();
+    if (!targetEmail) {
+      setErrorMessage('Không tìm thấy email đăng ký. Vui lòng quay lại trang đăng ký.');
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      // Đọc thông tin đăng ký lưu tạm từ sessionStorage
+      // 1. Xác thực mã OTP qua Backend API (Redis / SMTP)
+      await authService.verifyOtp(targetEmail, enteredOtp);
+
+      // 2. Đọc thông tin đăng ký lưu tạm từ sessionStorage để hoàn tất tạo tài khoản
       const rawPending = typeof window !== 'undefined' ? sessionStorage.getItem('pending_registration') : null;
       if (rawPending) {
         const pendingData = JSON.parse(rawPending);
@@ -143,7 +170,7 @@ export default function VerifyOtpForm() {
       }
       setIsSubmitting(false);
     }
-  }, [otp, router]);
+  }, [otp, router, getTargetEmail]);
 
   return (
     <form className="space-y-6" onSubmit={handleVerify}>

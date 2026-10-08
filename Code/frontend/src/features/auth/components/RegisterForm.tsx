@@ -7,6 +7,7 @@ import { AlertCircle, ArrowRight, Eye, EyeOff, LoaderCircle, Lock, Mail, ShieldC
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import CaptchaBox from './CaptchaBox';
+import { authService } from '../services/auth.service';
 
 export default function RegisterForm() {
   const router = useRouter();
@@ -20,7 +21,7 @@ export default function RegisterForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setErrorMessage(null);
 
@@ -54,7 +55,10 @@ export default function RegisterForm() {
     setIsSubmitting(true);
 
     try {
-      // Lưu thông tin đăng ký tạm thời để xác thực ở bước OTP
+      // 1. Gọi backend để sinh OTP và gửi email
+      await authService.sendOtp(email.trim(), fullName.trim());
+
+      // 2. Lưu thông tin đăng ký tạm thời để xác thực ở bước OTP
       const pendingData = {
         fullName: fullName.trim(),
         email: email.trim(),
@@ -64,13 +68,13 @@ export default function RegisterForm() {
 
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('pending_registration', JSON.stringify(pendingData));
-        sessionStorage.setItem('pending_otp', '123456'); // Mã OTP mẫu cho môi trường thử nghiệm
       }
 
-      // Điều hướng sang trang OTP
+      // 3. Điều hướng sang trang OTP
       router.push(`/verify-otp?email=${encodeURIComponent(email.trim())}`);
-    } catch {
-      setErrorMessage('Có lỗi xảy ra trong quá trình xử lý. Vui lòng thử lại.');
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi gửi mã OTP. Vui lòng thử lại.';
+      setErrorMessage(msg);
       setIsSubmitting(false);
     }
   };

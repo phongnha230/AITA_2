@@ -15,6 +15,8 @@ import {
   LoginSchema,
   RegisterSchema,
   RefreshTokenSchema,
+  SendOtpSchema,
+  VerifyOtpSchema,
   ChangePasswordSchema,
   GoogleLoginCodeSchema,
   GoogleIdTokenSchema,
@@ -46,6 +48,8 @@ const authController = new AuthController(
 // Traditional Email/Password Auth
 router.post('/login', validateBody(LoginSchema), authController.login);
 router.post('/register', validateBody(RegisterSchema), authController.register);
+router.post('/send-otp', validateBody(SendOtpSchema), authController.sendOtp);
+router.post('/verify-otp', validateBody(VerifyOtpSchema), authController.verifyOtp);
 router.post('/refresh-token', authController.refreshToken);
 router.post('/logout', authController.logout);
 router.get('/me', authenticateJWT, authController.me);

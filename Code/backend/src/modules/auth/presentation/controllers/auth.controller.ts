@@ -9,6 +9,8 @@ import { UnauthorizedError, ValidationError } from '../../../../shared/domain/ex
 import { env } from '../../../../infrastructure/config/env.js';
 
 import { setAuthCookies, clearAuthCookies } from '../../../../shared/presentation/utils/cookie.util.js';
+import { otpService } from '../../infrastructure/services/otp.service.js';
+import { emailService } from '../../../../infrastructure/email/email.service.js';
 
 export class AuthController {
   constructor(
@@ -60,6 +62,31 @@ export class AuthController {
     try {
       clearAuthCookies(res);
       sendSuccess(res, null, 'Đăng xuất thành công!');
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  sendOtp = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { email, fullName } = req.body;
+      const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+      await otpService.saveOtp(email, otpCode, 300);
+      await emailService.sendOtpEmail(email, otpCode, fullName);
+      sendSuccess(res, { email }, 'Mã xác thực OTP đã được gửi về email của bạn (hiệu lực 5 phút).');
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  verifyOtp = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { email, otp } = req.body;
+      const isValid = await otpService.verifyOtp(email, otp);
+      if (!isValid) {
+        throw new UnauthorizedError('Mã OTP không chính xác hoặc đã hết hạn.');
+      }
+      sendSuccess(res, { valid: true }, 'Xác thực mã OTP thành công!');
     } catch (error) {
       next(error);
     }
