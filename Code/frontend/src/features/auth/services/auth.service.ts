@@ -36,8 +36,8 @@ export const authService = {
     return authData;
   },
 
-  async sendOtp(email: string, fullName?: string): Promise<{ success: boolean; message: string }> {
-    const response = await api.post('/auth/send-otp', { email, fullName });
+  async sendOtp(email: string, fullName?: string, recaptchaToken?: string): Promise<{ success: boolean; message: string }> {
+    const response = await api.post('/auth/send-otp', { email, fullName, recaptchaToken });
     return response.data;
   },
 

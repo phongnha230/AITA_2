@@ -12,6 +12,7 @@ export const RegisterSchema = z.object({
   password: z.string().min(6, 'Mật khẩu phải có ít nhất 6 ký tự.'),
   fullName: z.string().min(2, 'Họ và tên tối thiểu 2 ký tự.').max(100),
   role: z.enum(['STUDENT', 'LECTURER']).default('STUDENT'),
+  recaptchaToken: z.string().optional(),
 });
 
 export type RegisterDto = z.infer<typeof RegisterSchema>;
@@ -25,6 +26,7 @@ export type RefreshTokenDto = z.infer<typeof RefreshTokenSchema>;
 export const SendOtpSchema = z.object({
   email: z.string().email('Email không đúng định dạng.'),
   fullName: z.string().optional(),
+  recaptchaToken: z.string().optional(),
 });
 
 export type SendOtpDto = z.infer<typeof SendOtpSchema>;

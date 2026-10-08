@@ -48,6 +48,9 @@ const envSchema = z.object({
   SMTP_PASS: z.string().optional().default(''),
   EMAIL_FROM: z.string().optional().default('AITA System <no-reply@aita.edu.vn>'),
 
+  // Google reCAPTCHA v2
+  RECAPTCHA_SECRET_KEY: z.string().optional().default(''),
+
   // AI LLM & Vector DB
   CHROMA_DB_URL: z.string().optional().default('http://localhost:8000'),
   GEMINI_API_KEYS: z.string().optional().default(''),

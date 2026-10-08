@@ -1,22 +1,24 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { AlertCircle, ArrowRight, Eye, EyeOff, LoaderCircle, Lock, Mail, ShieldCheck, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import CaptchaBox from './CaptchaBox';
+import ReCAPTCHA from 'react-google-recaptcha';
 import { authService } from '../services/auth.service';
 
 export default function RegisterForm() {
   const router = useRouter();
+  const recaptchaRef = useRef<ReCAPTCHA | null>(null);
+  const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || '';
+
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [captchaInput, setCaptchaInput] = useState('');
-  const [currentCaptchaCode, setCurrentCaptchaCode] = useState('');
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -46,9 +48,9 @@ export default function RegisterForm() {
       return;
     }
 
-    // 2. Validate Captcha
-    if (captchaInput.trim().toUpperCase() !== currentCaptchaCode.toUpperCase()) {
-      setErrorMessage('Mã Captcha không chính xác. Vui lòng kiểm tra lại.');
+    // 2. Validate Google reCAPTCHA
+    if (siteKey && !recaptchaToken) {
+      setErrorMessage('Vui lòng hoàn tất xác thực "Tôi không phải người máy" bên dưới.');
       return;
     }
 
@@ -56,7 +58,7 @@ export default function RegisterForm() {
 
     try {
       // 1. Gọi backend để sinh OTP và gửi email
-      await authService.sendOtp(email.trim(), fullName.trim());
+      await authService.sendOtp(email.trim(), fullName.trim(), recaptchaToken || undefined);
 
       // 2. Lưu thông tin đăng ký tạm thời để xác thực ở bước OTP
       const pendingData = {
@@ -75,6 +77,8 @@ export default function RegisterForm() {
     } catch (err: any) {
       const msg = err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi gửi mã OTP. Vui lòng thử lại.';
       setErrorMessage(msg);
+      recaptchaRef.current?.reset();
+      setRecaptchaToken(null);
       setIsSubmitting(false);
     }
   };
@@ -168,24 +172,23 @@ export default function RegisterForm() {
         </div>
       </div>
 
-      {/* Mã Captcha */}
-      <div className="space-y-1.5">
-        <label htmlFor="reg-captcha" className="text-sm font-medium text-slate-700">
-          Mã xác nhận Captcha
-        </label>
-        <div className="flex items-center gap-3">
-          <Input
-            id="reg-captcha"
-            autoComplete="off"
-            className="h-11 rounded-lg bg-white px-3 text-sm font-mono tracking-wider uppercase border-slate-200 focus-visible:ring-indigo-500"
-            placeholder="Nhập mã"
-            maxLength={6}
-            required
-            value={captchaInput}
-            onChange={(e) => setCaptchaInput(e.target.value)}
-          />
-          <CaptchaBox onCodeChange={setCurrentCaptchaCode} />
-        </div>
+      {/* Google reCAPTCHA v2 */}
+      <div className="space-y-1.5 pt-1">
+        {siteKey ? (
+          <div className="flex justify-center overflow-x-auto py-1">
+            <ReCAPTCHA
+              ref={recaptchaRef}
+              sitekey={siteKey}
+              onChange={(token) => setRecaptchaToken(token)}
+              onExpired={() => setRecaptchaToken(null)}
+            />
+          </div>
+        ) : (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+            <p className="font-semibold mb-0.5">⚠️ Google reCAPTCHA chưa điền Site Key</p>
+            <p>Vui lòng dán <strong>Site Key</strong> vào file <code>.env.local</code> (biến <code>NEXT_PUBLIC_RECAPTCHA_SITE_KEY</code>).</p>
+          </div>
+        )}
       </div>
 
       {/* Error Alert */}

@@ -11,6 +11,7 @@ import { env } from '../../../../infrastructure/config/env.js';
 import { setAuthCookies, clearAuthCookies } from '../../../../shared/presentation/utils/cookie.util.js';
 import { otpService } from '../../infrastructure/services/otp.service.js';
 import { emailService } from '../../../../infrastructure/email/email.service.js';
+import { recaptchaService } from '../../../../infrastructure/recaptcha/recaptcha.service.js';
 
 export class AuthController {
   constructor(
@@ -69,7 +70,15 @@ export class AuthController {
 
   sendOtp = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { email, fullName } = req.body;
+      const { email, fullName, recaptchaToken } = req.body;
+
+      // 1. Xác thực Google reCAPTCHA
+      const recaptchaResult = await recaptchaService.verifyRecaptcha(recaptchaToken);
+      if (!recaptchaResult.success) {
+        throw new ValidationError(recaptchaResult.message || 'Xác thực reCAPTCHA không hợp lệ.');
+      }
+
+      // 2. Sinh mã và lưu vào Redis
       const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
       await otpService.saveOtp(email, otpCode, 300);
       await emailService.sendOtpEmail(email, otpCode, fullName);
