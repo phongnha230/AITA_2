@@ -1,5 +1,4 @@
 import api from '../../../lib/api';
-import { USE_MOCK } from '../../../config/mock';
 
 export interface AdminDashboardData {
   kpis: {
@@ -43,12 +42,11 @@ export interface AdminDashboardData {
 
 export const adminDashboardService = {
   async getDashboard(): Promise<AdminDashboardData | null> {
-    if (USE_MOCK) return null;
     try {
       const res = await api.get('/users/admin-dashboard');
-      return res.data.data;
+      return res.data?.data ?? null;
     } catch (error) {
-      console.warn('Cannot fetch real admin dashboard data, using fallback.', error);
+      console.warn('[AdminDashboardService] Backend /users/admin-dashboard unreachable, using fallback demo telemetry:', error);
       return null;
     }
   },

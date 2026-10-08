@@ -5,6 +5,7 @@ import { SubmissionController } from '../controllers/submission.controller.js';
 import { SubmitAssignmentUseCase } from '../../application/use-cases/submit-assignment.use-case.js';
 import { GetSubmissionStatusUseCase } from '../../application/use-cases/get-submission-status.use-case.js';
 import { GetAssignmentSubmissionsUseCase } from '../../application/use-cases/get-assignment-submissions.use-case.js';
+import { GetAllSubmissionsUseCase } from '../../application/use-cases/get-all-submissions.use-case.js';
 import { PrismaSubmissionRepository } from '../../infrastructure/repositories/prisma-submission.repository.js';
 import { zipExtractorService } from '../../infrastructure/storage/zip-extractor.service.js';
 import { bullmqGradingDispatcher } from '../../infrastructure/queue/bullmq-grading-dispatcher.js';
@@ -25,11 +26,13 @@ const submitAssignmentUseCase = new SubmitAssignmentUseCase({
 
 const getSubmissionStatusUseCase = new GetSubmissionStatusUseCase(submissionRepository);
 const getAssignmentSubmissionsUseCase = new GetAssignmentSubmissionsUseCase(submissionRepository);
+const getAllSubmissionsUseCase = new GetAllSubmissionsUseCase(submissionRepository);
 
 const submissionController = new SubmissionController(
   submitAssignmentUseCase,
   getSubmissionStatusUseCase,
-  getAssignmentSubmissionsUseCase
+  getAssignmentSubmissionsUseCase,
+  getAllSubmissionsUseCase
 );
 
 function uploadSingleZip(req: Request, res: Response, next: NextFunction): void {
@@ -49,6 +52,7 @@ function uploadSingleZip(req: Request, res: Response, next: NextFunction): void 
 }
 
 // Routes
+router.get('/', authenticateJWT, authorizeRoles('ADMIN'), submissionController.getAllSubmissions);
 router.post('/', authenticateJWT, uploadSingleZip, submissionController.submitAssignment);
 router.get(
   '/assignment/:assignmentId',

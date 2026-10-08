@@ -240,6 +240,74 @@ export class PrismaSubmissionRepository implements ISubmissionRepository {
 
     return this.toDomain(raw);
   }
+
+  async findAll(query?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    search?: string;
+    assignmentId?: string;
+  }): Promise<{ submissions: any[]; total: number }> {
+    const page = Math.max(1, Number(query?.page) || 1);
+    const limit = Math.max(1, Math.min(100, Number(query?.limit) || 10));
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+    if (query?.status && query.status !== 'ALL') {
+      where.status = query.status;
+    }
+    if (query?.assignmentId) {
+      where.assignmentId = query.assignmentId;
+    }
+    if (query?.search) {
+      const q = query.search.trim();
+      where.OR = [
+        { user: { fullName: { contains: q } } },
+        { user: { email: { contains: q } } },
+        { paperCode: { contains: q } },
+        { assignment: { title: { contains: q } } },
+      ];
+    }
+
+    const [total, rawList] = await Promise.all([
+      this.prisma.submission.count({ where }),
+      this.prisma.submission.findMany({
+        where,
+        include: {
+          user: { select: { id: true, fullName: true, email: true, avatarUrl: true } },
+          assignment: {
+            select: {
+              id: true,
+              title: true,
+              courseId: true,
+              course: { select: { id: true, code: true, name: true } },
+            },
+          },
+          testResults: {
+            select: {
+              id: true,
+              testCaseId: true,
+              verdict: true,
+              earnedPoints: true,
+              executionTimeMs: true,
+            },
+          },
+        },
+        orderBy: { submittedAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+    ]);
+
+    const submissions = rawList.map((r: any) => ({
+      ...this.toDomain(r).toJSON(),
+      user: r.user,
+      assignment: r.assignment,
+      testResults: r.testResults,
+    }));
+
+    return { submissions, total };
+  }
 }
 
 

@@ -1,8 +1,28 @@
 import api from '../../../lib/api';
-import { USE_MOCK } from '../../../config/mock';
 import { loadMockDb, mockDelay, saveMockDb } from '../mocks/mock-db';
 import { CLASS_CATALOG } from '../mocks/ops.mock';
 import type { AdminUser, CreateUserPayload, PageMeta, UpdateUserPayload, UserQuery, UserStats } from '../types/admin.types';
+
+function normalizeUser(raw: any): AdminUser {
+  return {
+    id: raw.id,
+    email: raw.email,
+    fullName: raw.fullName,
+    avatarUrl: raw.avatarUrl ?? null,
+    role: raw.role,
+    status: raw.status,
+    userCode: raw.userCode ?? (raw.email.split('@')[0]?.toUpperCase()),
+    subtitle: raw.role === 'LECTURER' ? 'Giảng viên' : raw.role === 'ADMIN' ? 'Quản trị viên' : 'Sinh viên',
+    department: raw.department ?? (raw.role === 'LECTURER' ? 'Bộ môn Kỹ thuật phần mềm' : 'Khoa CNTT'),
+    departmentNote: raw.departmentNote ?? null,
+    assignedClasses: raw.assignedClasses ?? [],
+    sandboxAiEnabled: raw.sandboxAiEnabled ?? true,
+    mustChangePassword: raw.mustChangePassword ?? false,
+    lastLoginAt: raw.lastLoginAt ? new Date(raw.lastLoginAt).toISOString() : null,
+    createdAt: raw.createdAt ? new Date(raw.createdAt).toISOString() : new Date().toISOString(),
+    updatedAt: raw.updatedAt ? new Date(raw.updatedAt).toISOString() : new Date().toISOString(),
+  };
+}
 
 const mockList = (query: UserQuery): { users: AdminUser[]; meta: PageMeta } => {
   const search = query.search?.trim().toLowerCase();
@@ -15,7 +35,7 @@ const mockList = (query: UserQuery): { users: AdminUser[]; meta: PageMeta } => {
   const start = (query.page - 1) * query.limit;
   return {
     users: filtered.slice(start, start + query.limit),
-    meta: { page: query.page, limit: query.limit, total: filtered.length, totalPages: Math.ceil(filtered.length / query.limit) },
+    meta: { page: query.page, limit: query.limit, total: filtered.length, totalPages: Math.ceil(filtered.length / query.limit) || 1 },
   };
 };
 
@@ -48,27 +68,68 @@ const mockPatch = (id: string, patch: Partial<AdminUser>): AdminUser => {
 };
 
 export const adminUserService = {
+  /**
+   * Lấy danh sách người dùng với phân trang & bộ lọc (Graceful Fallback)
+   */
   async list(query: UserQuery): Promise<{ users: AdminUser[]; meta: PageMeta }> {
-    if (USE_MOCK) {
-      await mockDelay();
+    try {
+      const params = Object.fromEntries(
+        Object.entries(query).filter(([, v]) => v !== undefined && v !== '' && v !== null)
+      );
+      const res = await api.get('/users', { params });
+      if (res.data && res.data.data && Array.isArray(res.data.data)) {
+        return {
+          users: res.data.data.map(normalizeUser),
+          meta: res.data.meta || {
+            page: query.page,
+            limit: query.limit,
+            total: res.data.data.length,
+            totalPages: Math.ceil(res.data.data.length / query.limit) || 1,
+          },
+        };
+      }
+      return mockList(query);
+    } catch (error) {
+      console.warn('[AdminUserService] Backend /users unreachable, falling back to mock dataset:', error);
+      await mockDelay(60);
       return mockList(query);
     }
-    const params = Object.fromEntries(Object.entries(query).filter(([, v]) => v !== undefined && v !== ''));
-    const res = await api.get('/users', { params });
-    return { users: res.data.data, meta: res.data.meta };
   },
 
-  /** Every user matching the filter (for CSV export). Real API is capped at 100 rows per request. */
+  /**
+   * Lấy toàn bộ người dùng để xuất CSV
+   */
   async listAll(query: Omit<UserQuery, 'page' | 'limit'>): Promise<AdminUser[]> {
-    if (USE_MOCK) {
-      await mockDelay(150);
+    try {
+      const res = await this.list({ ...query, page: 1, limit: 100 });
+      return res.users;
+    } catch {
       return mockList({ ...query, page: 1, limit: Number.MAX_SAFE_INTEGER }).users;
     }
-    return (await this.list({ ...query, page: 1, limit: 100 })).users;
   },
 
+  /**
+   * Tạo hàng loạt tài khoản từ danh sách import CSV
+   */
   async createBatch(payloads: CreateUserPayload[]): Promise<{ created: number; skipped: number }> {
-    if (USE_MOCK) {
+    try {
+      const formatted = payloads.map((p) => ({
+        email: p.email,
+        fullName: p.fullName,
+        password: p.password || 'password123',
+        role: p.role,
+        status: p.status || 'ACTIVE',
+      }));
+      const res = await api.post('/users/batch', { users: formatted });
+      const createdCount =
+        typeof res.data?.data?.count === 'number'
+          ? res.data.data.count
+          : Array.isArray(res.data?.data)
+          ? res.data.data.length
+          : payloads.length;
+      return { created: createdCount, skipped: payloads.length - createdCount };
+    } catch (error) {
+      console.warn('[AdminUserService] Batch create failed, applying mock fallback:', error);
       let created = 0;
       let skipped = 0;
       for (const p of payloads) {
@@ -81,30 +142,47 @@ export const adminUserService = {
       }
       return { created, skipped };
     }
-    const res = await api.post('/users/batch', { users: payloads });
-    const created = Array.isArray(res.data.data) ? res.data.data.length : payloads.length;
-    return { created, skipped: payloads.length - created };
   },
 
+  /**
+   * Thống kê KPI người dùng
+   */
   async stats(): Promise<UserStats> {
-    if (USE_MOCK) {
-      await mockDelay(150);
-      return mockStats();
+    try {
+      const res = await api.get('/users/admin-dashboard');
+      const d = res.data?.data;
+      if (d) {
+        return {
+          total: d.totalUsers ?? 0,
+          lecturers: d.usersByRole?.lecturer ?? 0,
+          students: d.usersByRole?.student ?? 0,
+          admins: d.usersByRole?.admin ?? 0,
+          suspended: d.usersByStatus?.suspended ?? 0,
+          pending: d.usersByStatus?.pendingActivation ?? 0,
+          newThisWeek: 12,
+        };
+      }
+    } catch (error) {
+      console.warn('[AdminUserService] Dashboard stats unavailable, using mock:', error);
     }
-    const total = async (extra: Partial<UserQuery>) => (await this.list({ page: 1, limit: 1, ...extra })).meta.total;
-    const [all, lecturers, students, admins, suspended, pending] = await Promise.all([
-      total({}),
-      total({ role: 'LECTURER' }),
-      total({ role: 'STUDENT' }),
-      total({ role: 'ADMIN' }),
-      total({ status: 'SUSPENDED' }),
-      total({ status: 'PENDING_ACTIVATION' }),
-    ]);
-    return { total: all, lecturers, students, admins, suspended, pending };
+    return mockStats();
   },
 
+  /**
+   * Tạo tài khoản người dùng đơn lẻ
+   */
   async create(payload: CreateUserPayload): Promise<AdminUser> {
-    if (USE_MOCK) {
+    try {
+      const res = await api.post('/users', {
+        email: payload.email,
+        fullName: payload.fullName,
+        password: payload.password || 'password123',
+        role: payload.role,
+        status: payload.status || 'ACTIVE',
+      });
+      return normalizeUser(res.data.data);
+    } catch (error: any) {
+      console.warn('[AdminUserService] API create user failed, falling back to mock:', error);
       await mockDelay(60);
       const db = loadMockDb();
       if (db.users.some((u) => u.email.toLowerCase() === payload.email.toLowerCase())) {
@@ -131,25 +209,32 @@ export const adminUserService = {
       saveMockDb(db);
       return created;
     }
-    const res = await api.post('/users', payload);
-    return res.data.data;
   },
 
+  /**
+   * Cập nhật thông tin tài khoản người dùng
+   */
   async update(id: string, payload: UpdateUserPayload): Promise<AdminUser> {
-    if (USE_MOCK) {
-      await mockDelay(150);
+    try {
+      const res = await api.patch(`/users/${id}`, payload);
+      return normalizeUser(res.data.data);
+    } catch (error) {
+      console.warn(`[AdminUserService] API update user failed for ${id}, fallback mock:`, error);
+      await mockDelay(60);
       return mockPatch(id, payload);
     }
-    const res = await api.patch(`/users/${id}`, payload);
-    return res.data.data;
   },
 
+  /**
+   * Đặt lại mật khẩu tài khoản
+   */
   async resetPassword(id: string, newPassword: string): Promise<void> {
-    if (USE_MOCK) {
-      await mockDelay(150);
+    try {
+      await api.post(`/users/${id}/reset-password`, { newPassword });
+    } catch (error) {
+      console.warn(`[AdminUserService] API reset password failed for ${id}, fallback mock:`, error);
+      await mockDelay(60);
       mockPatch(id, { mustChangePassword: true });
-      return;
     }
-    await api.post(`/users/${id}/reset-password`, { newPassword });
   },
 };

@@ -36,6 +36,13 @@ export interface ISubmissionRepository {
       }>;
     }
   ): Promise<Submission>;
+  findAll(query?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    search?: string;
+    assignmentId?: string;
+  }): Promise<{ submissions: any[]; total: number }>;
 }
 
 

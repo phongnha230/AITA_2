@@ -17,7 +17,8 @@ import {
   GraduationCap,
 } from 'lucide-react';
 import { assignmentService } from '@/features/assignments/services/assignment.service';
-import { adminDashboardService, type AdminDashboardData } from '../../services/admin-dashboard.service';
+import { adminDashboardService } from '../../services/admin-dashboard.service';
+import { adminSubmissionService, type AdminSubmissionItem } from '../../services/admin-submission.service';
 import { PageHeader } from '../ui/PageHeader';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
@@ -34,20 +35,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
-interface AdminSubmissionItem {
-  id: string;
-  studentName: string;
-  studentEmail: string;
-  courseCode: string;
-  courseName: string;
-  assignmentTitle: string;
-  submittedAt: string;
-  status: string;
-  sandboxScore: number;
-  aiScore: number;
-  finalScore: number;
-}
-
 export const AdminSubmissionsPage: React.FC = () => {
   const toast = useToast();
   const [loading, setLoading] = useState(true);
@@ -62,11 +49,15 @@ export const AdminSubmissionsPage: React.FC = () => {
   const loadData = React.useCallback(async () => {
     setLoading(true);
     try {
-      const data = await adminDashboardService.getDashboard();
-      if (data && data.recentSubmissions && data.recentSubmissions.length > 0) {
-        setSubmissions(data.recentSubmissions);
+      const res = await adminSubmissionService.getSubmissions();
+      if (res && res.submissions && res.submissions.length > 0) {
+        setSubmissions(res.submissions);
       } else {
-        // Mock fallback if DB is empty
+        const data = await adminDashboardService.getDashboard();
+        if (data && data.recentSubmissions && data.recentSubmissions.length > 0) {
+          setSubmissions(data.recentSubmissions);
+        } else {
+          // Mock fallback if DB is empty
         setSubmissions([
           {
             id: 'sub-swd-01',
@@ -122,6 +113,7 @@ export const AdminSubmissionsPage: React.FC = () => {
           },
         ]);
       }
+    }
     } catch {
       toast.error('Không thể tải danh sách bài nộp.');
     } finally {
