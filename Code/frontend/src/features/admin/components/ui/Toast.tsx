@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { CheckCircle2, Info, TriangleAlert } from 'lucide-react';
-import { cn } from '../../../../lib/cn';
+import { cn } from '@/lib/utils';
 
 type ToastTone = 'success' | 'info' | 'error';
 

@@ -1,27 +1,42 @@
-import { cn } from '../../../../lib/cn';
+import * as React from 'react';
+import { Button as ShadcnButton, type ButtonProps as ShadcnButtonProps } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
-type Variant = 'primary' | 'outline' | 'danger' | 'ghost';
+export type AdminButtonVariant = 'primary' | 'outline' | 'danger' | 'ghost';
 
-const VARIANTS: Record<Variant, string> = {
-  primary: 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 border-transparent',
-  outline: 'bg-white text-slate-900 border-slate-200 hover:bg-slate-50 hover:border-slate-300',
-  danger: 'bg-rose-50 text-rose-600 border-rose-100 hover:bg-rose-100 hover:text-rose-700',
-  ghost: 'bg-transparent text-slate-600 border-transparent hover:bg-slate-100',
-};
-
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: Variant;
+export interface ButtonProps extends Omit<ShadcnButtonProps, 'variant'> {
+  variant?: AdminButtonVariant;
 }
 
-export const Button: React.FC<ButtonProps> = ({ variant = 'outline', className, type = 'button', ...props }) => (
-  <button
-    type={type}
-    className={cn(
-      'inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-lg border px-4 text-sm font-semibold transition-colors',
-      'focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
-      VARIANTS[variant],
-      className,
-    )}
-    {...props}
-  />
+const variantMap: Record<AdminButtonVariant, ShadcnButtonProps['variant']> = {
+  primary: 'default',
+  outline: 'outline',
+  danger: 'destructive',
+  ghost: 'ghost',
+};
+
+const customClasses: Record<AdminButtonVariant, string> = {
+  primary: 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 shadow-sm border-transparent',
+  outline: 'bg-white text-slate-900 border-slate-200 hover:bg-slate-50 hover:border-slate-300',
+  danger: 'bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 hover:text-rose-700 shadow-none',
+  ghost: 'bg-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900 border-transparent shadow-none',
+};
+
+export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ variant = 'outline', className, type = 'button', ...props }, ref) => {
+    return (
+      <ShadcnButton
+        ref={ref}
+        type={type}
+        variant={variantMap[variant]}
+        className={cn(
+          'h-10 px-4 text-sm font-semibold rounded-lg transition-colors',
+          customClasses[variant],
+          className
+        )}
+        {...props}
+      />
+    );
+  }
 );
+Button.displayName = 'AdminButton';
