@@ -4,6 +4,7 @@ export interface CreateSubmissionData {
   assignmentId: string;
   userId: string;
   groupLabel?: string | null;
+  paperCode?: string | null;
   submissionChannel: SubmissionChannel;
   zipFilePath?: string | null;
   zipFileSize?: bigint | number | null;
