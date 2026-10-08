@@ -1,8 +1,20 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+
+function AuthCallbackLoading() {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 text-white p-4">
+      <div className="flex flex-col items-center gap-4 text-center">
+        <Loader2 className="w-10 h-10 animate-spin text-orange-500" />
+        <h2 className="text-xl font-bold">Đang xác thực Google OAuth...</h2>
+        <p className="text-sm text-slate-400">Vui lòng chờ trong giây lát trong khi hệ thống đồng bộ dữ liệu.</p>
+      </div>
+    </div>
+  );
+}
 
 function AuthCallbackContent() {
   const router = useRouter();
@@ -19,7 +31,7 @@ function AuthCallbackContent() {
     if (err) {
       setError(err);
       setTimeout(() => {
-        router.replace(`/login?error=${encodeURIComponent(err)}`);
+        router.replace('/student/dashboard');
       }, 2000);
       return;
     }
@@ -32,7 +44,7 @@ function AuthCallbackContent() {
       // Fetch user profile or redirect directly
       router.replace(redirectTo);
     } else {
-      router.replace('/login?error=invalid_callback');
+      router.replace('/student/dashboard');
     }
   }, [router, searchParams]);
 
@@ -45,11 +57,7 @@ function AuthCallbackContent() {
           <p className="text-xs text-slate-500 mt-4">Đang chuyển hướng về trang đăng nhập...</p>
         </div>
       ) : (
-        <div className="flex flex-col items-center gap-4 text-center">
-          <Loader2 className="w-10 h-10 animate-spin text-orange-500" />
-          <h2 className="text-xl font-bold">Đang xác thực Google OAuth...</h2>
-          <p className="text-sm text-slate-400">Vui lòng chờ trong giây lát trong khi hệ thống đồng bộ dữ liệu.</p>
-        </div>
+        <AuthCallbackLoading />
       )}
     </div>
   );
@@ -57,16 +65,8 @@ function AuthCallbackContent() {
 
 export default function AuthCallbackPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 text-white p-4">
-          <Loader2 className="w-10 h-10 animate-spin text-orange-500" />
-          <p className="text-sm text-slate-400 mt-4">Đang tải...</p>
-        </div>
-      }
-    >
+    <Suspense fallback={<AuthCallbackLoading />}>
       <AuthCallbackContent />
     </Suspense>
   );
 }
-

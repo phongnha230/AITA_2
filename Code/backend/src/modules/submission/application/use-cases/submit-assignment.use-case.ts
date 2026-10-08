@@ -4,7 +4,8 @@ import { IArtifactExtractor } from '../services/artifact-extractor.interface.js'
 import { IGradingDispatcher } from '../services/grading-dispatcher.interface.js';
 import { SubmitAssignmentInput } from '../dtos/submission.dto.js';
 import { GitIngestionService, gitIngestionService } from '../../infrastructure/storage/git-ingestion.service.js';
-import { ValidationError } from '../../../../shared/domain/exceptions/app.error.js';
+import { ValidationError, NotFoundError, ForbiddenError } from '../../../../shared/domain/exceptions/app.error.js';
+import prisma from '../../../../infrastructure/database/prisma.client.js';
 
 export interface SubmitAssignmentDeps {
   submissionRepository: ISubmissionRepository;
@@ -29,6 +30,64 @@ export class SubmitAssignmentUseCase {
   public async execute(request: SubmitAssignmentRequest): Promise<Submission> {
     const { submissionRepository, artifactExtractor, gradingDispatcher } = this.deps;
 
+    // 1. Kiểm tra đề thi có tồn tại và đang mở không
+    const assignment = await prisma.assignment.findUnique({
+      where: { id: request.assignmentId },
+    });
+
+    if (!assignment) {
+      throw new NotFoundError(`Đề thi với ID: ${request.assignmentId}`);
+    }
+
+    if (assignment.status === 'DRAFT') {
+      throw new ForbiddenError('Đề thi này chưa được mở (trạng thái DRAFT).');
+    }
+
+    if (assignment.status === 'CLOSED') {
+      throw new ForbiddenError('Đề thi này đã đóng nộp bài (trạng thái CLOSED).');
+    }
+
+    const now = new Date();
+    if (now < assignment.startTime) {
+      throw new ForbiddenError(
+        `Chưa đến thời gian làm bài! Đề thi sẽ mở lúc ${assignment.startTime.toLocaleString('vi-VN')}`
+      );
+    }
+
+    if (now > assignment.deadline) {
+      throw new ForbiddenError(
+        `Đã hết hạn nộp bài! Hạn chót nộp bài là ${assignment.deadline.toLocaleString('vi-VN')}`
+      );
+    }
+
+    // 2. Kiểm tra Passcode mở đề nếu có cấu hình
+    if (assignment.accessCode) {
+      if (!request.accessCode || request.accessCode.trim() !== assignment.accessCode.trim()) {
+        throw new ForbiddenError('Mã mở đề (Passcode) không chính xác hoặc chưa được cung cấp.');
+      }
+    }
+
+    // 3. Kiểm tra tần suất nộp bài (Anti-Spam / Cooldown 10 giây giữa 2 lần nộp)
+    const latestSubmission = await prisma.submission.findFirst({
+      where: {
+        assignmentId: request.assignmentId,
+        userId: request.userId,
+      },
+      orderBy: { submittedAt: 'desc' },
+    });
+
+    if (latestSubmission) {
+      const timeSinceLastSubmitMs = now.getTime() - new Date(latestSubmission.submittedAt).getTime();
+      const COOLDOWN_SECONDS = 10;
+      if (timeSinceLastSubmitMs < COOLDOWN_SECONDS * 1000) {
+        const waitSeconds = Math.ceil((COOLDOWN_SECONDS * 1000 - timeSinceLastSubmitMs) / 1000);
+        throw new ValidationError(
+          `Bạn đang nộp bài quá nhanh. Vui lòng đợi thêm ${waitSeconds} giây trước khi nộp bài tiếp theo.`
+        );
+      }
+    }
+
+    // 4. Kiểm tra kênh nộp bài
     if (request.submissionChannel === 'ZIP_UPLOAD' && !request.uploadedZipPath) {
       throw new ValidationError('File .zip bài nộp là bắt buộc cho hình thức nộp ZIP_UPLOAD');
     }
@@ -41,6 +100,7 @@ export class SubmitAssignmentUseCase {
       assignmentId: request.assignmentId,
       userId: request.userId,
       groupLabel: request.groupLabel ?? null,
+      paperCode: request.paperCode ?? null,
       submissionChannel: request.submissionChannel,
       zipFilePath: request.uploadedZipPath ?? null,
       zipFileSize: request.uploadedZipSize ?? null,

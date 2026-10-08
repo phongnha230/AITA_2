@@ -211,7 +211,7 @@ export class PrismaCourseRepository implements ICourseRepository {
       orderBy: { createdAt: 'desc' },
     });
 
-    return rawList.map((r) => this.toDomain(r));
+    return rawList.map((r: any) => this.toDomain(r));
   }
 
   async enrollStudents(courseId: string, studentIds: string[]): Promise<number> {
