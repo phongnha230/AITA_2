@@ -34,7 +34,12 @@ export class AssignmentController {
 
   getAssignmentDetail = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const assignment = await this.getAssignmentDetailUseCase.execute(req.params.id, req.user?.role);
+      const accessCode = (req.query.accessCode as string) || (req.headers['x-access-code'] as string);
+      const assignment = await this.getAssignmentDetailUseCase.execute(
+        req.params.id,
+        req.user?.role,
+        accessCode
+      );
       sendSuccess(res, assignment, 'Lấy chi tiết đề thi thành công.');
     } catch (error) {
       next(error);
