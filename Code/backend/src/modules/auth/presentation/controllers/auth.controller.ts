@@ -5,8 +5,10 @@ import { GoogleLoginUseCase } from '../../application/use-cases/google-login.use
 import { ChangePasswordUseCase } from '../../application/use-cases/change-password.use-case.js';
 import { RefreshTokenUseCase } from '../../application/use-cases/refresh-token.use-case.js';
 import { sendSuccess } from '../../../../shared/presentation/utils/api-response.util.js';
-import { UnauthorizedError } from '../../../../shared/domain/exceptions/app.error.js';
+import { UnauthorizedError, ValidationError } from '../../../../shared/domain/exceptions/app.error.js';
 import { env } from '../../../../infrastructure/config/env.js';
+
+import { setAuthCookies, clearAuthCookies } from '../../../../shared/presentation/utils/cookie.util.js';
 
 export class AuthController {
   constructor(
@@ -20,6 +22,7 @@ export class AuthController {
   login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const result = await this.loginUseCase.execute(req.body);
+      setAuthCookies(res, result.token, result.refreshToken);
       sendSuccess(res, result, 'Đăng nhập thành công!');
     } catch (error) {
       next(error);
@@ -31,7 +34,12 @@ export class AuthController {
       if (!this.refreshTokenUseCase) {
         throw new Error('RefreshTokenUseCase is not injected');
       }
-      const result = await this.refreshTokenUseCase.execute(req.body);
+      const token = req.body?.refreshToken || req.cookies?.refreshToken;
+      if (!token) {
+        throw new UnauthorizedError('Thiếu refresh token.');
+      }
+      const result = await this.refreshTokenUseCase.execute({ refreshToken: token });
+      setAuthCookies(res, result.token, result.refreshToken);
       sendSuccess(res, result, 'Làm mới token thành công!');
     } catch (error) {
       next(error);
@@ -41,7 +49,17 @@ export class AuthController {
   register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const result = await this.registerUseCase.execute(req.body);
+      setAuthCookies(res, result.token, result.refreshToken);
       sendSuccess(res, result, 'Đăng ký tài khoản thành công!', 201);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  logout = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      clearAuthCookies(res);
+      sendSuccess(res, null, 'Đăng xuất thành công!');
     } catch (error) {
       next(error);
     }
@@ -100,10 +118,11 @@ export class AuthController {
 
       const result = await this.googleLoginUseCase.executeWithCode(code);
 
-      // Redirect back to frontend with token in URL query
+      // Set HttpOnly Cookies
+      setAuthCookies(res, result.token, result.refreshToken);
+
+      // Redirect back to frontend
       const targetUrl = new URL(`${frontendUrl}/auth/callback`);
-      targetUrl.searchParams.set('token', result.token);
-      targetUrl.searchParams.set('refreshToken', result.refreshToken);
       targetUrl.searchParams.set('role', result.user.role);
       targetUrl.searchParams.set('redirectTo', result.redirectTo);
 
@@ -119,6 +138,7 @@ export class AuthController {
   googleLoginWithCode = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const result = await this.googleLoginUseCase.executeWithCode(req.body.code);
+      setAuthCookies(res, result.token, result.refreshToken);
       sendSuccess(res, result, 'Đăng nhập Google thành công!');
     } catch (error) {
       next(error);
@@ -128,6 +148,7 @@ export class AuthController {
   googleLoginWithIdToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const result = await this.googleLoginUseCase.executeWithIdToken(req.body.idToken);
+      setAuthCookies(res, result.token, result.refreshToken);
       sendSuccess(res, result, 'Đăng nhập Google thành công!');
     } catch (error) {
       next(error);

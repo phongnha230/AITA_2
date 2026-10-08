@@ -24,6 +24,10 @@ export class RefreshTokenUseCase {
   async execute(dto: RefreshTokenDto): Promise<RefreshTokenResult> {
     const { refreshToken } = dto;
 
+    if (!refreshToken) {
+      throw new UnauthorizedError('Vui lòng cung cấp refreshToken.');
+    }
+
     // 1. Xác thực tính hợp lệ của Refresh Token
     const payload = this.tokenService.verifyRefreshToken(refreshToken);
 

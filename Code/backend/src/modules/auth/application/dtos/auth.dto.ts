@@ -17,7 +17,7 @@ export const RegisterSchema = z.object({
 export type RegisterDto = z.infer<typeof RegisterSchema>;
 
 export const RefreshTokenSchema = z.object({
-  refreshToken: z.string().min(1, 'Vui lòng cung cấp refreshToken.'),
+  refreshToken: z.string().optional(),
 });
 
 export type RefreshTokenDto = z.infer<typeof RefreshTokenSchema>;

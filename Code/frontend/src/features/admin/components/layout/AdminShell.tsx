@@ -22,28 +22,24 @@ export const AdminShell: React.FC<{ children: React.ReactNode }> = ({ children }
     const verifyAdmin = async () => {
       if (typeof window === 'undefined') return;
 
-      const token = localStorage.getItem('token') || localStorage.getItem('aita_token');
       const stored = authService.getStoredUser();
 
-      // If user is logged in with token
-      if (token) {
-        let currentUser: User | null = stored;
-        if (!currentUser) {
-          currentUser = await authService.getCurrentUser();
-        }
+      let currentUser: User | null = stored;
+      if (!currentUser) {
+        currentUser = await authService.getCurrentUser();
+      }
 
-        if (!active) return;
+      if (!active) return;
 
-        if (currentUser) {
-          if (currentUser.role === 'ADMIN') {
-            setUser(currentUser);
-            return;
-          } else {
-            setAuthError(
-              `Tài khoản của bạn có vai trò là "${currentUser.role}". Cổng này chỉ dành riêng cho Quản trị viên (ADMIN).`
-            );
-            return;
-          }
+      if (currentUser) {
+        if (currentUser.role === 'ADMIN') {
+          setUser(currentUser);
+          return;
+        } else {
+          setAuthError(
+            `Tài khoản của bạn có vai trò là "${currentUser.role}". Cổng này chỉ dành riêng cho Quản trị viên (ADMIN).`
+          );
+          return;
         }
       }
 

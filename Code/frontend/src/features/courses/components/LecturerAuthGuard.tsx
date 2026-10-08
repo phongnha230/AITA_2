@@ -23,26 +23,10 @@ export function LecturerAuthGuard({ children }: LecturerAuthGuardProps) {
     const checkAuth = async () => {
       if (typeof window === 'undefined') return;
 
-      const token = localStorage.getItem('token') || localStorage.getItem('aita_token');
-      if (!token) {
-        if (active) {
-          router.replace(`/login?redirectTo=${encodeURIComponent(pathname)}`);
-        }
-        return;
-      }
-
       // Check stored user first for fast hydration
-      const storedUserRaw = localStorage.getItem('user');
-      let currentUser: User | null = null;
-      if (storedUserRaw) {
-        try {
-          currentUser = JSON.parse(storedUserRaw);
-        } catch {
-          // ignore parse error
-        }
-      }
+      let currentUser = authService.getStoredUser();
 
-      // If no stored user or verify with API
+      // If no stored user or need verification with API
       if (!currentUser) {
         currentUser = await authService.getCurrentUser();
       }
@@ -50,7 +34,6 @@ export function LecturerAuthGuard({ children }: LecturerAuthGuardProps) {
       if (!active) return;
 
       if (!currentUser) {
-        localStorage.removeItem('token');
         localStorage.removeItem('user');
         router.replace(`/login?redirectTo=${encodeURIComponent(pathname)}`);
         return;

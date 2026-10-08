@@ -1,4 +1,5 @@
 import api from '../../../lib/api';
+import { authService } from '../../auth/services/auth.service';
 import {
   Assignment,
   CreateAssignmentPayload,
@@ -15,19 +16,17 @@ export const assignmentService = {
    */
   async ensureLecturerAuth(): Promise<string> {
     if (typeof window === 'undefined') return '';
-    let token = localStorage.getItem('token');
-    if (token) return token;
+    const user = authService.getStoredUser();
+    if (user && (user.role === 'LECTURER' || user.role === 'ADMIN')) return user.id;
 
     try {
       const res = await api.post('/auth/login', {
         username: 'lecturer@fpt.edu.vn',
         password: 'password123',
       });
-      if (res.data?.data?.token) {
-        token = res.data.data.token;
-        localStorage.setItem('token', token as string);
+      if (res.data?.data?.user) {
         localStorage.setItem('user', JSON.stringify(res.data.data.user));
-        return token as string;
+        return res.data.data.user.id;
       }
     } catch (err) {
       console.warn('Auto login failed:', err);

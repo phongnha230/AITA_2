@@ -20,8 +20,8 @@ export const authService = {
     const response = await api.post('/auth/login', { username, password });
     const data = response.data.data;
     if (typeof window !== 'undefined') {
-      localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem('user_role', data.user.role);
     }
     return data;
   },
@@ -30,8 +30,8 @@ export const authService = {
     const response = await api.post('/auth/register', data);
     const authData = response.data.data;
     if (typeof window !== 'undefined') {
-      localStorage.setItem('token', authData.token);
       localStorage.setItem('user', JSON.stringify(authData.user));
+      if (authData.user.role) localStorage.setItem('user_role', authData.user.role);
     }
     return authData;
   },
@@ -44,10 +44,16 @@ export const authService = {
   async getCurrentUser(): Promise<User | null> {
     try {
       const response = await api.get('/users/profile');
+      if (response.data?.data && typeof window !== 'undefined') {
+        localStorage.setItem('user', JSON.stringify(response.data.data));
+      }
       return response.data.data;
     } catch {
       try {
         const fallback = await api.get('/auth/me');
+        if (fallback.data?.data && typeof window !== 'undefined') {
+          localStorage.setItem('user', JSON.stringify(fallback.data.data));
+        }
         return fallback.data.data;
       } catch {
         return null;
@@ -55,15 +61,21 @@ export const authService = {
     }
   },
 
-  logout(): void {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      localStorage.removeItem('aita_token');
-      localStorage.removeItem('aita_user');
-      localStorage.removeItem('user_role');
-      localStorage.removeItem('refreshToken');
-      window.location.href = '/login';
+  async logout(): Promise<void> {
+    try {
+      await api.post('/auth/logout');
+    } catch {
+      // ignore
+    } finally {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('aita_token');
+        localStorage.removeItem('aita_user');
+        localStorage.removeItem('user_role');
+        localStorage.removeItem('refreshToken');
+        window.location.href = '/login';
+      }
     }
   },
 

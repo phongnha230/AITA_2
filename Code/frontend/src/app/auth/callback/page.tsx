@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+import { authService } from '@/features/auth/services/auth.service';
 
 function AuthCallbackLoading() {
   return (
@@ -40,22 +41,30 @@ function AuthCallbackContent() {
       };
     }
 
-    if (token) {
-      localStorage.setItem('token', token);
-      if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
-      if (role) localStorage.setItem('user_role', role);
+    // Verify session using HttpOnly Cookie
+    authService
+      .getCurrentUser()
+      .then((user) => {
+        if (user) {
+          localStorage.setItem('user', JSON.stringify(user));
+          if (user.role) localStorage.setItem('user_role', user.role);
 
-      const destination =
-        role === 'STUDENT'
-          ? '/student/dashboard'
-          : role === 'ADMIN'
-            ? '/admin/ai-keys'
-            : redirectTo || '/student/dashboard';
+          const targetRole = user.role || role;
+          const destination =
+            targetRole === 'STUDENT'
+              ? '/student/dashboard'
+              : targetRole === 'ADMIN'
+                ? '/admin/ai-keys'
+                : redirectTo || '/student/dashboard';
 
-      router.replace(destination);
-    } else {
-      router.replace('/login');
-    }
+          router.replace(destination);
+        } else {
+          router.replace('/login');
+        }
+      })
+      .catch(() => {
+        router.replace('/login');
+      });
   }, [router, searchParams]);
 
   return (

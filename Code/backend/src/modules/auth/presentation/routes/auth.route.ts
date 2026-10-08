@@ -46,7 +46,8 @@ const authController = new AuthController(
 // Traditional Email/Password Auth
 router.post('/login', validateBody(LoginSchema), authController.login);
 router.post('/register', validateBody(RegisterSchema), authController.register);
-router.post('/refresh-token', validateBody(RefreshTokenSchema), authController.refreshToken);
+router.post('/refresh-token', authController.refreshToken);
+router.post('/logout', authController.logout);
 router.get('/me', authenticateJWT, authController.me);
 router.post('/change-password', authenticateJWT, validateBody(ChangePasswordSchema), authController.changePassword);
 
