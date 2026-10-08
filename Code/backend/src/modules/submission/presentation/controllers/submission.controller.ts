@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import fs from 'node:fs/promises';
 import { SubmitAssignmentUseCase } from '../../application/use-cases/submit-assignment.use-case.js';
 import { GetSubmissionStatusUseCase } from '../../application/use-cases/get-submission-status.use-case.js';
+import { GetAssignmentSubmissionsUseCase } from '../../application/use-cases/get-assignment-submissions.use-case.js';
 import { sendSuccess } from '../../../../shared/presentation/utils/api-response.util.js';
 import { UnauthorizedError } from '../../../../shared/domain/exceptions/app.error.js';
 
@@ -9,7 +10,8 @@ import { UnauthorizedError } from '../../../../shared/domain/exceptions/app.erro
 export class SubmissionController {
   constructor(
     private readonly submitAssignmentUseCase: SubmitAssignmentUseCase,
-    private readonly getSubmissionStatusUseCase: GetSubmissionStatusUseCase
+    private readonly getSubmissionStatusUseCase: GetSubmissionStatusUseCase,
+    private readonly getAssignmentSubmissionsUseCase: GetAssignmentSubmissionsUseCase
   ) {}
 
   submitAssignment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -51,6 +53,15 @@ export class SubmissionController {
     try {
       const submission = await this.getSubmissionStatusUseCase.execute(req.params.id);
       sendSuccess(res, submission, 'Lấy trạng thái bài nộp thành công.');
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getSubmissionsByAssignment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const submissions = await this.getAssignmentSubmissionsUseCase.execute(req.params.assignmentId);
+      sendSuccess(res, submissions, 'Lấy danh sách bài nộp theo đề thi thành công.');
     } catch (error) {
       next(error);
     }

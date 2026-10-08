@@ -128,6 +128,43 @@ export class PrismaSubmissionRepository implements ISubmissionRepository {
     return rawList.map((r: any) => this.toDomain(r));
   }
 
+  async findByAssignmentId(assignmentId: string): Promise<any[]> {
+    const rawList = await this.prisma.submission.findMany({
+      where: { assignmentId },
+      include: {
+        user: { select: { id: true, fullName: true, email: true, avatarUrl: true } },
+        gradingJob: {
+          select: {
+            id: true,
+            status: true,
+            queuedAt: true,
+            sandboxStartedAt: true,
+            sandboxEndedAt: true,
+            aiStartedAt: true,
+            aiEndedAt: true,
+          },
+        },
+        testResults: {
+          select: {
+            id: true,
+            testCaseId: true,
+            verdict: true,
+            earnedPoints: true,
+            executionTimeMs: true,
+          },
+        },
+      },
+      orderBy: { submittedAt: 'desc' },
+    });
+
+    return rawList.map((r: any) => ({
+      ...this.toDomain(r).toJSON(),
+      user: r.user,
+      gradingJob: r.gradingJob,
+      testResults: r.testResults,
+    }));
+  }
+
   async updateStatus(id: string, status: SubmissionStatus): Promise<Submission> {
     const raw = await this.prisma.submission.update({
       where: { id },

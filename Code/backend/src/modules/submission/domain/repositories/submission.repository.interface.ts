@@ -17,6 +17,7 @@ export interface ISubmissionRepository {
   findById(id: string): Promise<Submission | null>;
   findWithJobStatus(id: string): Promise<any | null>;
   findByAssignmentAndUser(assignmentId: string, userId: string): Promise<Submission[]>;
+  findByAssignmentId(assignmentId: string): Promise<any[]>;
   updateStatus(id: string, status: SubmissionStatus): Promise<Submission>;
   updateZipFilePath(id: string, zipFilePath: string): Promise<Submission>;
   updateGitMetadata(
