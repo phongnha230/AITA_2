@@ -9,17 +9,20 @@ import {
   Search,
   Plus,
 } from 'lucide-react';
-import { Course, LecturerKpiMetrics } from '../types/course.types';
+import { Course, LecturerKpiMetrics, LecturerDashboardRecentSubmission } from '../types/course.types';
 import { CourseCard } from './CourseCard';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import Link from 'next/link';
 
 interface CoursesOverviewProps {
   courses: Course[];
   kpiMetrics: LecturerKpiMetrics;
+  recentSubmissions?: LecturerDashboardRecentSubmission[];
   semesters: string[];
   searchQuery: string;
   onSearchChange: (val: string) => void;
@@ -34,6 +37,7 @@ interface CoursesOverviewProps {
 export const CoursesOverview: React.FC<CoursesOverviewProps> = ({
   courses,
   kpiMetrics,
+  recentSubmissions,
   semesters,
   searchQuery,
   onSearchChange,
@@ -213,6 +217,129 @@ export const CoursesOverview: React.FC<CoursesOverviewProps> = ({
             <span>Tạo Khóa Học Ngay</span>
           </Button>
         </Card>
+      )}
+
+      {/* Widget: Bài nộp gần đây trên toàn bộ các lớp (Dữ liệu thật từ Backend Dashboard) */}
+      {recentSubmissions && recentSubmissions.length > 0 && (
+        <section className="space-y-3 pt-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-extrabold text-slate-900 tracking-tight">
+                Hoạt Động Nộp Bài Gần Đây (Toàn bộ lớp học)
+              </h3>
+              <p className="text-[11px] text-slate-400">
+                Theo dõi tiến trình sinh viên nộp bài thi thực hành và chấm điểm tự động.
+              </p>
+            </div>
+            <span className="text-xs font-mono font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg">
+              {recentSubmissions.length} bài nộp mới nhất
+            </span>
+          </div>
+
+          <Card className="rounded-2xl border-slate-200 shadow-2xs overflow-hidden bg-white">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50/70 border-b border-slate-100 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
+                  <tr>
+                    <th className="py-3 px-4">Sinh viên</th>
+                    <th className="py-3 px-4">Đề thi / Môn</th>
+                    <th className="py-3 px-4">Thời gian</th>
+                    <th className="py-3 px-4">Trạng thái</th>
+                    <th className="py-3 px-4 text-center">Điểm cuối</th>
+                    <th className="py-3 px-4 text-right">Chi tiết</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {recentSubmissions.map((sub) => {
+                    const initials = (sub.studentName || 'SV')
+                      .trim()
+                      .split(' ')
+                      .slice(-2)
+                      .map((n) => n[0])
+                      .join('')
+                      .toUpperCase();
+
+                    return (
+                      <tr key={sub.id} className="hover:bg-slate-50/50 transition">
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2.5">
+                            <Avatar className="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 font-black text-xs shrink-0">
+                              <AvatarFallback className="text-[10px]">{initials}</AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0">
+                              <div className="font-bold text-slate-900 truncate">
+                                {sub.studentName}
+                              </div>
+                              <div className="text-[10px] text-slate-400 truncate">
+                                {sub.studentEmail}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="py-3 px-4">
+                          <div className="font-semibold text-slate-800 truncate">
+                            {sub.assignmentTitle}
+                          </div>
+                          <div className="text-[10px] text-indigo-600 font-mono">
+                            {sub.courseCode} • {sub.paperCode || 'Mã đề: Standard'}
+                          </div>
+                        </td>
+
+                        <td className="py-3 px-4 text-slate-500 whitespace-nowrap text-[11px]">
+                          {new Date(sub.submittedAt).toLocaleTimeString('vi-VN', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}{' '}
+                          • {new Date(sub.submittedAt).toLocaleDateString('vi-VN')}
+                        </td>
+
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          {sub.status === 'GRADED' ? (
+                            <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold">
+                              Đã chấm điểm
+                            </Badge>
+                          ) : sub.status === 'RUNNING_SANDBOX' ? (
+                            <Badge className="bg-amber-50 text-amber-700 border-amber-200 text-[10px] font-bold animate-pulse">
+                              Đang test Sandbox
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px]">
+                              {sub.status}
+                            </Badge>
+                          )}
+                        </td>
+
+                        <td className="py-3 px-4 text-center font-mono font-black text-sm">
+                          {sub.finalScore > 0 ? (
+                            <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                              {sub.finalScore}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">-</span>
+                          )}
+                        </td>
+
+                        <td className="py-3 px-4 text-right">
+                          <Button
+                            asChild
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50"
+                          >
+                            <Link href={`/exam-bank/${sub.assignmentId}/submissions`}>
+                              <span>Xem bài</span>
+                            </Link>
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </section>
       )}
     </div>
   );

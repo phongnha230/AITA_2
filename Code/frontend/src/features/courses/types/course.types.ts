@@ -101,3 +101,69 @@ export interface LecturerKpiMetrics {
   avgCompletionRate: number;
   active24hCount: number;
 }
+
+export interface LecturerDashboardRecentSubmission {
+  id: string;
+  studentId: string;
+  studentName: string;
+  studentEmail: string;
+  assignmentId: string;
+  assignmentTitle: string;
+  courseCode: string;
+  courseName: string;
+  paperCode?: string | null;
+  submittedAt: string;
+  status: string;
+  sandboxScore: number;
+  aiScore: number;
+  finalScore: number;
+}
+
+export interface LecturerDashboardAssignmentSummary {
+  id: string;
+  title: string;
+  courseCode: string;
+  status: string;
+  environment: string;
+  deadline: string;
+  durationMinutes?: number | null;
+  hasAccessCode: boolean;
+  totalSubmissions: number;
+  averageScore: number;
+}
+
+export interface LecturerDashboardResponse {
+  lecturer: {
+    id: string;
+    email: string;
+    fullName: string;
+    avatarUrl?: string | null;
+    role: string;
+    status: string;
+    lastLoginAt?: string | null;
+  };
+  teachingStats: {
+    totalCourses: number;
+    totalStudents: number;
+    totalAssignments: number;
+    totalSubmissions: number;
+    averageScore: number;
+    pendingGradingCount: number;
+  };
+  coursesOverview: Array<{
+    id: string;
+    code: string;
+    name: string;
+    semester: string;
+    isActive: boolean;
+    enrollmentCode?: string | null;
+    codeExpiresAt?: string | null;
+    totalStudents: number;
+    totalAssignments: number;
+    totalSubmissions: number;
+    averageScore: number;
+  }>;
+  recentSubmissions: LecturerDashboardRecentSubmission[];
+  assignmentsSummary: LecturerDashboardAssignmentSummary[];
+}
+

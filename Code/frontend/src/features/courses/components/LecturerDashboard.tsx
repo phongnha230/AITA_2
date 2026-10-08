@@ -16,6 +16,7 @@ export const LecturerDashboard: React.FC<LecturerDashboardProps> = ({ initialCou
   const {
     courses,
     kpiMetrics,
+    recentSubmissions,
     semesters,
     searchQuery,
     setSearchQuery,
@@ -83,6 +84,7 @@ export const LecturerDashboard: React.FC<LecturerDashboardProps> = ({ initialCou
         <CoursesOverview
           courses={courses}
           kpiMetrics={kpiMetrics}
+          recentSubmissions={recentSubmissions}
           semesters={semesters}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}

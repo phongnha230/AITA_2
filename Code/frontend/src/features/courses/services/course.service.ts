@@ -6,6 +6,7 @@ import {
   GenerateJoinCodeResponse,
   QueryCoursesParams,
   LecturerKpiMetrics,
+  LecturerDashboardResponse,
 } from '../types/course.types';
 
 // Fallback mock data matching the approved prototype for smooth offline/sandbox preview
@@ -187,6 +188,114 @@ export const INITIAL_MOCK_COURSES: Course[] = [
 
 export const courseService = {
   /**
+   * Lấy tổng quan Dashboard của Giảng viên (Thống kê, khóa học, 10 bài nộp mới nhất)
+   */
+  async getLecturerDashboard(): Promise<LecturerDashboardResponse> {
+    try {
+      const response = await api.get('/users/lecturer-dashboard');
+      if (response.data && response.data.data) {
+        return response.data.data;
+      }
+      throw new Error('Dữ liệu dashboard không khả dụng');
+    } catch (error) {
+      console.warn('[CourseService] Backend lecturer-dashboard unavailable, using fallback:', error);
+      return {
+        lecturer: {
+          id: 'lecturer-vd-01',
+          email: 'diepnv@fpt.edu.vn',
+          fullName: 'TS. Nguyễn Văn Điệp',
+          role: 'LECTURER',
+          status: 'ACTIVE',
+        },
+        teachingStats: {
+          totalCourses: 3,
+          totalStudents: 118,
+          totalAssignments: 14,
+          totalSubmissions: 248,
+          averageScore: 8.4,
+          pendingGradingCount: 6,
+        },
+        coursesOverview: INITIAL_MOCK_COURSES.map((c) => ({
+          id: c.id,
+          code: c.code,
+          name: c.name,
+          semester: c.semester,
+          isActive: c.isActive,
+          enrollmentCode: c.enrollmentCode,
+          codeExpiresAt: c.codeExpiresAt,
+          totalStudents: c.enrolledStudentsCount || 38,
+          totalAssignments: c._count?.assignments || 5,
+          totalSubmissions: 38,
+          averageScore: c.currentGpaAvg || 8.4,
+        })),
+        recentSubmissions: [
+          {
+            id: 'sub-recent-01',
+            studentId: 'stu-01',
+            studentName: 'Trần Đỗ Phong Nhã',
+            studentEmail: 'phongnhatd@fpt.edu.vn',
+            assignmentId: 'assign-pe-01',
+            assignmentTitle: 'Đề thi PE SWD392 Fall 2026',
+            courseCode: 'SWD392',
+            courseName: 'Kiến Trúc & Thiết Kế Phần Mềm',
+            paperCode: 'SE1901_Q1',
+            submittedAt: new Date(Date.now() - 3600000).toISOString(),
+            status: 'GRADED',
+            sandboxScore: 8.5,
+            aiScore: 8.0,
+            finalScore: 8.35,
+          },
+          {
+            id: 'sub-recent-02',
+            studentId: 'stu-02',
+            studentName: 'Nguyễn Văn Điệp',
+            studentEmail: 'diepnv@fpt.edu.vn',
+            assignmentId: 'assign-pe-01',
+            assignmentTitle: 'Đề thi PE SWD392 Fall 2026',
+            courseCode: 'SWD392',
+            courseName: 'Kiến Trúc & Thiết Kế Phần Mềm',
+            paperCode: 'SE1901_Q1',
+            submittedAt: new Date(Date.now() - 7200000).toISOString(),
+            status: 'GRADED',
+            sandboxScore: 10.0,
+            aiScore: 9.5,
+            finalScore: 9.85,
+          },
+          {
+            id: 'sub-recent-03',
+            studentId: 'stu-03',
+            studentName: 'Lê Hoàng Long',
+            studentEmail: 'longlh@fpt.edu.vn',
+            assignmentId: 'assign-pe-01',
+            assignmentTitle: 'Đề thi PE SWD392 Fall 2026',
+            courseCode: 'SWD392',
+            courseName: 'Kiến Trúc & Thiết Kế Phần Mềm',
+            paperCode: 'SE1901_Q1',
+            submittedAt: new Date(Date.now() - 10800000).toISOString(),
+            status: 'RUNNING_SANDBOX',
+            sandboxScore: 0,
+            aiScore: 0,
+            finalScore: 0,
+          },
+        ],
+        assignmentsSummary: [
+          {
+            id: 'assign-pe-01',
+            title: 'Đề thi PE SWD392 Fall 2026',
+            courseCode: 'SWD392',
+            status: 'PUBLISHED',
+            environment: 'JAVA_JDK',
+            deadline: new Date(Date.now() + 86400000 * 2).toISOString(),
+            hasAccessCode: true,
+            totalSubmissions: 38,
+            averageScore: 8.4,
+          },
+        ],
+      };
+    }
+  },
+
+  /**
    * Lấy danh sách khóa học của giảng viên
    */
   async getCourses(params?: QueryCoursesParams): Promise<Course[]> {
@@ -288,7 +397,14 @@ export const courseService = {
   async generateJoinCode(id: string, expiresInMinutes: number = 30): Promise<GenerateJoinCodeResponse> {
     try {
       const response = await api.post(`/courses/${id}/generate-code`, { expiresInMinutes });
-      return response.data.data;
+      const raw = response.data.data;
+      return {
+        courseId: raw.courseId || id,
+        enrollmentCode: raw.joinCode || raw.enrollmentCode,
+        expiresAt: raw.expiresAt,
+        expiresInMinutes: raw.expiresInMinutes || expiresInMinutes,
+        message: raw.message || 'Sinh mã tham gia lớp học thành công!',
+      };
     } catch (error) {
       console.warn(`[CourseService] Generate join code fallback for ${id}:`, error);
       const code = `AITA-${Math.floor(1000 + Math.random() * 9000)}`;
