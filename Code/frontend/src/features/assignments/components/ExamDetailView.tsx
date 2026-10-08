@@ -20,6 +20,7 @@ import {
   AlertCircle,
   RefreshCw,
   Cpu,
+  Users,
 } from 'lucide-react';
 import { assignmentService } from '../services/assignment.service';
 import { Assignment, TestCase, RationaleTag } from '../types/assignment.types';
@@ -171,6 +172,13 @@ export const ExamDetailView: React.FC<ExamDetailViewProps> = ({ examId }) => {
             <Link href={`/exam-bank/create?editId=${assignment.id}`}>
               <Edit3 className="w-3.5 h-3.5 mr-1.5 text-amber-700" />
               <span>Chỉnh sửa trong Wizard</span>
+            </Link>
+          </Button>
+
+          <Button asChild variant="outline" size="sm" className="h-9 px-3.5 rounded-xl text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-200 shadow-2xs">
+            <Link href={`/exam-bank/${assignment.id}/submissions`}>
+              <Users className="w-3.5 h-3.5 mr-1.5" />
+              <span>Xem bài nộp ({assignment._count?.submissions || 0})</span>
             </Link>
           </Button>
 

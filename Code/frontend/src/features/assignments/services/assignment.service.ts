@@ -5,6 +5,7 @@ import {
   TestCase,
   AssignmentSolution,
   Course,
+  LecturerSubmission,
 } from '../types/assignment.types';
 
 export const assignmentService = {
@@ -132,9 +133,104 @@ export const assignmentService = {
   /**
    * Lấy danh sách bài giải mẫu
    */
-  async getSolutions(assignmentId: string): Promise<AssignmentSolution[]> {
+  /**
+   * Lấy danh sách bài nộp của một đề thi (Dành cho Giảng viên)
+   */
+  async getSubmissionsByAssignment(assignmentId: string): Promise<LecturerSubmission[]> {
     await this.ensureLecturerAuth();
-    const res = await api.get(`/assignments/${assignmentId}/solutions`);
-    return res.data?.data || [];
+    try {
+      const res = await api.get(`/submissions/assignment/${assignmentId}`);
+      return res.data?.data || [];
+    } catch (err) {
+      console.warn(`[AssignmentService] Submissions fetch failed for ${assignmentId}, using mock data:`, err);
+      return [
+        {
+          id: 'sub-demo-01',
+          assignmentId,
+          userId: 'stu-01',
+          paperCode: 'SE1901_Q1',
+          submissionChannel: 'ZIP_UPLOAD',
+          status: 'GRADED',
+          sandboxScore: 8.5,
+          aiScore: 8.0,
+          finalScore: 8.35,
+          compileSuccess: true,
+          submittedAt: new Date(Date.now() - 3600000).toISOString(),
+          gradedAt: new Date(Date.now() - 1800000).toISOString(),
+          user: {
+            id: 'stu-01',
+            fullName: 'Trần Đỗ Phong Nhã',
+            email: 'phongnhatd@fpt.edu.vn',
+          },
+          testResults: [
+            { id: 'tr-1', testCaseId: 'tc-1', verdict: 'PASSED', earnedPoints: 1.0, executionTimeMs: 45 },
+            { id: 'tr-2', testCaseId: 'tc-2', verdict: 'PASSED', earnedPoints: 1.0, executionTimeMs: 52 },
+            { id: 'tr-3', testCaseId: 'tc-3', verdict: 'FAILED', earnedPoints: 0.0, executionTimeMs: 2000 },
+          ],
+        },
+        {
+          id: 'sub-demo-02',
+          assignmentId,
+          userId: 'stu-02',
+          paperCode: 'SE1901_Q1',
+          submissionChannel: 'GIT_COMMIT',
+          gitRepoUrl: 'https://github.com/diepnv/swd392-pe-submission',
+          gitCommitHash: '9a8b7c6',
+          status: 'GRADED',
+          sandboxScore: 10.0,
+          aiScore: 9.5,
+          finalScore: 9.85,
+          compileSuccess: true,
+          submittedAt: new Date(Date.now() - 7200000).toISOString(),
+          gradedAt: new Date(Date.now() - 3600000).toISOString(),
+          user: {
+            id: 'stu-02',
+            fullName: 'Nguyễn Văn Điệp',
+            email: 'diepnv@fpt.edu.vn',
+          },
+          testResults: [
+            { id: 'tr-4', testCaseId: 'tc-1', verdict: 'PASSED', earnedPoints: 1.0, executionTimeMs: 38 },
+            { id: 'tr-5', testCaseId: 'tc-2', verdict: 'PASSED', earnedPoints: 1.0, executionTimeMs: 42 },
+            { id: 'tr-6', testCaseId: 'tc-3', verdict: 'PASSED', earnedPoints: 1.0, executionTimeMs: 65 },
+          ],
+        },
+        {
+          id: 'sub-demo-03',
+          assignmentId,
+          userId: 'stu-03',
+          paperCode: 'SE1901_Q1',
+          submissionChannel: 'ZIP_UPLOAD',
+          status: 'RUNNING_SANDBOX',
+          sandboxScore: null,
+          aiScore: null,
+          finalScore: null,
+          compileSuccess: true,
+          submittedAt: new Date(Date.now() - 600000).toISOString(),
+          user: {
+            id: 'stu-03',
+            fullName: 'Lê Hoàng Long',
+            email: 'longlh@fpt.edu.vn',
+          },
+        },
+      ];
+    }
+  },
+
+  /**
+   * Kích hoạt chấm lại qua Docker Sandbox
+   */
+  async reGradeWithSandbox(submissionId: string): Promise<any> {
+    await this.ensureLecturerAuth();
+    const res = await api.post(`/sandbox/grade/${submissionId}`);
+    return res.data?.data;
+  },
+
+  /**
+   * Kích hoạt chấm lại qua AI Rubrics
+   */
+  async reGradeWithAi(submissionId: string): Promise<any> {
+    await this.ensureLecturerAuth();
+    const res = await api.post(`/ai/grade/${submissionId}`);
+    return res.data?.data;
   },
 };

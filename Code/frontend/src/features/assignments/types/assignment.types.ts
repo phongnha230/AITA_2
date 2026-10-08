@@ -83,3 +83,46 @@ export interface CreateAssignmentPayload {
   pdfFilePath?: string;
   starterCodePath?: string;
 }
+
+export interface LecturerSubmission {
+  id: string;
+  assignmentId: string;
+  userId: string;
+  groupLabel?: string | null;
+  paperCode?: string | null;
+  submissionChannel: 'ZIP_UPLOAD' | 'GIT_COMMIT';
+  zipFilePath?: string | null;
+  zipFileSize?: number | null;
+  gitRepoUrl?: string | null;
+  gitCommitHash?: string | null;
+  status: 'PENDING' | 'QUEUED' | 'RUNNING_SANDBOX' | 'RUNNING_AI' | 'GRADED' | 'FAILED';
+  sandboxScore?: number | null;
+  aiScore?: number | null;
+  finalScore?: number | null;
+  compileSuccess?: boolean | null;
+  compileOutput?: string | null;
+  submittedAt: string;
+  gradedAt?: string | null;
+  user?: {
+    id: string;
+    fullName: string;
+    email: string;
+    avatarUrl?: string | null;
+  };
+  gradingJob?: {
+    id: string;
+    status: string;
+    queuedAt: string;
+    sandboxStartedAt?: string | null;
+    sandboxEndedAt?: string | null;
+    aiStartedAt?: string | null;
+    aiEndedAt?: string | null;
+  } | null;
+  testResults?: Array<{
+    id: string;
+    testCaseId: string;
+    verdict: string;
+    earnedPoints: number;
+    executionTimeMs: number;
+  }>;
+}
