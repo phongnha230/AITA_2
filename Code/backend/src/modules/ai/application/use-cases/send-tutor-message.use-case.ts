@@ -60,14 +60,14 @@ export class SendTutorMessageUseCase {
 
     const failedTests = submission?.testResults
       .map(
-        (tr) =>
+        (tr: any) =>
           `- Test ${tr.testCase.label} (${tr.testCase.rationaleTag}): Kết quả ${tr.verdict}. ${tr.diffLog || ''}`
       )
       .join('\n') || 'Không có testcase lỗi.';
 
     // 3. Lấy lịch sử tin nhắn
     const allMessages = await this.aiTutorRepository.getMessages(conversationId);
-    const history = allMessages.slice(0, -1).map((m) => ({
+    const history = allMessages.slice(0, -1).map((m: any) => ({
       role: m.senderRole,
       content: m.content,
     }));
