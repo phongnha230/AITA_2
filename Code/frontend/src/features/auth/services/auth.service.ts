@@ -43,10 +43,15 @@ export const authService = {
 
   async getCurrentUser(): Promise<User | null> {
     try {
-      const response = await api.get('/auth/me');
+      const response = await api.get('/users/profile');
       return response.data.data;
     } catch {
-      return null;
+      try {
+        const fallback = await api.get('/auth/me');
+        return fallback.data.data;
+      } catch {
+        return null;
+      }
     }
   },
 
@@ -54,6 +59,10 @@ export const authService = {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      localStorage.removeItem('aita_token');
+      localStorage.removeItem('aita_user');
+      localStorage.removeItem('user_role');
+      localStorage.removeItem('refreshToken');
       window.location.href = '/login';
     }
   },
