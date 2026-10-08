@@ -31,7 +31,7 @@ function AuthCallbackContent() {
     if (err) {
       setError(err);
       setTimeout(() => {
-        router.replace('/student/dashboard');
+        router.replace(`/login?error=${encodeURIComponent(err)}`);
       }, 2000);
       return;
     }
@@ -41,10 +41,16 @@ function AuthCallbackContent() {
       if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
       if (role) localStorage.setItem('user_role', role);
 
-      // Fetch user profile or redirect directly
-      router.replace(redirectTo);
+      const destination =
+        role === 'STUDENT'
+          ? '/student/dashboard'
+          : role === 'ADMIN'
+            ? '/admin/ai-keys'
+            : redirectTo || '/student/dashboard';
+
+      router.replace(destination);
     } else {
-      router.replace('/student/dashboard');
+      router.replace('/login');
     }
   }, [router, searchParams]);
 

@@ -1,7 +1,7 @@
 import { ShieldCheck } from 'lucide-react';
-import LoginForm from './LoginForm';
+import RegisterForm from '@/features/auth/components/RegisterForm';
 
-export default function LoginPage() {
+export default function RegisterPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-4 py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-6">
@@ -11,16 +11,16 @@ export default function LoginPage() {
             <ShieldCheck size={26} />
           </div>
           <h1 className="mt-4 text-2xl font-bold tracking-tight text-slate-900">
-            AITA Platform
+            Đăng ký tài khoản AITA
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            Hệ thống Khảo thí &amp; Đánh giá lập trình tự động
+            Tạo tài khoản học tập và khảo thí sinh viên
           </p>
         </div>
 
-        {/* Login Card */}
+        {/* Register Card */}
         <div className="rounded-2xl border border-slate-200/80 bg-white p-7 shadow-xs sm:p-8">
-          <LoginForm />
+          <RegisterForm />
         </div>
 
         {/* Minimal Footer */}

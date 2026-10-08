@@ -19,6 +19,7 @@ import { AiRubricFeedbackCard } from './AiRubricFeedbackCard';
 import { GradingLifecycleProgress } from './GradingLifecycleProgress';
 import { SubmissionScoreOverview } from './SubmissionScoreOverview';
 import { TestCaseResultsList } from './TestCaseResultsList';
+import { RecentSubmissionsList } from './RecentSubmissionsList';
 
 function StudentResultsContent() {
   const router = useRouter();
@@ -149,24 +150,33 @@ function StudentResultsContent() {
         </div>
       )}
 
-      {/* Empty State when no submissionId is entered */}
+      {/* Submissions List & Empty State when no submissionId is selected */}
       {submission.status === 'success' && !currentSubmissionId && (
-        <section aria-label="Trạng thái chưa chọn bài nộp" className="py-2">
-          <StudentEmptyState
-            icon={FileCheck2}
-            title="Chưa chọn bài nộp để hiển thị kết quả"
-            description="Vui lòng nhập mã bài nộp (Submission ID) vào ô tra cứu phía trên hoặc chọn bài thi từ danh sách bài thi PE của bạn để xem chi tiết chấm điểm."
-            action={
-              <Link
-                href="/student/exams"
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-blue-700 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
-              >
-                <span>Xem danh sách bài thi PE</span>
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            }
+        <div className="space-y-6">
+          <RecentSubmissionsList
+            onSelectSubmission={(id) => {
+              setInputVal(id);
+              router.push(`/student/results?submissionId=${encodeURIComponent(id)}`);
+            }}
           />
-        </section>
+
+          <section aria-label="Trạng thái chưa chọn bài nộp" className="py-2">
+            <StudentEmptyState
+              icon={FileCheck2}
+              title="Tra cứu kết quả bài thi"
+              description="Chọn một bài nộp ở danh sách phía trên hoặc nhập mã bài nộp (Submission ID) vào ô tra cứu để xem chi tiết chấm điểm Sandbox và AI."
+              action={
+                <Link
+                  href="/student/exams"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-indigo-700 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
+                >
+                  <span>Xem danh sách bài thi PE</span>
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              }
+            />
+          </section>
+        </div>
       )}
     </div>
   );
