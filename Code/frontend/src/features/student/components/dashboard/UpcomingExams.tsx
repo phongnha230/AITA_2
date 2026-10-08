@@ -11,13 +11,15 @@ interface UpcomingExamsProps {
   onRetry: () => void;
 }
 
+const dateTimeFormatter = new Intl.DateTimeFormat('vi-VN', {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+});
+
 function formatDateTime(value: string): string {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return 'Thời gian chưa được cập nhật';
-  return new Intl.DateTimeFormat('vi-VN', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(date);
+  return dateTimeFormatter.format(date);
 }
 
 export function UpcomingExams({ state, upcomingAssignments, courses, onRetry }: UpcomingExamsProps) {

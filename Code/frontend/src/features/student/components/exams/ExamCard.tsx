@@ -17,13 +17,15 @@ interface ExamCardProps {
   featured?: boolean;
 }
 
+const examDateTimeFormatter = new Intl.DateTimeFormat('vi-VN', {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+});
+
 function formatDateTime(value: string): string {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return 'Chưa có thời gian';
-  return new Intl.DateTimeFormat('vi-VN', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(date);
+  return examDateTimeFormatter.format(date);
 }
 
 function formatDateBadge(value: string): { dayOfWeek: string; dateNum: string; monthStr: string } | null {

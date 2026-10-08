@@ -140,7 +140,7 @@ export function AiRubricFeedbackCard({ aiGradingResult }: AiRubricFeedbackCardPr
 
               return (
                 <div
-                  key={idx}
+                  key={`${name}-${idx}`}
                   className="rounded-xl border border-slate-200/80 bg-white p-3.5 text-xs shadow-2xs"
                 >
                   <div className="flex items-center justify-between gap-2">

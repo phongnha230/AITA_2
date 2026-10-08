@@ -76,7 +76,7 @@ export function TestCaseResultsList({ testResults }: TestCaseResultsListProps) {
           const hasDetails = tc.diffLog || tc.actualStdout || tc.actualFileOutput;
 
           return (
-            <div key={tc.id || index} className="py-3.5 first:pt-0 last:pb-0">
+            <div key={tc.id || `tc-${tc.testCaseId ?? index}`} className="py-3.5 first:pt-0 last:pb-0">
               <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-3">
                   <span

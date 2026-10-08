@@ -14,7 +14,7 @@ const loadingState = <T,>(data: T): ResourceState<T> => ({
 export function useStudentAcademicData() {
   const academic = useStudentCourses();
   const { courses } = academic;
-  const [assignments, setAssignments] = useState<ResourceState<StudentAssignment[]>>(loadingState([]));
+  const [assignments, setAssignments] = useState<ResourceState<StudentAssignment[]>>(() => loadingState([]));
   const [assignmentAttempt, setAssignmentAttempt] = useState(0);
 
   useEffect(() => {

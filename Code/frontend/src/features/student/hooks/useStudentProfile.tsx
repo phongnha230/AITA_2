@@ -2,8 +2,10 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
   type ReactNode,
 } from 'react';
@@ -53,23 +55,28 @@ export function StudentProfileProvider({ children }: { children: ReactNode }) {
     };
   }, [attempt]);
 
-  const retry = () => {
+  const retry = useCallback(() => {
     setProfile(null);
     setStatus('loading');
     setError(null);
     setAttempt((currentAttempt) => currentAttempt + 1);
-  };
+  }, []);
 
-  const updateProfile = async (data: StudentProfileUpdate) => {
+  const updateProfile = useCallback(async (data: StudentProfileUpdate) => {
     const updatedProfile = await studentService.updateProfile(data);
     setProfile(updatedProfile);
     setStatus('success');
     setError(null);
     return updatedProfile;
-  };
+  }, []);
+
+  const value = useMemo(
+    () => ({ profile, status, error, retry, updateProfile }),
+    [profile, status, error, retry, updateProfile],
+  );
 
   return (
-    <StudentProfileContext.Provider value={{ profile, status, error, retry, updateProfile }}>
+    <StudentProfileContext.Provider value={value}>
       {children}
     </StudentProfileContext.Provider>
   );
