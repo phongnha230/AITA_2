@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   BookOpen,
@@ -20,12 +21,47 @@ import { useCourses } from '../hooks/useCourses';
 import { CoursesOverview } from './CoursesOverview';
 import { CourseDetailManagement } from './CourseDetailManagement';
 import { CreateCourseModal } from './CreateCourseModal';
+import { authService, type User } from '@/features/auth/services/auth.service';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 interface LecturerDashboardProps {
   initialCourseId?: string;
 }
 
 export const LecturerDashboard: React.FC<LecturerDashboardProps> = ({ initialCourseId }) => {
+  const router = useRouter();
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const user = authService.getStoredUser();
+    if (user) {
+      setCurrentUser(user);
+    } else {
+      authService.getCurrentUser().then((u) => {
+        if (u) setCurrentUser(u);
+      });
+    }
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+    } catch {
+      // ignore
+    } finally {
+      router.replace('/login');
+    }
+  };
+
+  const userInitials = (currentUser?.fullName || 'Giảng Viên')
+    .trim()
+    .split(' ')
+    .filter(Boolean)
+    .slice(-2)
+    .map((w) => w[0]?.toUpperCase())
+    .join('') || 'GV';
+
   const {
     courses,
     kpiMetrics,
@@ -83,6 +119,7 @@ export const LecturerDashboard: React.FC<LecturerDashboardProps> = ({ initialCou
           <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
           <span className="text-xs font-semibold">{toast}</span>
           <button
+            aria-label="Đóng thông báo"
             onClick={() => setToast(null)}
             className="text-slate-400 hover:text-white p-1 rounded-lg"
           >
@@ -93,9 +130,11 @@ export const LecturerDashboard: React.FC<LecturerDashboardProps> = ({ initialCou
 
       {/* MOBILE BACKDROP */}
       {isMobileSidebarOpen && (
-        <div
+        <button
+          aria-label="Đóng menu điều hướng"
+          type="button"
           onClick={() => setIsMobileSidebarOpen(false)}
-          className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-40 lg:hidden"
+          className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-40 lg:hidden cursor-pointer w-full h-full border-none p-0"
         />
       )}
 
@@ -109,7 +148,7 @@ export const LecturerDashboard: React.FC<LecturerDashboardProps> = ({ initialCou
           {/* Logo Brand */}
           <div className="flex items-center justify-between pb-6 border-b border-slate-800">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center font-black text-white text-base shadow-lg shadow-blue-500/20">
+              <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center font-black text-white text-base shadow-lg shadow-indigo-500/20">
                 AI
               </div>
               <div>
@@ -120,6 +159,7 @@ export const LecturerDashboard: React.FC<LecturerDashboardProps> = ({ initialCou
               </div>
             </div>
             <button
+              aria-label="Đóng sidebar"
               onClick={() => setIsMobileSidebarOpen(false)}
               className="lg:hidden text-slate-400 hover:text-white"
             >
@@ -144,7 +184,7 @@ export const LecturerDashboard: React.FC<LecturerDashboardProps> = ({ initialCou
               }}
               className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl font-semibold transition text-left ${
                 activeTab === 'OVERVIEW'
-                  ? 'text-white bg-blue-600 shadow-md shadow-blue-600/30'
+                  ? 'text-white bg-indigo-600 shadow-md shadow-indigo-600/30'
                   : 'text-slate-300 hover:text-white hover:bg-slate-800'
               }`}
             >
@@ -159,7 +199,7 @@ export const LecturerDashboard: React.FC<LecturerDashboardProps> = ({ initialCou
               }}
               className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl font-semibold transition text-left ${
                 activeTab === 'DETAIL'
-                  ? 'text-white bg-blue-600 shadow-md shadow-blue-600/30'
+                  ? 'text-white bg-indigo-600 shadow-md shadow-indigo-600/30'
                   : 'text-slate-300 hover:text-white hover:bg-slate-800'
               }`}
             >
@@ -167,7 +207,7 @@ export const LecturerDashboard: React.FC<LecturerDashboardProps> = ({ initialCou
                 <BookOpen className="w-4 h-4 shrink-0" />
                 <span>Quản lý lớp ({currentCourse?.code || 'SWD392'})</span>
               </div>
-              <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-blue-500/30 text-blue-200">
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-indigo-500/30 text-indigo-200">
                 ACTIVE
               </span>
             </button>
@@ -202,21 +242,29 @@ export const LecturerDashboard: React.FC<LecturerDashboardProps> = ({ initialCou
         <div className="p-4 border-t border-slate-800 bg-slate-950/40">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-black flex items-center justify-center text-xs shrink-0 shadow">
-                VD
-              </div>
+              <Avatar className="w-9 h-9 rounded-xl bg-indigo-600 text-white font-black text-xs shrink-0 shadow">
+                <AvatarFallback className="bg-indigo-600 text-white font-black text-xs rounded-xl">
+                  {userInitials}
+                </AvatarFallback>
+              </Avatar>
               <div className="min-w-0">
-                <p className="text-xs font-bold text-white truncate">TS. Nguyễn Văn Điệp</p>
-                <p className="text-[11px] text-slate-400 font-mono truncate">diepnv@fpt.edu.vn</p>
+                <p className="text-xs font-bold text-white truncate">
+                  {currentUser?.fullName || 'Giảng viên AITA'}
+                </p>
+                <p className="text-[11px] text-slate-400 font-mono truncate">
+                  {currentUser?.email || 'lecturer@fpt.edu.vn'}
+                </p>
               </div>
             </div>
-            <button
-              onClick={() => showToast('Đăng xuất phiên làm việc Giảng viên')}
-              className="p-1.5 text-slate-400 hover:text-rose-400 transition"
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleLogout}
+              className="h-8 w-8 text-slate-400 hover:text-rose-400 hover:bg-slate-800/80 transition"
               title="Đăng xuất"
             >
               <LogOut className="w-4 h-4" />
-            </button>
+            </Button>
           </div>
         </div>
       </aside>
@@ -227,6 +275,7 @@ export const LecturerDashboard: React.FC<LecturerDashboardProps> = ({ initialCou
         <header className="sticky top-0 z-30 h-16 bg-white/90 backdrop-blur-md border-b border-slate-200/90 px-4 sm:px-6 lg:px-8 flex items-center justify-between shrink-0 shadow-2xs">
           <div className="flex items-center gap-3">
             <button
+              aria-label="Mở menu điều hướng"
               onClick={() => setIsMobileSidebarOpen(true)}
               className="lg:hidden p-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100"
             >
@@ -251,23 +300,25 @@ export const LecturerDashboard: React.FC<LecturerDashboardProps> = ({ initialCou
               <strong className="text-slate-900">Fall 2026</strong>
             </div>
 
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => showToast('Bạn không có thông báo mới nào')}
-              className="p-2 text-slate-500 hover:text-slate-800 rounded-xl hover:bg-slate-100 transition relative"
+              className="h-9 w-9 text-slate-500 hover:text-slate-800 rounded-xl hover:bg-slate-100 transition relative"
               title="Thông báo"
             >
               <Bell className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500" />
-            </button>
+              <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-rose-500" />
+            </Button>
 
             {/* CTA Tạo Khóa Học */}
-            <button
+            <Button
               onClick={() => setIsCreateModalOpen(true)}
-              className="h-9 px-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition shadow-xs flex items-center gap-1.5 whitespace-nowrap active:scale-95"
+              className="h-9 px-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition shadow-xs flex items-center gap-1.5 whitespace-nowrap active:scale-95"
             >
               <Plus className="w-4 h-4 shrink-0" />
               <span>Tạo Khóa Học</span>
-            </button>
+            </Button>
           </div>
         </header>
 

@@ -28,12 +28,16 @@ function AuthCallbackContent() {
     const redirectTo = searchParams.get('redirectTo') || '/dashboard';
     const err = searchParams.get('error');
 
+    let errTimer: ReturnType<typeof setTimeout> | undefined;
+
     if (err) {
       setError(err);
-      setTimeout(() => {
+      errTimer = setTimeout(() => {
         router.replace(`/login?error=${encodeURIComponent(err)}`);
       }, 2000);
-      return;
+      return () => {
+        if (errTimer) clearTimeout(errTimer);
+      };
     }
 
     if (token) {

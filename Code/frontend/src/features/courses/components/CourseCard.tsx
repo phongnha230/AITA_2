@@ -3,6 +3,10 @@
 import React from 'react';
 import { Users, BookOpen, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { Course } from '../types/course.types';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 
 interface CourseCardProps {
   course: Course;
@@ -12,10 +16,10 @@ interface CourseCardProps {
 export const CourseCard: React.FC<CourseCardProps> = ({ course, onSelectCourse }) => {
   // Determine gradient header style by course code
   const getBannerGradient = (code: string) => {
-    if (code.startsWith('SWD')) return 'from-blue-600 to-indigo-700';
+    if (code.startsWith('SWD')) return 'from-indigo-600 to-indigo-800';
     if (code.startsWith('PRN')) return 'from-teal-600 to-emerald-700';
-    if (code.startsWith('MAS')) return 'from-indigo-600 to-purple-700';
-    return 'from-slate-700 to-slate-900';
+    if (code.startsWith('MAS')) return 'from-indigo-700 to-purple-800';
+    return 'from-slate-800 to-slate-900';
   };
 
   const enrolled = course._count?.enrollments ?? course.enrolledStudentsCount ?? 0;
@@ -24,29 +28,33 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, onSelectCourse }
   const gpa = course.currentGpaAvg || 8.0;
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm hover:shadow-md transition flex flex-col justify-between overflow-hidden group">
+    <Card className="rounded-2xl border-slate-200/90 shadow-xs hover:shadow-md transition flex flex-col justify-between overflow-hidden group bg-white">
       {/* Banner */}
       <div className={`p-5 bg-gradient-to-r ${getBannerGradient(course.code)} text-white`}>
         <div className="flex items-center justify-between">
-          <span className="font-mono text-xs font-black px-2.5 py-1 rounded-lg bg-white/20 backdrop-blur-md text-white border border-white/20">
+          <Badge
+            variant="outline"
+            className="font-mono text-xs font-bold px-2.5 py-0.5 bg-white/20 backdrop-blur-md text-white border-white/30"
+          >
             {course.code}
-          </span>
-          <span
-            className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full ${
+          </Badge>
+          <Badge
+            variant={course.isActive ? 'default' : 'secondary'}
+            className={
               course.isActive
-                ? 'bg-emerald-400 text-emerald-950'
-                : 'bg-slate-200 text-slate-800'
-            }`}
+                ? 'bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[11px]'
+                : 'bg-slate-200 text-slate-800 font-bold text-[11px]'
+            }
           >
             <span
-              className={`w-1.5 h-1.5 rounded-full ${
-                course.isActive ? 'bg-emerald-900' : 'bg-slate-600'
+              className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
+                course.isActive ? 'bg-white' : 'bg-slate-500'
               }`}
             />
             {course.isActive ? 'Đang mở' : 'Lưu trữ'}
-          </span>
+          </Badge>
         </div>
-        <h3 className="text-base font-extrabold text-white mt-3 leading-snug group-hover:text-blue-100 transition truncate">
+        <h3 className="text-base font-extrabold text-white mt-3 leading-snug group-hover:text-indigo-100 transition truncate">
           {course.name}
         </h3>
         <p className="text-xs text-white/80 mt-1 font-medium">
@@ -55,7 +63,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, onSelectCourse }
       </div>
 
       {/* Body Stats */}
-      <div className="p-5 space-y-4 flex-1 flex flex-col justify-between">
+      <CardContent className="p-5 space-y-4 flex-1 flex flex-col justify-between">
         <div className="space-y-3.5">
           {/* Progress */}
           <div>
@@ -63,12 +71,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, onSelectCourse }
               <span>Tiến độ chương trình</span>
               <span className="font-bold text-slate-800">{progress}%</span>
             </div>
-            <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-              <div
-                className="bg-blue-600 h-full rounded-full transition-all duration-300"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
+            <Progress value={progress} className="h-2 bg-slate-100 [&>div]:bg-indigo-600" />
           </div>
 
           {/* Sĩ số & Điểm TB */}
@@ -89,15 +92,17 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, onSelectCourse }
         </div>
 
         {/* Action Button */}
-        <button
+        <Button
+          variant="outline"
           onClick={() => onSelectCourse(course)}
-          className="w-full mt-4 py-2.5 px-4 bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 font-bold text-xs rounded-xl border border-slate-200 hover:border-blue-200 transition flex items-center justify-center gap-2 group/btn"
+          className="w-full mt-4 h-10 bg-slate-50 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 font-bold text-xs rounded-xl border-slate-200 hover:border-indigo-200 transition flex items-center justify-center gap-2 group/btn"
         >
-          <BookOpen className="w-4 h-4 text-slate-500 group-hover/btn:text-blue-600" />
+          <BookOpen className="w-4 h-4 text-slate-500 group-hover/btn:text-indigo-600" />
           <span>Quản Lý Lớp Học</span>
           <ChevronRight className="w-3.5 h-3.5 group-hover/btn:translate-x-0.5 transition" />
-        </button>
-      </div>
-    </div>
+        </Button>
+      </CardContent>
+    </Card>
   );
 };
+

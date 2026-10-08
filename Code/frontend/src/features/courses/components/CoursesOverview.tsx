@@ -11,6 +11,11 @@ import {
 } from 'lucide-react';
 import { Course, LecturerKpiMetrics } from '../types/course.types';
 import { CourseCard } from './CourseCard';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Progress } from '@/components/ui/progress';
 
 interface CoursesOverviewProps {
   courses: Course[];
@@ -44,8 +49,8 @@ export const CoursesOverview: React.FC<CoursesOverviewProps> = ({
       {/* 1. Thanh KPI Metrics */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* KPI 1: Khóa học đang dạy */}
-        <div className="bg-white p-5 rounded-2xl border border-blue-100 shadow-sm hover:shadow-md transition flex items-start justify-between relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-600" />
+        <Card className="bg-white p-5 rounded-2xl border-indigo-100 shadow-2xs hover:shadow-xs transition flex items-start justify-between relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-indigo-600" />
           <div className="min-w-0">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider truncate">
               Khóa học đang dạy
@@ -54,18 +59,18 @@ export const CoursesOverview: React.FC<CoursesOverviewProps> = ({
               {kpiMetrics.activeCourses}{' '}
               <span className="text-xs font-bold text-slate-400">/ {kpiMetrics.totalCourses} lớp phân công</span>
             </h3>
-            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 mt-2 truncate">
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 mt-2 truncate">
               <span>● Đang trong kỳ giảng dạy</span>
             </span>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100 shadow-xs shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 shadow-xs shrink-0">
             <BookOpen className="w-5 h-5" />
           </div>
-        </div>
+        </Card>
 
         {/* KPI 2: Tổng sinh viên theo học */}
-        <div className="bg-white p-5 rounded-2xl border border-indigo-100 shadow-sm hover:shadow-md transition flex items-start justify-between relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-purple-600" />
+        <Card className="bg-white p-5 rounded-2xl border-indigo-100 shadow-2xs hover:shadow-xs transition flex items-start justify-between relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-indigo-500" />
           <div className="min-w-0">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider truncate">
               Tổng sinh viên theo học
@@ -81,11 +86,11 @@ export const CoursesOverview: React.FC<CoursesOverviewProps> = ({
           <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 shadow-xs shrink-0">
             <Users className="w-5 h-5" />
           </div>
-        </div>
+        </Card>
 
         {/* KPI 3: Tiến độ trung bình */}
-        <div className="bg-white p-5 rounded-2xl border border-emerald-100 shadow-sm hover:shadow-md transition flex items-start justify-between relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-600" />
+        <Card className="bg-white p-5 rounded-2xl border-emerald-100 shadow-2xs hover:shadow-xs transition flex items-start justify-between relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-emerald-500" />
           <div className="min-w-0">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider truncate">
               Tiến độ trung bình
@@ -93,21 +98,18 @@ export const CoursesOverview: React.FC<CoursesOverviewProps> = ({
             <h3 className="text-2xl font-black text-slate-900 mt-2">
               {kpiMetrics.avgCompletionRate}%
             </h3>
-            <div className="w-28 sm:w-32 bg-slate-100 h-1.5 rounded-full mt-2.5 overflow-hidden">
-              <div
-                className="bg-emerald-500 h-full rounded-full"
-                style={{ width: `${kpiMetrics.avgCompletionRate}%` }}
-              />
+            <div className="w-28 sm:w-32 mt-2.5">
+              <Progress value={kpiMetrics.avgCompletionRate} className="h-1.5 bg-slate-100 [&>div]:bg-emerald-500" />
             </div>
           </div>
           <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100 shadow-xs shrink-0">
             <CheckCircle2 className="w-5 h-5" />
           </div>
-        </div>
+        </Card>
 
         {/* KPI 4: Hoạt động trong 24h */}
-        <div className="bg-white p-5 rounded-2xl border border-amber-100 shadow-sm hover:shadow-md transition flex items-start justify-between relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 to-orange-500" />
+        <Card className="bg-white p-5 rounded-2xl border-amber-100 shadow-2xs hover:shadow-xs transition flex items-start justify-between relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-amber-500" />
           <div className="min-w-0">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider truncate">
               Hoạt động trong 24h
@@ -124,7 +126,7 @@ export const CoursesOverview: React.FC<CoursesOverviewProps> = ({
           <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100 shadow-xs shrink-0">
             <Users className="w-5 h-5" />
           </div>
-        </div>
+        </Card>
       </section>
 
       {/* Filter and Title Toolbar */}
@@ -140,19 +142,20 @@ export const CoursesOverview: React.FC<CoursesOverviewProps> = ({
         <div className="flex flex-wrap items-center gap-2.5">
           <div className="relative min-w-[200px]">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-            <input
+            <Input
               type="text"
               placeholder="Tìm tên môn hoặc mã môn..."
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium placeholder-slate-400 focus:outline-none focus:border-blue-500 transition shadow-2xs"
+              className="pl-9 h-9 bg-white border-slate-200 rounded-xl text-xs placeholder:text-slate-400 focus-visible:ring-indigo-500 shadow-2xs"
             />
           </div>
 
           <select
+            aria-label="Chọn học kỳ"
             value={selectedSemester}
             onChange={(e) => onSemesterChange(e.target.value)}
-            className="bg-white border border-slate-200 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 outline-none cursor-pointer hover:border-slate-300 shadow-2xs"
+            className="h-9 bg-white border border-slate-200 px-3 rounded-xl text-xs font-semibold text-slate-700 outline-none cursor-pointer hover:border-slate-300 shadow-2xs"
           >
             <option value="All">Tất cả học kỳ</option>
             {semesters.map((sem) => (
@@ -163,9 +166,10 @@ export const CoursesOverview: React.FC<CoursesOverviewProps> = ({
           </select>
 
           <select
+            aria-label="Lọc trạng thái khóa học"
             value={statusFilter}
             onChange={(e) => onStatusFilterChange(e.target.value as any)}
-            className="bg-white border border-slate-200 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 outline-none cursor-pointer hover:border-slate-300 shadow-2xs"
+            className="h-9 bg-white border border-slate-200 px-3 rounded-xl text-xs font-semibold text-slate-700 outline-none cursor-pointer hover:border-slate-300 shadow-2xs"
           >
             <option value="ALL">Tất cả trạng thái</option>
             <option value="ACTIVE">Đang mở (Active)</option>
@@ -186,20 +190,20 @@ export const CoursesOverview: React.FC<CoursesOverviewProps> = ({
           ))}
         </section>
       ) : (
-        <div className="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-12 text-center flex flex-col items-center justify-center space-y-3">
+        <Card className="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-12 text-center flex flex-col items-center justify-center space-y-3">
           <BookOpen className="w-10 h-10 text-slate-300" />
           <h4 className="text-sm font-bold text-slate-700">Không tìm thấy khóa học phù hợp</h4>
           <p className="text-xs text-slate-400">
             Hãy thử tìm kiếm với từ khóa khác hoặc tạo mới khóa học.
           </p>
-          <button
+          <Button
             onClick={onOpenCreateModal}
-            className="mt-2 py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5"
+            className="mt-2 h-9 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5"
           >
             <Plus className="w-4 h-4" />
             <span>Tạo Khóa Học Ngay</span>
-          </button>
-        </div>
+          </Button>
+        </Card>
       )}
     </div>
   );

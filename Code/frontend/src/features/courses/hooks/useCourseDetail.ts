@@ -71,20 +71,19 @@ export function useCourseDetail({ courseId, initialCourse }: UseCourseDetailOpti
   useEffect(() => {
     if (!isEnrollOpen) return;
 
-    const interval = setInterval(() => {
-      setSecondsLeft((prev) => {
-        if (prev <= 1) {
-          // Auto rotate code when expired
-          const randomCode = `AITA-${Math.floor(1000 + Math.random() * 9000)}`;
-          setJoinCode(randomCode);
-          return 300;
-        }
-        return prev - 1;
-      });
+    if (secondsLeft <= 0) {
+      const randomCode = `AITA-${Math.floor(1000 + Math.random() * 9000)}`;
+      setJoinCode(randomCode);
+      setSecondsLeft(300);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setSecondsLeft((prev) => prev - 1);
     }, 1000);
 
-    return () => clearInterval(interval);
-  }, [isEnrollOpen]);
+    return () => clearTimeout(timer);
+  }, [isEnrollOpen, secondsLeft]);
 
   // Formatted timer mm:ss
   const formattedCountdown = useMemo(() => {

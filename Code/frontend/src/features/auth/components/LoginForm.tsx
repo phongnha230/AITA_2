@@ -47,6 +47,8 @@ export default function LoginForm() {
 
       if (role === 'STUDENT') {
         destination = '/student/dashboard';
+      } else if (role === 'LECTURER') {
+        destination = '/dashboard';
       } else if (role === 'ADMIN') {
         destination = response.redirectTo || '/admin/ai-keys';
       } else if (response.redirectTo?.startsWith('/') && !response.redirectTo.startsWith('//')) {

@@ -4,6 +4,9 @@ import React from 'react';
 import { ChevronLeft, Plus, FileCode2 } from 'lucide-react';
 import { Course } from '../types/course.types';
 import { useCourseDetail } from '../hooks/useCourseDetail';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { DynamicJoinCodeCard } from './DynamicJoinCodeCard';
 import { CourseTelemetryStats } from './CourseTelemetryStats';
 import { EnrolledStudentsTable } from './EnrolledStudentsTable';
@@ -59,33 +62,38 @@ export const CourseDetailManagement: React.FC<CourseDetailManagementProps> = ({
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-5 w-full max-w-full">
       {/* CỤM 1: Header & Action Bar */}
-      <section className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-sm flex flex-col xl:flex-row xl:items-center justify-between gap-4 w-full">
+      <Card className="bg-white p-5 rounded-2xl border-slate-200/90 shadow-2xs flex flex-col xl:flex-row xl:items-center justify-between gap-4 w-full">
         {/* Bên trái: Breadcrumb + Tiêu đề & Mã môn */}
         <div className="space-y-1.5 min-w-0">
-          <button
+          <Button
+            variant="ghost"
             onClick={onBackToOverview}
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-800 transition"
+            className="h-auto p-0 inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-800 hover:bg-transparent transition"
           >
             <ChevronLeft className="w-4 h-4 shrink-0" />
             <span>Tổng quan khóa học</span>
-          </button>
+          </Button>
 
           <div className="flex flex-wrap items-center gap-2.5">
             <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight break-words">
               {activeCourse.name}
             </h1>
-            <span className="px-2.5 py-0.5 rounded-lg text-xs font-extrabold font-mono bg-blue-100 text-blue-800 border border-blue-200 shrink-0">
+            <Badge
+              variant="outline"
+              className="px-2.5 py-0.5 rounded-lg text-xs font-extrabold font-mono bg-indigo-50 text-indigo-700 border-indigo-200 shrink-0"
+            >
               {activeCourse.code} • SE19C
-            </span>
-            <span
+            </Badge>
+            <Badge
+              variant={activeCourse.isActive ? 'default' : 'secondary'}
               className={`px-2.5 py-0.5 rounded-full text-xs font-bold shrink-0 ${
                 activeCourse.isActive
-                  ? 'bg-emerald-100 text-emerald-800'
+                  ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
                   : 'bg-slate-200 text-slate-700'
               }`}
             >
               {activeCourse.isActive ? 'Active' : 'Archived'}
-            </span>
+            </Badge>
           </div>
 
           <p className="text-xs text-slate-500 break-words leading-relaxed">
@@ -96,26 +104,27 @@ export const CourseDetailManagement: React.FC<CourseDetailManagementProps> = ({
         {/* Bên phải: 2 Action Buttons (ĐỒNG BỘ TUYỆT ĐỐI KÍCH THƯỚC: h-10 px-4 font-bold text-xs) */}
         <div className="flex flex-wrap items-center gap-2.5 shrink-0 pt-2 xl:pt-0">
           {/* Button Phụ: [+ Tạo Assignment] */}
-          <button
+          <Button
+            variant="outline"
             onClick={() => handleTriggerHandoff('ASSIGNMENT')}
-            className="h-10 px-4 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs transition shadow-2xs hover:border-slate-400 active:scale-95 inline-flex items-center justify-center gap-2 whitespace-nowrap"
+            className="h-10 px-4 rounded-xl border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs transition shadow-2xs hover:border-slate-400 active:scale-95 inline-flex items-center justify-center gap-2 whitespace-nowrap"
             title="Kích hoạt placeholder mở module Assignment của đồng đội"
           >
             <Plus className="w-4 h-4 text-slate-500 shrink-0" />
             <span>Tạo Assignment</span>
-          </button>
+          </Button>
 
           {/* Button Chính: [+ Tạo đề thi PE] */}
-          <button
+          <Button
             onClick={() => handleTriggerHandoff('PE_EXAM')}
-            className="h-10 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition shadow-xs active:scale-95 inline-flex items-center justify-center gap-2 whitespace-nowrap"
+            className="h-10 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition shadow-xs active:scale-95 inline-flex items-center justify-center gap-2 whitespace-nowrap"
             title="Kích hoạt placeholder mở module Đề thi PE của đồng đội"
           >
-            <FileCode2 className="w-4 h-4 text-blue-100 shrink-0" />
+            <FileCode2 className="w-4 h-4 text-indigo-100 shrink-0" />
             <span>Tạo Đề Thi PE</span>
-          </button>
+          </Button>
         </div>
-      </section>
+      </Card>
 
       {/* CỤM 2: Khu vực Quản lý Mã tham gia động (Dynamic Join Code / OTP Card) */}
       <DynamicJoinCodeCard
