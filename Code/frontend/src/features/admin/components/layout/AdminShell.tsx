@@ -4,8 +4,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { authService, type User } from '../../../auth/services/auth.service';
 import { LoadingSpinner } from '../../../../components/feedback/LoadingSpinner';
-import { USE_MOCK } from '../../../../config/mock';
-import { ensureMockSession } from '../../mocks/mock-session';
 import { ToastProvider } from '../ui/Toast';
 import { Button } from '../ui/Button';
 import { AdminSidebar } from './AdminSidebar';
@@ -49,13 +47,7 @@ export const AdminShell: React.FC<{ children: React.ReactNode }> = ({ children }
         }
       }
 
-      // If in mock mode and no real token
-      if (USE_MOCK) {
-        setUser(ensureMockSession());
-        return;
-      }
-
-      // Unauthenticated
+      // Unauthenticated -> redirect to real login
       router.replace('/login?redirectTo=/admin/dashboard&error=unauthenticated');
     };
 

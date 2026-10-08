@@ -57,63 +57,9 @@ export const AdminSubmissionsPage: React.FC = () => {
         if (data && data.recentSubmissions && data.recentSubmissions.length > 0) {
           setSubmissions(data.recentSubmissions);
         } else {
-          // Mock fallback if DB is empty
-        setSubmissions([
-          {
-            id: 'sub-swd-01',
-            studentName: 'Trần Đỗ Phong Nhã',
-            studentEmail: 'phongnhatd@fpt.edu.vn',
-            courseCode: 'SWD392',
-            courseName: 'Kiến Trúc Phần Mềm',
-            assignmentTitle: 'PE_Spring2026_SWD392_Practical',
-            submittedAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
-            status: 'GRADED',
-            sandboxScore: 10,
-            aiScore: 9.5,
-            finalScore: 9.8,
-          },
-          {
-            id: 'sub-swd-02',
-            studentName: 'Nguyễn Anh Tuấn',
-            studentEmail: 'tuanna@fpt.edu.vn',
-            courseCode: 'SWD392',
-            courseName: 'Kiến Trúc Phần Mềm',
-            assignmentTitle: 'PE_Spring2026_SWD392_Practical',
-            submittedAt: new Date(Date.now() - 35 * 60 * 1000).toISOString(),
-            status: 'GRADED',
-            sandboxScore: 8,
-            aiScore: 8.5,
-            finalScore: 8.2,
-          },
-          {
-            id: 'sub-prf-01',
-            studentName: 'Lê Hoàng Nam',
-            studentEmail: 'namlh@fpt.edu.vn',
-            courseCode: 'PRF192',
-            courseName: 'Lập trình C',
-            assignmentTitle: 'Lab 04: Matrix & Dynamic Array',
-            submittedAt: new Date(Date.now() - 50 * 60 * 1000).toISOString(),
-            status: 'RUNNING_SANDBOX',
-            sandboxScore: 0,
-            aiScore: 0,
-            finalScore: 0,
-          },
-          {
-            id: 'sub-csd-01',
-            studentName: 'Phạm Minh Đức',
-            studentEmail: 'ducpm@fpt.edu.vn',
-            courseCode: 'CSD201',
-            courseName: 'Cấu trúc dữ liệu & Giải thuật',
-            assignmentTitle: 'Practical Exam 01: Binary Search Tree',
-            submittedAt: new Date(Date.now() - 120 * 60 * 1000).toISOString(),
-            status: 'FAILED',
-            sandboxScore: 2,
-            aiScore: 0,
-            finalScore: 1.0,
-          },
-        ]);
+          setSubmissions([]);
+        }
       }
-    }
     } catch {
       toast.error('Không thể tải danh sách bài nộp.');
     } finally {

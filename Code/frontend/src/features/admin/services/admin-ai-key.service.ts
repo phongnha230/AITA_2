@@ -1,5 +1,4 @@
 import api from '../../../lib/api';
-import { loadMockDb, mockDelay, saveMockDb } from '../mocks/mock-db';
 import type { AiApiKey, CreateAiKeyPayload } from '../types/admin.types';
 
 function normalizeAiKey(raw: any): AiApiKey {
@@ -26,103 +25,44 @@ function normalizeAiKey(raw: any): AiApiKey {
 
 export const adminAiKeyService = {
   /**
-   * Lấy danh sách API Keys trong cụm xoay vòng (Graceful Fallback)
+   * Lấy danh sách API Keys thực từ Backend Database
    */
   async list(): Promise<AiApiKey[]> {
-    try {
-      const res = await api.get('/ai/api-keys');
-      if (res.data && res.data.data && Array.isArray(res.data.data)) {
-        return res.data.data.map(normalizeAiKey);
-      }
-      return [...loadMockDb().aiKeys];
-    } catch (error) {
-      console.warn('[AdminAiKeyService] Backend /ai/api-keys unreachable, using mock pool:', error);
-      await mockDelay(60);
-      return [...loadMockDb().aiKeys];
-    }
+    const res = await api.get('/ai/api-keys');
+    const rawList = res.data?.data || [];
+    return rawList.map(normalizeAiKey);
   },
 
   /**
-   * Thêm mới API Key vào hệ thống
+   * Thêm mới API Key vào Backend (được mã hóa AES-256 an toàn)
    */
   async create(payload: CreateAiKeyPayload): Promise<AiApiKey> {
-    try {
-      const res = await api.post('/ai/api-keys', payload);
-      return normalizeAiKey(res.data.data);
-    } catch (error) {
-      console.warn('[AdminAiKeyService] Create key API failed, using mock fallback:', error);
-      await mockDelay(60);
-      const db = loadMockDb();
-      const now = new Date().toISOString();
-      const created: AiApiKey = {
-        id: `key-${Date.now()}`,
-        provider: payload.provider,
-        keyAlias: payload.keyAlias,
-        keyHint: payload.rawApiKey.slice(-4),
-        keyPreview: `${payload.rawApiKey.slice(0, 6)}...${payload.rawApiKey.slice(-4)}`,
-        purposeTitle: 'Chưa gán mục đích',
-        purposeNote: 'Thêm thủ công',
-        dailyRequestLimit: payload.dailyRequestLimit,
-        currentRequestsToday: 0,
-        rpmLimit: payload.rpmLimit,
-        tpmLimit: payload.rpmLimit * 600,
-        latencyMs: 220,
-        consecutiveFailures: 0,
-        isActive: true,
-        lastUsedAt: null,
-        createdAt: now,
-        updatedAt: now,
-      };
-      db.aiKeys.unshift(created);
-      saveMockDb(db);
-      return created;
-    }
+    const res = await api.post('/ai/api-keys', payload);
+    return normalizeAiKey(res.data.data);
   },
 
   /**
-   * Bật / Tắt trạng thái khóa API
+   * Bật / Tắt trạng thái khóa API trên Backend
    */
   async setActive(id: string, isActive: boolean): Promise<void> {
-    try {
-      await api.patch(`/ai/api-keys/${id}/toggle`, { isActive });
-    } catch (error) {
-      console.warn(`[AdminAiKeyService] Toggle key failed for ${id}, using mock:`, error);
-      await mockDelay(60);
-      const db = loadMockDb();
-      db.aiKeys = db.aiKeys.map((k) => (k.id === id ? { ...k, isActive, updatedAt: new Date().toISOString() } : k));
-      saveMockDb(db);
-    }
+    await api.patch(`/ai/api-keys/${id}/toggle`, { isActive });
   },
 
   /**
-   * Kiểm tra tình trạng sức khỏe cụm khóa
+   * Kiểm tra tình trạng sức khỏe cụm khóa từ danh sách thực
    */
   async healthCheck(): Promise<{ healthy: number; total: number }> {
-    try {
-      const keys = await this.list();
-      return {
-        healthy: keys.filter((k) => k.isActive && k.consecutiveFailures < 3).length,
-        total: keys.length,
-      };
-    } catch {
-      await mockDelay(300);
-      const db = loadMockDb();
-      return { healthy: db.aiKeys.filter((k) => k.isActive).length, total: db.aiKeys.length };
-    }
+    const keys = await this.list();
+    return {
+      healthy: keys.filter((k) => k.isActive && k.consecutiveFailures < 3).length,
+      total: keys.length,
+    };
   },
 
   /**
-   * Xóa API Key khỏi hệ thống
+   * Xóa API Key khỏi Backend Database
    */
   async remove(id: string): Promise<void> {
-    try {
-      await api.delete(`/ai/api-keys/${id}`);
-    } catch (error) {
-      console.warn(`[AdminAiKeyService] Delete key failed for ${id}, using mock:`, error);
-      await mockDelay(60);
-      const db = loadMockDb();
-      db.aiKeys = db.aiKeys.filter((k) => k.id !== id);
-      saveMockDb(db);
-    }
+    await api.delete(`/ai/api-keys/${id}`);
   },
 };

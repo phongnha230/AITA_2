@@ -299,180 +299,74 @@ export const courseService = {
    * Lấy danh sách khóa học của giảng viên
    */
   async getCourses(params?: QueryCoursesParams): Promise<Course[]> {
-    try {
-      const response = await api.get('/courses', { params });
-      if (response.data && response.data.data && Array.isArray(response.data.data)) {
-        return response.data.data;
-      }
-      return INITIAL_MOCK_COURSES;
-    } catch (error) {
-      console.warn('[CourseService] Backend unavailable, using mock dataset:', error);
-      let list = [...INITIAL_MOCK_COURSES];
-      if (params?.search) {
-        const q = params.search.toLowerCase();
-        list = list.filter(
-          (c) => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)
-        );
-      }
-      if (params?.semester && params.semester !== 'All') {
-        list = list.filter((c) => c.semester === params.semester);
-      }
-      return list;
+    const response = await api.get('/courses', { params });
+    if (response.data && response.data.data && Array.isArray(response.data.data)) {
+      return response.data.data;
     }
+    return [];
   },
 
   /**
    * Lấy chi tiết khóa học theo ID
    */
   async getCourseById(id: string): Promise<Course> {
-    try {
-      const response = await api.get(`/courses/${id}`);
-      if (response.data && response.data.data) {
-        return response.data.data;
-      }
-      throw new Error('Course not found');
-    } catch (error) {
-      console.warn(`[CourseService] Backend fetch failed for ID: ${id}, using mock detail:`, error);
-      const found = INITIAL_MOCK_COURSES.find((c) => c.id === id);
-      if (found) return found;
-      return INITIAL_MOCK_COURSES[0];
+    const response = await api.get(`/courses/${id}`);
+    if (response.data && response.data.data) {
+      return response.data.data;
     }
+    throw new Error('Không tìm thấy khóa học.');
   },
 
   /**
    * Tạo mới khóa học
    */
   async createCourse(payload: CreateCoursePayload): Promise<Course> {
-    try {
-      const response = await api.post('/courses', payload);
-      return response.data.data;
-    } catch (error) {
-      console.warn('[CourseService] Create course API fallback:', error);
-      const newCourse: Course = {
-        id: `course-${payload.code.toLowerCase()}-${Date.now()}`,
-        code: payload.code.toUpperCase(),
-        name: payload.name,
-        semester: payload.semester,
-        lecturerId: payload.lecturerId || 'lecturer-vd-01',
-        isActive: true,
-        capacity: payload.capacity || 40,
-        enrolledStudentsCount: 0,
-        syllabusProgress: 0,
-        currentGpaAvg: 0,
-        enrollmentCode: `AITA-${Math.floor(1000 + Math.random() * 9000)}`,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        _count: {
-          enrollments: 0,
-          assignments: 0,
-        },
-        enrollments: [],
-      };
-      INITIAL_MOCK_COURSES.unshift(newCourse);
-      return newCourse;
-    }
+    const response = await api.post('/courses', payload);
+    return response.data.data;
   },
 
   /**
    * Cập nhật thông tin khóa học
    */
   async updateCourse(id: string, payload: UpdateCoursePayload): Promise<Course> {
-    try {
-      const response = await api.put(`/courses/${id}`, payload);
-      return response.data.data;
-    } catch (error) {
-      console.warn(`[CourseService] Update course fallback for ${id}:`, error);
-      const index = INITIAL_MOCK_COURSES.findIndex((c) => c.id === id);
-      if (index !== -1) {
-        INITIAL_MOCK_COURSES[index] = { ...INITIAL_MOCK_COURSES[index], ...payload };
-        return INITIAL_MOCK_COURSES[index];
-      }
-      throw error;
-    }
+    const response = await api.put(`/courses/${id}`, payload);
+    return response.data.data;
   },
 
   /**
    * Xóa khóa học
    */
   async deleteCourse(id: string): Promise<void> {
-    try {
-      await api.delete(`/courses/${id}`);
-    } catch (error) {
-      console.warn(`[CourseService] Delete course fallback for ${id}:`, error);
-      const index = INITIAL_MOCK_COURSES.findIndex((c) => c.id === id);
-      if (index !== -1) {
-        INITIAL_MOCK_COURSES.splice(index, 1);
-      }
-    }
+    await api.delete(`/courses/${id}`);
   },
 
   /**
    * Giảng viên sinh mã tham gia lớp học mới (TTL động)
    */
   async generateJoinCode(id: string, expiresInMinutes: number = 30): Promise<GenerateJoinCodeResponse> {
-    try {
-      const response = await api.post(`/courses/${id}/generate-code`, { expiresInMinutes });
-      const raw = response.data.data;
-      return {
-        courseId: raw.courseId || id,
-        enrollmentCode: raw.joinCode || raw.enrollmentCode,
-        expiresAt: raw.expiresAt,
-        expiresInMinutes: raw.expiresInMinutes || expiresInMinutes,
-        message: raw.message || 'Sinh mã tham gia lớp học thành công!',
-      };
-    } catch (error) {
-      console.warn(`[CourseService] Generate join code fallback for ${id}:`, error);
-      const code = `AITA-${Math.floor(1000 + Math.random() * 9000)}`;
-      const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000).toISOString();
-      const course = INITIAL_MOCK_COURSES.find((c) => c.id === id);
-      if (course) {
-        course.enrollmentCode = code;
-        course.codeExpiresAt = expiresAt;
-      }
-      return {
-        courseId: id,
-        enrollmentCode: code,
-        expiresAt,
-        expiresInMinutes,
-        message: 'Sinh mã tham gia lớp học thành công!',
-      };
-    }
+    const response = await api.post(`/courses/${id}/generate-code`, { expiresInMinutes });
+    const raw = response.data.data;
+    return {
+      courseId: raw.courseId || id,
+      enrollmentCode: raw.joinCode || raw.enrollmentCode,
+      expiresAt: raw.expiresAt,
+      expiresInMinutes: raw.expiresInMinutes || expiresInMinutes,
+      message: raw.message || 'Sinh mã tham gia lớp học thành công!',
+    };
   },
 
   /**
    * Khóa / thu hồi mã tham gia lớp học
    */
   async revokeJoinCode(id: string): Promise<void> {
-    try {
-      await api.delete(`/courses/${id}/revoke-code`);
-    } catch (error) {
-      console.warn(`[CourseService] Revoke join code fallback for ${id}:`, error);
-      const course = INITIAL_MOCK_COURSES.find((c) => c.id === id);
-      if (course) {
-        course.enrollmentCode = null;
-        course.codeExpiresAt = null;
-      }
-    }
+    await api.delete(`/courses/${id}/revoke-code`);
   },
 
   /**
    * Xóa sinh viên khỏi lớp
    */
   async removeStudent(courseId: string, studentId: string): Promise<void> {
-    try {
-      await api.delete(`/courses/${courseId}/students/${studentId}`);
-    } catch (error) {
-      console.warn(`[CourseService] Remove student fallback for ${courseId}/${studentId}:`, error);
-      const course = INITIAL_MOCK_COURSES.find((c) => c.id === courseId);
-      if (course && course.enrollments) {
-        course.enrollments = course.enrollments.filter((e) => e.student.id !== studentId && e.student.studentCode !== studentId);
-        course._count = {
-          ...course._count,
-          enrollments: course.enrollments.length,
-          assignments: course._count?.assignments || 0,
-        };
-      }
-    }
+    await api.delete(`/courses/${courseId}/students/${studentId}`);
   },
 
   /**
