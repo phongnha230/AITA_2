@@ -1,13 +1,22 @@
 'use client';
 
+import * as React from 'react';
 import { useState } from 'react';
-import { cn } from '../../../../lib/cn';
+import { cn } from '@/lib/utils';
 import { OPS_EVENTS, type OpsEvent } from '../../mocks/ops.mock';
 import { Badge, type BadgeTone } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Modal } from '../ui/Modal';
 import { useToast } from '../ui/Toast';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 type Filter = 'all' | 'warning' | 'security';
 
@@ -26,8 +35,6 @@ const FILTERS: { id: Filter; label: string }[] = [
 
 const matches = (e: OpsEvent, f: Filter) =>
   f === 'all' || (f === 'warning' && e.level === 'Warning') || (f === 'security' && e.level === 'Proctor Alert');
-
-const TH = 'px-4 py-3 text-left text-xs font-semibold text-slate-500';
 
 export const OpsEventsTable: React.FC = () => {
   const toast = useToast();
@@ -62,28 +69,28 @@ export const OpsEventsTable: React.FC = () => {
         </div>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[760px] border-collapse">
-          <thead className="bg-slate-50">
-            <tr>
-              <th className={cn(TH, 'rounded-l-xl')}>Thời gian</th>
-              <th className={TH}>Cấp độ</th>
-              <th className={TH}>Phân hệ</th>
-              <th className={TH}>Nội dung chi tiết</th>
-              <th className={TH}>Trạng thái</th>
-              <th className={cn(TH, 'rounded-r-xl text-right')}>Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
+        <Table className="min-w-[760px]">
+          <TableHeader className="bg-slate-50/80">
+            <TableRow>
+              <TableHead className="w-24">Thời gian</TableHead>
+              <TableHead className="w-28">Cấp độ</TableHead>
+              <TableHead className="w-36">Phân hệ</TableHead>
+              <TableHead>Nội dung chi tiết</TableHead>
+              <TableHead className="w-32">Trạng thái</TableHead>
+              <TableHead className="text-right">Thao tác</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {rows.map((e) => {
               const done = sent.has(e.time);
               return (
-                <tr key={e.time} className="border-b border-slate-100 text-sm transition-colors hover:bg-slate-50">
-                  <td className="whitespace-nowrap px-4 py-4 font-mono text-xs font-semibold text-slate-500">{e.time}</td>
-                  <td className="px-4 py-4"><Badge tone={LEVEL_TONE[e.level]}>{e.level}</Badge></td>
-                  <td className="px-4 py-4 text-xs font-semibold text-slate-900">{e.subsystem}</td>
-                  <td className="min-w-[280px] px-4 py-4 text-xs leading-relaxed text-slate-700">{e.message}</td>
-                  <td className="whitespace-nowrap px-4 py-4 text-xs font-semibold text-slate-600">{done ? 'Đã gửi giám thị' : e.status}</td>
-                  <td className="px-4 py-4 text-right">
+                <TableRow key={e.time} className="text-sm">
+                  <TableCell className="whitespace-nowrap font-mono text-xs font-semibold text-slate-500">{e.time}</TableCell>
+                  <TableCell><Badge tone={LEVEL_TONE[e.level]}>{e.level}</Badge></TableCell>
+                  <TableCell className="text-xs font-semibold text-slate-900">{e.subsystem}</TableCell>
+                  <TableCell className="min-w-[280px] text-xs leading-relaxed text-slate-700">{e.message}</TableCell>
+                  <TableCell className="whitespace-nowrap text-xs font-semibold text-slate-600">{done ? 'Đã gửi giám thị' : e.status}</TableCell>
+                  <TableCell className="text-right">
                     <button
                       type="button"
                       disabled={done}
@@ -92,12 +99,12 @@ export const OpsEventsTable: React.FC = () => {
                     >
                       {done ? 'Đã gửi' : e.action}
                     </button>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               );
             })}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
       <Modal open={Boolean(detail)} title={detail ? `${detail.action} — ${detail.subsystem}` : ''} onClose={() => setDetail(null)}>
         {detail && (

@@ -1,9 +1,11 @@
 'use client';
 
+import * as React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { Search } from 'lucide-react';
-import { cn } from '../../../../lib/cn';
+import { cn } from '@/lib/utils';
 import { Card } from '../ui/Card';
+import { Input } from '@/components/ui/input';
 import type { UserQuery, UserRole, UserStats, UserStatus } from '../../types/admin.types';
 
 interface UserFiltersProps {
@@ -84,13 +86,13 @@ export const UserFilters: React.FC<UserFiltersProps> = ({ query, stats, onChange
   return (
     <Card className="flex flex-col gap-4 p-5 xl:flex-row xl:items-center">
       <div className="relative min-w-0 flex-1">
-        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-        <input
+        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 z-10" />
+        <Input
           ref={searchRef}
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Tìm theo tên, email hoặc mã số..."
-          className="h-[42px] w-full rounded-lg border border-slate-200 bg-slate-50 pl-10 pr-20 text-sm focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-[3px] focus:ring-blue-600/15"
+          className="h-[42px] w-full rounded-lg border-slate-200 bg-slate-50 pl-10 pr-20 text-sm focus:border-blue-600 focus:bg-white"
         />
         <kbd className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">Nhấn ⌘K</kbd>
       </div>

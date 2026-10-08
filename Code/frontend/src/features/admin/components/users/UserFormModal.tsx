@@ -8,6 +8,7 @@ import { adminUserService } from '../../services/admin-user.service';
 import { Button } from '../ui/Button';
 import { FormField, inputClass } from '../ui/FormField';
 import { Modal } from '../ui/Modal';
+import { Input } from '@/components/ui/input';
 import type { UserRole } from '../../types/admin.types';
 import { TempPasswordModal, type TempCredentials } from './TempPasswordModal';
 import { ROLES } from './user-style';
@@ -53,10 +54,10 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({ open, onClose, onC
         <form onSubmit={submit} className="space-y-5">
           {error && <AlertBox message={error} />}
           <FormField label="Họ và tên">
-            <input required minLength={2} value={form.fullName} onChange={set('fullName')} className={inputClass} placeholder="Nguyễn Văn A" />
+            <Input required minLength={2} value={form.fullName} onChange={set('fullName')} placeholder="Nguyễn Văn A" className="h-[42px]" />
           </FormField>
           <FormField label="Email FPT">
-            <input required type="email" value={form.email} onChange={set('email')} className={inputClass} placeholder="anvhe123456@fpt.edu.vn" />
+            <Input required type="email" value={form.email} onChange={set('email')} placeholder="anvhe123456@fpt.edu.vn" className="h-[42px]" />
           </FormField>
           <FormField label="Vai trò" hint="Mật khẩu tạm thời sẽ được tạo ngẫu nhiên; người dùng đổi mật khẩu mới sau khi đăng nhập.">
             <select value={form.role} onChange={set('role')} className={inputClass}>

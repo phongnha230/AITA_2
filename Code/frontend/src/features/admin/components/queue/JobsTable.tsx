@@ -1,18 +1,26 @@
 'use client';
 
+import * as React from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowUpToLine, RotateCcw, Search, SquareTerminal } from 'lucide-react';
-import { cn } from '../../../../lib/cn';
+import { cn } from '@/lib/utils';
 import { EmptyState } from '../../../../components/feedback/EmptyState';
 import type { JobState, QueueJob } from '../../types/admin.types';
 import { Badge, type BadgeTone } from '../ui/Badge';
 import { Card } from '../ui/Card';
 import { inputClass } from '../ui/FormField';
 import { ProgressBar } from '../ui/ProgressBar';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 const STATE_TONE: Record<JobState, BadgeTone> = { Processing: 'info', Queued: 'warning', Failed: 'admin', Completed: 'student' };
 const BAR_COLOR: Record<JobState, string> = { Processing: 'bg-blue-600', Queued: 'bg-slate-300', Failed: 'bg-rose-600', Completed: 'bg-emerald-600' };
-const TH = 'px-4 py-3 text-left text-xs font-semibold text-slate-500';
 const PAGE_SIZE = 5;
 
 interface JobsTableProps {
@@ -81,33 +89,33 @@ export const JobsTable: React.FC<JobsTableProps> = ({ jobs, onRetry, onPrioritiz
         <EmptyState message="Không có job khớp bộ lọc." />
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[980px] border-collapse">
-            <thead className="bg-slate-50">
-              <tr>
-                <th className={TH}>Job ID</th>
-                <th className={TH}>Tên job</th>
-                <th className={TH}>Sinh viên &amp; môn thi</th>
-                <th className={TH}>Hàng đợi</th>
-                <th className={TH}>Tiến trình</th>
-                <th className={TH}>Thời gian</th>
-                <th className={TH}>Trạng thái</th>
-                <th className={cn(TH, 'text-right')}>Hành động</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table className="min-w-[980px]">
+            <TableHeader className="bg-slate-50/80">
+              <TableRow>
+                <TableHead className="w-28">Job ID</TableHead>
+                <TableHead>Tên job</TableHead>
+                <TableHead>Sinh viên &amp; môn thi</TableHead>
+                <TableHead>Hàng đợi</TableHead>
+                <TableHead className="w-56">Tiến trình</TableHead>
+                <TableHead>Thời gian</TableHead>
+                <TableHead>Trạng thái</TableHead>
+                <TableHead className="text-right">Hành động</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {rows.map((j) => (
-                <tr key={j.id} className={cn('border-b border-slate-100 hover:bg-slate-50', j.state === 'Failed' && 'bg-rose-50/50')}>
-                  <td className="px-4 py-4"><span className="block max-w-[120px] truncate font-mono text-xs font-semibold text-blue-600">{j.id}</span></td>
-                  <td className="px-4 py-4"><p className="font-mono text-xs font-semibold text-slate-900">{j.name}</p><p className="text-[11px] text-slate-500">{j.detail}</p></td>
-                  <td className="px-4 py-4"><p className="text-sm font-semibold text-slate-900">{j.student}</p><p className="text-[11px] text-slate-500">{j.course}</p></td>
-                  <td className="px-4 py-4"><Badge tone={j.queue === 'ai-rubric-queue' ? 'violet' : 'info'}>{j.queue}</Badge></td>
-                  <td className="w-52 px-4 py-4">
+                <TableRow key={j.id} className={cn(j.state === 'Failed' && 'bg-rose-50/50')}>
+                  <TableCell><span className="block max-w-[120px] truncate font-mono text-xs font-semibold text-blue-600">{j.id}</span></TableCell>
+                  <TableCell><p className="font-mono text-xs font-semibold text-slate-900">{j.name}</p><p className="text-[11px] text-slate-500">{j.detail}</p></TableCell>
+                  <TableCell><p className="text-sm font-semibold text-slate-900">{j.student}</p><p className="text-[11px] text-slate-500">{j.course}</p></TableCell>
+                  <TableCell><Badge tone={j.queue === 'ai-rubric-queue' ? 'violet' : 'info'}>{j.queue}</Badge></TableCell>
+                  <TableCell className="w-52">
                     <p className="mb-1 flex justify-between text-[11px] font-semibold text-slate-600"><span>{j.progressLabel}</span><span>{j.percent}%</span></p>
                     <ProgressBar value={j.percent} color={BAR_COLOR[j.state]} />
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-4 font-mono text-xs text-slate-600">{j.duration}</td>
-                  <td className="px-4 py-4"><Badge tone={STATE_TONE[j.state]} dot>{j.state}</Badge></td>
-                  <td className="px-4 py-4">
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap font-mono text-xs text-slate-600">{j.duration}</TableCell>
+                  <TableCell><Badge tone={STATE_TONE[j.state]} dot>{j.state}</Badge></TableCell>
+                  <TableCell className="text-right">
                     <div className="flex justify-end gap-1 text-slate-400">
                       <button type="button" onClick={() => onTerminal(j)} aria-label="Xem log terminal" title="Xem log terminal" className="rounded-lg p-2 hover:bg-slate-100 hover:text-slate-700"><SquareTerminal className="h-4 w-4" /></button>
                       {j.state === 'Queued' && (
@@ -119,11 +127,11 @@ export const JobsTable: React.FC<JobsTableProps> = ({ jobs, onRetry, onPrioritiz
                         </button>
                       )}
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
       <div className="flex flex-col items-center justify-between gap-3 border-t border-slate-100 px-6 py-4 text-xs text-slate-500 sm:flex-row">

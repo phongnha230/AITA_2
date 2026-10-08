@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Activity, CheckCircle2, KeyRound, PlusCircle, RefreshCw, Search, ShieldCheck, Wallet } from 'lucide-react';
-import { cn } from '../../../../lib/cn';
+import { cn } from '@/lib/utils';
 import { getErrorMessage } from '../../../../lib/errors';
 import { USE_MOCK } from '../../../../config/mock';
 import { AlertBox } from '../../../../components/feedback/AlertBox';
@@ -13,6 +13,7 @@ import { useToast } from '../ui/Toast';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { ProgressBar } from '../ui/ProgressBar';
+import { Input } from '@/components/ui/input';
 import type { AiApiKey, AiProvider } from '../../types/admin.types';
 import { AddKeyModal } from './AddKeyModal';
 import { KeysTable } from './KeysTable';
@@ -148,10 +149,17 @@ export const AiKeysPage: React.FC = () => {
         </div>
         <div className="flex items-center gap-2">
           <div className="relative min-w-0 flex-1 lg:w-72">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tìm theo tên khóa hoặc mục đích..." className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-[3px] focus:ring-blue-600/15" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 z-10" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Tìm theo tên khóa hoặc mục đích..."
+              className="h-10 w-full rounded-lg border-slate-200 bg-slate-50 pl-9 pr-3 text-sm focus:border-blue-600 focus:bg-white"
+            />
           </div>
-          <button type="button" onClick={reload} aria-label="Làm mới" className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"><RefreshCw className="h-4 w-4" /></button>
+          <Button variant="outline" size="icon" onClick={reload} aria-label="Làm mới" className="h-10 w-10 shrink-0">
+            <RefreshCw className="h-4 w-4" />
+          </Button>
         </div>
       </Card>
 

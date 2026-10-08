@@ -1,9 +1,19 @@
 'use client';
 
+import * as React from 'react';
 import { BadgeCheck, ChevronLeft, ChevronRight, Eye, ListChecks, Lock, LockOpen, ShieldCheck } from 'lucide-react';
-import { cn } from '../../../../lib/cn';
+import { cn } from '@/lib/utils';
 import { EmptyState } from '../../../../components/feedback/EmptyState';
 import { Card } from '../ui/Card';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import type { AdminUser, PageMeta, UserRole } from '../../types/admin.types';
 import { initials, ROLE_SELECT_CLASS, ROLES, STATUS_LABEL, STATUS_TEXT_CLASS } from './user-style';
 
@@ -17,8 +27,6 @@ interface UsersTableProps {
   onToggleLock: (user: AdminUser) => void;
   onPage: (page: number) => void;
 }
-
-const TH = 'px-4 py-3 text-left text-xs font-semibold text-slate-500';
 
 const codeColor = (u: AdminUser) =>
   u.status === 'SUSPENDED' || u.role === 'ADMIN' ? 'text-rose-600' : u.role === 'LECTURER' ? 'text-blue-600' : 'text-emerald-600';
@@ -43,48 +51,61 @@ export const UsersTable: React.FC<UsersTableProps> = ({ users, meta, selectedId,
       <EmptyState message="Không có người dùng khớp bộ lọc." />
     ) : (
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1000px] border-collapse">
-          <thead className="bg-slate-50">
-            <tr>
-              <th className={TH}>STT</th>
-              <th className={TH}>Mã số</th>
-              <th className={TH}>Họ &amp; tên</th>
-              <th className={TH}>Email FPT</th>
-              <th className={TH}>Vai trò (Role)</th>
-              <th className={TH}>Lớp / Bộ môn</th>
-              <th className={TH}>Trạng thái</th>
-              <th className={cn(TH, 'text-right')}>Hành động</th>
-            </tr>
-          </thead>
-          <tbody>
+        <Table className="min-w-[1000px]">
+          <TableHeader className="bg-slate-50/80">
+            <TableRow>
+              <TableHead className="w-16">STT</TableHead>
+              <TableHead className="w-28">Mã số</TableHead>
+              <TableHead>Họ &amp; tên</TableHead>
+              <TableHead>Email FPT</TableHead>
+              <TableHead>Vai trò (Role)</TableHead>
+              <TableHead>Lớp / Bộ môn</TableHead>
+              <TableHead>Trạng thái</TableHead>
+              <TableHead className="text-right">Hành động</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {users.map((u, i) => {
               const locked = u.status === 'SUSPENDED';
               const isAdmin = u.role === 'ADMIN';
               return (
-                <tr
+                <TableRow
                   key={u.id}
                   onClick={() => onSelect(u)}
                   className={cn(
-                    'cursor-pointer border-b border-slate-100 transition-colors hover:bg-slate-50',
+                    'cursor-pointer transition-colors',
                     locked && 'bg-rose-50/60 hover:bg-rose-50',
                     selectedId === u.id && !locked && 'bg-blue-50/50',
                   )}
                 >
-                  <td className="px-4 py-4 font-mono text-xs text-slate-400">{String(((meta?.page ?? 1) - 1) * (meta?.limit ?? users.length) + i + 1).padStart(2, '0')}</td>
-                  <td className={cn('px-4 py-4 font-mono text-xs font-bold', codeColor(u))}>{u.userCode ?? '—'}</td>
-                  <td className="px-4 py-4">
+                  <TableCell className="font-mono text-xs text-slate-400">
+                    {String(((meta?.page ?? 1) - 1) * (meta?.limit ?? users.length) + i + 1).padStart(2, '0')}
+                  </TableCell>
+                  <TableCell className={cn('font-mono text-xs font-bold', codeColor(u))}>
+                    {u.userCode ?? '—'}
+                  </TableCell>
+                  <TableCell>
                     <div className="flex items-center gap-3">
-                      <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold', u.role === 'STUDENT' && !locked ? 'bg-emerald-100 text-emerald-700' : locked ? 'bg-rose-100 text-rose-700' : u.role === 'ADMIN' ? 'bg-rose-100 text-rose-700' : 'bg-blue-100 text-blue-700')}>
-                        {initials(u.fullName)}
-                      </span>
+                      <Avatar className="h-9 w-9">
+                        <AvatarFallback
+                          className={cn(
+                            'text-xs font-bold',
+                            u.role === 'STUDENT' && !locked ? 'bg-emerald-100 text-emerald-700' : locked ? 'bg-rose-100 text-rose-700' : u.role === 'ADMIN' ? 'bg-rose-100 text-rose-700' : 'bg-blue-100 text-blue-700',
+                          )}
+                        >
+                          {initials(u.fullName)}
+                        </AvatarFallback>
+                      </Avatar>
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-slate-900">{u.fullName}</p>
                         {u.subtitle && <p className={cn('text-[11px]', locked ? 'font-medium text-rose-600' : 'text-slate-500')}>{u.subtitle}</p>}
                       </div>
                     </div>
-                  </td>
-                  <td className="max-w-[240px] px-4 py-4"><span className="block min-w-0 truncate font-mono text-xs text-slate-600">{u.email}</span></td>
-                  <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
+                  </TableCell>
+                  <TableCell className="max-w-[240px]">
+                    <span className="block min-w-0 truncate font-mono text-xs text-slate-600">{u.email}</span>
+                  </TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <select
                       value={u.role}
                       disabled={busyId === u.id}
@@ -94,15 +115,18 @@ export const UsersTable: React.FC<UsersTableProps> = ({ users, meta, selectedId,
                     >
                       {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
                     </select>
-                  </td>
-                  <td className="px-4 py-4"><p className="text-sm text-slate-800">{u.department ?? '—'}</p>{u.departmentNote && <p className="text-[11px] text-slate-500">{u.departmentNote}</p>}</td>
-                  <td className="px-4 py-4">
+                  </TableCell>
+                  <TableCell>
+                    <p className="text-sm text-slate-800">{u.department ?? '—'}</p>
+                    {u.departmentNote && <p className="text-[11px] text-slate-500">{u.departmentNote}</p>}
+                  </TableCell>
+                  <TableCell>
                     <span className={cn('inline-flex items-center gap-1.5 text-xs font-semibold', STATUS_TEXT_CLASS[u.status])}>
                       <span className="h-1.5 w-1.5 rounded-full bg-current" />
                       {locked ? 'Locked' : u.status === 'ACTIVE' ? 'Active' : STATUS_LABEL[u.status]}
                     </span>
-                  </td>
-                  <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
+                  </TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-end gap-1">
                       <button type="button" onClick={() => onSelect(u)} title="Xem hồ sơ" aria-label="Xem hồ sơ" className="rounded-lg p-2 text-blue-600 hover:bg-blue-50"><Eye className="h-4 w-4" /></button>
                       {isAdmin ? (
@@ -123,12 +147,12 @@ export const UsersTable: React.FC<UsersTableProps> = ({ users, meta, selectedId,
                         </>
                       )}
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               );
             })}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     )}
     {meta && (
