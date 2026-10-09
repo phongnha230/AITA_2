@@ -9,6 +9,7 @@ import { ManageRubricsUseCase } from '../../application/use-cases/manage-rubrics
 import { ManageSolutionsUseCase } from '../../application/use-cases/manage-solutions.use-case.js';
 import { PrismaAssignmentRepository } from '../../infrastructure/repositories/prisma-assignment.repository.js';
 import { PrismaCourseRepository } from '../../../course/infrastructure/repositories/prisma-course.repository.js';
+import { PrismaUserRepository } from '../../../user/infrastructure/repositories/prisma-user.repository.js';
 import prisma from '../../../../infrastructure/database/prisma.client.js';
 import { authenticateJWT, authorizeRoles } from '../../../auth/presentation/middlewares/auth.middleware.js';
 import { validateBody } from '../../../../shared/presentation/middlewares/validate.middleware.js';
@@ -25,8 +26,9 @@ const router = Router();
 // Composition Root for Assignment
 const assignmentRepository = new PrismaAssignmentRepository(prisma);
 const courseRepository = new PrismaCourseRepository(prisma);
+const userRepository = new PrismaUserRepository(prisma);
 
-const createAssignmentUseCase = new CreateAssignmentUseCase(assignmentRepository, courseRepository);
+const createAssignmentUseCase = new CreateAssignmentUseCase(assignmentRepository, courseRepository, userRepository);
 const getAssignmentDetailUseCase = new GetAssignmentDetailUseCase(assignmentRepository);
 const getAssignmentsByCourseUseCase = new GetAssignmentsByCourseUseCase(assignmentRepository);
 const updateAssignmentUseCase = new UpdateAssignmentUseCase(assignmentRepository);

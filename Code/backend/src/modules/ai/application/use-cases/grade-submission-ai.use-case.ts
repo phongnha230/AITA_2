@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import prisma from '../../../../infrastructure/database/prisma.client.js';
 import { IAiGradingRepository } from '../../domain/repositories/ai-grading.repository.interface.js';
+import { ISubmissionRepository } from '../../../submission/domain/repositories/submission.repository.interface.js';
 import { ApiKeyRotatorFacade } from '../../infrastructure/facades/api-key-rotator.facade.js';
 import { RagKnowledgeFacade } from '../../infrastructure/facades/rag-knowledge.facade.js';
 import { RubricGradingPrompt } from '../../infrastructure/prompts/rubric-grading.prompt.js';
@@ -10,15 +10,14 @@ import { NotFoundError } from '../../../../shared/domain/exceptions/app.error.js
 export class GradeSubmissionAiUseCase {
   constructor(
     private readonly aiGradingRepository: IAiGradingRepository,
+    private readonly submissionRepository: ISubmissionRepository,
     private readonly apiKeyRotatorFacade: ApiKeyRotatorFacade,
     private readonly ragKnowledgeFacade: RagKnowledgeFacade
   ) {}
 
   public async execute(submissionId: string) {
     // 1. Lấy thông tin bài nộp
-    const submission = await prisma.submission.findUnique({
-      where: { id: submissionId },
-    });
+    const submission = await this.submissionRepository.findById(submissionId);
 
     if (!submission) {
       throw new NotFoundError(`Bài nộp với ID: ${submissionId}`);
@@ -102,14 +101,11 @@ export class GradeSubmissionAiUseCase {
     const sandboxScore = Number(submission.sandboxScore || 0);
     const finalScore = Number((sandboxScore + overallAiScore).toFixed(2));
 
-    await prisma.submission.update({
-      where: { id: submissionId },
-      data: {
-        aiScore: overallAiScore,
-        finalScore,
-        status: 'GRADED',
-        gradedAt: new Date(),
-      },
+    await this.submissionRepository.updateAiGradingScores(submissionId, {
+      aiScore: overallAiScore,
+      finalScore,
+      status: 'GRADED',
+      gradedAt: new Date(),
     });
 
     return {

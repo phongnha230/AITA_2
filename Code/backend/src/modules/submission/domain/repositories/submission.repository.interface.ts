@@ -17,9 +17,20 @@ export interface ISubmissionRepository {
   findById(id: string): Promise<Submission | null>;
   findWithJobStatus(id: string): Promise<any | null>;
   findByAssignmentAndUser(assignmentId: string, userId: string): Promise<Submission[]>;
+  findLatestByAssignmentAndUser(assignmentId: string, userId: string): Promise<Submission | null>;
+  findLatestByUser(userId: string): Promise<Submission | null>;
   findByAssignmentId(assignmentId: string): Promise<any[]>;
   updateStatus(id: string, status: SubmissionStatus): Promise<Submission>;
   updateZipFilePath(id: string, zipFilePath: string): Promise<Submission>;
+  updateAiGradingScores(
+    id: string,
+    data: {
+      aiScore: number;
+      finalScore: number;
+      status: SubmissionStatus;
+      gradedAt: Date;
+    }
+  ): Promise<Submission>;
   updateGitMetadata(
     id: string,
     data: {
@@ -44,5 +55,3 @@ export interface ISubmissionRepository {
     assignmentId?: string;
   }): Promise<{ submissions: any[]; total: number }>;
 }
-
-

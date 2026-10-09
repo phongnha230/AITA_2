@@ -2,6 +2,8 @@ import prisma from '../src/infrastructure/database/prisma.client.js';
 import { CreateTeamUseCase } from '../src/modules/team/application/use-cases/create-team.use-case.js';
 import { ManageTeamUseCase } from '../src/modules/team/application/use-cases/manage-team.use-case.js';
 import { PrismaTeamRepository } from '../src/modules/team/infrastructure/repositories/prisma-team.repository.js';
+import { PrismaUserRepository } from '../src/modules/user/infrastructure/repositories/prisma-user.repository.js';
+import { PrismaCourseRepository } from '../src/modules/course/infrastructure/repositories/prisma-course.repository.js';
 import { SandboxRunnerFactory } from '../src/modules/sandbox/infrastructure/sandbox-runner.factory.js';
 
 async function main() {
@@ -83,8 +85,10 @@ async function main() {
 
   // 4. Test Team Creation & Member Management
   const teamRepo = new PrismaTeamRepository(prisma);
+  const userRepo = new PrismaUserRepository(prisma);
+  const courseRepo = new PrismaCourseRepository(prisma);
   const createTeamUseCase = new CreateTeamUseCase(teamRepo);
-  const manageTeamUseCase = new ManageTeamUseCase(teamRepo, prisma);
+  const manageTeamUseCase = new ManageTeamUseCase(teamRepo, userRepo, courseRepo);
 
   const team = await createTeamUseCase.execute({
     courseId: course.id,

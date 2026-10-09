@@ -27,6 +27,7 @@ export const QueryCoursesSchema = z.object({
   lecturerId: z.string().uuid().optional(),
   studentId: z.string().uuid().optional(),
   search: z.string().optional(),
+  scope: z.enum(['all', 'catalog', 'enrolled']).optional(),
 });
 
 export type QueryCoursesDto = z.infer<typeof QueryCoursesSchema>;

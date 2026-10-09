@@ -12,14 +12,21 @@ import { bullmqGradingDispatcher } from '../../infrastructure/queue/bullmq-gradi
 import prisma from '../../../../infrastructure/database/prisma.client.js';
 import { authenticateJWT, authorizeRoles } from '../../../auth/presentation/middlewares/auth.middleware.js';
 import { ValidationError } from '../../../../shared/domain/exceptions/app.error.js';
+import { PrismaAssignmentRepository } from '../../../assignment/infrastructure/repositories/prisma-assignment.repository.js';
+import { PrismaCourseRepository } from '../../../course/infrastructure/repositories/prisma-course.repository.js';
 import { env } from '../../../../infrastructure/config/env.js';
 
 const router = Router();
 
 // Composition Root
 const submissionRepository = new PrismaSubmissionRepository(prisma);
+const assignmentRepository = new PrismaAssignmentRepository(prisma);
+const courseRepository = new PrismaCourseRepository(prisma);
+
 const submitAssignmentUseCase = new SubmitAssignmentUseCase({
   submissionRepository,
+  assignmentRepository,
+  courseRepository,
   artifactExtractor: zipExtractorService,
   gradingDispatcher: bullmqGradingDispatcher,
 });

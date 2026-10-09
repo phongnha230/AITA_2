@@ -1,4 +1,6 @@
 import { ITeamRepository } from '../../domain/repositories/team.repository.interface.js';
+import { IUserRepository } from '../../../user/domain/repositories/user.repository.interface.js';
+import { ICourseRepository } from '../../../course/domain/repositories/course.repository.interface.js';
 import { Team } from '../../domain/entities/team.entity.js';
 import { UpdateTeamInput } from '../dtos/team.dto.js';
 import {
@@ -6,12 +8,12 @@ import {
   ForbiddenError,
   ConflictError,
 } from '../../../../shared/domain/exceptions/app.error.js';
-import { PrismaClient } from '@prisma/client';
 
 export class ManageTeamUseCase {
   constructor(
     private readonly teamRepository: ITeamRepository,
-    private readonly prisma: PrismaClient
+    private readonly userRepository: IUserRepository,
+    private readonly courseRepository: ICourseRepository
   ) {}
 
   async getTeamDetails(teamId: string): Promise<Team> {
@@ -41,23 +43,16 @@ export class ManageTeamUseCase {
       throw new ForbiddenError('Chỉ có Trưởng nhóm mới có quyền mời/thêm thành viên');
     }
 
-    const studentUser = await this.prisma.user.findUnique({
-      where: { email: studentEmail.toLowerCase().trim() },
-    });
+    const trimmedEmail = studentEmail.toLowerCase().trim();
+    const studentUser = (await this.userRepository.findByEmail(trimmedEmail)) ||
+      (await this.userRepository.findByUsernameOrEmail(trimmedEmail));
 
     if (!studentUser) {
       throw new NotFoundError(`Không tìm thấy tài khoản sinh viên với email: ${studentEmail}`);
     }
 
     // Kiểm tra xem sinh viên đã có trong lớp chưa
-    const isEnrolled = await this.prisma.courseEnrollment.findUnique({
-      where: {
-        uk_enrollment_course_student: {
-          courseId: team.courseId,
-          studentId: studentUser.id,
-        },
-      },
-    });
+    const isEnrolled = await this.courseRepository.isStudentEnrolled(team.courseId, studentUser.id);
 
     if (!isEnrolled) {
       throw new ConflictError('Sinh viên này chưa tham gia vào môn học');

@@ -1,19 +1,19 @@
-import prisma from '../../../../infrastructure/database/prisma.client.js';
 import { IAiTutorRepository } from '../../domain/repositories/ai-tutor.repository.interface.js';
+import { ISubmissionRepository } from '../../../submission/domain/repositories/submission.repository.interface.js';
 import { NotFoundError, ForbiddenError, ValidationError } from '../../../../shared/domain/exceptions/app.error.js';
 
 export class StartTutorConversationUseCase {
-  constructor(private readonly aiTutorRepository: IAiTutorRepository) {}
+  constructor(
+    private readonly aiTutorRepository: IAiTutorRepository,
+    private readonly submissionRepository: ISubmissionRepository
+  ) {}
 
   public async execute(studentId: string, submissionId?: string, title?: string) {
     let targetSubmissionId = submissionId;
 
     if (!targetSubmissionId) {
       // Tự động tìm bài nộp gần nhất của sinh viên này
-      const latest = await prisma.submission.findFirst({
-        where: { userId: studentId },
-        orderBy: { submittedAt: 'desc' },
-      });
+      const latest = await this.submissionRepository.findLatestByUser(studentId);
       if (latest) {
         targetSubmissionId = latest.id;
       }
@@ -23,12 +23,7 @@ export class StartTutorConversationUseCase {
       throw new ValidationError('Bạn chưa có bài nộp nào để AI Tutor hỗ trợ phân tích code.');
     }
 
-    const submission = await prisma.submission.findUnique({
-      where: { id: targetSubmissionId },
-      include: {
-        assignment: { select: { title: true } },
-      },
-    });
+    const submission = await this.submissionRepository.findById(targetSubmissionId);
 
     if (!submission) {
       throw new NotFoundError(`Bài nộp với ID: ${targetSubmissionId}`);
@@ -49,7 +44,8 @@ export class StartTutorConversationUseCase {
       return existing.toJSON();
     }
 
-    const conversationTitle = title || `Hỗ trợ gỡ lỗi: ${submission.assignment.title}`;
+    const assignmentTitle = submission.assignment?.title || 'Bài tập';
+    const conversationTitle = title || `Hỗ trợ gỡ lỗi: ${assignmentTitle}`;
     const newConversation = await this.aiTutorRepository.createConversation({
       submissionId: targetSubmissionId,
       studentId,
@@ -60,7 +56,7 @@ export class StartTutorConversationUseCase {
     await this.aiTutorRepository.addMessage({
       conversationId: newConversation.id,
       senderRole: 'MODEL',
-      content: `Xin chào bạn! Mình là AI Tutor của hệ thống AITA. Mình đã đọc bài làm '${submission.assignment.title}' của bạn. Bạn đang thắc mắc hay cần mình cùng thảo luận về phần nào trong bài làm nhé?`,
+      content: `Xin chào bạn! Mình là AI Tutor của hệ thống AITA. Mình đã đọc bài làm '${assignmentTitle}' của bạn. Bạn đang thắc mắc hay cần mình cùng thảo luận về phần nào trong bài làm nhé?`,
     });
 
     const fullConversation = await this.aiTutorRepository.findConversationById(newConversation.id);

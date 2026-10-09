@@ -24,6 +24,11 @@ export class PrismaCourseRepository implements ICourseRepository {
             email: raw.lecturer.email,
           }
         : undefined,
+      enrollmentCount: raw._count?.enrollments ?? (Array.isArray(raw.enrollments) ? raw.enrollments.length : undefined),
+      assignmentCount: raw._count?.assignments ?? (Array.isArray(raw.assignments) ? raw.assignments.length : undefined),
+      enrolledStudentIds: Array.isArray(raw.enrollments)
+        ? raw.enrollments.map((e: any) => e.studentId || e.student?.id).filter(Boolean)
+        : undefined,
     });
   }
 
@@ -200,6 +205,9 @@ export class PrismaCourseRepository implements ICourseRepository {
       include: {
         lecturer: {
           select: { id: true, fullName: true, email: true },
+        },
+        enrollments: {
+          select: { studentId: true },
         },
         _count: {
           select: {

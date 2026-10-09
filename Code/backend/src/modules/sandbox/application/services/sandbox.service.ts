@@ -2,17 +2,31 @@ import fs from 'node:fs';
 import prisma from '../../../../infrastructure/database/prisma.client.js';
 import { Prisma, TestCaseVerdict } from '@prisma/client';
 import { SandboxRunnerFactory } from '../../infrastructure/sandbox-runner.factory.js';
+import {
+  IArtifactExtractor,
+} from '../../../submission/application/services/artifact-extractor.interface.js';
 import { zipExtractorService } from '../../../submission/infrastructure/storage/zip-extractor.service.js';
 import {
   SandboxExecutionSummary,
   TestCaseInput,
 } from '../../domain/interfaces/sandbox-runner.interface.js';
 
-export class SandboxService {
+export interface ISandboxService {
+  gradeSubmission(
+    submissionId: string,
+    languageOverride?: string
+  ): Promise<SandboxExecutionSummary>;
+}
+
+export class SandboxService implements ISandboxService {
+  constructor(
+    private readonly artifactExtractor: IArtifactExtractor = zipExtractorService
+  ) {}
+
   /**
    * Chạy chấm toàn bộ testcase cho một bài nộp và lưu kết quả vào CSDL
    */
-  public static async gradeSubmission(
+  public async gradeSubmission(
     submissionId: string,
     languageOverride?: string
   ): Promise<SandboxExecutionSummary> {
@@ -39,7 +53,7 @@ export class SandboxService {
       fs.statSync(submission.zipFilePath).isFile() &&
       submission.zipFilePath.toLowerCase().endsWith('.zip')
     ) {
-      const stagingResult = await zipExtractorService.extractAndStage(
+      const stagingResult = await this.artifactExtractor.extractAndStage(
         submission.zipFilePath,
         submission.id
       );
@@ -146,4 +160,16 @@ export class SandboxService {
       sandboxScore: normalizedSandboxScore,
     };
   }
+
+  /**
+   * Static helper duy trì tính tương thích ngược
+   */
+  public static async gradeSubmission(
+    submissionId: string,
+    languageOverride?: string
+  ): Promise<SandboxExecutionSummary> {
+    return defaultSandboxService.gradeSubmission(submissionId, languageOverride);
+  }
 }
+
+export const defaultSandboxService = new SandboxService();

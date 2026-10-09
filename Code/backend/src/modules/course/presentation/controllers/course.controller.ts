@@ -42,7 +42,7 @@ export class CourseController {
 
   getCourses = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      let { lecturerId, studentId, search } = req.query as any;
+      let { lecturerId, studentId, search, scope } = req.query as any;
       const currentUser = req.user;
 
       // Data Isolation Policy:
@@ -50,13 +50,32 @@ export class CourseController {
       if (currentUser?.role === 'LECTURER') {
         lecturerId = currentUser.userId;
       }
-      // - STUDENT: Chỉ xem các môn học mình đã ghi danh
+      // - STUDENT: Mặc định xem các môn đã ghi danh; scope='all'/'catalog' cho phép xem danh mục tất cả lớp học
       else if (currentUser?.role === 'STUDENT') {
-        studentId = currentUser.userId;
+        if (scope === 'all' || scope === 'catalog') {
+          studentId = undefined;
+        } else {
+          studentId = currentUser.userId;
+        }
       }
       // - ADMIN: Toàn quyền xem mọi khóa học hoặc filter tự do
 
-      const courses = await this.getCoursesUseCase.execute({ lecturerId, studentId, search });
+      let courses = await this.getCoursesUseCase.execute({ lecturerId, studentId, search });
+
+      // Đối với vai trò STUDENT: Đánh dấu isEnrolled và ẩn enrollmentCode để bảo mật
+      if (currentUser?.role === 'STUDENT') {
+        courses = courses.map((c: any) => {
+          const isEnrolled = Array.isArray(c.enrolledStudentIds)
+            ? c.enrolledStudentIds.includes(currentUser.userId)
+            : false;
+          return {
+            ...c,
+            isEnrolled,
+            enrollmentCode: undefined, // Ẩn mã tham gia để sinh viên phải nhập mã do giảng viên cung cấp
+          };
+        });
+      }
+
       sendSuccess(res, courses, 'Lấy danh sách khóa học thành công.');
     } catch (error) {
       next(error);

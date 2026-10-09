@@ -1,13 +1,14 @@
 import { IAssignmentRepository } from '../../domain/repositories/assignment.repository.interface.js';
 import { ICourseRepository } from '../../../course/domain/repositories/course.repository.interface.js';
+import { IUserRepository } from '../../../user/domain/repositories/user.repository.interface.js';
 import { CreateAssignmentDto } from '../dtos/assignment.dto.js';
 import { NotFoundError, ForbiddenError } from '../../../../shared/domain/exceptions/app.error.js';
-import prisma from '../../../../infrastructure/database/prisma.client.js';
 
 export class CreateAssignmentUseCase {
   constructor(
     private readonly assignmentRepository: IAssignmentRepository,
-    private readonly courseRepository: ICourseRepository
+    private readonly courseRepository: ICourseRepository,
+    private readonly userRepository?: IUserRepository
   ) {}
 
   async execute(dto: CreateAssignmentDto, createdBy: string) {
@@ -18,12 +19,11 @@ export class CreateAssignmentUseCase {
 
     // Chỉ giảng viên phụ trách môn học hoặc ADMIN mới được tạo đề thi
     if (course.lecturerId !== createdBy) {
-      const creator = await prisma.user.findUnique({
-        where: { id: createdBy },
-        select: { role: true },
-      });
-      if (creator?.role !== 'ADMIN') {
-        throw new ForbiddenError('Bạn không có quyền tạo đề thi trong môn học của giảng viên khác.');
+      if (this.userRepository) {
+        const creator = await this.userRepository.findById(createdBy);
+        if (creator?.role !== 'ADMIN') {
+          throw new ForbiddenError('Bạn không có quyền tạo đề thi trong môn học của giảng viên khác.');
+        }
       }
     }
 
