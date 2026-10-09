@@ -114,14 +114,18 @@ export function ExamCard({ exam, featured = false }: ExamCardProps) {
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-slate-100 pt-4">
+        {/* Honest Supported State & Actions */}
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4 text-xs">
+          <div className="flex items-center gap-2 text-slate-600 font-medium">
+            <Clock3 className="h-4 w-4 text-blue-600 shrink-0" />
+            <span>Ca thi đang diễn ra. Nộp bài qua phòng máy LAB hoặc tệp ZIP theo hướng dẫn.</span>
+          </div>
           <Link
             href="/student/results"
-            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-xs font-semibold text-white shadow-sm transition-all duration-200 hover:bg-blue-700 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs transition-all hover:bg-slate-50 hover:shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
           >
-            <Sparkles className="h-4 w-4" />
-            <span>Xem kết quả &amp; Chấm điểm AI</span>
+            <Sparkles className="h-3.5 w-3.5 text-blue-600" />
+            <span>Tra cứu kết quả qua mã bài nộp</span>
           </Link>
         </div>
       </article>
@@ -184,13 +188,20 @@ export function ExamCard({ exam, featured = false }: ExamCardProps) {
         </div>
       </div>
 
-      <div className="mt-4 flex items-center justify-end gap-2 border-t border-slate-100 pt-3">
+      <div className="mt-4 flex items-center justify-between gap-2 border-t border-slate-100 pt-3">
+        <span className="text-[11px] text-slate-500 font-medium">
+          {temporalStatus === 'OPEN'
+            ? 'Đang mở nhận bài thi'
+            : temporalStatus === 'UPCOMING'
+              ? 'Chưa đến thời gian bắt đầu'
+              : 'Đã kết thúc ca thi'}
+        </span>
         <Link
           href="/student/results"
-          className="inline-flex min-h-8 items-center gap-1.5 rounded-xl border border-blue-100 bg-blue-50/60 px-3 py-1 text-xs font-semibold text-blue-700 shadow-2xs transition-all hover:bg-blue-100/80 hover:text-blue-800 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+          className="inline-flex min-h-8 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-2xs transition-all hover:bg-slate-50 hover:text-slate-900 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
         >
-          <FileCheck2 className="h-3.5 w-3.5" />
-          <span>Xem kết quả bài nộp</span>
+          <FileCheck2 className="h-3.5 w-3.5 text-slate-400" />
+          <span>Tra cứu qua mã bài nộp</span>
         </Link>
       </div>
     </article>

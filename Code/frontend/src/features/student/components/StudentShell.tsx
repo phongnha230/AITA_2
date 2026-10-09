@@ -52,7 +52,7 @@ function StudentShellContent({ children }: StudentShellProps) {
 
   return (
     <div
-      className="min-h-screen bg-[#F6F8FC] lg:pl-[264px]"
+      className="min-h-screen bg-[#F6F8FC] lg:pl-[280px]"
       style={{ fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif' }}
     >
       <StudentSidebar />

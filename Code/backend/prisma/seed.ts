@@ -58,16 +58,53 @@ async function main() {
         semester: 'Fall 2024',
       },
     },
-    update: {},
+    update: {
+      enrollmentCode: 'CSD201_FA24',
+      codeExpiresAt: new Date('2027-01-01T00:00:00.000Z'),
+    },
     create: {
       code: 'CSD201_FA24',
       name: 'Data Structures and Algorithms',
       semester: 'Fall 2024',
       lecturerId: lecturer.id,
       isActive: true,
+      enrollmentCode: 'CSD201_FA24',
+      codeExpiresAt: new Date('2027-01-01T00:00:00.000Z'),
     },
   });
-  console.log('✅ Tạo Course:', course.name, `(${course.code})`);
+  console.log('✅ Tạo Course:', course.name, `(${course.code}) | Invite Code: ${course.enrollmentCode}`);
+
+  // 5. Tạo Đề thi PE mẫu thuộc khóa học
+  const now = new Date();
+  const startTime = new Date(now.getTime() - 60 * 60 * 1000); // 1 giờ trước -> trạng thái OPEN
+  const deadline = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 ngày sau
+
+  const assignment = await prisma.assignment.upsert({
+    where: { id: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d' },
+    update: {
+      courseId: course.id,
+      title: 'CSD201 PE - Binary Search Tree & AVL',
+      description: 'Kỳ thi thực hành Practical Exam môn CSD201: Cài đặt Cây nhị phân tìm kiếm và cân bằng AVL.',
+      environment: 'JAVA_JDK',
+      submissionType: 'INDIVIDUAL',
+      startTime,
+      deadline,
+      status: 'PUBLISHED',
+    },
+    create: {
+      id: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
+      courseId: course.id,
+      title: 'CSD201 PE - Binary Search Tree & AVL',
+      description: 'Kỳ thi thực hành Practical Exam môn CSD201: Cài đặt Cây nhị phân tìm kiếm và cân bằng AVL.',
+      environment: 'JAVA_JDK',
+      submissionType: 'INDIVIDUAL',
+      startTime,
+      deadline,
+      status: 'PUBLISHED',
+      createdBy: lecturer.id,
+    },
+  });
+  console.log('✅ Tạo PE Assignment:', assignment.title, `(${assignment.status})`);
 
   console.log('🎉 Seeding hoàn tất thành công!');
 }

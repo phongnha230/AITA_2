@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Check, GraduationCap, Headphones, X } from 'lucide-react';
+import { GraduationCap, Headphones, ShieldCheck, X } from 'lucide-react';
 import { STUDENT_NAV_ITEMS } from './student-navigation';
 
 interface StudentSidebarProps {
@@ -25,8 +25,8 @@ export function StudentSidebar({
       role={mobile ? 'dialog' : undefined}
       className={
         mobile
-          ? 'fixed inset-y-0 left-0 z-50 flex w-[264px] flex-col border-r border-slate-200 bg-white px-4 py-5 shadow-xl lg:hidden'
-          : 'fixed inset-y-0 left-0 z-40 hidden w-[264px] flex-col border-r border-slate-200 bg-white px-4 py-5 lg:flex'
+          ? 'fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col border-r border-slate-200 bg-white px-3.5 py-5 shadow-xl lg:hidden'
+          : 'fixed inset-y-0 left-0 z-40 hidden w-[280px] flex-col border-r border-slate-200 bg-white px-3.5 py-5 lg:flex'
       }
     >
       <div className="flex h-14 items-center justify-between border-b border-slate-100 px-2 pb-4">
@@ -65,7 +65,7 @@ export function StudentSidebar({
                 href={href}
                 onClick={onNavigate}
                 aria-current={isActive ? 'page' : undefined}
-                className={`group flex min-h-11 items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
+                className={`group flex min-h-11 items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
                   isActive
                     ? 'bg-blue-600 font-bold text-white shadow-sm shadow-blue-600/30'
                     : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 font-medium'
@@ -77,13 +77,7 @@ export function StudentSidebar({
                     isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'
                   }`}
                 />
-                <span className="min-w-0 flex-1 truncate">{label}</span>
-                {isActive && (
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/20 text-white">
-                    <Check aria-hidden="true" className="h-3 w-3" />
-                    <span className="sr-only">Trang hiện tại</span>
-                  </span>
-                )}
+                <span className="min-w-0 flex-1 whitespace-nowrap">{label}</span>
               </Link>
             );
           })}
@@ -91,14 +85,15 @@ export function StudentSidebar({
       </div>
 
       <div className="mt-auto space-y-3 border-t border-slate-100 pt-4">
-        <div className="rounded-2xl border border-blue-100 bg-gradient-to-b from-blue-50/70 to-blue-50/30 p-3.5 text-xs shadow-elevated-sm">
-          <p className="font-bold text-blue-950">Hạ tầng Khảo thí AITA</p>
-          <p className="mt-1 text-[11px] leading-relaxed text-slate-600">
+        {/* Neutral Descriptive Infrastructure Card - No fake live operational claims */}
+        <div className="rounded-2xl border border-slate-200/80 bg-gradient-to-b from-slate-50/80 to-slate-50/40 p-3.5 text-xs shadow-elevated-sm">
+          <p className="font-bold text-slate-900">Hạ tầng Khảo thí AITA</p>
+          <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
             Môi trường Sandbox cô lập &amp; Đánh giá Rubric tự động kết nối máy chủ khảo thí.
           </p>
-          <div className="mt-2.5 flex items-center gap-1.5 text-[11px] font-semibold text-blue-700">
-            <span aria-hidden="true" className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            Hệ thống PE trực tuyến
+          <div className="mt-2.5 flex items-center gap-1.5 text-[11px] font-medium text-slate-600">
+            <ShieldCheck aria-hidden="true" className="h-3.5 w-3.5 text-blue-600" />
+            <span>Nền tảng Khảo thí &amp; Đánh giá PE</span>
           </div>
         </div>
         <Link

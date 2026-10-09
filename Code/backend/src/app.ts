@@ -3,6 +3,11 @@ import cors from 'cors';
 import apiRouter from './presentation/routes/index.js';
 import { errorHandler } from './shared/presentation/middlewares/error.middleware.js';
 
+// Enable BigInt JSON serialization for Prisma models (maxFileSizeBytes, zipFileSize)
+(BigInt.prototype as any).toJSON = function () {
+  return Number(this);
+};
+
 const app: Express = express();
 
 // Global Middlewares
