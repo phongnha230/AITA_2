@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { getStudentServiceErrorMessage, studentService } from '../services/student.service';
 import type {
   GradingJobInfo,
@@ -16,43 +16,33 @@ interface UseStudentSubmissionResult {
 }
 
 export function useStudentSubmission(submissionId: string | null): UseStudentSubmissionResult {
-  const [submission, setSubmission] = useState<ResourceState<StudentSubmissionDetail | null>>({
+  const [submission, setSubmission] = useState<ResourceState<StudentSubmissionDetail | null>>(() => ({
     status: submissionId ? 'loading' : 'success',
     data: null,
     error: null,
-  });
+  }));
   const [gradingJob, setGradingJob] = useState<GradingJobInfo | null>(null);
   const [isPolling, setIsPolling] = useState(false);
   const [attempt, setAttempt] = useState(0);
 
-  const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  const stopPolling = useCallback(() => {
-    if (pollTimerRef.current) {
-      clearInterval(pollTimerRef.current);
-      pollTimerRef.current = null;
-    }
-    setIsPolling(false);
-  }, []);
+  const cleanId = submissionId?.trim() ?? '';
 
   const refetch = useCallback(() => {
-    stopPolling();
+    setIsPolling(false);
     setSubmission((prev) => ({ ...prev, status: 'loading', error: null }));
     setAttempt((c) => c + 1);
-  }, [stopPolling]);
+  }, []);
 
+  // 1. Initial fetch of submission & job details
   useEffect(() => {
-    if (!submissionId || !submissionId.trim()) {
-      stopPolling();
+    if (!cleanId) {
+      setIsPolling(false);
       setSubmission({ status: 'success', data: null, error: null });
       setGradingJob(null);
       return;
     }
 
     let active = true;
-    const cleanId = submissionId.trim();
-
-    // 1. Initial fetch of submission and job status
     setSubmission((prev) => ({ ...prev, status: 'loading', error: null }));
 
     Promise.allSettled([
@@ -68,43 +58,16 @@ export function useStudentSubmission(submissionId: string | null): UseStudentSub
         setSubmission({ status: 'success', data: subData, error: null });
         setGradingJob(jobData);
 
-        // Check if job is in active/non-terminal state
         const currentStatus = jobData?.status ?? subData.status;
         const isTerminal = currentStatus === 'COMPLETED' || currentStatus === 'FAILED';
 
         if (!isTerminal && currentStatus) {
           setIsPolling(true);
-          // Start polling every 3 seconds
-          pollTimerRef.current = setInterval(async () => {
-            try {
-              const latestJob = await studentService.getGradingJobStatus(cleanId);
-              if (!active) return;
-
-              if (latestJob) {
-                setGradingJob(latestJob);
-
-                if (latestJob.status === 'COMPLETED' || latestJob.status === 'FAILED') {
-                  // Stop polling and refresh submission details
-                  stopPolling();
-                  try {
-                    const refreshedSub = await studentService.getSubmission(cleanId);
-                    if (active) {
-                      setSubmission({ status: 'success', data: refreshedSub, error: null });
-                    }
-                  } catch {
-                    // Refreshed fetch error handled silently
-                  }
-                }
-              }
-            } catch {
-              // Ignore temporary network glitch during polling
-            }
-          }, 3000);
         } else {
-          stopPolling();
+          setIsPolling(false);
         }
       } else {
-        stopPolling();
+        setIsPolling(false);
         setSubmission({
           status: 'error',
           data: null,
@@ -118,9 +81,44 @@ export function useStudentSubmission(submissionId: string | null): UseStudentSub
 
     return () => {
       active = false;
-      stopPolling();
     };
-  }, [submissionId, attempt, stopPolling]);
+  }, [cleanId, attempt]);
+
+  // 2. Dedicated polling effect with guaranteed synchronous timer lifecycle
+  useEffect(() => {
+    if (!isPolling || !cleanId) return;
+
+    let active = true;
+    const intervalId = setInterval(async () => {
+      if (!active) return;
+
+      try {
+        const latestJob = await studentService.getGradingJobStatus(cleanId);
+        if (!active || !latestJob) return;
+
+        setGradingJob(latestJob);
+
+        if (latestJob.status === 'COMPLETED' || latestJob.status === 'FAILED') {
+          setIsPolling(false);
+          try {
+            const refreshedSub = await studentService.getSubmission(cleanId);
+            if (active) {
+              setSubmission({ status: 'success', data: refreshedSub, error: null });
+            }
+          } catch {
+            // Refreshed fetch error handled silently
+          }
+        }
+      } catch {
+        // Ignore temporary network glitch during polling
+      }
+    }, 3000);
+
+    return () => {
+      active = false;
+      clearInterval(intervalId);
+    };
+  }, [isPolling, cleanId]);
 
   return {
     submission,

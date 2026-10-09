@@ -45,18 +45,44 @@ export class GitIngestionService {
 
     try {
       // 1. Git Clone với depth 50 để lấy lịch sử commits gần nhất
-      await execFileAsync('git', ['clone', '--depth', '50', cleanRepoUrl, workspacePath], {
-        timeout: 60000,
-      });
+      try {
+        await execFileAsync('git', ['clone', '--depth', '50', cleanRepoUrl, workspacePath], {
+          timeout: 60000,
+        });
+      } catch (cloneErr: any) {
+        const errorMsg = cloneErr.stderr || cloneErr.message || '';
+        if (
+          errorMsg.includes('Authentication failed') ||
+          errorMsg.includes('Repository not found') ||
+          errorMsg.includes('fatal: could not read Username')
+        ) {
+          throw new ValidationError(
+            'Không thể truy cập GitHub repository. Vui lòng đảm bảo repository ở chế độ Public (công khai) hoặc đường dẫn chính xác.'
+          );
+        }
+        throw new ValidationError(`Lỗi khi clone Git repository: ${errorMsg}`);
+      }
 
       // 2. Checkout Commit cụ thể nếu sinh viên chỉ định
       let resolvedHash = gitCommitHash || '';
       if (gitCommitHash && gitCommitHash.trim()) {
-        await execFileAsync('git', ['checkout', gitCommitHash.trim()], {
-          cwd: workspacePath,
-          timeout: 10000,
-        });
-        resolvedHash = gitCommitHash.trim();
+        const cleanHash = gitCommitHash.trim();
+        // Chỉ chấp nhận hex hash 7–40 ký tự — chặn argument injection (vd: --orphan)
+        if (!/^[a-f0-9]{7,40}$/i.test(cleanHash)) {
+          throw new ValidationError(
+            'Mã Git Commit Hash không hợp lệ. Chỉ chấp nhận mã hex 7–40 ký tự (ví dụ: a3f1c2d).'
+          );
+        }
+        try {
+          // Truyền cleanHash sau DETACH HEAD mode để git không hiểu là flag
+          await execFileAsync('git', ['-c', 'advice.detachedHead=false', 'checkout', cleanHash, '--'], {
+            cwd: workspacePath,
+            timeout: 10000,
+          });
+          resolvedHash = cleanHash;
+        } catch {
+          throw new ValidationError(`Mã Git Commit Hash '${cleanHash}' không tồn tại trong repository.`);
+        }
       } else {
         const { stdout: headHash } = await execFileAsync('git', ['rev-parse', 'HEAD'], {
           cwd: workspacePath,
@@ -160,13 +186,44 @@ export class GitIngestionService {
         });
       }
 
-      // 6. Kiểm tra có config Vercel / Target URL hay không
+      // 6. Kiểm tra có config Vercel / Target URL / Homepage hay không
       let extractedVercelUrl: string | undefined;
       try {
-        const vercelPath = path.join(workspacePath, 'vercel.json');
-        const vercelData = JSON.parse(await fs.readFile(vercelPath, 'utf8'));
-        if (vercelData.alias) {
-          extractedVercelUrl = `https://${vercelData.alias}`;
+        // Ưu tiên 1: file target_url.txt
+        const targetUrlPath = path.join(workspacePath, 'target_url.txt');
+        try {
+          const targetUrl = await fs.readFile(targetUrlPath, 'utf8');
+          if (targetUrl.trim().startsWith('http')) {
+            extractedVercelUrl = targetUrl.trim();
+          }
+        } catch {
+          // ignore
+        }
+
+        // Ưu tiên 2: file vercel.json
+        if (!extractedVercelUrl) {
+          const vercelPath = path.join(workspacePath, 'vercel.json');
+          try {
+            const vercelData = JSON.parse(await fs.readFile(vercelPath, 'utf8'));
+            if (vercelData.alias) {
+              extractedVercelUrl = `https://${vercelData.alias}`;
+            }
+          } catch {
+            // ignore
+          }
+        }
+
+        // Ưu tiên 3: package.json homepage
+        if (!extractedVercelUrl) {
+          const pkgPath = path.join(workspacePath, 'package.json');
+          try {
+            const pkgData = JSON.parse(await fs.readFile(pkgPath, 'utf8'));
+            if (pkgData.homepage && typeof pkgData.homepage === 'string' && pkgData.homepage.startsWith('http')) {
+              extractedVercelUrl = pkgData.homepage.trim();
+            }
+          } catch {
+            // ignore
+          }
         }
       } catch {
         // ignore
@@ -182,6 +239,7 @@ export class GitIngestionService {
       };
     } catch (err: any) {
       await this.workspace.cleanupWorkspace(submissionId);
+      if (err instanceof ValidationError) throw err;
       throw new Error(`[GitIngestionService] Lỗi khi clone và xử lý Git repo: ${err.message}`);
     }
   }

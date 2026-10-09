@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { StudentHeader } from './StudentHeader';
 import { StudentSidebar } from './StudentSidebar';
 import { StudentProfileProvider, useStudentProfile } from '../hooks/useStudentProfile';
+import { AiTutorFloatingButton } from './ai-tutor/AiTutorFloatingButton';
 
 interface StudentShellProps {
   children: ReactNode;
@@ -80,6 +81,7 @@ function StudentShellContent({ children }: StudentShellProps) {
         <main className="mx-auto min-h-[calc(100vh-4rem)] w-full max-w-[1360px] px-4 py-6 sm:px-6 sm:py-7 xl:px-8">
           {children}
         </main>
+        <AiTutorFloatingButton />
       </div>
     </div>
   );

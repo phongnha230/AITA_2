@@ -4,11 +4,17 @@ import { authenticateJWT, authorizeRoles } from '../../../auth/presentation/midd
 
 const router = Router();
 
-// 1. Kiểm tra trạng thái máy chủ Sandbox
+// 1. Kiểm tra trạng thái máy chủ Sandbox (public — thông tin không nhạy cảm)
 router.get('/status', SandboxController.getStatus);
 
 // 2. Chạy thử nghiệm Sandbox trực tiếp qua code gửi lên
-router.post('/execute', SandboxController.executeCode);
+//    Yêu cầu đăng nhập để ngăn RCE từ unauthenticated bên ngoài
+router.post(
+  '/execute',
+  authenticateJWT,
+  authorizeRoles('ADMIN', 'LECTURER', 'STUDENT'),
+  SandboxController.executeCode
+);
 
 // 3. Chấm điểm bài nộp theo ID trong CSDL
 router.post(

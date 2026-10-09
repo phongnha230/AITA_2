@@ -41,6 +41,16 @@ const envSchema = z.object({
   WORKSPACE_DIR: z.string().default('./workspaces'),
   MAX_FILE_SIZE_MB: z.coerce.number().default(50),
 
+  // Email SMTP & OTP
+  SMTP_HOST: z.string().default('smtp.gmail.com'),
+  SMTP_PORT: z.coerce.number().default(587),
+  SMTP_USER: z.string().optional().default(''),
+  SMTP_PASS: z.string().optional().default(''),
+  EMAIL_FROM: z.string().optional().default('AITA System <no-reply@aita.edu.vn>'),
+
+  // Google reCAPTCHA v2
+  RECAPTCHA_SECRET_KEY: z.string().optional().default(''),
+
   // AI LLM & Vector DB
   CHROMA_DB_URL: z.string().optional().default('http://localhost:8000'),
   GEMINI_API_KEYS: z.string().optional().default(''),

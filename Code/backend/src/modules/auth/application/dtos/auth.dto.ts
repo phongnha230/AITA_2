@@ -11,16 +11,33 @@ export const RegisterSchema = z.object({
   email: z.string().email('Email không đúng định dạng.'),
   password: z.string().min(6, 'Mật khẩu phải có ít nhất 6 ký tự.'),
   fullName: z.string().min(2, 'Họ và tên tối thiểu 2 ký tự.').max(100),
-  role: z.enum(['STUDENT', 'LECTURER']).default('STUDENT'),
+  // Chỉ cho phép đăng ký vai trò STUDENT — LECTURER/ADMIN chỉ được tạo bởi ADMIN
+  role: z.literal('STUDENT').default('STUDENT'),
+  recaptchaToken: z.string().optional(),
 });
 
 export type RegisterDto = z.infer<typeof RegisterSchema>;
 
 export const RefreshTokenSchema = z.object({
-  refreshToken: z.string().min(1, 'Vui lòng cung cấp refreshToken.'),
+  refreshToken: z.string().optional(),
 });
 
 export type RefreshTokenDto = z.infer<typeof RefreshTokenSchema>;
+
+export const SendOtpSchema = z.object({
+  email: z.string().email('Email không đúng định dạng.'),
+  fullName: z.string().optional(),
+  recaptchaToken: z.string().optional(),
+});
+
+export type SendOtpDto = z.infer<typeof SendOtpSchema>;
+
+export const VerifyOtpSchema = z.object({
+  email: z.string().email('Email không đúng định dạng.'),
+  otp: z.string().length(6, 'Mã OTP phải có đúng 6 chữ số.'),
+});
+
+export type VerifyOtpDto = z.infer<typeof VerifyOtpSchema>;
 
 export const GoogleLoginCodeSchema = z.object({
   code: z.string().min(1, 'Vui lòng cung cấp mã code xác thực từ Google.'),

@@ -86,6 +86,12 @@ export class SandboxController {
         } else {
           codeFileName = 'main.c';
         }
+      } else {
+        // Sanitize: chỉ giữ tên file đơn giản, loại bỏ path traversal
+        codeFileName = path.basename(codeFileName as string).replace(/[^a-zA-Z0-9._-]/g, '_');
+        if (!codeFileName || codeFileName === '.' || codeFileName === '..') {
+          codeFileName = ['JAVA', 'PRO192', 'CSD201'].includes(langUpper) ? 'Main.java' : 'main.c';
+        }
       }
 
       fs.writeFileSync(path.join(tempDir, codeFileName), sourceCode, 'utf-8');

@@ -29,6 +29,17 @@ export class ManageApiKeysUseCase {
     return keys.map((k) => k.toJSON());
   }
 
+  public async toggleKey(id: string, isActive?: boolean) {
+    const key = await this.apiKeyRepository.findById(id);
+    if (!key) {
+      throw new NotFoundError(`API Key với ID: ${id}`);
+    }
+
+    const nextState = typeof isActive === 'boolean' ? isActive : !key.isActive;
+    const updated = await this.apiKeyRepository.update(id, { isActive: nextState });
+    return updated.toJSON();
+  }
+
   public async deleteKey(id: string) {
     const key = await this.apiKeyRepository.findById(id);
     if (!key) {

@@ -9,7 +9,7 @@ export class CreateCourseUseCase {
     private readonly userRepository: IUserRepository
   ) {}
 
-  async execute(dto: CreateCourseDto) {
+  async execute(dto: CreateCourseDto & { lecturerId: string }) {
     const lecturer = await this.userRepository.findById(dto.lecturerId);
     if (!lecturer) {
       throw new NotFoundError(`Giảng viên với ID: ${dto.lecturerId}`);
