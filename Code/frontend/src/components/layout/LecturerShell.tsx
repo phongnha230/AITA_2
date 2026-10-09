@@ -17,10 +17,13 @@ import {
   ExternalLink,
   ChevronRight,
   ShieldCheck,
+  KeyRound,
 } from 'lucide-react';
 import { authService, type User } from '@/features/auth/services/auth.service';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { ChangePasswordModal } from '@/features/auth/components/ChangePasswordModal';
+import { AiTutorConfigModal } from '@/features/lecturer/components/AiTutorConfigModal';
 
 interface LecturerShellProps {
   children: React.ReactNode;
@@ -32,6 +35,8 @@ export const LecturerShell: React.FC<LecturerShellProps> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [notificationToast, setNotificationToast] = useState<string | null>(null);
+  const [isAiConfigOpen, setIsAiConfigOpen] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
 
   useEffect(() => {
     const user = authService.getStoredUser();
@@ -198,10 +203,10 @@ export const LecturerShell: React.FC<LecturerShellProps> = ({ children }) => {
             </Link>
 
             <button
-              onClick={() => showToast('Module Cấu hình AI Tutor đang hoàn thiện')}
-              className="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition text-left"
+              onClick={() => setIsAiConfigOpen(true)}
+              className="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition text-left group"
             >
-              <Bot className="w-4 h-4 shrink-0" />
+              <Bot className="w-4 h-4 shrink-0 text-indigo-400 group-hover:scale-110 transition" />
               <span>Cấu hình AI Tutor</span>
             </button>
           </nav>
@@ -248,21 +253,33 @@ export const LecturerShell: React.FC<LecturerShellProps> = ({ children }) => {
                 </p>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleLogout}
-              className="h-8 w-8 text-slate-400 hover:text-rose-400 hover:bg-slate-800/80 transition"
-              title="Đăng xuất"
-            >
-              <LogOut className="w-4 h-4" />
-            </Button>
+            <div className="flex items-center gap-0.5 shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsChangePasswordOpen(true)}
+                className="h-8 w-8 text-slate-400 hover:text-indigo-400 hover:bg-slate-800/80 transition"
+                title="Đổi mật khẩu"
+              >
+                <KeyRound className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleLogout}
+                className="h-8 w-8 text-slate-400 hover:text-rose-400 hover:bg-slate-800/80 transition"
+                title="Đăng xuất"
+              >
+                <LogOut className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </aside>
 
+
       {/* MAIN CONTENT AREA */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-slate-100">
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden bg-slate-100">
         {/* Top Header Bar */}
         <header className="sticky top-0 z-30 h-14 bg-white/95 backdrop-blur-md border-b border-slate-200/90 px-4 sm:px-6 lg:px-8 flex items-center justify-between shrink-0 shadow-2xs">
           <div className="flex items-center gap-3">
@@ -314,6 +331,17 @@ export const LecturerShell: React.FC<LecturerShellProps> = ({ children }) => {
           {children}
         </main>
       </div>
+
+      {/* Modals */}
+      <AiTutorConfigModal
+        open={isAiConfigOpen}
+        onClose={() => setIsAiConfigOpen(false)}
+      />
+      <ChangePasswordModal
+        open={isChangePasswordOpen}
+        onClose={() => setIsChangePasswordOpen(false)}
+      />
     </div>
   );
 };
+

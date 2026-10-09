@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Plus, FileCode2 } from 'lucide-react';
+import { ChevronLeft, Plus, FileCode2, UserPlus, Users, Users2 } from 'lucide-react';
 import { Course } from '../types/course.types';
 import { useCourseDetail } from '../hooks/useCourseDetail';
 import { Card } from '@/components/ui/card';
@@ -12,6 +12,9 @@ import { DynamicJoinCodeCard } from './DynamicJoinCodeCard';
 import { CourseTelemetryStats } from './CourseTelemetryStats';
 import { EnrolledStudentsTable } from './EnrolledStudentsTable';
 import { QrCodeModal } from './QrCodeModal';
+import { BatchEnrollModal } from './BatchEnrollModal';
+import { CourseTeamsTab } from '@/features/teams/components/CourseTeamsTab';
+
 
 interface CourseDetailManagementProps {
   course: Course;
@@ -48,7 +51,11 @@ export const CourseDetailManagement: React.FC<CourseDetailManagementProps> = ({
     initialCourse,
   });
 
+  const [activeTab, setActiveTab] = useState<'ROSTER' | 'TEAMS'>('ROSTER');
+  const [isBatchEnrollOpen, setIsBatchEnrollOpen] = useState(false);
+
   const activeCourse = course || initialCourse;
+
 
   // Real Handoff Handlers for Assignment & PE Exam (Connected to Bao's module)
   const handleTriggerHandoff = (type: 'ASSIGNMENT' | 'PE_EXAM') => {
@@ -103,8 +110,19 @@ export const CourseDetailManagement: React.FC<CourseDetailManagementProps> = ({
           </p>
         </div>
 
-        {/* Bên phải: 2 Action Buttons (ĐỒNG BỘ TUYỆT ĐỐI KÍCH THƯỚC: h-10 px-4 font-bold text-xs) */}
+        {/* Bên phải: Action Buttons */}
         <div className="flex flex-wrap items-center gap-2.5 shrink-0 pt-2 xl:pt-0">
+          {/* Button: [+ Ghi danh học viên] */}
+          <Button
+            variant="outline"
+            onClick={() => setIsBatchEnrollOpen(true)}
+            className="h-10 px-3.5 rounded-xl border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs transition shadow-2xs hover:border-slate-400 active:scale-95 inline-flex items-center justify-center gap-1.5 whitespace-nowrap"
+            title="Ghi danh học viên theo danh sách ID"
+          >
+            <UserPlus className="w-4 h-4 text-indigo-600 shrink-0" />
+            <span>Ghi danh học viên</span>
+          </Button>
+
           {/* Button Phụ: [+ Tạo Assignment] */}
           <Button
             variant="outline"
@@ -128,37 +146,76 @@ export const CourseDetailManagement: React.FC<CourseDetailManagementProps> = ({
         </div>
       </Card>
 
-      {/* CỤM 2: Khu vực Quản lý Mã tham gia động (Dynamic Join Code / OTP Card) */}
-      <DynamicJoinCodeCard
-        joinCode={joinCode}
-        formattedCountdown={formattedCountdown}
-        isEnrollOpen={isEnrollOpen}
-        onCopyCode={copyCodeToClipboard}
-        onRegenerateCode={regenerateCode}
-        onOpenQrModal={() => setIsQrModalOpen(true)}
-        onToggleEnroll={toggleEnrollmentStatus}
-      />
+      {/* CỤM TAB: Phân đoạn Roster và Teams */}
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+        <button
+          type="button"
+          onClick={() => setActiveTab('ROSTER')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+            activeTab === 'ROSTER'
+              ? 'bg-indigo-600 text-white shadow-xs'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+          }`}
+        >
+          <Users className="w-4 h-4" />
+          <span>Danh sách sinh viên (Roster)</span>
+        </button>
 
-      {/* CỤM 3: Thông số khóa học (Spacious Vertical Layout) */}
-      <CourseTelemetryStats
-        enrolledCount={activeCourse.enrolledStudentsCount || activeCourse._count?.enrollments || 38}
-        capacity={activeCourse.capacity || 40}
-        attendanceRate={94.5}
-      />
+        <button
+          type="button"
+          onClick={() => setActiveTab('TEAMS')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+            activeTab === 'TEAMS'
+              ? 'bg-indigo-600 text-white shadow-xs'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+          }`}
+        >
+          <Users2 className="w-4 h-4" />
+          <span>Nhóm đồ án &amp; Bài tập lớn (Teams)</span>
+        </button>
+      </div>
 
-      {/* CỤM 4: Danh sách sinh viên tham gia */}
-      <EnrolledStudentsTable
-        enrollments={filteredEnrollments}
-        studentSearch={studentSearch}
-        onSearchChange={setStudentSearch}
-        statusFilter={studentStatusFilter}
-        onStatusFilterChange={setStudentStatusFilter}
-        isShowingEmptyStateDemo={isShowingEmptyStateDemo}
-        onToggleEmptyStateDemo={toggleEmptyStateDemo}
-        joinCode={joinCode}
-        onRemoveStudent={removeStudent}
-        onShowToast={onShowToast}
-      />
+      {activeTab === 'ROSTER' ? (
+        <>
+          {/* CỤM 2: Khu vực Quản lý Mã tham gia động (Dynamic Join Code / OTP Card) */}
+          <DynamicJoinCodeCard
+            joinCode={joinCode}
+            formattedCountdown={formattedCountdown}
+            isEnrollOpen={isEnrollOpen}
+            onCopyCode={copyCodeToClipboard}
+            onRegenerateCode={regenerateCode}
+            onOpenQrModal={() => setIsQrModalOpen(true)}
+            onToggleEnroll={toggleEnrollmentStatus}
+          />
+
+          {/* CỤM 3: Thông số khóa học (Spacious Vertical Layout) */}
+          <CourseTelemetryStats
+            enrolledCount={activeCourse.enrolledStudentsCount || activeCourse._count?.enrollments || 38}
+            capacity={activeCourse.capacity || 40}
+            attendanceRate={94.5}
+          />
+
+          {/* CỤM 4: Danh sách sinh viên tham gia */}
+          <EnrolledStudentsTable
+            enrollments={filteredEnrollments}
+            studentSearch={studentSearch}
+            onSearchChange={setStudentSearch}
+            statusFilter={studentStatusFilter}
+            onStatusFilterChange={setStudentStatusFilter}
+            isShowingEmptyStateDemo={isShowingEmptyStateDemo}
+            onToggleEmptyStateDemo={toggleEmptyStateDemo}
+            joinCode={joinCode}
+            onRemoveStudent={removeStudent}
+            onShowToast={onShowToast}
+          />
+        </>
+      ) : (
+        <CourseTeamsTab
+          courseId={activeCourse.id}
+          courseName={activeCourse.name}
+          onShowToast={onShowToast}
+        />
+      )}
 
       {/* QR Code Presentation Modal */}
       <QrCodeModal
@@ -169,6 +226,16 @@ export const CourseDetailManagement: React.FC<CourseDetailManagementProps> = ({
         courseName={activeCourse.name}
         formattedCountdown={formattedCountdown}
       />
+
+      {/* Batch Enroll Modal */}
+      <BatchEnrollModal
+        courseId={activeCourse.id}
+        courseName={activeCourse.name}
+        isOpen={isBatchEnrollOpen}
+        onClose={() => setIsBatchEnrollOpen(false)}
+        onSuccess={(count) => onShowToast(`Đã ghi danh ${count} học viên vào lớp thành công!`)}
+      />
     </div>
   );
+
 };

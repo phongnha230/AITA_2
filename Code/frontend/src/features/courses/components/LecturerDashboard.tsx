@@ -96,7 +96,7 @@ export const LecturerDashboard: React.FC<LecturerDashboardProps> = ({ initialCou
           onOpenCreateModal={() => setIsCreateModalOpen(true)}
         />
       ) : currentCourse ? (
-        <div className="p-4 sm:p-6 lg:p-8">
+        <div className="w-full">
           <CourseDetailManagement
             course={currentCourse}
             onBackToOverview={handleBackToOverview}

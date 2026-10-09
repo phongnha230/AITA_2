@@ -370,6 +370,15 @@ export const courseService = {
   },
 
   /**
+   * Giảng viên ghi danh học viên vào lớp theo danh sách ID
+   */
+  async enrollStudents(courseId: string, studentIds: string[]): Promise<{ enrolledCount: number }> {
+    const response = await api.post(`/courses/${courseId}/enroll`, { studentIds });
+    return response.data?.data || { enrolledCount: studentIds.length };
+  },
+
+
+  /**
    * Tính toán KPI tổng quan của giảng viên
    */
   calculateKpis(courses: Course[]): LecturerKpiMetrics {

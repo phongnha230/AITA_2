@@ -844,7 +844,7 @@ public class MyCar implements ICar {
                 onClick={() => setActiveStep(step.number as any)}
                 className={`flex items-center gap-3 p-3 rounded-xl text-left transition ${
                   isCurrent
-                    ? 'bg-blue-50/80 border border-blue-200 shadow-sm'
+                    ? 'bg-indigo-50/80 border border-indigo-200 shadow-sm'
                     : isPassed
                     ? 'hover:bg-slate-50 text-slate-700'
                     : 'hover:bg-slate-50 text-slate-400'
@@ -853,7 +853,7 @@ public class MyCar implements ICar {
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 transition ${
                     isCurrent
-                      ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
+                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
                       : isPassed
                       ? 'bg-emerald-500 text-white'
                       : 'bg-slate-100 text-slate-500'
@@ -864,7 +864,7 @@ public class MyCar implements ICar {
                 <div className="overflow-hidden">
                   <div
                     className={`font-bold text-xs truncate ${
-                      isCurrent ? 'text-blue-900' : isPassed ? 'text-slate-800' : 'text-slate-500'
+                      isCurrent ? 'text-indigo-950' : isPassed ? 'text-slate-800' : 'text-slate-500'
                     }`}
                   >
                     {step.title}

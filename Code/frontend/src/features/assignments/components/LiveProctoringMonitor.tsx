@@ -1367,8 +1367,8 @@ export const LiveProctoringMonitor: React.FC = () => {
       {/* 5. MODAL: CHI TIẾT BÀI THI CỦA THÍ SINH (INSPECT MODAL) */}
       {inspectStudent && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] flex flex-col border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 shrink-0">
               <div className="flex items-center gap-2">
                 <span className="font-mono text-xs font-black px-2.5 py-1 rounded-lg bg-slate-900 text-white">
                   {inspectStudent.pcNumber}
@@ -1386,7 +1386,7 @@ export const LiveProctoringMonitor: React.FC = () => {
               </button>
             </div>
 
-            <div className="p-6 space-y-4 text-xs">
+            <div className="p-6 space-y-4 text-xs overflow-y-auto flex-1">
               <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-100">
                 <div>
                   <div className="font-extrabold text-sm text-slate-900">
@@ -1470,10 +1470,10 @@ export const LiveProctoringMonitor: React.FC = () => {
       {/* 6. MODAL: PHÁT THÔNG BÁO CHO THÍ SINH (BROADCAST) */}
       {broadcastModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+          <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 shrink-0">
               <div className="flex items-center gap-2">
-                <Megaphone className="w-4 h-4 text-blue-600" />
+                <Megaphone className="w-4 h-4 text-indigo-600" />
                 <span className="font-extrabold text-sm text-slate-900">
                   Phát Thông Báo Tới Toàn Bộ Máy Thi
                 </span>
@@ -1487,7 +1487,7 @@ export const LiveProctoringMonitor: React.FC = () => {
               </button>
             </div>
 
-            <div className="p-5 space-y-3">
+            <div className="p-5 space-y-3 overflow-y-auto flex-1">
               <p className="text-xs text-slate-500">
                 Nội dung sẽ hiển thị dạng thông báo khẩn cấp trên màn hình Kiosk của toàn bộ 24 thí sinh trong phòng Lab 302:
               </p>
