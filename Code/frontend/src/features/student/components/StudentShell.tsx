@@ -64,7 +64,7 @@ function StudentShellContent({ children }: StudentShellProps) {
             type="button"
             aria-label="Đóng menu điều hướng"
             onClick={closeMenu}
-            className="fixed inset-0 z-40 bg-slate-900/30 lg:hidden"
+            className="fixed inset-0 z-40 bg-slate-950/50 backdrop-blur-xs transition-opacity lg:hidden cursor-pointer w-full h-full border-none p-0"
           />
           <StudentSidebar mobile onNavigate={closeMenu} />
         </>

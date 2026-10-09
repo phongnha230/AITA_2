@@ -7,6 +7,7 @@ import { useStudentCourses } from '../../hooks/useStudentCourses';
 import type { StudentProfileUpdate } from '../../types/student.types';
 import { StudentPageHeading } from '../shared/StudentPageHeading';
 import { ProfileEditModal } from './ProfileEditModal';
+import { ChangePasswordModal } from '@/features/auth/components/ChangePasswordModal';
 import { ProfileCourses } from './ProfileCourses';
 import { ProfileExamHistory, ProfileMetricGrid, ProfileSkillRadar } from './ProfileCompetencyPanel';
 import { ProfileIdentityCard } from './ProfileIdentityCard';
@@ -15,8 +16,10 @@ export function StudentProfile() {
   const { profile, status, error, retry, updateProfile } = useStudentProfile();
   const academic = useStudentCourses();
   const [editOpen, setEditOpen] = useState(false);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
   const closeEdit = useCallback(() => setEditOpen(false), []);
+
   const saveProfile = useCallback(
     (data: StudentProfileUpdate) => updateProfile(data),
     [updateProfile],
@@ -58,7 +61,11 @@ export function StudentProfile() {
       )}
 
       {status === 'success' && profile && (
-        <ProfileIdentityCard profile={profile} onEdit={() => setEditOpen(true)} />
+        <ProfileIdentityCard
+          profile={profile}
+          onEdit={() => setEditOpen(true)}
+          onChangePassword={() => setChangePasswordOpen(true)}
+        />
       )}
 
       <ProfileMetricGrid />
@@ -88,6 +95,12 @@ export function StudentProfile() {
           onSave={saveProfile}
         />
       )}
+
+      <ChangePasswordModal
+        open={changePasswordOpen}
+        onClose={() => setChangePasswordOpen(false)}
+      />
     </div>
   );
 }
+

@@ -1,6 +1,7 @@
 'use client';
 
-import { BookOpen, RefreshCw } from 'lucide-react';
+import Link from 'next/link';
+import { ArrowRight, BookOpen, GraduationCap, RefreshCw } from 'lucide-react';
 import type { ResourceState, StudentCourse } from '../../types/student.types';
 
 interface MyClassesProps {
@@ -15,7 +16,7 @@ export function MyClasses({ state, onRetry, onJoin }: MyClassesProps) {
       aria-label="Danh sách lớp học"
       className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-elevated"
     >
-      <div className="mb-5 flex items-center justify-between gap-4 border-b border-slate-100 pb-4">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
         <div className="flex items-center gap-3">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700 ring-1 ring-blue-100/80">
             <BookOpen aria-hidden="true" className="h-5 w-5" />
@@ -33,17 +34,27 @@ export function MyClasses({ state, onRetry, onJoin }: MyClassesProps) {
           </div>
         </div>
 
-        {state.status === 'error' && (
-          <button
-            type="button"
-            onClick={onRetry}
-            aria-label="Thử tải lại lớp học"
-            className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-elevated-sm transition-all hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+        <div className="flex items-center gap-2">
+          <Link
+            href="/student/courses"
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50/70 px-3 text-xs font-semibold text-blue-700 transition-all hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
           >
-            <RefreshCw aria-hidden="true" className="h-3.5 w-3.5" />
-            <span>Thử lại</span>
-          </button>
-        )}
+            <GraduationCap className="h-3.5 w-3.5" />
+            <span>Khám phá tất cả lớp</span>
+            <ArrowRight className="h-3 w-3" />
+          </Link>
+          {state.status === 'error' && (
+            <button
+              type="button"
+              onClick={onRetry}
+              aria-label="Thử tải lại lớp học"
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-elevated-sm transition-all hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+            >
+              <RefreshCw aria-hidden="true" className="h-3.5 w-3.5" />
+              <span>Thử lại</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {state.status === 'loading' && (
@@ -67,13 +78,22 @@ export function MyClasses({ state, onRetry, onJoin }: MyClassesProps) {
           </span>
           <p className="mt-3.5 text-sm font-bold text-slate-800">Bạn chưa tham gia lớp học nào.</p>
           <p className="mt-1 max-w-sm text-xs text-slate-500">Dùng mã do giảng viên cung cấp để tham gia lớp học.</p>
-          <button
-            type="button"
-            onClick={onJoin}
-            className="mt-4 inline-flex min-h-10 items-center justify-center rounded-xl bg-blue-600 px-5 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
-          >
-            Tham gia lớp học
-          </button>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2.5">
+            <button
+              type="button"
+              onClick={onJoin}
+              className="inline-flex min-h-10 items-center justify-center rounded-xl bg-blue-600 px-5 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+            >
+              Nhập mã tham gia
+            </button>
+            <Link
+              href="/student/courses"
+              className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+            >
+              <GraduationCap className="h-4 w-4 text-blue-600" />
+              <span>Xem danh sách lớp của các GV</span>
+            </Link>
+          </div>
         </div>
       )}
 

@@ -126,7 +126,7 @@ export function AiTutorFloatingButton() {
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-full bg-indigo-600 px-4 py-3 text-white shadow-xl shadow-indigo-600/30 transition-all hover:bg-indigo-700 hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
+          className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex items-center gap-2.5 rounded-full bg-indigo-600 px-4 py-3 text-white shadow-xl shadow-indigo-600/30 transition-all hover:bg-indigo-700 hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
         >
           <Sparkles className="h-5 w-5 animate-pulse text-amber-300" />
           <span className="text-xs font-bold tracking-wide">Trợ giảng Socratic AI</span>
@@ -135,7 +135,7 @@ export function AiTutorFloatingButton() {
 
       {/* Floating Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 z-50 flex h-[540px] w-[360px] sm:w-[400px] flex-col overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-2xl animate-in slide-in-from-bottom-5">
+        <div className="fixed bottom-4 right-4 left-4 sm:left-auto sm:right-6 sm:bottom-6 z-50 flex h-[540px] max-h-[82vh] sm:max-h-[580px] w-auto sm:w-[400px] flex-col overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-2xl animate-in slide-in-from-bottom-5">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-slate-100 bg-slate-900 px-4 py-3 text-white">
             <div className="flex items-center gap-2.5">

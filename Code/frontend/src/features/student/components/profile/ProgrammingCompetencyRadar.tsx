@@ -28,10 +28,11 @@ export function ProgrammingCompetencyRadar({
   const hasRealData = categories.some((c) => c.score !== null && Number.isFinite(c.score));
 
   // Radar geometry constants
-  const size = 420;
-  const cx = 210;
-  const cy = 160;
-  const radius = 105;
+  const sizeX = 460;
+  const sizeY = 320;
+  const cx = 230;
+  const cy = 155;
+  const radius = 92;
   const numAxes = categories.length;
   const ringLevels = [0.2, 0.4, 0.6, 0.8, 1.0];
 
@@ -53,7 +54,7 @@ export function ProgrammingCompetencyRadar({
     const yOuter = cy + radius * Math.sin(angle);
 
     // Label position slightly outside radius
-    const labelDistance = radius + 24;
+    const labelDistance = radius + 20;
     const lx = cx + labelDistance * Math.cos(angle);
     const ly = cy + labelDistance * Math.sin(angle);
 
@@ -116,8 +117,8 @@ export function ProgrammingCompetencyRadar({
       {/* Spider Web Chart Area */}
       <div className="relative mt-2 flex flex-col items-center">
         <svg
-          viewBox={`0 0 ${size} ${size - 70}`}
-          className="h-auto w-full max-w-[380px] overflow-visible"
+          viewBox={`0 0 ${sizeX} ${sizeY}`}
+          className="h-auto w-full max-w-[420px] overflow-visible"
           role="img"
           aria-label="Biểu đồ mạng nhện năng lực lập trình"
         >

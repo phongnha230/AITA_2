@@ -17,6 +17,7 @@ interface GradingLifecycleProgressProps {
   gradingJob: GradingJobInfo | null;
   submissionStatus: string;
   isPolling: boolean;
+  isStreaming?: boolean;
 }
 
 interface StepDef {
@@ -91,6 +92,7 @@ export function GradingLifecycleProgress({
   gradingJob,
   submissionStatus,
   isPolling,
+  isStreaming,
 }: GradingLifecycleProgressProps) {
   const currentStatus = (gradingJob?.status ?? submissionStatus ?? 'QUEUED').toUpperCase();
 
@@ -104,17 +106,26 @@ export function GradingLifecycleProgress({
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-base font-bold text-slate-900 sm:text-lg">Tiến trình chấm điểm tự động</h2>
-            {isPolling && (
+            {isStreaming ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-[11px] font-semibold text-indigo-700 animate-in fade-in">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-600"></span>
+                </span>
+                <span>SSE Stream: Đang chấm trực tiếp</span>
+              </span>
+            ) : isPolling ? (
               <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-[11px] font-semibold text-blue-700">
                 <Loader2 className="h-3 w-3 animate-spin text-blue-600" />
                 <span>Đang chấm theo thời gian thực</span>
               </span>
-            )}
+            ) : null}
           </div>
           <p className="mt-0.5 text-xs text-slate-500">
             Mô hình chấm 2 giai đoạn: Thực thi Docker Sandbox cô lập và Đánh giá Socratic AI.
           </p>
         </div>
+
 
         <div>
           {isCompleted && (

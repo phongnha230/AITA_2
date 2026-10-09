@@ -22,6 +22,9 @@ export interface StudentCourse {
   semester: string;
   lecturerId: string;
   isActive: boolean;
+  isEnrolled?: boolean;
+  enrollmentCount?: number;
+  assignmentCount?: number;
   lecturer?: {
     id: string;
     fullName: string;

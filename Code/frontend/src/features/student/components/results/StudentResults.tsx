@@ -27,7 +27,7 @@ function StudentResultsContent() {
   const currentSubmissionId = searchParams.get('submissionId');
 
   const [inputVal, setInputVal] = useState(currentSubmissionId || '');
-  const { submission, gradingJob, isPolling, refetch } = useStudentSubmission(currentSubmissionId);
+  const { submission, gradingJob, isPolling, isStreaming, refetch } = useStudentSubmission(currentSubmissionId);
 
   const handleLookup = (e: FormEvent) => {
     e.preventDefault();
@@ -137,7 +137,9 @@ function StudentResultsContent() {
             gradingJob={gradingJob}
             submissionStatus={submission.data.status}
             isPolling={isPolling}
+            isStreaming={isStreaming}
           />
+
 
           {/* 2. Score Overview */}
           <SubmissionScoreOverview submission={submission.data} />

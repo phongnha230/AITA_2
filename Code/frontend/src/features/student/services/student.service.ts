@@ -45,6 +45,16 @@ export const studentService = {
     return response.data.data ?? [];
   },
 
+  async getAllCourses(params?: { search?: string }): Promise<StudentCourse[]> {
+    const response = await api.get<ApiResponse<StudentCourse[]>>('/courses', {
+      params: {
+        scope: 'all',
+        search: params?.search,
+      },
+    });
+    return response.data.data ?? [];
+  },
+
   async getAssignmentsByCourse(courseId: string): Promise<StudentAssignment[]> {
     const response = await api.get<ApiResponse<StudentAssignment[]>>(
       `/assignments/course/${courseId}`,

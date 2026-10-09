@@ -1,10 +1,11 @@
-import { CheckCircle2, Hash, Mail, PencilLine, ShieldCheck, User } from 'lucide-react';
+import { CheckCircle2, Hash, KeyRound, Mail, PencilLine, ShieldCheck, User } from 'lucide-react';
 import type { StudentProfile } from '../../types/student.types';
 import { StudentAvatar } from '../shared/StudentAvatar';
 
 interface ProfileIdentityCardProps {
   profile: StudentProfile;
   onEdit: () => void;
+  onChangePassword?: () => void;
 }
 
 const roleLabels: Record<StudentProfile['role'], string> = {
@@ -19,7 +20,11 @@ const statusLabels: Record<StudentProfile['status'], string> = {
   PENDING_ACTIVATION: 'Chờ kích hoạt',
 };
 
-export function ProfileIdentityCard({ profile, onEdit }: ProfileIdentityCardProps) {
+export function ProfileIdentityCard({
+  profile,
+  onEdit,
+  onChangePassword,
+}: ProfileIdentityCardProps) {
   return (
     <section
       aria-label="Thông tin hồ sơ sinh viên"
@@ -77,12 +82,22 @@ export function ProfileIdentityCard({ profile, onEdit }: ProfileIdentityCardProp
           </div>
         </div>
 
-        {/* Right: Real Action */}
-        <div className="flex shrink-0 items-center gap-3">
+        {/* Right: Actions */}
+        <div className="flex flex-wrap shrink-0 items-center gap-3">
+          {onChangePassword && (
+            <button
+              type="button"
+              onClick={onChangePassword}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-xs transition-all hover:bg-slate-50 hover:border-slate-300 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
+            >
+              <KeyRound className="h-4 w-4 text-indigo-600" />
+              <span>Đổi mật khẩu</span>
+            </button>
+          )}
           <button
             type="button"
             onClick={onEdit}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-blue-700 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-indigo-700 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2"
           >
             <PencilLine className="h-4 w-4" />
             <span>Chỉnh sửa hồ sơ</span>
@@ -92,4 +107,5 @@ export function ProfileIdentityCard({ profile, onEdit }: ProfileIdentityCardProp
     </section>
   );
 }
+
 
