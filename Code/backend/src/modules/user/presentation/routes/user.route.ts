@@ -24,18 +24,20 @@ import {
 } from '../../application/dtos/user.dto.js';
 import { AdminResetPasswordSchema } from '../../../auth/application/dtos/auth.dto.js';
 
+import { PrismaDashboardRepository } from '../../infrastructure/repositories/prisma-dashboard.repository.js';
 import { GetAdminDashboardUseCase } from '../../application/use-cases/get-admin-dashboard.use-case.js';
 
 const router = Router();
 
 // Composition Root for User & Admin Management
 const userRepository = new PrismaUserRepository(prisma);
+const dashboardRepository = new PrismaDashboardRepository(prisma);
 const passwordHasher = new BcryptHasherService();
 
 const getProfileUseCase = new GetProfileUseCase(userRepository);
-const getStudentPortfolioUseCase = new GetStudentPortfolioUseCase(prisma);
-const getLecturerDashboardUseCase = new GetLecturerDashboardUseCase(prisma);
-const getAdminDashboardUseCase = new GetAdminDashboardUseCase(prisma);
+const getStudentPortfolioUseCase = new GetStudentPortfolioUseCase(dashboardRepository);
+const getLecturerDashboardUseCase = new GetLecturerDashboardUseCase(dashboardRepository);
+const getAdminDashboardUseCase = new GetAdminDashboardUseCase(dashboardRepository);
 const updateProfileUseCase = new UpdateProfileUseCase(userRepository);
 const getUsersUseCase = new GetUsersUseCase(userRepository);
 const getUserByIdUseCase = new GetUserByIdUseCase(userRepository);
