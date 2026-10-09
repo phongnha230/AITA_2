@@ -10,6 +10,36 @@ const router = Router();
 
 
 /**
+ * GET /jobs/metrics/overview
+ * Tổng quan số liệu hàng đợi BullMQ & DB
+ */
+router.get(
+  '/metrics/overview',
+  authenticateJWT,
+  JobController.getQueueMetrics
+);
+
+/**
+ * GET /jobs/queue/jobs
+ * Danh sách jobs gần đây
+ */
+router.get(
+  '/queue/jobs',
+  authenticateJWT,
+  JobController.listQueueJobs
+);
+
+/**
+ * POST /jobs/:submissionId/retry
+ * Thử lại một bài nộp bị lỗi
+ */
+router.post(
+  '/:submissionId/retry',
+  authenticateJWT,
+  JobController.retryJob
+);
+
+/**
  * GET /jobs/:submissionId
  *
  * Lấy progress / lifecycle của grading job.
@@ -20,6 +50,7 @@ router.get(
   authenticateJWT,
   JobController.getJobStatus
 );
+
 
 /**
  * GET /jobs/:submissionId/events
