@@ -103,6 +103,15 @@ export const authService = {
     }
   },
 
+  async changePassword(data: {
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+  }): Promise<{ success: boolean; message: string }> {
+    const response = await api.post('/auth/change-password', data);
+    return response.data;
+  },
+
   getStoredUser(): User | null {
     if (typeof window === 'undefined') return null;
     const userStr = localStorage.getItem('user');
@@ -114,3 +123,4 @@ export const authService = {
     }
   },
 };
+
