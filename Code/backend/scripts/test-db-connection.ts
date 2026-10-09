@@ -5,7 +5,7 @@ import path from 'path';
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 import prisma from '../src/infrastructure/database/prisma.client';
-import { redisConnection } from '../src/infrastructure/queue/redis.client';
+import { redisConnection } from '../src/infrastructure/redis/redis.client';
 
 // Màu sắc console
 const colors = {

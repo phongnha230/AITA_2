@@ -44,11 +44,6 @@ export class LoginUseCase {
       isMatch = await this.passwordHasher.compare(password, user.passwordHash);
     }
 
-    // Fallback cho môi trường dev test nếu chưa hash mật khẩu
-    if (!isMatch && username === 'AITA' && password === '123') {
-      isMatch = true;
-    }
-
     if (!isMatch) {
       throw new UnauthorizedError('Tài khoản hoặc mật khẩu không chính xác.');
     }

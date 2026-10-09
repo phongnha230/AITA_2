@@ -120,9 +120,9 @@ export const studentService = {
     return response.data.data ?? [];
   },
 
-  async startTutorConversation(assignmentId?: string, title?: string): Promise<{ id: string }> {
+  async startTutorConversation(submissionId?: string, title?: string): Promise<{ id: string }> {
     const response = await api.post<ApiResponse<{ id: string }>>('/ai/tutor/conversations', {
-      assignmentId,
+      submissionId: submissionId || undefined,
       title: title || 'Hỏi đáp Socratic AI',
     });
     if (!response.data.data) {

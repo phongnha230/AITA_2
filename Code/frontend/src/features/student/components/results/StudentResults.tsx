@@ -146,7 +146,10 @@ function StudentResultsContent() {
           <TestCaseResultsList testResults={submission.data.testResults ?? []} />
 
           {/* 4. AI Feedback */}
-          <AiRubricFeedbackCard aiGradingResult={submission.data.aiGradingResult} />
+          <AiRubricFeedbackCard
+            aiGradingResult={submission.data.aiGradingResult}
+            submissionId={submission.data.id}
+          />
         </div>
       )}
 

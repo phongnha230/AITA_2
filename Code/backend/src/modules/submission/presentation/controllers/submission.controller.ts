@@ -53,7 +53,13 @@ export class SubmissionController {
 
   getSubmissionStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const submission = await this.getSubmissionStatusUseCase.execute(req.params.id);
+      const requestingUserId = req.user?.userId ?? '';
+      const requestingUserRole = req.user?.role ?? '';
+      const submission = await this.getSubmissionStatusUseCase.execute({
+        id: req.params.id,
+        requestingUserId,
+        requestingUserRole,
+      });
       sendSuccess(res, submission, 'Lấy trạng thái bài nộp thành công.');
     } catch (error) {
       next(error);

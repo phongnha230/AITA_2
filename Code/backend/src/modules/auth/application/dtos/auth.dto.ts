@@ -11,7 +11,8 @@ export const RegisterSchema = z.object({
   email: z.string().email('Email không đúng định dạng.'),
   password: z.string().min(6, 'Mật khẩu phải có ít nhất 6 ký tự.'),
   fullName: z.string().min(2, 'Họ và tên tối thiểu 2 ký tự.').max(100),
-  role: z.enum(['STUDENT', 'LECTURER']).default('STUDENT'),
+  // Chỉ cho phép đăng ký vai trò STUDENT — LECTURER/ADMIN chỉ được tạo bởi ADMIN
+  role: z.literal('STUDENT').default('STUDENT'),
   recaptchaToken: z.string().optional(),
 });
 

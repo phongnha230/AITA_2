@@ -25,6 +25,11 @@ export const authenticateJWT = (req: Request, _res: Response, next: NextFunction
     }
   }
 
+  // Hỗ trợ token từ query string cho SSE (Server-Sent Events) khi client không gửi được header
+  if (!token && typeof req.query?.token === 'string') {
+    token = req.query.token;
+  }
+
   if (!token) {
     throw new UnauthorizedError('Vui lòng đăng nhập để tiếp tục (phiên đăng nhập hết hạn hoặc thiếu token).');
   }

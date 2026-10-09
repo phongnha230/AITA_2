@@ -67,7 +67,21 @@ export class SubmitAssignmentUseCase {
       }
     }
 
-    // 3. Kiểm tra tần suất nộp bài (Anti-Spam / Cooldown 10 giây giữa 2 lần nộp)
+    // 3. Kiểm tra sinh viên đã ghi danh môn học chứa đề thi chưa
+    const enrollment = await prisma.courseEnrollment.findUnique({
+      where: {
+        uk_enrollment_course_student: {
+          courseId: assignment.courseId,
+          studentId: request.userId,
+        },
+      },
+    });
+
+    if (!enrollment) {
+      throw new ForbiddenError('Bạn chưa được ghi danh vào môn học này, không thể nộp bài.');
+    }
+
+    // 4. Kiểm tra tần suất nộp bài (Anti-Spam / Cooldown 10 giây giữa 2 lần nộp)
     const latestSubmission = await prisma.submission.findFirst({
       where: {
         assignmentId: request.assignmentId,

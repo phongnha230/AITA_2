@@ -31,6 +31,7 @@ const QUICK_PROMPTS = [
 
 export function AiTutorFloatingButton() {
   const [isOpen, setIsOpen] = useState(false);
+  const [activeSubmissionId, setActiveSubmissionId] = useState<string | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<MessageItem[]>([
     {
@@ -48,7 +49,29 @@ export function AiTutorFloatingButton() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSendMessage = async (textToSend?: string) => {
+  const handleSendMessageRef = useRef<((textToSend?: string, overrideSubId?: string) => Promise<void>) | null>(null);
+
+  // Lắng nghe sự kiện mở AI Tutor từ các trang khác (ví dụ: trang kết quả bài thi)
+  useEffect(() => {
+    const handleOpenTutor = (e: any) => {
+      const detail = e.detail || {};
+      setIsOpen(true);
+      if (detail.submissionId && detail.submissionId !== activeSubmissionId) {
+        setActiveSubmissionId(detail.submissionId);
+        setConversationId(null); // Reset để tạo/kết nối phiên mới theo submissionId
+      }
+      if (detail.prompt) {
+        setTimeout(() => {
+          handleSendMessageRef.current?.(detail.prompt, detail.submissionId);
+        }, 150);
+      }
+    };
+
+    window.addEventListener('open-ai-tutor', handleOpenTutor);
+    return () => window.removeEventListener('open-ai-tutor', handleOpenTutor);
+  }, [activeSubmissionId]);
+
+  const handleSendMessage = async (textToSend?: string, overrideSubId?: string) => {
     const text = (textToSend || inputValue).trim();
     if (!text || isLoading) return;
 
@@ -63,9 +86,13 @@ export function AiTutorFloatingButton() {
     setIsLoading(true);
 
     try {
+      const subId = overrideSubId || activeSubmissionId || undefined;
       let currentConvoId = conversationId;
       if (!currentConvoId) {
-        const convo = await studentService.startTutorConversation(undefined, 'Tư vấn giải thuật Socratic');
+        const convo = await studentService.startTutorConversation(
+          subId,
+          subId ? `Hỗ trợ gỡ lỗi bài nộp ${subId.slice(0, 8)}` : 'Tư vấn giải thuật Socratic'
+        );
         currentConvoId = convo.id;
         setConversationId(convo.id);
       }
@@ -82,13 +109,15 @@ export function AiTutorFloatingButton() {
         id: (Date.now() + 2).toString(),
         role: 'ASSISTANT',
         content:
-          getStudentServiceErrorMessage(err, 'Rất tiếc, AI tạm thời chưa thể phản hồi. Vui lòng đảm bảo Backend và Gemini API Key đã sẵn sàng.'),
+          getStudentServiceErrorMessage(err, 'Rất tiếc, AI tạm thời chưa thể phản hồi. Vui lòng đảm bảo Gemini API Key đã sẵn sàng.'),
       };
       setMessages((prev) => [...prev, errorReply]);
     } finally {
       setIsLoading(false);
     }
   };
+
+  handleSendMessageRef.current = handleSendMessage;
 
   return (
     <>

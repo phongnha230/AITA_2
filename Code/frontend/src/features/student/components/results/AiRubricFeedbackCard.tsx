@@ -13,6 +13,7 @@ import type { SubmissionAiGradingResult } from '../../types/student.types';
 
 interface AiRubricFeedbackCardProps {
   aiGradingResult: SubmissionAiGradingResult | null | undefined;
+  submissionId?: string;
 }
 
 interface RubricItem {
@@ -42,19 +43,44 @@ function parseRubricBreakdown(json: unknown): RubricItem[] {
   return [];
 }
 
-export function AiRubricFeedbackCard({ aiGradingResult }: AiRubricFeedbackCardProps) {
+export function AiRubricFeedbackCard({ aiGradingResult, submissionId }: AiRubricFeedbackCardProps) {
+  const handleOpenAiTutor = () => {
+    window.dispatchEvent(
+      new CustomEvent('open-ai-tutor', {
+        detail: {
+          submissionId,
+          prompt: 'Chào Socratic AI, hãy giúp mình phân tích chi tiết các tiêu chí rubric và các lỗi/test case chưa đạt trong bài nộp này nhé.',
+        },
+      })
+    );
+  };
+
   if (!aiGradingResult) {
     return (
       <section className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-elevated">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700 ring-1 ring-indigo-100 shadow-2xs">
-            <Bot className="h-5 w-5" />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700 ring-1 ring-indigo-100 shadow-2xs">
+              <Bot className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-slate-900">Đánh giá AI Rubric &amp; Code Review</h3>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Chưa có dữ liệu đánh giá AI cho bài nộp này.
+              </p>
+            </div>
           </div>
-          <h3 className="text-base font-bold text-slate-900">Đánh giá AI Rubric &amp; Code Review</h3>
+          {submissionId && (
+            <button
+              type="button"
+              onClick={handleOpenAiTutor}
+              className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-md shadow-indigo-600/20 transition-all hover:bg-indigo-700 hover:scale-105 active:scale-95"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-amber-300" />
+              <span>Hỏi Trợ giảng Socratic AI</span>
+            </button>
+          )}
         </div>
-        <p className="mt-2 text-xs text-slate-500">
-          Chưa có dữ liệu đánh giá AI cho bài nộp này.
-        </p>
       </section>
     );
   }
@@ -78,11 +104,21 @@ export function AiRubricFeedbackCard({ aiGradingResult }: AiRubricFeedbackCardPr
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2.5">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700 shadow-2xs">
             <Bot className="h-3.5 w-3.5" />
             Điểm AI: {Number(aiGradingResult.overallAiScore).toFixed(1)} điểm
           </span>
+          {submissionId && (
+            <button
+              type="button"
+              onClick={handleOpenAiTutor}
+              className="inline-flex items-center gap-1.5 rounded-full bg-indigo-600 px-3.5 py-1 text-xs font-bold text-white shadow-sm transition-all hover:bg-indigo-700 hover:scale-105 active:scale-95"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-amber-300 animate-pulse" />
+              <span>Trò chuyện với AI về bài này</span>
+            </button>
+          )}
         </div>
       </div>
 

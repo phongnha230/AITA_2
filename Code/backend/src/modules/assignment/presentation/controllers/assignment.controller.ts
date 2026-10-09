@@ -57,7 +57,8 @@ export class AssignmentController {
 
   updateAssignment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const updated = await this.updateAssignmentUseCase.execute(req.params.id, req.body);
+      const requester = req.user ? { userId: req.user.userId, role: req.user.role } : undefined;
+      const updated = await this.updateAssignmentUseCase.execute(req.params.id, req.body, requester);
       sendSuccess(res, updated, 'Cập nhật đề thi thành công.');
     } catch (error) {
       next(error);

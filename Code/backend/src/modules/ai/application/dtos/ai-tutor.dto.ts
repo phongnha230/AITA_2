@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const StartTutorConversationSchema = z.object({
-  submissionId: z.string().uuid({ message: 'submissionId phải là UUID hợp lệ' }),
+  submissionId: z.string().uuid({ message: 'submissionId phải là UUID hợp lệ' }).optional(),
   title: z.string().max(255).optional(),
 });
 
