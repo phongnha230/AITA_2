@@ -13,8 +13,12 @@ if %errorlevel% neq 0 (
 )
 
 :: 2. Khởi động MySQL & Redis
-echo [1/4] Đang khởi động MySQL & Redis qua Docker Compose...
-docker compose up -d
+echo [1/4] Kiểm tra cấu hình và khởi động MySQL & Redis qua Docker Compose...
+if not exist backend\.env (
+    echo [THÔNG BÁO] Chưa có file backend\.env, đang copy từ .env.example...
+    copy backend\.env.example backend\.env > nul
+)
+docker compose -f backend/docker-compose.yml --env-file backend/.env up -d
 
 :: Đợi 3 giây để container sẵn sàng
 timeout /t 3 /nobreak > nul
@@ -22,10 +26,6 @@ timeout /t 3 /nobreak > nul
 :: 3. Chuẩn bị Backend
 echo [2/4] Kiểm tra Backend & CSDL Prisma...
 cd backend
-if not exist .env (
-    echo [THÔNG BÁO] Chưa có file .env, đang copy từ .env.example...
-    copy .env.example .env > nul
-)
 
 if not exist node_modules (
     echo [CÀI ĐẶT] Đang cài đặt thư viện Backend...

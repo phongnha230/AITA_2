@@ -4,17 +4,17 @@ services:
     container_name: aita-mysql
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: Anhnha@1905
-      MYSQL_DATABASE: aita_db
-      MYSQL_USER: aita_user
-      MYSQL_PASSWORD: Anhnha@1905
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-aita_root_password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-aita_db}
+      MYSQL_USER: ${MYSQL_USER:-aita_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-aita_password}
     ports:
-      - "3307:3306"
+      - "${MYSQL_PORT:-3307}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     command: --default-authentication-plugin=mysql_native_password
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pAnhnha@1905"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$${MYSQL_ROOT_PASSWORD:-aita_root_password}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -23,13 +23,29 @@ services:
     image: redis:7.0-alpine
     container_name: aita-redis
     restart: always
-    command: redis-server --requirepass campusredispass123
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    command: >
+      sh -c '
+        if [ -n "$$REDIS_PASSWORD" ]; then
+          exec redis-server --requirepass "$$REDIS_PASSWORD"
+        else
+          exec redis-server
+        fi
+      '
     ports:
-      - "6380:6379"
+      - "${REDIS_PORT:-6380}:6379"
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "campusredispass123", "ping"]
+      test: >
+        sh -c '
+          if [ -n "$$REDIS_PASSWORD" ]; then
+            redis-cli -a "$$REDIS_PASSWORD" ping
+          else
+            redis-cli ping
+          fi
+        '
       interval: 10s
       timeout: 5s
       retries: 5
