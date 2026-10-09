@@ -27,11 +27,11 @@ export function ProgrammingCompetencyRadar({
   // Check if any real data exists
   const hasRealData = categories.some((c) => c.score !== null && Number.isFinite(c.score));
 
-  // Radar geometry constants
-  const size = 420;
-  const cx = 210;
-  const cy = 160;
-  const radius = 105;
+  // Expanded radar geometry constants for comfortable 100% browser zoom
+  const size = 460;
+  const cx = 230;
+  const cy = 180;
+  const radius = 125;
   const numAxes = categories.length;
   const ringLevels = [0.2, 0.4, 0.6, 0.8, 1.0];
 
@@ -52,8 +52,8 @@ export function ProgrammingCompetencyRadar({
     const xOuter = cx + radius * Math.cos(angle);
     const yOuter = cy + radius * Math.sin(angle);
 
-    // Label position slightly outside radius
-    const labelDistance = radius + 24;
+    // Label position slightly outside outer ring
+    const labelDistance = radius + 28;
     const lx = cx + labelDistance * Math.cos(angle);
     const ly = cy + labelDistance * Math.sin(angle);
 
@@ -93,7 +93,7 @@ export function ProgrammingCompetencyRadar({
   return (
     <section
       aria-label="Đánh giá năng lực lập trình"
-      className="flex flex-col rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs sm:p-6"
+      className="flex flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 shadow-elevated transition-all"
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
@@ -108,16 +108,16 @@ export function ProgrammingCompetencyRadar({
             Phân tích năng lực tổng hợp từ kết quả đánh giá thực tế các bài thi PE.
           </p>
         </div>
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700 ring-1 ring-blue-100">
-          <Activity className="h-4 w-4" />
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700 ring-1 ring-blue-100">
+          <Activity className="h-4.5 w-4.5" />
         </div>
       </div>
 
       {/* Spider Web Chart Area */}
-      <div className="relative mt-2 flex flex-col items-center">
+      <div className="relative mt-3 flex flex-col items-center">
         <svg
           viewBox={`0 0 ${size} ${size - 70}`}
-          className="h-auto w-full max-w-[380px] overflow-visible"
+          className="h-auto w-full max-w-[420px] overflow-visible"
           role="img"
           aria-label="Biểu đồ mạng nhện năng lực lập trình"
         >
@@ -126,7 +126,7 @@ export function ProgrammingCompetencyRadar({
             <polygon
               key={lvl}
               points={getRingPoints(lvl)}
-              fill={idx % 2 === 1 ? 'rgba(241, 245, 249, 0.4)' : 'none'}
+              fill={idx % 2 === 1 ? 'rgba(241, 245, 249, 0.45)' : 'none'}
               stroke={idx === ringLevels.length - 1 ? '#CBD5E1' : '#E2E8F0'}
               strokeWidth={idx === ringLevels.length - 1 ? '1.5' : '1'}
               strokeDasharray={idx === ringLevels.length - 1 ? undefined : '2 2'}
@@ -151,7 +151,7 @@ export function ProgrammingCompetencyRadar({
             <>
               <polygon
                 points={dataPolygonPoints}
-                fill="rgba(37, 99, 235, 0.25)"
+                fill="rgba(37, 99, 235, 0.22)"
                 stroke="#2563EB"
                 strokeWidth="2.5"
                 strokeLinejoin="round"
@@ -163,7 +163,7 @@ export function ProgrammingCompetencyRadar({
                       key={i}
                       cx={axis.dataPoint.x}
                       cy={axis.dataPoint.y}
-                      r="4"
+                      r="4.5"
                       fill="#1D4ED8"
                       stroke="#FFFFFF"
                       strokeWidth="2"
@@ -181,7 +181,7 @@ export function ProgrammingCompetencyRadar({
               y={axis.ly}
               textAnchor={axis.textAnchor}
               dominantBaseline="central"
-              className="text-[10px] font-semibold fill-slate-600 sm:text-[11px]"
+              className="text-[11px] font-semibold fill-slate-700 select-none"
             >
               {axis.cat.shortLabel || axis.cat.label}
             </text>
@@ -190,16 +190,13 @@ export function ProgrammingCompetencyRadar({
 
         {/* Empty state overlay when no real competency data exists */}
         {!hasRealData && (
-          <div className="mt-2 w-full rounded-xl border border-slate-200/80 bg-slate-50/90 p-4 text-center">
+          <div className="mt-2 w-full rounded-xl border border-slate-200/80 bg-slate-50/80 p-3.5 text-center">
             <p className="text-xs font-bold text-slate-800">
               Chưa đủ dữ liệu đánh giá để tổng hợp năng lực.
             </p>
             <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
-              Kết quả năng lực sẽ được tổng hợp khi có đủ dữ liệu đánh giá từ các bài thi PE đã hoàn thành.
+              Kết quả năng lực sẽ được tổng hợp khi bạn hoàn thành các bài thi PE và có đánh giá Socratic AI.
             </p>
-            <div className="sr-only">
-              Chưa đủ dữ liệu đánh giá để tổng hợp năng lực. Kết quả năng lực sẽ được tổng hợp khi có đủ dữ liệu đánh giá từ các bài thi PE.
-            </div>
           </div>
         )}
       </div>
@@ -214,7 +211,7 @@ export function ProgrammingCompetencyRadar({
             <div key={cat.key} className="space-y-1">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-medium text-slate-700">{cat.label}</span>
-                <span className={`font-semibold tabular-nums ${hasScore ? 'text-blue-700' : 'text-slate-400'}`}>
+                <span className={`font-semibold tabular-nums ${hasScore ? 'text-blue-700 font-bold' : 'text-slate-400'}`}>
                   {hasScore ? `${percent}%` : '--'}
                 </span>
               </div>

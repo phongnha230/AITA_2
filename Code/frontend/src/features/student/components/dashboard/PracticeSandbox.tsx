@@ -75,10 +75,17 @@ export function PracticeSandbox({ state, onRetry }: PracticeSandboxProps) {
           </div>
           <div className="flex items-center justify-between text-slate-600">
             <dt className="text-slate-500">Docker Daemon:</dt>
-            <dd className="flex items-center gap-1 font-bold text-emerald-700">
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              {state.data.dockerDaemonRunning ? 'Đang chạy' : 'Chưa bật'}
-            </dd>
+            {state.data.dockerDaemonRunning ? (
+              <dd className="flex items-center gap-1 font-bold text-emerald-700">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                <span>Đang chạy</span>
+              </dd>
+            ) : (
+              <dd className="flex items-center gap-1 font-semibold text-slate-500">
+                <span className="h-2 w-2 rounded-full bg-slate-400" />
+                <span>Chưa kích hoạt</span>
+              </dd>
+            )}
           </div>
           {state.data.supportedLanguages && state.data.supportedLanguages.length > 0 && (
             <div className="flex items-center justify-between text-slate-600">

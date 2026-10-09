@@ -28,7 +28,7 @@ export function StudentDashboard() {
     ? dashboard.courses.data.length
     : null;
   const upcomingExamCount = dashboard.assignments.status === 'success'
-    ? dashboard.upcomingAssignments.length
+    ? dashboard.openAssignments.length + dashboard.upcomingAssignments.length
     : null;
   const completedExamCount = dashboard.assignments.status === 'success'
     ? dashboard.completedAssignments.length
@@ -71,7 +71,7 @@ export function StudentDashboard() {
         </div>
       )}
 
-      {/* Welcome Hero Banner (Visual Reference: Screenshot 3) */}
+      {/* Welcome Hero Banner */}
       <section
         aria-label="Chào mừng sinh viên"
         className="relative overflow-hidden rounded-2xl border border-blue-100/90 bg-gradient-to-br from-white via-blue-50/40 to-indigo-50/50 p-6 shadow-elevated sm:p-7"
@@ -134,6 +134,7 @@ export function StudentDashboard() {
           />
           <UpcomingExams
             state={dashboard.assignments}
+            openAssignments={dashboard.openAssignments}
             upcomingAssignments={dashboard.upcomingAssignments}
             courses={dashboard.courses.data}
             onRetry={dashboard.retryAssignments}

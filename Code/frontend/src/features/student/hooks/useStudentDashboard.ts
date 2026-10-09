@@ -18,6 +18,19 @@ export function useStudentDashboard() {
   );
   const [sandboxAttempt, setSandboxAttempt] = useState(0);
   const now = Date.now();
+
+  const openAssignments = academic.assignments.status === 'success'
+    ? academic.assignments.data
+        .filter((assignment) => {
+          const startTime = Date.parse(assignment.startTime);
+          const deadline = Date.parse(assignment.deadline);
+          const isStarted = !Number.isFinite(startTime) || startTime <= now;
+          const isNotEnded = !Number.isFinite(deadline) || deadline >= now;
+          return assignment.status === 'PUBLISHED' && isStarted && isNotEnded;
+        })
+        .sort((first, second) => Date.parse(first.deadline) - Date.parse(second.deadline))
+    : [];
+
   const upcomingAssignments = academic.assignments.status === 'success'
     ? academic.assignments.data
         .filter((assignment) => {
@@ -65,6 +78,14 @@ export function useStudentDashboard() {
     return result;
   };
 
-  return { ...academic, upcomingAssignments, completedAssignments, sandbox, retrySandbox, joinCourse };
+  return {
+    ...academic,
+    openAssignments,
+    upcomingAssignments,
+    completedAssignments,
+    sandbox,
+    retrySandbox,
+    joinCourse,
+  };
 }
 

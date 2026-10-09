@@ -17,6 +17,7 @@ interface AiRubricFeedbackCardProps {
 }
 
 interface RubricItem {
+  title?: string;
   criterionName?: string;
   criterion?: string;
   name?: string;
@@ -89,6 +90,7 @@ export function AiRubricFeedbackCard({ aiGradingResult, submissionId }: AiRubric
 
   return (
     <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 shadow-elevated sm:p-7">
+      {/* 1. Header with AI Score */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700 ring-1 ring-indigo-100 shadow-2xs">
@@ -99,15 +101,15 @@ export function AiRubricFeedbackCard({ aiGradingResult, submissionId }: AiRubric
               Đánh giá AI Rubric &amp; Nhận xét mã nguồn
             </h3>
             <p className="mt-0.5 text-xs text-slate-500">
-              Chi tiết đánh giá theo tiêu chí rubric từ mô hình hỗ trợ khảo thí.
+              Chi tiết đánh giá theo tiêu chí rubric từ mô hình hỗ trợ khảo thí Socratic AI.
             </p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700 shadow-2xs">
-            <Bot className="h-3.5 w-3.5" />
-            Điểm AI: {Number(aiGradingResult.overallAiScore).toFixed(1)} điểm
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-3.5 py-1 text-xs font-bold text-indigo-700 shadow-2xs">
+            <Bot className="h-4 w-4" />
+            <span>Điểm AI: {Number(aiGradingResult.overallAiScore).toFixed(1)} điểm</span>
           </span>
           {submissionId && (
             <button
@@ -122,28 +124,28 @@ export function AiRubricFeedbackCard({ aiGradingResult, submissionId }: AiRubric
         </div>
       </div>
 
-      {/* Complexity Badges - only rendered when data exists */}
+      {/* 2. Complexity Badges */}
       {(aiGradingResult.detectedTimeComplexity || aiGradingResult.detectedSpaceComplexity) && (
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
           {aiGradingResult.detectedTimeComplexity && (
-            <div className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50/80 p-3.5 text-xs shadow-2xs">
-              <span className="flex items-center gap-2 text-slate-600 font-medium">
+            <div className="flex items-center justify-between rounded-xl border border-slate-200/80 bg-slate-50/60 p-3.5 text-xs shadow-2xs">
+              <span className="flex items-center gap-2 font-medium text-slate-600">
                 <Cpu className="h-4 w-4 text-blue-600" />
-                Độ phức tạp thời gian:
+                Độ phức tạp thời gian (Time):
               </span>
-              <span className="font-mono font-bold text-slate-900">
+              <span className="rounded-md border border-blue-200 bg-white px-2.5 py-0.5 font-mono font-bold text-blue-900 shadow-2xs">
                 {aiGradingResult.detectedTimeComplexity}
               </span>
             </div>
           )}
 
           {aiGradingResult.detectedSpaceComplexity && (
-            <div className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50/80 p-3.5 text-xs shadow-2xs">
-              <span className="flex items-center gap-2 text-slate-600 font-medium">
+            <div className="flex items-center justify-between rounded-xl border border-slate-200/80 bg-slate-50/60 p-3.5 text-xs shadow-2xs">
+              <span className="flex items-center gap-2 font-medium text-slate-600">
                 <Activity className="h-4 w-4 text-emerald-600" />
-                Độ phức tạp không gian:
+                Độ phức tạp không gian (Space):
               </span>
-              <span className="font-mono font-bold text-slate-900">
+              <span className="rounded-md border border-emerald-200 bg-white px-2.5 py-0.5 font-mono font-bold text-emerald-900 shadow-2xs">
                 {aiGradingResult.detectedSpaceComplexity}
               </span>
             </div>
@@ -151,43 +153,62 @@ export function AiRubricFeedbackCard({ aiGradingResult, submissionId }: AiRubric
         </div>
       )}
 
-      {/* Code Quality Feedback Paragraph */}
+      {/* 3. Overall Code Quality Feedback Paragraph */}
       {aiGradingResult.codeQualityFeedback && (
-        <div className="mt-4 rounded-xl border border-indigo-100/90 bg-indigo-50/50 p-4.5 shadow-2xs">
-          <p className="text-xs font-bold text-indigo-900">Nhận xét chất lượng mã nguồn &amp; Tư duy thuật toán:</p>
-          <p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-slate-700">
+        <div className="mt-4 rounded-xl border border-indigo-100 bg-indigo-50/40 p-4 text-xs">
+          <p className="font-bold text-indigo-950">Nhận xét tổng quan chất lượng mã nguồn &amp; Tư duy thuật toán:</p>
+          <p className="mt-2 whitespace-pre-wrap leading-relaxed text-slate-700">
             {aiGradingResult.codeQualityFeedback}
           </p>
         </div>
       )}
 
-      {/* Rubric Breakdown List */}
+      {/* 4. Rubric Breakdown as Assessment Rows */}
       {rubricItems.length > 0 && (
         <div className="mt-5">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-            Chi tiết các tiêu chí Rubric
-          </h4>
-          <div className="mt-3 space-y-2.5">
+          <div className="flex items-center justify-between pb-2">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              Chi tiết các tiêu chí Rubric đánh giá
+            </h4>
+            <span className="text-[11px] text-slate-400">
+              {rubricItems.length} tiêu chí
+            </span>
+          </div>
+
+          <div className="divide-y divide-slate-100 rounded-xl border border-slate-200/80 bg-white shadow-2xs overflow-hidden">
             {rubricItems.map((item, idx) => {
-              const name = item.criterionName || item.criterion || item.name || `Tiêu chí ${idx + 1}`;
-              const score = item.earnedPoints ?? item.score ?? item.points ?? '--';
-              const max = item.maxPoints ? ` / ${item.maxPoints}` : '';
+              const name = item.title || item.criterionName || item.criterion || item.name || `Tiêu chí ${idx + 1}`;
+              const rawScore = item.earnedPoints ?? item.score ?? item.points;
+              const score = rawScore !== undefined && rawScore !== null ? Number(rawScore).toFixed(1) : '--';
+              const max = item.maxPoints ? ` / ${Number(item.maxPoints).toFixed(1)}` : '';
               const comment = item.feedback || item.comment;
 
               return (
                 <div
-                  key={`${name}-${idx}`}
-                  className="rounded-xl border border-slate-200/80 bg-white p-3.5 text-xs shadow-2xs"
+                  key={idx}
+                  className="flex flex-col gap-2 p-4 transition-colors hover:bg-slate-50/50 sm:flex-row sm:items-start sm:justify-between"
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-bold text-slate-900">{name}</span>
-                    <span className="rounded-md bg-indigo-50 px-2 py-0.5 font-bold text-indigo-700 border border-indigo-100">
-                      {score}{max}
+                  <div className="min-w-0 flex-1 pr-4">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-[10px] font-bold text-indigo-700">
+                        {idx + 1}
+                      </span>
+                      <p className="text-xs font-bold text-slate-900 sm:text-sm">
+                        {name}
+                      </p>
+                    </div>
+                    {comment && (
+                      <p className="mt-1.5 pl-7 text-xs leading-relaxed text-slate-600">
+                        {comment}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="shrink-0 pl-7 sm:pl-0 sm:text-right">
+                    <span className="inline-flex items-center rounded-lg border border-indigo-200 bg-indigo-50/70 px-2.5 py-1 text-xs font-bold text-indigo-800 tabular-nums shadow-2xs">
+                      {score}{max} điểm
                     </span>
                   </div>
-                  {comment && (
-                    <p className="mt-1 text-[11px] leading-relaxed text-slate-600">{comment}</p>
-                  )}
                 </div>
               );
             })}

@@ -118,19 +118,71 @@ function StudentResultsContent() {
       {/* Loaded Submission Details */}
       {submission.status === 'success' && hasSubmission && submission.data && (
         <div className="space-y-6">
-          {/* Submission Info Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white px-5 py-3.5 text-xs shadow-elevated-sm text-slate-600">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className="font-bold text-slate-900 sm:text-sm">
-                {submission.data.assignment?.title || 'Bài thi PE'}
-              </span>
-              <span className="text-slate-300">•</span>
-              <span className="font-mono text-slate-600 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-200">ID: {submission.data.id}</span>
+          {/* Polished Submission Header Banner */}
+          <section className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-5 shadow-elevated transition-all sm:p-6">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-blue-700">
+                    Bài thi thực hành PE
+                  </span>
+                  <span className="text-slate-300">•</span>
+                  <span className="text-xs text-slate-500">
+                    {submission.data.submittedAt
+                      ? new Intl.DateTimeFormat('vi-VN', {
+                          dateStyle: 'medium',
+                          timeStyle: 'short',
+                        }).format(new Date(submission.data.submittedAt))
+                      : 'Đã ghi nhận'}
+                  </span>
+                </div>
+                <h2 className="text-lg font-bold tracking-tight text-slate-900 sm:text-xl lg:text-2xl">
+                  {submission.data.assignment?.title || 'Bài thi thực hành'}
+                </h2>
+                <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-slate-600">
+                  <span className="text-slate-500">Mã bài nộp:</span>
+                  <code className="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 font-mono text-[11px] font-semibold text-slate-700 select-all">
+                    {submission.data.id}
+                  </code>
+                </div>
+              </div>
+
+              {/* Status and Channel Badges on the right */}
+              <div className="flex flex-wrap items-center gap-2.5 lg:flex-col lg:items-end">
+                <div className="flex items-center gap-2">
+                  {submission.data.status === 'GRADED' && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 shadow-2xs">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                      ĐÃ HOÀN TẤT CHẤM
+                    </span>
+                  )}
+                  {submission.data.status === 'FAILED' && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-bold text-rose-700 shadow-2xs">
+                      <span className="h-2 w-2 rounded-full bg-rose-500" />
+                      CHẤM THẤT BẠI
+                    </span>
+                  )}
+                  {['QUEUED', 'RUNNING_SANDBOX', 'RUNNING_AI', 'PENDING'].includes(submission.data.status) && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700 shadow-2xs">
+                      <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+                      ĐANG XỬ LÝ CHẤM
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                  <span>Kênh nộp:</span>
+                  <span className="font-semibold text-slate-700">
+                    {submission.data.submissionChannel === 'ZIP_UPLOAD'
+                      ? 'Tải lên tệp ZIP'
+                      : submission.data.submissionChannel === 'GIT_COMMIT'
+                        ? 'Kho lưu trữ Git'
+                        : submission.data.submissionChannel}
+                  </span>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-2 text-slate-500 font-medium">
-              <span>Phương thức nộp: <strong className="text-slate-700">{submission.data.submissionChannel}</strong></span>
-            </div>
-          </div>
+          </section>
 
           {/* 1. Real Grading Lifecycle Progress */}
           <GradingLifecycleProgress
