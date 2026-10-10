@@ -105,7 +105,7 @@ export class PrismaTeamRepository implements ITeamRepository {
       orderBy: { createdAt: 'desc' },
     });
 
-    return rawList.map((r) => this.toDomain(r));
+    return rawList.map((r: any) => this.toDomain(r));
   }
 
   async findByUserAndCourse(userId: string, courseId: string): Promise<Team | null> {

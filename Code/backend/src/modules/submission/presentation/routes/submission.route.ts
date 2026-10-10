@@ -6,7 +6,7 @@ import { SubmitAssignmentUseCase } from '../../application/use-cases/submit-assi
 import { GetSubmissionStatusUseCase } from '../../application/use-cases/get-submission-status.use-case.js';
 import { PrismaSubmissionRepository } from '../../infrastructure/repositories/prisma-submission.repository.js';
 import { zipExtractorService } from '../../infrastructure/storage/zip-extractor.service.js';
-import { nullGradingDispatcher } from '../../infrastructure/queue/null-grading-dispatcher.js';
+import { bullmqGradingDispatcher } from '../../infrastructure/queue/bullmq-grading-dispatcher.js';
 import prisma from '../../../../infrastructure/database/prisma.client.js';
 import { authenticateJWT } from '../../../auth/presentation/middlewares/auth.middleware.js';
 import { ValidationError } from '../../../../shared/domain/exceptions/app.error.js';
@@ -19,8 +19,9 @@ const submissionRepository = new PrismaSubmissionRepository(prisma);
 const submitAssignmentUseCase = new SubmitAssignmentUseCase({
   submissionRepository,
   artifactExtractor: zipExtractorService,
-  gradingDispatcher: nullGradingDispatcher,
+  gradingDispatcher: bullmqGradingDispatcher,
 });
+
 const getSubmissionStatusUseCase = new GetSubmissionStatusUseCase(submissionRepository);
 
 const submissionController = new SubmissionController(

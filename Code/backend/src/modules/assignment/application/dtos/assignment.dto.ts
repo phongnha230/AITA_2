@@ -10,6 +10,8 @@ export const CreateAssignmentSchema = z.object({
   submissionType: z.enum(['INDIVIDUAL', 'GROUP']).default('INDIVIDUAL'),
   startTime: z.coerce.date().default(() => new Date()),
   deadline: z.coerce.date(),
+  durationMinutes: z.coerce.number().int().positive().default(90),
+  accessCode: z.string().max(50).optional().nullable(),
   allowGitSubmission: z.boolean().default(true),
   allowZipSubmission: z.boolean().default(true),
   status: z.enum(['DRAFT', 'PUBLISHED', 'CLOSED', 'ARCHIVED']).default('DRAFT'),
@@ -24,6 +26,8 @@ export const UpdateAssignmentSchema = z.object({
   submissionType: z.enum(['INDIVIDUAL', 'GROUP']).optional(),
   startTime: z.coerce.date().optional(),
   deadline: z.coerce.date().optional(),
+  durationMinutes: z.coerce.number().int().positive().optional(),
+  accessCode: z.string().max(50).optional().nullable(),
   allowGitSubmission: z.boolean().optional(),
   allowZipSubmission: z.boolean().optional(),
   status: z.enum(['DRAFT', 'PUBLISHED', 'CLOSED', 'ARCHIVED']).optional(),
@@ -45,6 +49,7 @@ export const CreateTestCaseSchema = z.object({
   inputFileContent: z.string().optional().nullable(),
   expectedFileName: z.string().optional().nullable(),
   expectedFileContent: z.string().optional().nullable(),
+  paperCode: z.string().max(50).optional().nullable(),
   orderIndex: z.number().int().default(1),
 });
 

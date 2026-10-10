@@ -3,6 +3,7 @@ export type TestExecutionStatus =
   | 'WRONG_ANSWER'
   | 'TIME_LIMIT_EXCEEDED'
   | 'MEMORY_LIMIT_EXCEEDED'
+  | 'OUTPUT_LIMIT_EXCEEDED'
   | 'RUNTIME_ERROR'
   | 'COMPILE_ERROR'
   | 'FILE_NOT_FOUND';
@@ -37,6 +38,7 @@ export interface SandboxExecutionSummary {
   passedTests: number;
   totalScore: number;
   maxScore: number;
+  sandboxScore?: number;
   results: TestCaseResult[];
 }
 
