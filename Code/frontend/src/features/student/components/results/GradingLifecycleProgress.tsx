@@ -74,15 +74,17 @@ function getStepState(
   }
 }
 
+const timeFormatter = new Intl.DateTimeFormat('vi-VN', {
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+});
+
 function formatTime(iso: string | null | undefined): string | null {
   if (!iso) return null;
   const d = new Date(iso);
   if (!Number.isFinite(d.getTime())) return null;
-  return new Intl.DateTimeFormat('vi-VN', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  }).format(d);
+  return timeFormatter.format(d);
 }
 
 export function GradingLifecycleProgress({

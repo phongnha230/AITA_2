@@ -15,6 +15,8 @@ export class PrismaAssignmentRepository implements IAssignmentRepository {
       submissionType: raw.submissionType,
       startTime: raw.startTime,
       deadline: raw.deadline,
+      durationMinutes: raw.durationMinutes,
+      accessCode: raw.accessCode,
       maxFileSizeBytes: raw.maxFileSizeBytes,
       allowGitSubmission: raw.allowGitSubmission,
       allowZipSubmission: raw.allowZipSubmission,
@@ -97,6 +99,8 @@ export class PrismaAssignmentRepository implements IAssignmentRepository {
         submissionType: data.submissionType || 'INDIVIDUAL',
         startTime: data.startTime || new Date(),
         deadline: data.deadline,
+        durationMinutes: data.durationMinutes !== undefined ? data.durationMinutes : 90,
+        accessCode: data.accessCode ? String(data.accessCode).trim() : null,
         maxFileSizeBytes: data.maxFileSizeBytes || BigInt(52428800),
         allowGitSubmission: data.allowGitSubmission !== undefined ? data.allowGitSubmission : true,
         allowZipSubmission: data.allowZipSubmission !== undefined ? data.allowZipSubmission : true,
@@ -117,6 +121,8 @@ export class PrismaAssignmentRepository implements IAssignmentRepository {
         submissionType: data.submissionType,
         startTime: data.startTime,
         deadline: data.deadline,
+        durationMinutes: data.durationMinutes,
+        accessCode: data.accessCode !== undefined ? (data.accessCode ? String(data.accessCode).trim() : null) : undefined,
         allowGitSubmission: data.allowGitSubmission,
         allowZipSubmission: data.allowZipSubmission,
         status: data.status,
@@ -149,15 +155,22 @@ export class PrismaAssignmentRepository implements IAssignmentRepository {
         inputFileContent: data.inputFileContent ?? null,
         expectedFileName: data.expectedFileName ?? null,
         expectedFileContent: data.expectedFileContent ?? null,
+        paperCode: data.paperCode ? String(data.paperCode).trim().toUpperCase() : null,
         orderIndex: data.orderIndex || 1,
       },
     });
   }
 
   async updateTestCase(testCaseId: string, data: any): Promise<any> {
+    const updateData = { ...data };
+    if (updateData.paperCode !== undefined) {
+      updateData.paperCode = updateData.paperCode
+        ? String(updateData.paperCode).trim().toUpperCase()
+        : null;
+    }
     return this.prisma.testCase.update({
       where: { id: testCaseId },
-      data,
+      data: updateData,
     });
   }
 

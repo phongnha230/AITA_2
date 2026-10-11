@@ -11,6 +11,8 @@ export interface AssignmentProps {
   submissionType: SubmissionType;
   startTime: Date;
   deadline: Date;
+  durationMinutes?: number | null;
+  accessCode?: string | null;
   maxFileSizeBytes: bigint;
   allowGitSubmission: boolean;
   allowZipSubmission: boolean;
@@ -55,6 +57,14 @@ export class Assignment {
     return this.props.deadline;
   }
 
+  get durationMinutes(): number | null | undefined {
+    return this.props.durationMinutes;
+  }
+
+  get accessCode(): string | null | undefined {
+    return this.props.accessCode;
+  }
+
   get status(): AssignmentStatus {
     return this.props.status;
   }
@@ -75,8 +85,18 @@ export class Assignment {
     return this.props.status === 'PUBLISHED';
   }
 
+  public isStarted(): boolean {
+    return new Date() >= this.props.startTime;
+  }
+
   public isClosed(): boolean {
     return this.props.status === 'CLOSED' || new Date() > this.props.deadline;
+  }
+
+  public verifyAccessCode(inputCode?: string | null): boolean {
+    if (!this.props.accessCode) return true; // Không có mã mở đề -> cho phép truy cập
+    if (!inputCode) return false;
+    return this.props.accessCode.trim() === inputCode.trim();
   }
 
   toJSON() {
@@ -89,6 +109,11 @@ export class Assignment {
       submissionType: this.props.submissionType,
       startTime: this.props.startTime,
       deadline: this.props.deadline,
+      durationMinutes: this.props.durationMinutes,
+      hasAccessCode: Boolean(this.props.accessCode),
+      accessCode: this.props.accessCode,
+      isStarted: this.isStarted(),
+      isClosed: this.isClosed(),
       allowGitSubmission: this.props.allowGitSubmission,
       allowZipSubmission: this.props.allowZipSubmission,
       status: this.props.status,

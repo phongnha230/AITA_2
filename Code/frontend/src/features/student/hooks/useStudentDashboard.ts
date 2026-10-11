@@ -13,7 +13,7 @@ const loadingState = <T,>(data: T): ResourceState<T> => ({
 
 export function useStudentDashboard() {
   const academic = useStudentAcademicData();
-  const [sandbox, setSandbox] = useState<ResourceState<SandboxStatus | null>>(
+  const [sandbox, setSandbox] = useState<ResourceState<SandboxStatus | null>>(() =>
     loadingState<SandboxStatus | null>(null),
   );
   const [sandboxAttempt, setSandboxAttempt] = useState(0);

@@ -1,29 +1,36 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import {
   CalendarDays,
   Clock3,
   Code2,
   FileCheck2,
+  FileText,
+  HardDriveUpload,
   Layers,
   Sparkles,
 } from 'lucide-react';
 import type { StudentExamViewModel } from '../../types/student.types';
 import { ExamStatusBadge } from './ExamStatusBadge';
+import { SubmitExamModal } from './SubmitExamModal';
+import { ExamDetailModal } from './ExamDetailModal';
 
 interface ExamCardProps {
   exam: StudentExamViewModel;
   featured?: boolean;
 }
 
+const examDateTimeFormatter = new Intl.DateTimeFormat('vi-VN', {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+});
+
 function formatDateTime(value: string): string {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return 'Chưa có thời gian';
-  return new Intl.DateTimeFormat('vi-VN', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(date);
+  return examDateTimeFormatter.format(date);
 }
 
 function formatDateBadge(value: string): { dayOfWeek: string; dateNum: string; monthStr: string } | null {
@@ -43,6 +50,8 @@ function getEnvironmentLabel(environment: StudentExamViewModel['assignment']['en
 }
 
 export function ExamCard({ exam, featured = false }: ExamCardProps) {
+  const [isSubmitOpen, setIsSubmitOpen] = useState(false);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
   const { assignment, course, temporalStatus } = exam;
   const dateBadge = formatDateBadge(assignment.startTime);
 
@@ -126,8 +135,40 @@ export function ExamCard({ exam, featured = false }: ExamCardProps) {
           >
             <Sparkles className="h-3.5 w-3.5 text-blue-600" />
             <span>Tra cứu kết quả qua mã bài nộp</span>
+        {/* Action Buttons */}
+        <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-slate-100 pt-4">
+          <button
+            type="button"
+            onClick={() => setIsDetailOpen(true)}
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 shadow-sm transition-all duration-200 hover:bg-slate-50 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
+          >
+            <FileText className="h-4 w-4 text-slate-500" />
+            <span>Xem đề bài</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsSubmitOpen(true)}
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 text-xs font-semibold text-white shadow-sm transition-all duration-200 hover:bg-indigo-700 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
+          >
+            <HardDriveUpload className="h-4 w-4" />
+            <span>Nộp bài PE (.zip)</span>
+          </button>
+          <Link
+            href="/student/results"
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-xs font-semibold text-slate-700 shadow-sm transition-all duration-200 hover:bg-slate-50 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+          >
+            <Sparkles className="h-4 w-4 text-indigo-600" />
+            <span>Xem kết quả &amp; Chấm điểm AI</span>
           </Link>
         </div>
+
+        <ExamDetailModal
+          exam={exam}
+          isOpen={isDetailOpen}
+          onClose={() => setIsDetailOpen(false)}
+          onOpenSubmit={() => setIsSubmitOpen(true)}
+        />
+        <SubmitExamModal exam={exam} isOpen={isSubmitOpen} onClose={() => setIsSubmitOpen(false)} />
       </article>
     );
   }
@@ -188,14 +229,23 @@ export function ExamCard({ exam, featured = false }: ExamCardProps) {
         </div>
       </div>
 
-      <div className="mt-4 flex items-center justify-between gap-2 border-t border-slate-100 pt-3">
-        <span className="text-[11px] text-slate-500 font-medium">
-          {temporalStatus === 'OPEN'
-            ? 'Đang mở nhận bài thi'
-            : temporalStatus === 'UPCOMING'
-              ? 'Chưa đến thời gian bắt đầu'
-              : 'Đã kết thúc ca thi'}
-        </span>
+      <div className="mt-4 flex items-center justify-end gap-2 border-t border-slate-100 pt-3">
+        <button
+          type="button"
+          onClick={() => setIsDetailOpen(true)}
+          className="inline-flex min-h-8 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-2xs transition-all hover:bg-slate-50 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
+        >
+          <FileText className="h-3.5 w-3.5 text-slate-500" />
+          <span>Xem đề bài</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setIsSubmitOpen(true)}
+          className="inline-flex min-h-8 items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 py-1 text-xs font-semibold text-white shadow-2xs transition-all hover:bg-indigo-700 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
+        >
+          <HardDriveUpload className="h-3.5 w-3.5" />
+          <span>Nộp bài</span>
+        </button>
         <Link
           href="/student/results"
           className="inline-flex min-h-8 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-2xs transition-all hover:bg-slate-50 hover:text-slate-900 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
@@ -204,6 +254,14 @@ export function ExamCard({ exam, featured = false }: ExamCardProps) {
           <span>Tra cứu qua mã bài nộp</span>
         </Link>
       </div>
+
+      <ExamDetailModal
+        exam={exam}
+        isOpen={isDetailOpen}
+        onClose={() => setIsDetailOpen(false)}
+        onOpenSubmit={() => setIsSubmitOpen(true)}
+      />
+      <SubmitExamModal exam={exam} isOpen={isSubmitOpen} onClose={() => setIsSubmitOpen(false)} />
     </article>
   );
 }

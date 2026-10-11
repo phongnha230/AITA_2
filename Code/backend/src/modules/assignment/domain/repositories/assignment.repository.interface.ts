@@ -8,6 +8,8 @@ export interface CreateAssignmentData {
   submissionType?: 'INDIVIDUAL' | 'GROUP';
   startTime?: Date;
   deadline: Date;
+  durationMinutes?: number | null;
+  accessCode?: string | null;
   maxFileSizeBytes?: bigint;
   allowGitSubmission?: boolean;
   allowZipSubmission?: boolean;

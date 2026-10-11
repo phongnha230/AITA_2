@@ -54,8 +54,8 @@ export class RagKnowledgeFacade {
 
     // Lọc danh sách testcase bị lỗi từ Sandbox (TV5)
     const failedTestCases = submission.testResults
-      .filter((tr) => tr.verdict !== 'PASSED')
-      .map((tr) => ({
+      .filter((tr: any) => tr.verdict !== 'PASSED')
+      .map((tr: any) => ({
         label: tr.testCase.label,
         rationaleTag: tr.testCase.rationaleTag,
         verdict: tr.verdict,
@@ -69,7 +69,7 @@ export class RagKnowledgeFacade {
       environment: assignment.environment,
       solutionSourceCode: solution?.sourceCode,
       solutionExplanation: solution?.explanation || undefined,
-      rubricRules: assignment.rubricRules.map((r) => ({
+      rubricRules: assignment.rubricRules.map((r: any) => ({
         id: r.id,
         criterionName: r.criterionName,
         description: r.description,

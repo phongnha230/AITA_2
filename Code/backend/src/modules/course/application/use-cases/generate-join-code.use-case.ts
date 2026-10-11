@@ -1,15 +1,23 @@
 import crypto from 'crypto';
 import { ICourseRepository } from '../../domain/repositories/course.repository.interface.js';
 import { GenerateJoinCodeDto } from '../dtos/course.dto.js';
-import { NotFoundError } from '../../../../shared/domain/exceptions/app.error.js';
+import { NotFoundError, ForbiddenError } from '../../../../shared/domain/exceptions/app.error.js';
 
 export class GenerateJoinCodeUseCase {
   constructor(private readonly courseRepository: ICourseRepository) {}
 
-  async execute(courseId: string, dto: GenerateJoinCodeDto) {
+  async execute(
+    courseId: string,
+    dto: GenerateJoinCodeDto,
+    requester?: { userId: string; role: string }
+  ) {
     const course = await this.courseRepository.findById(courseId);
     if (!course) {
       throw new NotFoundError(`Khóa học với ID: ${courseId}`);
+    }
+
+    if (requester && requester.role !== 'ADMIN' && course.lecturerId !== requester.userId) {
+      throw new ForbiddenError('Bạn không có quyền tạo mã tham gia cho khóa học của giảng viên khác.');
     }
 
     const expiresInMinutes = dto.expiresInMinutes || 30;

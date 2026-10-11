@@ -13,7 +13,7 @@ const loadingState = <T,>(data: T): ResourceState<T> => ({
 
 export function useStudentCourses() {
   const { profile, status: profileStatus, error: profileError, retry: retryProfile } = useStudentProfile();
-  const [courses, setCourses] = useState<ResourceState<StudentCourse[]>>(loadingState([]));
+  const [courses, setCourses] = useState<ResourceState<StudentCourse[]>>(() => loadingState([]));
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {

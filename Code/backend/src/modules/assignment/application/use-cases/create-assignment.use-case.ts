@@ -1,7 +1,8 @@
 import { IAssignmentRepository } from '../../domain/repositories/assignment.repository.interface.js';
 import { ICourseRepository } from '../../../course/domain/repositories/course.repository.interface.js';
 import { CreateAssignmentDto } from '../dtos/assignment.dto.js';
-import { NotFoundError } from '../../../../shared/domain/exceptions/app.error.js';
+import { NotFoundError, ForbiddenError } from '../../../../shared/domain/exceptions/app.error.js';
+import prisma from '../../../../infrastructure/database/prisma.client.js';
 
 export class CreateAssignmentUseCase {
   constructor(
@@ -13,6 +14,17 @@ export class CreateAssignmentUseCase {
     const course = await this.courseRepository.findById(dto.courseId);
     if (!course) {
       throw new NotFoundError(`Khóa học với ID: ${dto.courseId}`);
+    }
+
+    // Chỉ giảng viên phụ trách môn học hoặc ADMIN mới được tạo đề thi
+    if (course.lecturerId !== createdBy) {
+      const creator = await prisma.user.findUnique({
+        where: { id: createdBy },
+        select: { role: true },
+      });
+      if (creator?.role !== 'ADMIN') {
+        throw new ForbiddenError('Bạn không có quyền tạo đề thi trong môn học của giảng viên khác.');
+      }
     }
 
     const assignment = await this.assignmentRepository.create({

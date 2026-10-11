@@ -12,6 +12,20 @@ import {
 } from '../../domain/interfaces/sandbox-runner.interface.js';
 
 const execAsync = promisify(exec);
+const MAX_OUTPUT_BYTES = 5 * 1024 * 1024; // 5MB max output buffer
+
+function killProcessTree(childProcess: any): void {
+  if (!childProcess || !childProcess.pid) return;
+  try {
+    if (process.platform === 'win32') {
+      exec(`taskkill /pid ${childProcess.pid} /T /F`, () => {});
+    } else {
+      childProcess.kill('SIGKILL');
+    }
+  } catch {
+    // Process already exited
+  }
+}
 
 export class CDockerRunner implements ISandboxRunner {
   private async isDockerDaemonRunning(): Promise<boolean> {
@@ -49,9 +63,9 @@ export class CDockerRunner implements ISandboxRunner {
       };
     }
 
-    // 2. Biên dịch mã nguồn gcc
+    // 2. Biên dịch mã nguồn gcc với các cờ an toàn
     const compileCmd = isDocker
-      ? `docker run --rm --network none -v "${path.resolve(stagedFolderPath)}":/app -w /app gcc:alpine gcc -O2 ${mainFile} -o main.out`
+      ? `docker run --rm --network none --cpus 1.0 --pids-limit 50 --cap-drop ALL --security-opt no-new-privileges -v "${path.resolve(stagedFolderPath)}":/app -w /app gcc:alpine gcc -O2 ${mainFile} -o main.out`
       : `gcc -O2 "${path.join(stagedFolderPath, mainFile)}" -o "${path.join(stagedFolderPath, 'main.out')}"`;
 
     try {
@@ -112,6 +126,7 @@ export class CDockerRunner implements ISandboxRunner {
       let stdout = '';
       let stderr = '';
       let isTimedOut = false;
+      let isOutputLimitExceeded = false;
 
       let childProcess: any;
       if (isDocker) {
@@ -121,6 +136,14 @@ export class CDockerRunner implements ISandboxRunner {
           '-i',
           '--network',
           'none',
+          '--cpus',
+          '1.0',
+          '--pids-limit',
+          '50',
+          '--cap-drop',
+          'ALL',
+          '--security-opt',
+          'no-new-privileges',
           '--memory',
           `${tc.memoryLimitMb}m`,
           '-v',
@@ -138,17 +161,25 @@ export class CDockerRunner implements ISandboxRunner {
         childProcess = spawn(exePath);
       }
 
-      // Bộ đếm Timeout Watchdog (2000ms) - Ngắt vòng lặp vô tận while(1)
+      // Bộ đếm Timeout Watchdog
       const timer = setTimeout(() => {
         isTimedOut = true;
-        childProcess.kill('SIGKILL');
+        killProcessTree(childProcess);
       }, tc.timeLimitMs);
 
       childProcess.stdout?.on('data', (d: Buffer) => {
+        if (stdout.length + d.length > MAX_OUTPUT_BYTES) {
+          isOutputLimitExceeded = true;
+          killProcessTree(childProcess);
+          return;
+        }
         stdout += d.toString();
       });
+
       childProcess.stderr?.on('data', (d: Buffer) => {
-        stderr += d.toString();
+        if (stderr.length + d.length <= MAX_OUTPUT_BYTES) {
+          stderr += d.toString();
+        }
       });
 
       // Bơm input vào stdin
@@ -172,6 +203,20 @@ export class CDockerRunner implements ISandboxRunner {
             executionTimeMs: duration,
             memoryUsedKb: 0,
             errorMessage: `Time Limit Exceeded: Bài làm chạy quá ${tc.timeLimitMs}ms`,
+          });
+        }
+
+        if (isOutputLimitExceeded) {
+          return resolve({
+            testCaseId: tc.id,
+            questionNo: tc.questionNo,
+            passed: false,
+            status: 'OUTPUT_LIMIT_EXCEEDED',
+            actualOutput: stdout.slice(0, 1000) + '... [TRUNCATED]',
+            expectedOutput: tc.expectedOutput,
+            executionTimeMs: duration,
+            memoryUsedKb: 0,
+            errorMessage: 'Output Limit Exceeded: Chương trình in quá 5MB dữ liệu (vòng lặp in vô tận).',
           });
         }
 

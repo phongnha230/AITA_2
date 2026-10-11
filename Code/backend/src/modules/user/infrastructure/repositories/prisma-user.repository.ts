@@ -123,7 +123,7 @@ export class PrismaUserRepository implements IUserRepository {
     ]);
 
     return {
-      users: rawUsers.map((u) => this.toDomain(u)),
+      users: rawUsers.map((u: any) => this.toDomain(u)),
       total,
     };
   }

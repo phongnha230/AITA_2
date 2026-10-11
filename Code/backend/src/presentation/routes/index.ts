@@ -57,8 +57,6 @@ router.use('/sandbox', sandboxRouter);
 router.use('/ai', aiRouter);
 router.use('/teams', teamRouter);
 
-router.use('/ai', aiRouter);
-
 
 // ============================================================
 // EXPORT

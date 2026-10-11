@@ -1,6 +1,8 @@
+import fs from 'node:fs';
 import prisma from '../../../../infrastructure/database/prisma.client.js';
 import { Prisma, TestCaseVerdict } from '@prisma/client';
 import { SandboxRunnerFactory } from '../../infrastructure/sandbox-runner.factory.js';
+import { zipExtractorService } from '../../../submission/infrastructure/storage/zip-extractor.service.js';
 import {
   SandboxExecutionSummary,
   TestCaseInput,
@@ -30,9 +32,38 @@ export class SandboxService {
       );
     }
 
-    // 2. Chuẩn bị danh sách testcases
-    const testCases: TestCaseInput[] = (submission.assignment.testCases || []).map(
-      (tc) => ({
+    // Đảm bảo đường dẫn thực thi là một thư mục workspace đã giải nén
+    let executionFolderPath = submission.zipFilePath;
+    if (
+      fs.existsSync(submission.zipFilePath) &&
+      fs.statSync(submission.zipFilePath).isFile() &&
+      submission.zipFilePath.toLowerCase().endsWith('.zip')
+    ) {
+      const stagingResult = await zipExtractorService.extractAndStage(
+        submission.zipFilePath,
+        submission.id
+      );
+      executionFolderPath = stagingResult.stagedPath;
+      await prisma.submission.update({
+        where: { id: submission.id },
+        data: { zipFilePath: executionFolderPath },
+      });
+    }
+
+    // 2. Chuẩn bị danh sách testcases (lọc theo mã đề paperCode nếu có)
+    const allTestCases = submission.assignment.testCases || [];
+    const matchedTestCases = submission.paperCode
+      ? allTestCases.filter(
+          (tc: any) =>
+            !tc.paperCode ||
+            tc.paperCode.toUpperCase() === submission.paperCode!.toUpperCase()
+        )
+      : allTestCases;
+
+    const testCasesToRun = matchedTestCases.length > 0 ? matchedTestCases : allTestCases;
+
+    const testCases: TestCaseInput[] = testCasesToRun.map(
+      (tc: any) => ({
         id: tc.id,
         questionNo: tc.label,
         inputData: tc.stdinInput || tc.inputFileContent || '',
@@ -52,10 +83,10 @@ export class SandboxService {
 
     // 4. Khởi tạo runner qua Factory Method và chạy bài làm
     const runner = SandboxRunnerFactory.createRunner(language);
-    const summary = await runner.execute(submission.zipFilePath, testCases);
+    const summary = await runner.execute(executionFolderPath, testCases);
 
     // 5. Lưu kết quả chi tiết từng testcase vào bảng submission_test_results
-    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    await prisma.$transaction(async (tx: any) => {
       // Xóa kết quả cũ nếu có
       await tx.submissionTestResult.deleteMany({
         where: { submissionId: submission.id },
@@ -64,8 +95,8 @@ export class SandboxService {
       // Thêm mới kết quả từng test
       if (summary.results.length > 0) {
         await tx.submissionTestResult.createMany({
-          data: summary.results.map((r) => {
-            const tc = submission.assignment.testCases.find((t) => t.id === r.testCaseId);
+          data: summary.results.map((r: any) => {
+            const tc = submission.assignment.testCases.find((t: any) => t.id === r.testCaseId);
             let verdict: TestCaseVerdict = 'FAILED';
             if (r.passed) {
               verdict = 'PASSED';
@@ -73,6 +104,8 @@ export class SandboxService {
               verdict = 'TIME_LIMIT_EXCEEDED';
             } else if (r.status === 'MEMORY_LIMIT_EXCEEDED') {
               verdict = 'MEMORY_LIMIT_EXCEEDED';
+            } else if (r.status === 'OUTPUT_LIMIT_EXCEEDED') {
+              verdict = 'OUTPUT_LIMIT_EXCEEDED';
             } else if (r.status === 'RUNTIME_ERROR') {
               verdict = 'RUNTIME_ERROR';
             }
@@ -91,7 +124,6 @@ export class SandboxService {
         });
       }
 
-      // Cập nhật điểm sandbox_score của bài nộp (tối đa 7.0 theo barem)
       const normalizedSandboxScore = Number(
         (((summary.totalScore / (summary.maxScore || 1)) * 7.0) || 0).toFixed(2)
       );
@@ -105,6 +137,13 @@ export class SandboxService {
       });
     });
 
-    return summary;
+    const normalizedSandboxScore = Number(
+      (((summary.totalScore / (summary.maxScore || 1)) * 7.0) || 0).toFixed(2)
+    );
+
+    return {
+      ...summary,
+      sandboxScore: normalizedSandboxScore,
+    };
   }
 }

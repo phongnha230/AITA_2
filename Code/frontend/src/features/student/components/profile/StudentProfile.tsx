@@ -12,14 +12,14 @@ import { ProfileExamHistory, ProfileMetricGrid, ProfileSkillRadar } from './Prof
 import { ProfileIdentityCard } from './ProfileIdentityCard';
 
 export function StudentProfile() {
-  const profileState = useStudentProfile();
+  const { profile, status, error, retry, updateProfile } = useStudentProfile();
   const academic = useStudentCourses();
   const [editOpen, setEditOpen] = useState(false);
 
   const closeEdit = useCallback(() => setEditOpen(false), []);
   const saveProfile = useCallback(
-    (data: StudentProfileUpdate) => profileState.updateProfile(data),
-    [profileState.updateProfile],
+    (data: StudentProfileUpdate) => updateProfile(data),
+    [updateProfile],
   );
 
   return (
@@ -30,15 +30,15 @@ export function StudentProfile() {
         description="Thông tin hồ sơ và các dữ liệu đánh giá hiện có trong hệ thống."
       />
 
-      {profileState.status === 'error' && (
+      {status === 'error' && (
         <div role="alert" className="flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 shadow-elevated-sm sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-2.5 text-sm text-amber-900">
             <AlertCircle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
-            <p>{profileState.error || 'Không thể tải thông tin hồ sơ.'}</p>
+            <p>{error || 'Không thể tải thông tin hồ sơ.'}</p>
           </div>
           <button
             type="button"
-            onClick={profileState.retry}
+            onClick={retry}
             className="min-h-9 shrink-0 rounded-xl border border-amber-300 bg-white px-3.5 text-xs font-semibold text-amber-900 shadow-sm transition-all hover:bg-amber-100 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
           >
             Thử lại
@@ -46,7 +46,7 @@ export function StudentProfile() {
         </div>
       )}
 
-      {profileState.status === 'loading' && (
+      {status === 'loading' && (
         <section role="status" aria-label="Đang tải hồ sơ" className="flex items-center gap-5 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-elevated sm:p-7">
           <span className="h-20 w-20 shrink-0 animate-pulse rounded-2xl bg-slate-100" />
           <div className="w-full space-y-3">
@@ -57,8 +57,8 @@ export function StudentProfile() {
         </section>
       )}
 
-      {profileState.status === 'success' && profileState.profile && (
-        <ProfileIdentityCard profile={profileState.profile} onEdit={() => setEditOpen(true)} />
+      {status === 'success' && profile && (
+        <ProfileIdentityCard profile={profile} onEdit={() => setEditOpen(true)} />
       )}
 
       <ProfileMetricGrid />
@@ -76,14 +76,14 @@ export function StudentProfile() {
         <ProfileCourses
           state={academic.courses}
           onRetry={academic.retryCourses}
-          profileFailed={profileState.status === 'error'}
+          profileFailed={status === 'error'}
         />
       </div>
 
-      {profileState.profile && editOpen && (
+      {profile && editOpen && (
         <ProfileEditModal
           open
-          profile={profileState.profile}
+          profile={profile}
           onClose={closeEdit}
           onSave={saveProfile}
         />

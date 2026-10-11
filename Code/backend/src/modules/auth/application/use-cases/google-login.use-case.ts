@@ -73,11 +73,11 @@ export class GoogleLoginUseCase {
     const refreshToken = this.tokenService.generateRefreshToken(tokenPayload);
 
     // 4. Xác định trang chuyển hướng
-    let redirectTo = '/student/assignments';
+    let redirectTo = '/student/dashboard';
     if (user.role === 'ADMIN') {
       redirectTo = '/admin/dashboard';
     } else if (user.role === 'LECTURER') {
-      redirectTo = '/lecturer/courses';
+      redirectTo = '/dashboard';
     }
 
     return {

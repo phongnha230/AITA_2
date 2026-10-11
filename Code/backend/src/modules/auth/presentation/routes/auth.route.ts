@@ -4,6 +4,7 @@ import { LoginUseCase } from '../../application/use-cases/login.use-case.js';
 import { RegisterUseCase } from '../../application/use-cases/register.use-case.js';
 import { GoogleLoginUseCase } from '../../application/use-cases/google-login.use-case.js';
 import { ChangePasswordUseCase } from '../../application/use-cases/change-password.use-case.js';
+import { RefreshTokenUseCase } from '../../application/use-cases/refresh-token.use-case.js';
 import { PrismaUserRepository } from '../../../user/infrastructure/repositories/prisma-user.repository.js';
 import { BcryptHasherService } from '../../infrastructure/services/bcrypt-hasher.service.js';
 import { JwtTokenService } from '../../infrastructure/services/jwt-token.service.js';
@@ -13,13 +14,30 @@ import { validateBody } from '../../../../shared/presentation/middlewares/valida
 import {
   LoginSchema,
   RegisterSchema,
+  RefreshTokenSchema,
+  SendOtpSchema,
+  VerifyOtpSchema,
   ChangePasswordSchema,
   GoogleLoginCodeSchema,
   GoogleIdTokenSchema,
 } from '../../application/dtos/auth.dto.js';
 import { authenticateJWT } from '../middlewares/auth.middleware.js';
+import rateLimit from 'express-rate-limit';
 
 const router = Router();
+
+// Rate limiter nghiêm ngặt cho endpoints nhạy cảm: 10 request / 15 phút mỗi IP
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: 'Quá nhiều lần thử đăng nhập. Vui lòng thử lại sau 15 phút.',
+  },
+});
+
 
 // Composition Root for Auth
 const userRepository = new PrismaUserRepository(prisma);
@@ -31,24 +49,30 @@ const loginUseCase = new LoginUseCase(userRepository, passwordHasher, tokenServi
 const registerUseCase = new RegisterUseCase(userRepository, passwordHasher, tokenService);
 const googleLoginUseCase = new GoogleLoginUseCase(userRepository, oauthService, tokenService);
 const changePasswordUseCase = new ChangePasswordUseCase(userRepository, passwordHasher);
+const refreshTokenUseCase = new RefreshTokenUseCase(userRepository, tokenService);
 
 const authController = new AuthController(
   loginUseCase,
   registerUseCase,
   googleLoginUseCase,
-  changePasswordUseCase
+  changePasswordUseCase,
+  refreshTokenUseCase
 );
 
 // Traditional Email/Password Auth
-router.post('/login', validateBody(LoginSchema), authController.login);
-router.post('/register', validateBody(RegisterSchema), authController.register);
+router.post('/login', authLimiter, validateBody(LoginSchema), authController.login);
+router.post('/register', authLimiter, validateBody(RegisterSchema), authController.register);
+router.post('/send-otp', authLimiter, validateBody(SendOtpSchema), authController.sendOtp);
+router.post('/verify-otp', authLimiter, validateBody(VerifyOtpSchema), authController.verifyOtp);
+router.post('/refresh-token', authController.refreshToken);
+router.post('/logout', authController.logout);
 router.get('/me', authenticateJWT, authController.me);
 router.post('/change-password', authenticateJWT, validateBody(ChangePasswordSchema), authController.changePassword);
 
 // Google OAuth 2.0 Endpoints
 router.get('/google', authController.getGoogleAuthUrl);
 router.get('/google/callback', authController.googleCallback);
-router.post('/google/code', validateBody(GoogleLoginCodeSchema), authController.googleLoginWithCode);
-router.post('/google/token', validateBody(GoogleIdTokenSchema), authController.googleLoginWithIdToken);
+router.post('/google/code', authLimiter, validateBody(GoogleLoginCodeSchema), authController.googleLoginWithCode);
+router.post('/google/token', authLimiter, validateBody(GoogleIdTokenSchema), authController.googleLoginWithIdToken);
 
 export default router;

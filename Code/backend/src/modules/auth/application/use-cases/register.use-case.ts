@@ -48,7 +48,7 @@ export class RegisterUseCase {
         role: user.role,
         avatarUrl: user.avatarUrl,
       },
-      redirectTo: user.role === 'LECTURER' ? '/lecturer/courses' : '/student/assignments',
+      redirectTo: '/student/dashboard',
     };
   }
 }

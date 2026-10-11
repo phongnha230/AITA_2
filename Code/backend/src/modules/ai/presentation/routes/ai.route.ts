@@ -31,7 +31,7 @@ const aiTutorRepository = new PrismaAiTutorRepository(prisma);
 const apiKeyRotatorFacade = new ApiKeyRotatorFacade(aiApiKeyRepository);
 const ragKnowledgeFacade = new RagKnowledgeFacade();
 
-const gradeSubmissionAiUseCase = new GradeSubmissionAiUseCase(
+export const gradeSubmissionAiUseCase = new GradeSubmissionAiUseCase(
   aiGradingRepository,
   apiKeyRotatorFacade,
   ragKnowledgeFacade
@@ -97,6 +97,12 @@ router.post(
   authorizeRoles('ADMIN'),
   validateBody(CreateAiApiKeySchema),
   aiApiKeyController.createKey
+);
+router.patch(
+  '/api-keys/:id/toggle',
+  authenticateJWT,
+  authorizeRoles('ADMIN'),
+  aiApiKeyController.toggleKey
 );
 router.delete(
   '/api-keys/:id',

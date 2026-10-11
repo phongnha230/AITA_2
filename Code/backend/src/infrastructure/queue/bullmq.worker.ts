@@ -173,6 +173,8 @@ function extractSandboxScore(
             sandboxResult,
             [
                 "sandboxScore",
+                "normalizedSandboxScore",
+                "totalScore",
                 "score",
             ]
         );
@@ -198,6 +200,7 @@ function extractAiScore(
         readNumberField(
             aiResult,
             [
+                "overallAiScore",
                 "rubricScore",
                 "aiScore",
                 "score",

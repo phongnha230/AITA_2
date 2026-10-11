@@ -13,6 +13,7 @@ export interface SubmissionProps {
   assignmentId: string;
   userId: string;
   groupLabel?: string | null;
+  paperCode?: string | null;
   submissionChannel: SubmissionChannel;
   zipFilePath?: string | null;
   zipFileSize?: bigint | number | null;
@@ -57,6 +58,10 @@ export class Submission {
 
   get groupLabel(): string | null | undefined {
     return this.props.groupLabel;
+  }
+
+  get paperCode(): string | null | undefined {
+    return this.props.paperCode;
   }
 
   get submissionChannel(): SubmissionChannel {
@@ -133,6 +138,7 @@ export class Submission {
       assignmentId: this.props.assignmentId,
       userId: this.props.userId,
       groupLabel: this.props.groupLabel,
+      paperCode: this.props.paperCode,
       submissionChannel: this.props.submissionChannel,
       zipFilePath: this.props.zipFilePath,
       zipFileSize: this.props.zipFileSize ? Number(this.props.zipFileSize) : null,

@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+import { authService } from '@/features/auth/services/auth.service';
 
 function AuthCallbackLoading() {
   return (
@@ -28,24 +29,54 @@ function AuthCallbackContent() {
     const redirectTo = searchParams.get('redirectTo') || '/dashboard';
     const err = searchParams.get('error');
 
+    let errTimer: ReturnType<typeof setTimeout> | undefined;
+
     if (err) {
       setError(err);
-      setTimeout(() => {
+      errTimer = setTimeout(() => {
         router.replace(`/login?error=${encodeURIComponent(err)}`);
       }, 2000);
-      return;
+      return () => {
+        if (errTimer) clearTimeout(errTimer);
+      };
     }
 
     if (token) {
       localStorage.setItem('token', token);
-      if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
-      if (role) localStorage.setItem('user_role', role);
-
-      // Fetch user profile or redirect directly
-      router.replace(redirectTo);
-    } else {
-      router.replace('/login?error=invalid_callback');
+      localStorage.setItem('aita_token', token);
     }
+    if (refreshToken) {
+      localStorage.setItem('refreshToken', refreshToken);
+    }
+
+    // Verify session using HttpOnly Cookie
+    authService
+      .getCurrentUser()
+      .then((user) => {
+        if (user) {
+          localStorage.setItem('user', JSON.stringify(user));
+          if (user.role) localStorage.setItem('user_role', user.role);
+
+          const targetRole = user.role || role;
+          let destination = '/student/dashboard';
+          if (targetRole === 'ADMIN') {
+            destination = '/admin/dashboard';
+          } else if (targetRole === 'LECTURER') {
+            destination = '/dashboard';
+          } else if (targetRole === 'STUDENT') {
+            destination = '/student/dashboard';
+          } else if (redirectTo && !redirectTo.includes('lecturer/courses')) {
+            destination = redirectTo;
+          }
+
+          router.replace(destination);
+        } else {
+          router.replace('/login');
+        }
+      })
+      .catch(() => {
+        router.replace('/login');
+      });
   }, [router, searchParams]);
 
   return (
