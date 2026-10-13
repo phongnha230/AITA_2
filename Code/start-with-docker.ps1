@@ -14,8 +14,8 @@ try {
     exit 1
 }
 
-# 2. Khởi động MySQL & Redis
-Write-Host "[1/4] Kiem tra cau hinh va bat MySQL & Redis qua Docker Compose..." -ForegroundColor Yellow
+# 2. Khởi động hạ tầng local (database dùng TiDB Cloud)
+Write-Host "[1/4] Kiem tra cau hinh va bat Redis & ChromaDB qua Docker Compose..." -ForegroundColor Yellow
 if (-not (Test-Path "backend/.env")) {
     Copy-Item "backend/.env.example" "backend/.env"
     Write-Host "[THONG BAO] Da tao file backend/.env tu .env.example" -ForegroundColor Green
@@ -25,7 +25,7 @@ docker compose -f backend/docker-compose.yml --env-file backend/.env up -d
 Start-Sleep -Seconds 3
 
 # 3. Chuẩn bị Backend
-Write-Host "[2/4] Kiem tra Backend & CSDL Prisma..." -ForegroundColor Yellow
+Write-Host "[2/4] Kiem tra Backend & Prisma Client..." -ForegroundColor Yellow
 Set-Location backend
 
 if (-not (Test-Path "node_modules")) {
@@ -33,9 +33,8 @@ if (-not (Test-Path "node_modules")) {
     npm install
 }
 
-Write-Host "[PRISMA] Dong bo cau truc bang CSDL..." -ForegroundColor Yellow
+Write-Host "[PRISMA] Tao Prisma Client (khong thay doi schema TiDB Cloud)..." -ForegroundColor Yellow
 npx prisma generate
-npx prisma db push
 
 Set-Location ..
 

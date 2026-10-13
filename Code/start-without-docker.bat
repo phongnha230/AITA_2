@@ -4,9 +4,9 @@ echo ===========================================================================
 echo [AITA] KHỞI ĐỘNG HỆ THỐNG KHÔNG DÙNG DOCKER (LOCAL NATIVE MODE)
 echo ==============================================================================
 echo [LƯU Ý] Chế độ này yêu cầu máy bạn đã bật sẵn:
-echo   1. MySQL cục bộ (XAMPP / MySQL Server / Laragon) tại cổng 3306.
-echo   2. Redis cục bộ (Memurai / Redis Windows / WSL2) tại cổng 6379.
-echo   3. Đã tạo database: aita_db
+echo   1. Kết nối Internet để truy cập TiDB Cloud.
+echo   2. Redis cục bộ (Memurai / Redis Windows / WSL2) tại cổng đã cấu hình.
+echo   3. GCC và JDK nếu cần chạy Docker Sandbox ở chế độ local.
 echo ==============================================================================
 
 :: 1. Chuẩn bị Backend
@@ -15,7 +15,7 @@ cd backend
 if not exist .env (
     echo [THÔNG BÁO] Chưa có file .env, đang copy từ .env.example...
     copy .env.example .env > nul
-    echo [HÃY KIỂM TRA] Vui lòng mở file backend/.env để kiểm tra mật khẩu MySQL của bạn!
+    echo [HÃY KIỂM TRA] Vui lòng mở file backend/.env để cấu hình DATABASE_URL của TiDB Cloud!
 )
 
 if not exist node_modules (
@@ -23,9 +23,8 @@ if not exist node_modules (
     call npm install
 )
 
-echo [PRISMA] Đồng bộ cấu trúc bảng CSDL cục bộ...
+echo [PRISMA] Tạo Prisma Client ^(không thay đổi schema TiDB Cloud^)...
 call npx prisma generate
-call npx prisma db push
 
 cd ..
 

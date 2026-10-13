@@ -1,24 +1,4 @@
 services:
-  mysql:
-    image: mysql:8.0
-    container_name: aita-mysql
-    restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-aita_root_password}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-aita_db}
-      MYSQL_USER: ${MYSQL_USER:-aita_user}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-aita_password}
-    ports:
-      - "${MYSQL_PORT:-3307}:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-    command: --default-authentication-plugin=mysql_native_password
-    healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$${MYSQL_ROOT_PASSWORD:-aita_root_password}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   redis:
     image: redis:7.0-alpine
     container_name: aita-redis
@@ -50,6 +30,18 @@ services:
       timeout: 5s
       retries: 5
 
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: aita-chromadb
+    restart: always
+    ports:
+      - "${CHROMA_PORT:-8000}:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    environment:
+      - IS_PERSISTENT=TRUE
+      - ANONYMIZED_TELEMETRY=FALSE
+
 volumes:
-  mysql_data:
   redis_data:
+  chroma_data:
