@@ -203,7 +203,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=backend
 
       - name: Scan image for high-severity vulnerabilities
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: aita-backend:${{ github.sha }}
           format: table
