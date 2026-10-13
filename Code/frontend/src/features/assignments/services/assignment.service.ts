@@ -8,6 +8,8 @@ import {
   Course,
   LecturerSubmission,
 } from '../types/assignment.types';
+import type { ExamRoom, StudentExamStation } from '../../proctoring/types/proctoring.types';
+
 
 export const assignmentService = {
   /**
@@ -255,4 +257,59 @@ export const assignmentService = {
     const res = await api.post(`/ai/grade/${submissionId}`);
     return res.data?.data;
   },
+
+  /**
+   * Lấy danh sách tất cả các phòng thi giám sát trực tiếp từ CSDL
+   */
+  async getProctoringRooms(): Promise<ExamRoom[]> {
+    await this.ensureLecturerAuth();
+    try {
+      const res = await api.get('/assignments/proctoring/rooms');
+      const data = res.data?.data;
+      if (Array.isArray(data) && data.length > 0) return data;
+    } catch (err) {
+      console.warn('[AssignmentService] getProctoringRooms failed:', err);
+    }
+    return [];
+  },
+
+  /**
+   * Lấy chi tiết dữ liệu giám sát phòng thi theo assignmentId
+   */
+  async getProctoringData(assignmentId: string): Promise<{
+    room: ExamRoom;
+    stations: StudentExamStation[];
+    assignment: any;
+  } | null> {
+    await this.ensureLecturerAuth();
+    try {
+      const res = await api.get(`/assignments/${assignmentId}/proctoring`);
+      return res.data?.data || null;
+    } catch (err) {
+      console.warn(`[AssignmentService] getProctoringData failed for ${assignmentId}:`, err);
+      return null;
+    }
+  },
+
+  /**
+   * Điều khiển phiên ca thi (Gia hạn +5m, Thu bài toàn bộ, Bắt đầu)
+   */
+  async controlExamSession(
+    assignmentId: string,
+    action: 'EXTEND' | 'CLOSE' | 'START' | 'PAUSE',
+    extraMinutes?: number
+  ): Promise<{
+    message: string;
+    deadline?: string;
+    status?: string;
+    secondsLeft?: number;
+  }> {
+    await this.ensureLecturerAuth();
+    const res = await api.patch(`/assignments/${assignmentId}/session-control`, {
+      action,
+      extraMinutes,
+    });
+    return res.data?.data;
+  },
 };
+

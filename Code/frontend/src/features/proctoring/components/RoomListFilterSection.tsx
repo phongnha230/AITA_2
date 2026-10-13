@@ -33,7 +33,7 @@ export const RoomListFilterSection: React.FC<RoomListFilterSectionProps> = ({
               : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
           }`}
         >
-          Tất cả phòng ({rooms.length})
+          Tất cả ca thi ({rooms.length})
         </button>
         <button
           type="button"
@@ -77,10 +77,11 @@ export const RoomListFilterSection: React.FC<RoomListFilterSectionProps> = ({
         <Input
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Tìm theo phòng, môn, giám thị..."
+          placeholder="Tìm theo môn, tên đề thi, giám thị..."
           className="h-10 rounded-xl bg-white pl-9 text-xs focus-visible:ring-indigo-600"
         />
       </div>
+
     </div>
   );
 };

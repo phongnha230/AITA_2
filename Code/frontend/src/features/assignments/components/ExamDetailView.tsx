@@ -12,6 +12,8 @@ import { ExamDetailOverviewTab } from './exam-detail/ExamDetailOverviewTab';
 import { ExamDetailSolutionTab } from './exam-detail/ExamDetailSolutionTab';
 import { ExamDetailLoading, ExamDetailErrorView } from './exam-detail/ExamDetailStates';
 import { ExamDetailTabsNav } from './exam-detail/ExamDetailTabsNav';
+import { ExamSessionControlStrip } from './exam-detail/ExamSessionControlStrip';
+
 
 interface ExamDetailViewProps {
   examId: string;
@@ -90,10 +92,10 @@ export const ExamDetailView: React.FC<ExamDetailViewProps> = ({ examId }) => {
             </Link>
           </Button>
 
-          <Button asChild size="sm" className="h-9 px-3.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs">
-            <Link href="/live-proctoring">
+          <Button asChild size="sm" className="h-9 px-3.5 rounded-xl text-xs font-black bg-rose-600 hover:bg-rose-700 text-white shadow-xs">
+            <Link href={`/live-proctoring/${assignment.id}`}>
               <ShieldCheck className="w-3.5 h-3.5 mr-1.5" />
-              <span>Vào giám sát ca thi</span>
+              <span>🔴 Giám sát ca thi trực tiếp</span>
             </Link>
           </Button>
         </div>
@@ -101,6 +103,10 @@ export const ExamDetailView: React.FC<ExamDetailViewProps> = ({ examId }) => {
 
       {/* 2. EXAM HEADER BANNER */}
       <ExamDetailHeaderBanner assignment={assignment} />
+
+      {/* 2.5. LIVE SESSION CONTROL & COUNTDOWN STRIP */}
+      <ExamSessionControlStrip assignment={assignment} onRefresh={fetchExamDetail} />
+
 
       {/* 3. NAVIGATION TABS */}
       <ExamDetailTabsNav

@@ -12,8 +12,12 @@ interface WizardStep1GeneralProps {
   setTitle: (val: string) => void;
   description: string;
   setDescription: (val: string) => void;
+  startTime: string;
+  setStartTime: (val: string) => void;
   durationMinutes: number;
   setDurationMinutes: (val: number) => void;
+  accessCode: string;
+  setAccessCode: (val: string) => void;
   onNext: () => void;
 }
 
@@ -27,8 +31,12 @@ export const WizardStep1General: React.FC<WizardStep1GeneralProps> = ({
   setTitle,
   description,
   setDescription,
+  startTime,
+  setStartTime,
   durationMinutes,
   setDurationMinutes,
+  accessCode,
+  setAccessCode,
   onNext,
 }) => {
   return (
@@ -37,7 +45,7 @@ export const WizardStep1General: React.FC<WizardStep1GeneralProps> = ({
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
           <h2 className="font-extrabold text-sm text-slate-900">
-            Bước 1: Thông tin chung & Cấu hình Ca thi PE
+            Bước 1: Thông tin chung &amp; Cấu hình Ca thi PE
           </h2>
         </div>
         <span className="text-[11px] font-semibold text-slate-400">Bước 1 trên 4</span>
@@ -75,7 +83,7 @@ export const WizardStep1General: React.FC<WizardStep1GeneralProps> = ({
             className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium"
           >
             <option value="C_GCC">C/C++ GCC 11 Compiler (Mặc định cho PRF192)</option>
-            <option value="JAVA_JDK">Java OpenJDK 21 LTS (Maven & JUnit cho PRO192/CSD201)</option>
+            <option value="JAVA_JDK">Java OpenJDK 21 LTS (Maven &amp; JUnit cho PRO192/CSD201)</option>
           </select>
         </div>
 
@@ -100,12 +108,27 @@ export const WizardStep1General: React.FC<WizardStep1GeneralProps> = ({
           </label>
           <textarea
             id="wizard-description-input"
-            rows={3}
+            rows={2}
             aria-label="Mô tả / Yêu cầu chung của đề bài"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Ghi chú thêm về quy chế thi, cấu trúc bài toán hoặc lưu ý cho sinh viên..."
             className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+          />
+        </div>
+
+        {/* Cụm cấu hình Thời gian ca thi & Passcode */}
+        <div>
+          <label htmlFor="exam-start-time" className="block font-bold text-slate-700 mb-1">
+            Thời gian bắt đầu ca thi
+          </label>
+          <input
+            id="exam-start-time"
+            type="datetime-local"
+            aria-label="Thời gian bắt đầu ca thi"
+            value={startTime}
+            onChange={(e) => setStartTime(e.target.value)}
+            className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium"
           />
         </div>
 
@@ -119,79 +142,42 @@ export const WizardStep1General: React.FC<WizardStep1GeneralProps> = ({
             aria-label="Thời lượng làm bài (phút)"
             value={durationMinutes}
             onChange={(e) => setDurationMinutes(Math.max(1, Number(e.target.value) || 0))}
-            className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+            className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-bold"
           />
         </div>
 
-        <div>
-          <label htmlFor="sandbox-limit" className="block font-bold text-slate-700 mb-1">
-            Giới hạn số lần nộp Docker Sandbox
+        <div className="md:col-span-2">
+          <label htmlFor="exam-access-code" className="block font-bold text-slate-700 mb-1">
+            Mã mở đề thi / Passcode PE (Tùy chọn)
           </label>
           <input
-            id="sandbox-limit"
-            type="number"
-            aria-label="Giới hạn số lần nộp Docker Sandbox"
-            defaultValue={10}
-            disabled
-            className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-100 text-slate-500"
+            id="exam-access-code"
+            type="text"
+            aria-label="Mã mở đề thi / Passcode PE"
+            value={accessCode}
+            onChange={(e) => setAccessCode(e.target.value)}
+            placeholder="Ví dụ: PE-PRF192-2026 (Để trống nếu không đặt mật khẩu mở đề)"
+            className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono"
           />
-          <span className="text-[10px] text-slate-400 mt-1 block">
-            Tối đa 10 lần nộp để tránh nghẽn hàng đợi chấm.
-          </span>
         </div>
 
-        {/* CHUẨN KHẢO THÍ: STRICT PE HYBRID GRADING (8.0đ TESTCASES + 2.0đ AI CLEAN CODE = 10.0đ) */}
-        <div className="md:col-span-2 p-4 rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-50/70 via-white to-white space-y-3 shadow-2xs">
+        {/* CHUẨN KHẢO THÍ: STRICT PE HYBRID GRADING (8.0đ + 2.0đ) */}
+        <div className="md:col-span-2 p-3.5 rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-50/70 via-white to-white space-y-2 shadow-2xs">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-600 text-white font-mono text-xs font-bold">
-                ⚖
-              </span>
-              <span className="font-extrabold text-xs text-slate-900">
-                Cơ chế Khảo thí Chuẩn: Strict PE (Hybrid Grading Standard)
-              </span>
-            </div>
-            <span className="text-[10px] font-bold text-indigo-700 bg-indigo-100/90 px-2.5 py-1 rounded-full border border-indigo-200 flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Báo chuẩn: 8.0đ Testcases + 2.0đ AI Clean Code = 10.0đ
+            <span className="font-extrabold text-xs text-slate-900 flex items-center gap-1.5">
+              ⚖ Cơ chế Khảo thí Chuẩn: Strict PE (Hybrid Grading)
+            </span>
+            <span className="text-[10px] font-bold text-indigo-700 bg-indigo-100/90 px-2.5 py-0.5 rounded-full border border-indigo-200">
+              8.0đ Testcases Sandbox + 2.0đ AI Clean Code = 10.0đ
             </span>
           </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-            <div className="p-3.5 rounded-xl border border-emerald-200/80 bg-emerald-50/30">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-xs text-slate-900 flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-emerald-600" />
-                  1. Docker Sandbox Testcases
-                </span>
-                <span className="font-mono font-black text-xs text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">
-                  8.0 điểm
-                </span>
-              </div>
-              <p className="mt-1.5 text-[11px] text-slate-600 leading-relaxed">
-                Kiểm thử hộp đen tự động (Black-box testing) trên môi trường cô lập Docker. Đảm bảo tính chính xác, khách quan và công bằng tuyệt đối của kỳ thi PE.
-              </p>
-            </div>
-
-            <div className="p-3.5 rounded-xl border border-indigo-200/80 bg-indigo-50/30">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-xs text-slate-900 flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-indigo-600" />
-                  2. AI Clean Code & Semantic
-                </span>
-                <span className="font-mono font-black text-xs text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-md">
-                  2.0 điểm
-                </span>
-              </div>
-              <p className="mt-1.5 text-[11px] text-slate-600 leading-relaxed">
-                <strong>Trị dứt điểm tình trạng sinh viên hardcode kết quả</strong> để qua mặt testcase. Đánh giá quy chuẩn đặt tên biến, tách hàm OOP và phân tích độ phức tạp Big-O.
-              </p>
-            </div>
-          </div>
+          <p className="text-[11px] text-slate-500 leading-relaxed">
+            Hệ thống chấm tự động cô lập qua Docker Sandbox và phân tích AI Rubric để chống hardcode kết quả.
+          </p>
         </div>
       </div>
 
-      <div className="pt-4 border-t border-slate-100 flex justify-end">
+      <div className="pt-3 border-t border-slate-100 flex justify-end">
         <button
           type="button"
           onClick={() => {
@@ -203,7 +189,7 @@ export const WizardStep1General: React.FC<WizardStep1GeneralProps> = ({
           }}
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-500/20 transition"
         >
-          <span>Tiếp tục: Tải Đề PDF & Starter ZIP</span>
+          <span>Tiếp tục: Tải Đề PDF &amp; Starter ZIP</span>
           <ArrowRight className="w-4 h-4" />
         </button>
       </div>

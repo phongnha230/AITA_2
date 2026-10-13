@@ -81,12 +81,15 @@ export interface CreateAssignmentPayload {
   submissionType?: 'INDIVIDUAL' | 'GROUP';
   startTime?: string;
   deadline: string;
+  durationMinutes?: number;
+  accessCode?: string | null;
   status?: AssignmentStatus;
   allowGitSubmission?: boolean;
   allowZipSubmission?: boolean;
   pdfFilePath?: string;
   starterCodePath?: string;
 }
+
 
 export interface LecturerSubmission {
   id: string;

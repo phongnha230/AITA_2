@@ -2,7 +2,9 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Plus, FileCode2, UserPlus, Users, Users2 } from 'lucide-react';
+import Link from 'next/link';
+import { ChevronLeft, Plus, FileCode2, UserPlus, Users, Users2, Radio } from 'lucide-react';
+
 import { Course } from '../types/course.types';
 import { useCourseDetail } from '../hooks/useCourseDetail';
 import { Card } from '@/components/ui/card';
@@ -143,8 +145,21 @@ export const CourseDetailManagement: React.FC<CourseDetailManagementProps> = ({
             <FileCode2 className="w-4 h-4 text-indigo-100 shrink-0" />
             <span>Tạo Đề Thi PE</span>
           </Button>
+
+          {/* Button Giám sát ca thi trực tiếp */}
+          <Button
+            asChild
+            className="h-10 px-3.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition shadow-xs active:scale-95 inline-flex items-center justify-center gap-1.5 whitespace-nowrap"
+            title="Vào màn hình giám sát ca thi trực tiếp"
+          >
+            <Link href="/live-proctoring">
+              <Radio className="w-4 h-4 text-white shrink-0 animate-pulse" />
+              <span>🔴 Giám Sát Ca Thi</span>
+            </Link>
+          </Button>
         </div>
       </Card>
+
 
       {/* CỤM TAB: Phân đoạn Roster và Teams */}
       <div className="flex items-center gap-2 border-b border-slate-200 pb-2">

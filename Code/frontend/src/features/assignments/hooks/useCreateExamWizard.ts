@@ -26,6 +26,13 @@ export function useCreateExamWizard() {
   const [description, setDescription] = useState('');
   const [environment, setEnvironment] = useState<AssignmentEnv>('C_GCC');
   const [durationMinutes, setDurationMinutes] = useState(60);
+  const [startTime, setStartTime] = useState(() => {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0, 16);
+  });
+  const [accessCode, setAccessCode] = useState('');
+
 
   // 2. PDF Exam File State
   const [pdfFile, setPdfFile] = useState<{ name: string; size: string } | null>(null);
@@ -257,20 +264,23 @@ export function useCreateExamWizard() {
     setSubmitError(null);
 
     try {
-      const startTime = new Date();
-      const deadline = new Date(Date.now() + durationMinutes * 60 * 1000);
+      const start = startTime ? new Date(startTime) : new Date();
+      const deadline = new Date(start.getTime() + durationMinutes * 60 * 1000);
 
       const createdAssign = await assignmentService.createAssignment({
         courseId,
         title,
         description,
         environment,
-        startTime: startTime.toISOString(),
+        startTime: start.toISOString(),
         deadline: deadline.toISOString(),
+        durationMinutes,
+        accessCode: accessCode.trim() || undefined,
         status: 'PUBLISHED',
       });
 
       const assignmentId = createdAssign.id;
+
 
       await Promise.all(
         testCases.map((tc, i) =>
@@ -355,7 +365,12 @@ export function useCreateExamWizard() {
     setEnvironment,
     durationMinutes,
     setDurationMinutes,
+    startTime,
+    setStartTime,
+    accessCode,
+    setAccessCode,
     pdfFile,
+
     setPdfFile,
     pdfBlobUrl,
     setPdfBlobUrl,

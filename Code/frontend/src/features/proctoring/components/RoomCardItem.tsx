@@ -136,9 +136,10 @@ export const RoomCardItem: React.FC<RoomCardItemProps> = ({ room }) => {
           {isLive ? (
             <Link href={`/live-proctoring/${room.id}`} className="block">
               <Button className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-sm shadow-indigo-600/20 group">
-                <span>Vào giám sát phòng thi</span>
+                <span>Vào giám sát ca thi</span>
                 <ArrowRight className="ml-1.5 h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
               </Button>
+
             </Link>
           ) : isUpcoming ? (
             <Link href={`/live-proctoring/${room.id}`} className="block">

@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { MOCK_EXAM_ROOMS, INITIAL_STATIONS_LAB302 } from '../services/proctoring.data';
-import type { StudentExamStation } from '../types/proctoring.types';
+import type { ExamRoom, StudentExamStation } from '../types/proctoring.types';
+import { assignmentService } from '@/features/assignments/services/assignment.service';
 import { InspectStationModal } from './InspectStationModal';
 import { BroadcastModal } from './BroadcastModal';
 import { RoomDetailHeader } from './RoomDetailHeader';
@@ -15,24 +16,46 @@ interface RoomDetailMonitorProps {
 }
 
 export function RoomDetailMonitor({ roomId }: RoomDetailMonitorProps) {
-  const room = MOCK_EXAM_ROOMS.find((r) => r.id === roomId) || MOCK_EXAM_ROOMS[0];
-
+  const defaultRoom = MOCK_EXAM_ROOMS.find((r) => r.id === roomId) || MOCK_EXAM_ROOMS[0];
+  const [room, setRoom] = useState<ExamRoom>(defaultRoom);
   const [stations, setStations] = useState<StudentExamStation[]>([]);
-  const [secondsLeft, setSecondsLeft] = useState(room.secondsLeft);
+  const [secondsLeft, setSecondsLeft] = useState(defaultRoom.secondsLeft);
   const [isPaused, setIsPaused] = useState(false);
   const [filter, setFilter] = useState<'all' | 'working' | 'submitted'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'seatmap' | 'grid'>('seatmap');
 
-  // Modals state
   const [inspectStation, setInspectStation] = useState<StudentExamStation | null>(null);
   const [broadcastOpen, setBroadcastOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const showToast = (msg: string) => {
+  const showToast = useCallback((msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
-  };
+  }, []);
+
+  // Fetch live proctoring data from server
+  useEffect(() => {
+    let isMounted = true;
+    const loadData = async () => {
+      try {
+        const data = await assignmentService.getProctoringData(roomId);
+        if (isMounted && data) {
+          if (data.room) setRoom(data.room);
+          if (data.stations) setStations(data.stations);
+          if (typeof data.room?.secondsLeft === 'number') {
+            setSecondsLeft(data.room.secondsLeft);
+          }
+        }
+      } catch (err) {
+        console.error('Lỗi nạp dữ liệu phòng thi từ server:', err);
+      }
+    };
+    loadData();
+    return () => {
+      isMounted = false;
+    };
+  }, [roomId]);
 
   // Countdown timer
   useEffect(() => {
@@ -50,9 +73,29 @@ export function RoomDetailMonitor({ roomId }: RoomDetailMonitorProps) {
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   };
 
-  const handleExtendTime = (mins: number) => {
-    setSecondsLeft((prev) => prev + mins * 60);
-    showToast(`Đã cộng thêm +${mins} phút cho ca thi!`);
+  const handleExtendTime = async (mins: number) => {
+    try {
+      const res = await assignmentService.controlExamSession(roomId, 'EXTEND', mins);
+      if (typeof res?.secondsLeft === 'number') {
+        setSecondsLeft(res.secondsLeft);
+      } else {
+        setSecondsLeft((prev) => prev + mins * 60);
+      }
+      showToast(res?.message || `Đã gia hạn +${mins} phút thành công!`);
+    } catch {
+      setSecondsLeft((prev) => prev + mins * 60);
+      showToast(`Đã cộng thêm +${mins} phút cho ca thi!`);
+    }
+  };
+
+  const handleTogglePause = async () => {
+    const nextPaused = !isPaused;
+    setIsPaused(nextPaused);
+    try {
+      await assignmentService.controlExamSession(roomId, nextPaused ? 'PAUSE' : 'START');
+    } catch {
+      // offline fallback
+    }
   };
 
   const handleForceSubmit = (stationId: string) => {
@@ -65,7 +108,7 @@ export function RoomDetailMonitor({ roomId }: RoomDetailMonitorProps) {
             ...s,
             status: 'submitted',
             submittedAt: time,
-            score: Number(((s.passedCases / s.totalCases) * 10).toFixed(1)),
+            score: s.totalCases > 0 ? Number(((s.passedCases / s.totalCases) * 10).toFixed(1)) : 8.0,
           };
         }
         return s;
@@ -80,7 +123,6 @@ export function RoomDetailMonitor({ roomId }: RoomDetailMonitorProps) {
     showToast(`Đã gửi thông báo tới tất cả máy: "${msg}"`);
   };
 
-  // Filtered stations
   const filteredStations = stations.filter((s) => {
     if (filter === 'working' && s.status !== 'working' && s.status !== 'compiling') return false;
     if (filter === 'submitted' && s.status !== 'submitted') return false;
@@ -108,20 +150,18 @@ export function RoomDetailMonitor({ roomId }: RoomDetailMonitorProps) {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto font-sans pb-24">
-      {/* Toast */}
       {toastMessage && (
         <div className="fixed top-20 right-6 z-50 rounded-2xl bg-slate-900 px-4 py-3 text-xs font-semibold text-white shadow-xl border border-slate-700 animate-in fade-in slide-in-from-top-4 duration-200">
           {toastMessage}
         </div>
       )}
 
-      {/* 1. Header & Controls */}
       <RoomDetailHeader
         room={room}
         secondsLeft={secondsLeft}
         isPaused={isPaused}
         formatTimer={formatTimer}
-        onTogglePause={() => setIsPaused(!isPaused)}
+        onTogglePause={handleTogglePause}
         onExtendTime={handleExtendTime}
         onOpenBroadcast={() => setBroadcastOpen(true)}
         totalStationsCount={stations.length}
@@ -130,7 +170,6 @@ export function RoomDetailMonitor({ roomId }: RoomDetailMonitorProps) {
         avgScore={avgScore}
       />
 
-      {/* 2. Toolbar (Filter tabs, Search, Mock controls) */}
       <RoomDetailToolbar
         filter={filter}
         setFilter={setFilter}
@@ -153,7 +192,6 @@ export function RoomDetailMonitor({ roomId }: RoomDetailMonitorProps) {
         setViewMode={setViewMode}
       />
 
-      {/* 3. Stations List / Standby State */}
       {stations.length === 0 ? (
         <RoomDetailStandbyView
           roomName={room.name}
@@ -170,7 +208,6 @@ export function RoomDetailMonitor({ roomId }: RoomDetailMonitorProps) {
         />
       )}
 
-      {/* Modals */}
       <InspectStationModal
         station={inspectStation}
         onClose={() => setInspectStation(null)}

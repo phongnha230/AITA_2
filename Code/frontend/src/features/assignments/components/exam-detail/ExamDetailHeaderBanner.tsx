@@ -57,8 +57,9 @@ export const ExamDetailHeaderBanner: React.FC<ExamDetailHeaderBannerProps> = ({ 
           <div className="text-[11px] font-semibold text-slate-400">Thời lượng làm bài</div>
           <div className="text-sm font-black text-slate-900 mt-0.5 flex items-center gap-1.5">
             <Clock className="w-4 h-4 text-emerald-600" />
-            <span>120 phút</span>
+            <span>{assignment.durationMinutes ? `${assignment.durationMinutes} phút` : '90 phút'}</span>
           </div>
+
         </div>
 
         <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">

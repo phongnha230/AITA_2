@@ -43,11 +43,16 @@ export const CreateExamWizard: React.FC = () => {
           setTitle={wizard.setTitle}
           description={wizard.description}
           setDescription={wizard.setDescription}
+          startTime={wizard.startTime}
+          setStartTime={wizard.setStartTime}
           durationMinutes={wizard.durationMinutes}
           setDurationMinutes={wizard.setDurationMinutes}
+          accessCode={wizard.accessCode}
+          setAccessCode={wizard.setAccessCode}
           onNext={() => wizard.setActiveStep(2)}
         />
       )}
+
 
       {/* BƯỚC 2: FILE PDF & STARTER CODE ZIP */}
       {wizard.activeStep === 2 && (

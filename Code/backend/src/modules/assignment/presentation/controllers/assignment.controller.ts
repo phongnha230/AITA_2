@@ -6,6 +6,8 @@ import { UpdateAssignmentUseCase } from '../../application/use-cases/update-assi
 import { ManageTestCasesUseCase } from '../../application/use-cases/manage-testcases.use-case.js';
 import { ManageRubricsUseCase } from '../../application/use-cases/manage-rubrics.use-case.js';
 import { ManageSolutionsUseCase } from '../../application/use-cases/manage-solutions.use-case.js';
+import { GetProctoringDataUseCase } from '../../application/use-cases/get-proctoring-data.use-case.js';
+import { ControlSessionUseCase } from '../../application/use-cases/control-session.use-case.js';
 import { sendSuccess } from '../../../../shared/presentation/utils/api-response.util.js';
 import { UnauthorizedError } from '../../../../shared/domain/exceptions/app.error.js';
 
@@ -17,8 +19,11 @@ export class AssignmentController {
     private readonly updateAssignmentUseCase: UpdateAssignmentUseCase,
     private readonly manageTestCasesUseCase: ManageTestCasesUseCase,
     private readonly manageRubricsUseCase: ManageRubricsUseCase,
-    private readonly manageSolutionsUseCase: ManageSolutionsUseCase
+    private readonly manageSolutionsUseCase: ManageSolutionsUseCase,
+    private readonly getProctoringDataUseCase: GetProctoringDataUseCase,
+    private readonly controlSessionUseCase: ControlSessionUseCase
   ) {}
+
 
   createAssignment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -140,4 +145,34 @@ export class AssignmentController {
       next(error);
     }
   };
+
+  // --- Live Proctoring & Session Control ---
+  getProctoringRooms = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const rooms = await this.getProctoringDataUseCase.getAllRooms();
+      sendSuccess(res, rooms, 'Lấy danh sách phòng thi giám sát trực tiếp thành công.');
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getProctoringData = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const data = await this.getProctoringDataUseCase.execute(req.params.id);
+      sendSuccess(res, data, 'Lấy dữ liệu giám sát phòng thi trực tiếp thành công.');
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  controlSession = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const requester = req.user ? { userId: req.user.userId, role: req.user.role } : undefined;
+      const result = await this.controlSessionUseCase.execute(req.params.id, req.body, requester);
+      sendSuccess(res, result, result.message || 'Cập nhật trạng thái ca thi thành công.');
+    } catch (error) {
+      next(error);
+    }
+  };
 }
+

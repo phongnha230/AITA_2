@@ -7,6 +7,8 @@ import { UpdateAssignmentUseCase } from '../../application/use-cases/update-assi
 import { ManageTestCasesUseCase } from '../../application/use-cases/manage-testcases.use-case.js';
 import { ManageRubricsUseCase } from '../../application/use-cases/manage-rubrics.use-case.js';
 import { ManageSolutionsUseCase } from '../../application/use-cases/manage-solutions.use-case.js';
+import { GetProctoringDataUseCase } from '../../application/use-cases/get-proctoring-data.use-case.js';
+import { ControlSessionUseCase } from '../../application/use-cases/control-session.use-case.js';
 import { PrismaAssignmentRepository } from '../../infrastructure/repositories/prisma-assignment.repository.js';
 import { PrismaCourseRepository } from '../../../course/infrastructure/repositories/prisma-course.repository.js';
 import { PrismaUserRepository } from '../../../user/infrastructure/repositories/prisma-user.repository.js';
@@ -19,6 +21,7 @@ import {
   CreateTestCaseSchema,
   SetRubricRulesSchema,
   UpsertSolutionSchema,
+  ControlSessionSchema,
 } from '../../application/dtos/assignment.dto.js';
 
 const router = Router();
@@ -35,6 +38,8 @@ const updateAssignmentUseCase = new UpdateAssignmentUseCase(assignmentRepository
 const manageTestCasesUseCase = new ManageTestCasesUseCase(assignmentRepository);
 const manageRubricsUseCase = new ManageRubricsUseCase(assignmentRepository);
 const manageSolutionsUseCase = new ManageSolutionsUseCase(assignmentRepository);
+const getProctoringDataUseCase = new GetProctoringDataUseCase(assignmentRepository);
+const controlSessionUseCase = new ControlSessionUseCase(assignmentRepository);
 
 const assignmentController = new AssignmentController(
   createAssignmentUseCase,
@@ -43,7 +48,9 @@ const assignmentController = new AssignmentController(
   updateAssignmentUseCase,
   manageTestCasesUseCase,
   manageRubricsUseCase,
-  manageSolutionsUseCase
+  manageSolutionsUseCase,
+  getProctoringDataUseCase,
+  controlSessionUseCase
 );
 
 // Routes
@@ -54,6 +61,28 @@ router.post(
   validateBody(CreateAssignmentSchema),
   assignmentController.createAssignment
 );
+
+// Proctoring routes (must be placed before /:id)
+router.get(
+  '/proctoring/rooms',
+  authenticateJWT,
+  authorizeRoles('LECTURER', 'ADMIN'),
+  assignmentController.getProctoringRooms
+);
+router.get(
+  '/:id/proctoring',
+  authenticateJWT,
+  authorizeRoles('LECTURER', 'ADMIN'),
+  assignmentController.getProctoringData
+);
+router.patch(
+  '/:id/session-control',
+  authenticateJWT,
+  authorizeRoles('LECTURER', 'ADMIN'),
+  validateBody(ControlSessionSchema),
+  assignmentController.controlSession
+);
+
 router.get('/:id', authenticateJWT, assignmentController.getAssignmentDetail);
 router.put(
   '/:id',
@@ -63,6 +92,7 @@ router.put(
   assignmentController.updateAssignment
 );
 router.get('/course/:courseId', authenticateJWT, assignmentController.getAssignmentsByCourse);
+
 
 // Test Cases
 router.post(
