@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getAuthToken } from './tokenStorage';
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1',
@@ -13,14 +14,9 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('token') || localStorage.getItem('aita_token');
-      if (token) {
-        if (!localStorage.getItem('token')) {
-          localStorage.setItem('token', token);
-        }
-        if (config.headers) {
-          config.headers.Authorization = `Bearer ${token}`;
-        }
+      const token = getAuthToken() || localStorage.getItem('token') || localStorage.getItem('aita_token');
+      if (token && config.headers) {
+        config.headers.Authorization = `Bearer ${token}`;
       }
     }
     return config;

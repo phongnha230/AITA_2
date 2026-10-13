@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 /** Public marketing chrome. Role consoles (e.g. /admin) bring their own layout, so we skip it there. */
@@ -19,9 +20,9 @@ export const SiteShell: React.FC<{ children: React.ReactNode }> = ({ children })
             </div>
           </div>
           <nav className="flex items-center gap-4 text-sm font-medium text-slate-600">
-            <a href="/" className="transition hover:text-indigo-600">Trang chủ</a>
-            <a href="#features" className="transition hover:text-indigo-600">Tính năng</a>
-            <a href="#system-health" className="transition hover:text-indigo-600">Trạng thái Hệ thống</a>
+            <Link href="/" className="transition-colors hover:text-indigo-600">Trang chủ</Link>
+            <Link href="/courses" className="transition-colors hover:text-indigo-600">Khóa học</Link>
+            <Link href="/login" className="transition-colors hover:text-indigo-600">Đăng nhập</Link>
           </nav>
         </div>
       </header>
