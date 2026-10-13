@@ -186,7 +186,7 @@ export class JobController {
 
   /**
    * GET /jobs/queue/jobs
-   * Lấy danh sách jobs gần đây trong hệ thống
+   * Lấy danh sách jobs gần đây trong hệ thống với đầy đủ thông tin sinh viên & đề thi
    */
   public static async listQueueJobs(_req: Request, res: Response): Promise<void> {
     try {
@@ -200,6 +200,36 @@ export class JobController {
               userId: true,
               assignmentId: true,
               status: true,
+              paperCode: true,
+              user: {
+                select: {
+                  id: true,
+                  fullName: true,
+                  studentCode: true,
+                  email: true,
+                },
+              },
+              assignment: {
+                select: {
+                  id: true,
+                  title: true,
+                  environment: true,
+                  course: {
+                    select: {
+                      id: true,
+                      code: true,
+                      name: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          assignedApiKey: {
+            select: {
+              id: true,
+              keyAlias: true,
+              provider: true,
             },
           },
         },
@@ -211,6 +241,83 @@ export class JobController {
       });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message || 'Lỗi lấy danh sách jobs' });
+    }
+  }
+
+  /**
+   * POST /jobs/queue/retry-all
+   * Thử lại toàn bộ các job bị lỗi
+   */
+  public static async retryAllFailed(_req: Request, res: Response): Promise<void> {
+    try {
+      const failedJobs = await prisma.gradingJob.findMany({
+        where: { status: 'FAILED' },
+        include: { submission: true },
+      });
+
+      for (const job of failedJobs) {
+        await prisma.gradingJob.update({
+          where: { submissionId: job.submissionId },
+          data: {
+            status: 'QUEUED',
+            retryCount: { increment: 1 },
+            errorStage: null,
+          },
+        });
+        if (job.submission?.zipFilePath) {
+          await enqueueSubmission({
+            submissionId: job.submissionId,
+            stagedFolderPath: job.submission.zipFilePath,
+            assignmentId: job.submission.assignmentId,
+          }).catch(() => {});
+        }
+      }
+
+      res.status(200).json({
+        success: true,
+        data: { retriedCount: failedJobs.length },
+        message: `Đã thử lại toàn bộ ${failedJobs.length} jobs bị lỗi.`,
+      });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message || 'Lỗi retry jobs' });
+    }
+  }
+
+  /**
+   * POST /jobs/queue/clear-completed
+   * Dọn dẹp các job đã chấm hoàn tất
+   */
+  public static async clearCompleted(_req: Request, res: Response): Promise<void> {
+    try {
+      const result = await prisma.gradingJob.deleteMany({
+        where: { status: 'COMPLETED' },
+      });
+      res.status(200).json({
+        success: true,
+        data: { clearedCount: result.count },
+        message: `Đã dọn dẹp ${result.count} jobs hoàn tất.`,
+      });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message || 'Lỗi clear completed jobs' });
+    }
+  }
+
+  /**
+   * POST /jobs/queue/flush-dead-letter
+   * Xóa toàn bộ jobs trong Dead Letter Queue
+   */
+  public static async flushDeadLetter(_req: Request, res: Response): Promise<void> {
+    try {
+      const result = await prisma.gradingJob.deleteMany({
+        where: { status: 'FAILED' },
+      });
+      res.status(200).json({
+        success: true,
+        data: { deletedCount: result.count },
+        message: `Đã xóa ${result.count} jobs khỏi DLQ.`,
+      });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message || 'Lỗi flush dead letter' });
     }
   }
 

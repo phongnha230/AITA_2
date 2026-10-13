@@ -73,75 +73,32 @@ export const adminQueueService = {
       const response = await api.get('/jobs/queue/jobs');
       const rawJobs = response.data?.data;
 
-      if (Array.isArray(rawJobs) && rawJobs.length > 0) {
-        return rawJobs.map((j: any) => ({
-          id: j.submissionId || j.id,
-          name: `Grading Job #${(j.submissionId || j.id).slice(0, 8)}`,
-          detail: `Submission ID: ${(j.submissionId || j.id).slice(0, 8)}`,
-          student: j.submission?.userId ? `Sinh viên (${j.submission.userId.slice(0, 8)})` : 'Sinh viên AITA',
-          course: 'SWD392',
-          queue: (j.status === 'RUNNING_AI' ? 'ai-rubric-queue' : 'docker-eval-queue') as JobQueueName,
-          progressLabel: mapProgressLabel(j.status),
-          percent: mapPercent(j.status),
-          duration: j.sandboxEndedAt || j.aiEndedAt ? '1.8s' : '0.4s',
-          state: mapJobState(j.status),
-        }));
+      if (Array.isArray(rawJobs)) {
+        return rawJobs.map((j: any) => {
+          const studentName = j.submission?.user?.fullName || 'Sinh viên';
+          const studentCode = j.submission?.user?.studentCode || (j.submission?.user?.email ? j.submission.user.email.split('@')[0] : '');
+          const courseCode = j.submission?.assignment?.course?.code || 'PE';
+          const assignmentTitle = j.submission?.assignment?.title || 'Chấm thi tự động';
+
+          return {
+            id: j.submissionId || j.id,
+            name: `${courseCode}: ${assignmentTitle.slice(0, 26)}...`,
+            detail: j.errorStage ? `Lỗi: ${j.errorStage}` : (j.status === 'RUNNING_AI' ? 'Socratic AI Rubric' : 'Docker Sandbox Runner'),
+            student: studentCode ? `${studentName} (${studentCode})` : studentName,
+            course: courseCode,
+            queue: (j.status === 'RUNNING_AI' ? 'ai-rubric-queue' : 'docker-eval-queue') as JobQueueName,
+            progressLabel: mapProgressLabel(j.status),
+            percent: mapPercent(j.status),
+            duration: j.sandboxEndedAt || j.aiEndedAt ? '1.8s' : '0.4s',
+            state: mapJobState(j.status),
+          };
+        });
       }
-    } catch {
-      // Fallback below
+    } catch (e) {
+      console.warn('[AdminQueueService] Failed to load jobs from backend:', e);
     }
 
-    // Default fallback demo data if no jobs in DB yet
-    return [
-      {
-        id: 'job-seed-01',
-        name: 'Evaluation PRO192 #01',
-        detail: 'Kiểm tra Unit Test OOP Java',
-        student: 'Trần Đỗ Phong Nhã (QE190161)',
-        course: 'PRO192',
-        queue: 'docker-eval-queue',
-        progressLabel: 'Chấm hoàn tất 100%',
-        percent: 100,
-        duration: '1.2s',
-        state: 'Completed',
-      },
-      {
-        id: 'job-seed-02',
-        name: 'Evaluation CSD201 #02',
-        detail: 'Cây AVL & Binary Search Tree',
-        student: 'Nguyễn Văn Điệp (QE180203)',
-        course: 'CSD201',
-        queue: 'docker-eval-queue',
-        progressLabel: 'Đang chạy Docker Sandbox',
-        percent: 45,
-        duration: '0.8s',
-        state: 'Processing',
-      },
-      {
-        id: 'job-seed-03',
-        name: 'Socratic AI Rubric #03',
-        detail: 'Phân tích tiêu chí Clean Code',
-        student: 'Nguyễn Anh Tuấn (QE190003)',
-        course: 'SWD392',
-        queue: 'ai-rubric-queue',
-        progressLabel: 'Đang đánh giá Socratic AI',
-        percent: 85,
-        duration: '2.4s',
-        state: 'Processing',
-      },
-      {
-        id: 'job-seed-04',
-        name: 'Evaluation PRF192 #04',
-        detail: 'Con trỏ & Bộ nhớ động C',
-        student: 'Lê Hoàng Long (QE190045)',
-        course: 'PRF192',
-        queue: 'docker-eval-queue',
-        progressLabel: 'Lỗi biên dịch / timeout',
-        percent: 50,
-        duration: '2.0s (Timeout)',
-        state: 'Failed',
-      },
-    ];
+    return [];
   },
 
   /**
@@ -164,19 +121,21 @@ export const adminQueueService = {
   },
 
   async prioritize(id: string): Promise<void> {
-    // Client-side prioritization feedback
     console.log(`Prioritizing job ${id}`);
   },
 
   async flushDeadLetter(): Promise<number> {
-    return 0;
+    const res = await api.post('/jobs/queue/flush-dead-letter');
+    return res.data?.data?.deletedCount ?? 0;
   },
 
   async clearCompleted(): Promise<number> {
-    return 0;
+    const res = await api.post('/jobs/queue/clear-completed');
+    return res.data?.data?.clearedCount ?? 0;
   },
 
   async retryAllFailed(): Promise<number> {
-    return 0;
+    const res = await api.post('/jobs/queue/retry-all');
+    return res.data?.data?.retriedCount ?? 0;
   },
 };

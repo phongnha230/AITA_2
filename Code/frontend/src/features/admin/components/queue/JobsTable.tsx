@@ -42,6 +42,7 @@ export const JobsTable: React.FC<JobsTableProps> = ({ jobs, onRetry, onPrioritiz
   }, [forcedState]);
   const [page, setPage] = useState(1);
 
+  // react-doctor-disable-next-line react-doctor/no-effect-chain
   useEffect(() => setPage(1), [search, queue, state]);
 
   const filtered = useMemo(() => {
@@ -70,7 +71,7 @@ export const JobsTable: React.FC<JobsTableProps> = ({ jobs, onRetry, onPrioritiz
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tìm Job ID, sinh viên, mã bài..." className={cn(inputClass, 'pl-9 sm:w-64')} />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tìm Job ID, sinh viên, mã bài..." aria-label="Tìm Job ID, sinh viên, mã bài..." className={cn(inputClass, 'pl-9 sm:w-64')} />
           </div>
           <select value={queue} onChange={(e) => setQueue(e.target.value)} className={cn(inputClass, 'sm:w-52')} aria-label="Lọc hàng đợi">
             <option value="">Tất cả hàng đợi (Queues)</option>

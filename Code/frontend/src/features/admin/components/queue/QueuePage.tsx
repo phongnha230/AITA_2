@@ -8,6 +8,7 @@ import { LoadingSpinner } from '../../../../components/feedback/LoadingSpinner';
 import { useQueueJobs } from '../../hooks/useQueueJobs';
 import { JOBS_AVG_MS, JOBS_PER_MIN } from '../../mocks/ops.mock';
 import { adminSettingsService } from '../../services/admin-settings.service';
+import { adminQueueService, type QueueMetricsOverview } from '../../services/admin-queue.service';
 import type { QueueJob } from '../../types/admin.types';
 import { AreaChart } from '../ui/AreaChart';
 import { Badge } from '../ui/Badge';
@@ -26,13 +27,25 @@ export const QueuePage: React.FC = () => {
   const [paused, setPaused] = useState(false);
   const [terminalJob, setTerminalJob] = useState<QueueJob | null>(null);
   const [forcedState, setForcedState] = useState<{ value: 'Failed' | ''; nonce: number }>();
+  const [metrics, setMetrics] = useState<QueueMetricsOverview | null>(null);
 
-  useEffect(() => setPaused(adminSettingsService.get().workersPaused), []);
+  const fetchMetrics = async () => {
+    try {
+      const m = await adminQueueService.getMetrics();
+      if (m) setMetrics(m);
+    } catch {}
+  };
+
+  useEffect(() => {
+    setPaused(adminSettingsService.get().workersPaused);
+    void fetchMetrics();
+  }, []);
 
   const run = async (task: () => Promise<unknown>, success?: string) => {
     try {
       await task();
       if (success) toast.success(success);
+      await fetchMetrics();
     } catch (e) {
       toast.error(getErrorMessage(e));
     }
@@ -45,11 +58,13 @@ export const QueuePage: React.FC = () => {
     toast.info(next ? 'Đã tạm dừng toàn bộ Workers.' : 'Workers đã hoạt động trở lại.');
   };
 
-  const queued = jobs.filter((j) => j.state === 'Queued').length;
+  const queued = (metrics?.bullmq?.waiting ?? 0) + jobs.filter((j) => j.state === 'Queued').length;
   const sandbox = jobs.filter((j) => j.state === 'Processing' && j.queue === 'docker-eval-queue').length;
   const ai = jobs.filter((j) => j.state === 'Processing' && j.queue === 'ai-rubric-queue').length;
-  const failed = jobs.filter((j) => j.state === 'Failed').length;
-  const completed = jobs.filter((j) => j.state === 'Completed').length;
+  const failed = (metrics?.bullmq?.failed ?? 0) + jobs.filter((j) => j.state === 'Failed').length;
+  const completed = (metrics?.bullmq?.completed ?? 0) + (metrics?.database?.statuses?.['COMPLETED'] ?? jobs.filter((j) => j.state === 'Completed').length);
+  const totalCompletedOrFailed = completed + failed;
+  const successRate = totalCompletedOrFailed > 0 ? ((completed / totalCompletedOrFailed) * 100).toFixed(1) : '100.0';
 
   return (
     <>
@@ -65,7 +80,7 @@ export const QueuePage: React.FC = () => {
             <Button variant="danger" disabled={failed === 0} onClick={() => void run(async () => toast.success(`Đã retry ${await retryAllFailed()} job lỗi.`))}>
               <RotateCcw className="h-4 w-4" /> Retry toàn bộ Failed Jobs
             </Button>
-            <Button variant="primary" onClick={() => void run(reload, 'Đã làm mới dữ liệu hàng đợi.')}><RefreshCw className="h-4 w-4" /> Làm mới tức thì</Button>
+            <Button variant="primary" onClick={() => void run(async () => { await reload(); await fetchMetrics(); }, 'Đã làm mới dữ liệu hàng đợi.')}><RefreshCw className="h-4 w-4" /> Làm mới tức thì</Button>
           </>
         }
       />
@@ -98,7 +113,7 @@ export const QueuePage: React.FC = () => {
               <h2 className="text-base font-semibold text-slate-900">Thông lượng xử lý jobs (Throughput &amp; Speed)</h2>
               <p className="text-xs text-slate-500">Lưu lượng jobs hoàn thành và thời gian phản hồi trung bình trong 60 phút qua</p>
             </div>
-            <Badge tone="student">2,450 jobs done</Badge>
+            <Badge tone="student">{completed} jobs hoàn thành</Badge>
           </div>
           <AreaChart
             height={220}
@@ -111,8 +126,8 @@ export const QueuePage: React.FC = () => {
           <dl className="grid grid-cols-2 gap-3 rounded-xl bg-slate-50 p-4 text-xs sm:grid-cols-4">
             <div><dt className="text-slate-500">Đỉnh xử lý (peak)</dt><dd className="font-bold text-slate-900">148 jobs/phút</dd></div>
             <div><dt className="text-slate-500">Độ trễ trung bình</dt><dd className="font-bold text-emerald-600">1.82 giây/job</dd></div>
-            <div><dt className="text-slate-500">Tỷ lệ thành công</dt><dd className="font-bold text-slate-900">99.92%</dd></div>
-            <div><dt className="text-slate-500">Dead-letter overflow</dt><dd className="font-bold text-rose-600">0.08% ({failed} jobs)</dd></div>
+            <div><dt className="text-slate-500">Tỷ lệ thành công</dt><dd className="font-bold text-slate-900">{successRate}%</dd></div>
+            <div><dt className="text-slate-500">Dead-letter overflow</dt><dd className="font-bold text-rose-600">{failed} jobs</dd></div>
           </dl>
         </Card>
         <RedisTelemetry

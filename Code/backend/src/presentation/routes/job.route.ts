@@ -29,6 +29,24 @@ router.get(
   JobController.listQueueJobs
 );
 
+router.post(
+  '/queue/retry-all',
+  authenticateJWT,
+  JobController.retryAllFailed
+);
+
+router.post(
+  '/queue/clear-completed',
+  authenticateJWT,
+  JobController.clearCompleted
+);
+
+router.post(
+  '/queue/flush-dead-letter',
+  authenticateJWT,
+  JobController.flushDeadLetter
+);
+
 /**
  * POST /jobs/:submissionId/retry
  * Thử lại một bài nộp bị lỗi
