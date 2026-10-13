@@ -72,15 +72,16 @@ export const UserFilters: React.FC<UserFiltersProps> = ({ query, stats, onChange
 
   const roles: Option<UserRole>[] = [
     { label: 'Tất cả' },
-    { value: 'LECTURER', label: `Giảng viên${stats ? ` (${stats.lecturers})` : ''}` },
-    { value: 'STUDENT', label: 'Sinh viên' },
-    { value: 'ADMIN', label: 'Admin' },
+    { value: 'LECTURER', label: `Giảng viên${stats?.lecturers !== undefined ? ` (${stats.lecturers})` : ''}` },
+    { value: 'STUDENT', label: `Sinh viên${stats?.students !== undefined ? ` (${stats.students})` : ''}` },
+    { value: 'ADMIN', label: `Admin${stats?.admins !== undefined ? ` (${stats.admins})` : ''}` },
   ];
+  const activeCount = stats ? Math.max(0, stats.total - stats.suspended - stats.pending) : undefined;
   const statuses: Option<UserStatus>[] = [
     { label: 'Tất cả' },
-    { value: 'ACTIVE', label: 'Hoạt động' },
-    { value: 'SUSPENDED', label: `Bị khóa${stats ? ` (${stats.suspended})` : ''}` },
-    { value: 'PENDING_ACTIVATION', label: 'Chờ xác thực' },
+    { value: 'ACTIVE', label: `Hoạt động${activeCount !== undefined ? ` (${activeCount})` : ''}` },
+    { value: 'SUSPENDED', label: `Bị khóa${stats?.suspended !== undefined ? ` (${stats.suspended})` : ''}` },
+    { value: 'PENDING_ACTIVATION', label: `Chờ xác thực${stats?.pending ? ` (${stats.pending})` : ''}` },
   ];
 
   return (

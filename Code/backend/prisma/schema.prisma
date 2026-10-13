@@ -20,6 +20,12 @@ model User {
   lastLoginAt        DateTime?             @map("last_login_at")
   refreshTokenHash   String?               @map("refresh_token_hash") @db.VarChar(255)
   status             UserStatus            @default(ACTIVE)
+  studentCode        String?               @map("student_code") @db.VarChar(20)
+  phoneNumber        String?               @map("phone_number") @db.VarChar(20)
+  major              String?               @map("major") @db.VarChar(100)
+  cohort             String?               @map("cohort") @db.VarChar(50)
+  githubUrl          String?               @map("github_url") @db.VarChar(255)
+  bio                String?               @map("bio") @db.VarChar(255)
   conversations      AiTutorConversation[]
   assignmentsCreated Assignment[]          @relation("AssignmentCreator")
   enrollments        CourseEnrollment[]

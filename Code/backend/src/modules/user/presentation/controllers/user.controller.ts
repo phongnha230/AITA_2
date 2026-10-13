@@ -11,7 +11,8 @@ import { AdminUpdateUserUseCase } from '../../application/use-cases/admin-update
 import { AdminResetPasswordUseCase } from '../../application/use-cases/admin-reset-password.use-case.js';
 import { GetAdminDashboardUseCase } from '../../application/use-cases/get-admin-dashboard.use-case.js';
 import { sendSuccess } from '../../../../shared/presentation/utils/api-response.util.js';
-import { UnauthorizedError } from '../../../../shared/domain/exceptions/app.error.js';
+import { UnauthorizedError, ValidationError } from '../../../../shared/domain/exceptions/app.error.js';
+import { cloudinaryService } from '../../../../infrastructure/storage/cloudinary.service.js';
 
 export class UserController {
   constructor(
@@ -83,6 +84,38 @@ export class UserController {
       }
       const updated = await this.updateProfileUseCase.execute(req.user.userId, req.body);
       sendSuccess(res, updated, 'Cập nhật thông tin cá nhân thành công.');
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  uploadAvatar = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!req.user?.userId) {
+        throw new UnauthorizedError('Người dùng chưa xác thực.');
+      }
+      if (!req.file) {
+        throw new ValidationError('Vui lòng chọn một file ảnh để làm ảnh đại diện');
+      }
+
+      const result = await cloudinaryService.uploadImage(req.file, {
+        folder: 'aita/avatars',
+        publicId: `avatar-${req.user.userId}`,
+      });
+
+      const updated = await this.updateProfileUseCase.execute(req.user.userId, {
+        avatarUrl: result.secureUrl,
+      });
+
+      sendSuccess(
+        res,
+        {
+          user: updated,
+          avatarUrl: result.secureUrl,
+          publicId: result.publicId,
+        },
+        'Tải ảnh đại diện lên Cloudinary và cập nhật hồ sơ thành công.'
+      );
     } catch (error) {
       next(error);
     }

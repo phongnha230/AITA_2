@@ -1,10 +1,11 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { useStudentProfile } from '../../hooks/useStudentProfile';
 import { useStudentCourses } from '../../hooks/useStudentCourses';
-import type { StudentProfileUpdate } from '../../types/student.types';
+import { studentService } from '../../services/student.service';
+import type { StudentProfileUpdate, StudentPortfolioData } from '../../types/student.types';
 import { StudentPageHeading } from '../shared/StudentPageHeading';
 import { ProfileEditModal } from './ProfileEditModal';
 import { ChangePasswordModal } from '@/features/auth/components/ChangePasswordModal';
@@ -18,19 +19,54 @@ export function StudentProfile() {
   const [editOpen, setEditOpen] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
+  // Lấy dữ liệu Portfolio thực tế từ backend
+  const [portfolio, setPortfolio] = useState<StudentPortfolioData | null>(null);
+  const [portfolioLoading, setPortfolioLoading] = useState(true);
+
+  const fetchPortfolio = useCallback(() => {
+    setPortfolioLoading(true);
+    studentService
+      .getPortfolio()
+      .then((data) => {
+        setPortfolio(data);
+      })
+      .catch((err) => {
+        console.warn('Chưa thể tải dữ liệu portfolio cá nhân:', err);
+      })
+      .finally(() => {
+        setPortfolioLoading(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    fetchPortfolio();
+  }, [fetchPortfolio]);
+
   const closeEdit = useCallback(() => setEditOpen(false), []);
 
   const saveProfile = useCallback(
-    (data: StudentProfileUpdate) => updateProfile(data),
-    [updateProfile],
+    async (data: StudentProfileUpdate) => {
+      const updated = await updateProfile(data);
+      // Tải lại portfolio để đồng bộ số liệu và avatar
+      fetchPortfolio();
+      return updated;
+    },
+    [updateProfile, fetchPortfolio],
+  );
+
+  const handleAvatarUpdated = useCallback(
+    (avatarUrl: string) => {
+      saveProfile({ avatarUrl });
+    },
+    [saveProfile]
   );
 
   return (
     <div className="space-y-6">
       <StudentPageHeading
         eyebrow="Tài khoản học tập"
-        title="Hồ sơ Sinh viên &amp; Báo cáo Năng lực PE"
-        description="Thông tin hồ sơ và các dữ liệu đánh giá hiện có trong hệ thống."
+        title="Hồ sơ Sinh viên & Báo cáo Năng lực PE"
+        description="Thông tin hồ sơ, chứng chỉ học tập và các chỉ số đánh giá thực tế từ hệ thống."
       />
 
       {status === 'error' && (
@@ -42,7 +78,7 @@ export function StudentProfile() {
           <button
             type="button"
             onClick={retry}
-            className="min-h-9 shrink-0 rounded-xl border border-amber-300 bg-white px-3.5 text-xs font-semibold text-amber-900 shadow-sm transition-all hover:bg-amber-100 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+            className="min-h-9 shrink-0 rounded-xl border border-amber-300 bg-white px-3.5 text-xs font-semibold text-amber-900 shadow-sm transition-colors hover:bg-amber-100 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
           >
             Thử lại
           </button>
@@ -65,17 +101,22 @@ export function StudentProfile() {
           profile={profile}
           onEdit={() => setEditOpen(true)}
           onChangePassword={() => setChangePasswordOpen(true)}
+          onAvatarUpdated={handleAvatarUpdated}
         />
       )}
 
-      <ProfileMetricGrid />
+      {/* Hiển thị số liệu thống kê thực tế kết nối từ API /users/portfolio */}
+      <ProfileMetricGrid portfolio={portfolio} loading={portfolioLoading} />
 
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
         <div className="min-w-0 lg:col-span-7">
-          <ProfileExamHistory />
+          <ProfileExamHistory
+            submissions={portfolio?.recentSubmissions ?? []}
+            loading={portfolioLoading}
+          />
         </div>
         <aside aria-label="Báo cáo năng lực" className="min-w-0 lg:col-span-5">
-          <ProfileSkillRadar />
+          <ProfileSkillRadar skills={portfolio?.skillsBreakdown ?? []} />
         </aside>
       </div>
 
@@ -103,4 +144,3 @@ export function StudentProfile() {
     </div>
   );
 }
-

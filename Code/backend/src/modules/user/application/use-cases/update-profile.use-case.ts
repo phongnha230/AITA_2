@@ -14,6 +14,12 @@ export class UpdateProfileUseCase {
     const updatedUser = await this.userRepository.update(userId, {
       ...(data.fullName !== undefined && { fullName: data.fullName }),
       ...(data.avatarUrl !== undefined && { avatarUrl: data.avatarUrl }),
+      ...(data.studentCode !== undefined && { studentCode: data.studentCode }),
+      ...(data.phoneNumber !== undefined && { phoneNumber: data.phoneNumber }),
+      ...(data.major !== undefined && { major: data.major }),
+      ...(data.cohort !== undefined && { cohort: data.cohort }),
+      ...(data.githubUrl !== undefined && { githubUrl: data.githubUrl }),
+      ...(data.bio !== undefined && { bio: data.bio }),
     });
 
     return updatedUser.toJSON();

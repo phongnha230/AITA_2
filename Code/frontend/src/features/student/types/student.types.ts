@@ -8,11 +8,23 @@ export interface StudentProfile {
   avatarUrl?: string | null;
   role: StudentRole;
   status: StudentAccountStatus;
+  studentCode?: string | null;
+  phoneNumber?: string | null;
+  major?: string | null;
+  cohort?: string | null;
+  githubUrl?: string | null;
+  bio?: string | null;
 }
 
 export interface StudentProfileUpdate {
   fullName?: string;
   avatarUrl?: string | null;
+  studentCode?: string | null;
+  phoneNumber?: string | null;
+  major?: string | null;
+  cohort?: string | null;
+  githubUrl?: string | null;
+  bio?: string | null;
 }
 
 export interface StudentCourse {
@@ -47,6 +59,8 @@ export interface StudentAssignment {
   allowGitSubmission: boolean;
   allowZipSubmission: boolean;
   status: AssignmentStatus;
+  accessCode?: string | null;
+  durationMinutes?: number | null;
   createdBy: string;
   createdAt: string;
   updatedAt: string;

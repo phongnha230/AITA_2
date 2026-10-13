@@ -36,6 +36,37 @@ export interface AdminDashboardResponse {
     aiScore: number;
     finalScore: number;
   }>;
+  liveSessions?: Array<{
+    code: string;
+    subject: string;
+    room: string;
+    proctor: string;
+    badge: string;
+    badgeTone: 'warning' | 'student' | 'neutral';
+    progressLabel: string;
+    progressValue: string;
+    percent: number;
+    barColor: string;
+  }>;
+  opsEvents?: Array<{
+    time: string;
+    level: 'Warning' | 'Info' | 'Success' | 'Proctor Alert';
+    subsystem: string;
+    message: string;
+    status: string;
+    action: string;
+  }>;
+  hourlyThroughput?: {
+    labels: string[];
+    submissions: number[];
+    aiCalls: number[];
+  };
+  roomClusterLoad?: Array<{
+    label: string;
+    value: number;
+    secondaryValue: number;
+    subLabel: string;
+  }>;
 }
 
 export interface LecturerDashboardResponse {
@@ -107,6 +138,12 @@ export interface StudentPortfolioResponse {
     avatarUrl?: string | null;
     role: string;
     status: string;
+    studentCode?: string | null;
+    phoneNumber?: string | null;
+    major?: string | null;
+    cohort?: string | null;
+    githubUrl?: string | null;
+    bio?: string | null;
     createdAt: Date;
     lastLoginAt?: Date | null;
   };

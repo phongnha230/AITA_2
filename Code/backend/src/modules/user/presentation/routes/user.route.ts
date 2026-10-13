@@ -15,6 +15,7 @@ import { BcryptHasherService } from '../../../auth/infrastructure/services/bcryp
 import prisma from '../../../../infrastructure/database/prisma.client.js';
 import { authenticateJWT, authorizeRoles } from '../../../auth/presentation/middlewares/auth.middleware.js';
 import { validateBody, validateQuery } from '../../../../shared/presentation/middlewares/validate.middleware.js';
+import { uploadImageMiddleware } from '../../../../infrastructure/storage/upload.middleware.js';
 import {
   UpdateProfileSchema,
   QueryUsersSchema,
@@ -66,6 +67,7 @@ router.get('/portfolio', authenticateJWT, userController.getStudentPortfolio);
 router.get('/lecturer-dashboard', authenticateJWT, authorizeRoles('LECTURER', 'ADMIN'), userController.getLecturerDashboard);
 router.get('/admin-dashboard', authenticateJWT, authorizeRoles('ADMIN'), userController.getAdminDashboard);
 router.patch('/profile', authenticateJWT, validateBody(UpdateProfileSchema), userController.updateProfile);
+router.post('/avatar', authenticateJWT, uploadImageMiddleware.single('avatar'), userController.uploadAvatar);
 
 // --- 2. Admin Management Endpoints (Requires ADMIN Role) ---
 router.get('/', authenticateJWT, authorizeRoles('ADMIN'), validateQuery(QueryUsersSchema), userController.getUsers);

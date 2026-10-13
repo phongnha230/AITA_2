@@ -78,15 +78,24 @@ export const adminUserService = {
   async stats(): Promise<UserStats> {
     const res = await api.get('/users/admin-dashboard');
     const d = res.data?.data;
+    const kpis = d?.kpis;
     return {
-      total: d?.totalUsers ?? 0,
-      lecturers: d?.usersByRole?.lecturer ?? 0,
-      students: d?.usersByRole?.student ?? 0,
-      admins: d?.usersByRole?.admin ?? 0,
+      total: kpis?.totalUsers ?? d?.totalUsers ?? 0,
+      lecturers: kpis?.totalLecturers ?? d?.usersByRole?.lecturer ?? 0,
+      students: kpis?.totalStudents ?? d?.usersByRole?.student ?? 0,
+      admins: kpis?.totalAdmins ?? d?.usersByRole?.admin ?? 0,
       suspended: d?.usersByStatus?.suspended ?? 0,
       pending: d?.usersByStatus?.pendingActivation ?? 0,
       newThisWeek: 0,
     };
+  },
+
+  /**
+   * Lấy chi tiết tài khoản người dùng kèm lớp học & bài nộp thực tế từ Backend
+   */
+  async getById(id: string): Promise<any> {
+    const res = await api.get(`/users/${id}`);
+    return res.data?.data;
   },
 
   /**

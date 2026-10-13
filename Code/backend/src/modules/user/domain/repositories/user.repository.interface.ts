@@ -29,8 +29,15 @@ export interface IUserRepository {
     role: Role;
     passwordHash: string;
     refreshTokenHash: string | null;
+    studentCode: string | null;
+    phoneNumber: string | null;
+    major: string | null;
+    cohort: string | null;
+    githubUrl: string | null;
+    bio: string | null;
   }>): Promise<User>;
   updateLastLogin(id: string): Promise<void>;
   findAll(filter?: FindUsersFilter): Promise<{ users: User[]; total: number }>;
   count(): Promise<number>;
+  findDetailedById?(id: string): Promise<any | null>;
 }

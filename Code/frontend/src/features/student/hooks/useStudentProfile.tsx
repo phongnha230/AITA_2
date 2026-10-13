@@ -27,12 +27,13 @@ const StudentProfileContext = createContext<StudentProfileContextValue | null>(n
 
 const DEFAULT_STUDENT_PROFILE: StudentProfile = {
   id: 'student-demo',
-  email: 'student@fpt.edu.vn',
-  fullName: 'Sinh viên FPT',
+  email: 'student@example.com',
+  fullName: 'Sinh viên',
   role: 'STUDENT',
   status: 'ACTIVE',
   avatarUrl: null,
 };
+
 
 export function StudentProfileProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<StudentProfile | null>(() => {
