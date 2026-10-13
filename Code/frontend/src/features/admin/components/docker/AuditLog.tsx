@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Download, Pause, Play, SquareTerminal } from 'lucide-react';
 import { cn } from '../../../../lib/cn';
 import { downloadFile } from '../../../../lib/download';
@@ -36,13 +36,22 @@ const nextLine = (n: number): DockerLogLine => {
 };
 
 /** `pulse` changes whenever the page asks for an immediate refresh. */
-export const AuditLog: React.FC<{ pulse: number }> = ({ pulse }) => {
+export const AuditLog: React.FC<{ pulse: number; initialLogs?: DockerLogLine[] }> = ({ pulse, initialLogs }) => {
   const toast = useToast();
-  const [lines, setLines] = useState<DockerLogLine[]>(DOCKER_LOGS);
+  const [streamedLines, setStreamedLines] = useState<DockerLogLine[]>([]);
   const [streaming, setStreaming] = useState(true);
   const counter = useRef(0);
 
-  const append = () => setLines((l) => [...l, nextLine(counter.current++)].slice(-MAX_LINES));
+  const lines = useMemo(() => {
+    const base = initialLogs && initialLogs.length > 0 ? initialLogs : DOCKER_LOGS;
+    return [...base, ...streamedLines].slice(-MAX_LINES);
+  }, [initialLogs, streamedLines]);
+
+  const append = () => {
+    const next = nextLine(counter.current);
+    counter.current += 1;
+    setStreamedLines((s) => [...s, next].slice(-MAX_LINES));
+  };
 
   useEffect(() => {
     if (!streaming) return;
@@ -55,7 +64,7 @@ export const AuditLog: React.FC<{ pulse: number }> = ({ pulse }) => {
   }, [pulse]);
 
   const exportLog = () => {
-    downloadFile('docker-audit.jsonl', lines.map((l) => JSON.stringify(l)).join('\n'), 'application/x-ndjson');
+    downloadFile('docker-audit.jsonl', lines.map((l: DockerLogLine) => JSON.stringify(l)).join('\n'), 'application/x-ndjson');
     toast.success(`Đã xuất ${lines.length} dòng log (.jsonl).`);
   };
 
@@ -76,8 +85,8 @@ export const AuditLog: React.FC<{ pulse: number }> = ({ pulse }) => {
         </div>
       </div>
       <ul className="max-h-96 space-y-2 overflow-y-auto rounded-xl bg-slate-50 p-4 font-mono text-xs leading-relaxed text-slate-700">
-        {lines.map((l, i) => (
-          <li key={`${l.time}-${i}`} className="flex flex-col gap-1 sm:flex-row sm:gap-3">
+        {lines.map((l: DockerLogLine) => (
+          <li key={`${l.time}-${l.tag}-${l.text}`} className="flex flex-col gap-1 sm:flex-row sm:gap-3">
             <span className="shrink-0 text-slate-500">{l.time}</span>
             <span className={cn('h-fit w-fit shrink-0 rounded px-2 py-0.5 text-[10px] font-bold', TAG_CLASS[l.tag])}>{l.tag}</span>
             <span className="min-w-0 break-words">{l.text}</span>

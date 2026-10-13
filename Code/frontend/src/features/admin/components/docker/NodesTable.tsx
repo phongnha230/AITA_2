@@ -13,11 +13,30 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
-export const NodesTable: React.FC = () => (
+export interface DockerNodeItem {
+  index: string;
+  name: string;
+  location: string;
+  role: string;
+  ip: string;
+  containers: number;
+  cpu: number;
+  ramGb: number;
+  policies: string[];
+  status?: string;
+}
+
+interface NodesTableProps {
+  nodes?: DockerNodeItem[];
+}
+
+export const NodesTable: React.FC<NodesTableProps> = ({ nodes }) => {
+  const list: any[] = nodes && nodes.length > 0 ? nodes : DOCKER_NODES;
+  return (
   <Card className="overflow-hidden p-0">
     <div className="flex flex-col justify-between gap-2 px-6 py-4 sm:flex-row sm:items-center">
       <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900">
-        Danh sách máy trạm Docker worker nodes <Badge tone="info">{DOCKER_NODES.length} active nodes hiển thị</Badge>
+        Danh sách máy trạm Docker worker nodes <Badge tone="info">{list.length} active nodes hiển thị</Badge>
       </h2>
       <p className="flex gap-4 text-[11px] font-medium text-slate-500">
         <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-emerald-600" /> Seccomp enforced</span>
@@ -38,7 +57,7 @@ export const NodesTable: React.FC = () => (
           </TableRow>
         </TableHeader>
         <TableBody>
-          {DOCKER_NODES.map((n) => (
+          {list.map((n) => (
             <TableRow key={n.name}>
               <TableCell className="py-4">
                 <div className="flex items-center gap-3">
@@ -50,12 +69,13 @@ export const NodesTable: React.FC = () => (
               <TableCell className="py-4 text-sm font-bold text-slate-900">{n.containers} <span className="text-xs font-normal text-slate-500">/ 50</span></TableCell>
               <TableCell className="w-44 py-4"><div className="flex items-center gap-2"><ProgressBar value={n.cpu} color="bg-emerald-600" /><span className="text-xs font-semibold text-slate-600">{n.cpu}%</span></div></TableCell>
               <TableCell className="w-44 py-4"><div className="flex items-center gap-2"><ProgressBar value={(n.ramGb / 16) * 100} /><span className="whitespace-nowrap text-xs font-semibold text-slate-600">{n.ramGb} GB</span></div></TableCell>
-              <TableCell className="py-4"><div className="flex max-w-[260px] flex-wrap gap-1">{n.policies.map((p) => <span key={p} className="rounded bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">{p}</span>)}</div></TableCell>
-              <TableCell className="py-4 text-right"><Badge tone="student" dot>Healthy</Badge></TableCell>
+              <TableCell className="py-4"><div className="flex max-w-[260px] flex-wrap gap-1">{(n.policies || []).map((p: string) => <span key={p} className="rounded bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">{p}</span>)}</div></TableCell>
+              <TableCell className="py-4 text-right"><Badge tone="student" dot>{n.status || 'Healthy'}</Badge></TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
     </div>
   </Card>
-);
+  );
+};

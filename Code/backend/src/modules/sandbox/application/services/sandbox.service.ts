@@ -138,8 +138,9 @@ export class SandboxService implements ISandboxService {
         });
       }
 
+      // Chuẩn khảo thí Strict PE: Testcases Sandbox đạt tối đa 8.0 điểm
       const normalizedSandboxScore = Number(
-        (((summary.totalScore / (summary.maxScore || 1)) * 7.0) || 0).toFixed(2)
+        (((summary.totalScore / (summary.maxScore || 1)) * 8.0) || 0).toFixed(2)
       );
       await tx.submission.update({
         where: { id: submission.id },
@@ -151,8 +152,9 @@ export class SandboxService implements ISandboxService {
       });
     });
 
+    // Chuẩn khảo thí Strict PE: Testcases Sandbox đạt tối đa 8.0 điểm
     const normalizedSandboxScore = Number(
-      (((summary.totalScore / (summary.maxScore || 1)) * 7.0) || 0).toFixed(2)
+      (((summary.totalScore / (summary.maxScore || 1)) * 8.0) || 0).toFixed(2)
     );
 
     return {
