@@ -73,11 +73,10 @@ export function AiTutorConfigModal({ open, onClose }: AiTutorConfigModalProps) {
       />
 
       {/* Modal Dialog */}
-      <div
-        role="dialog"
-        aria-modal="true"
+      <dialog
+        open
         aria-labelledby="ai-tutor-config-title"
-        className="relative w-full max-w-2xl max-h-[90vh] flex flex-col rounded-2xl bg-white shadow-2xl border border-slate-200/90 transition-all duration-200 animate-in fade-in zoom-in-95"
+        className="relative w-full max-w-2xl max-h-[90vh] flex flex-col rounded-2xl bg-white shadow-2xl border border-slate-200/90 transition-colors duration-200 animate-in fade-in zoom-in-95 block m-0 text-slate-900"
       >
         {/* Header */}
         <div className="flex items-center justify-between p-5 sm:p-6 border-b border-slate-100 shrink-0">
@@ -118,9 +117,9 @@ export function AiTutorConfigModal({ open, onClose }: AiTutorConfigModalProps) {
 
           {/* Mode selector */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-2">
+            <p className="block text-xs font-bold text-slate-700 mb-2">
               Chế độ sư phạm (Pedagogical Socratic Policy)
-            </label>
+            </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               {[
                 {
@@ -143,7 +142,7 @@ export function AiTutorConfigModal({ open, onClose }: AiTutorConfigModalProps) {
                   key={item.id}
                   type="button"
                   onClick={() => setSocraticMode(item.id as any)}
-                  className={`p-3 rounded-xl border text-left transition-all ${
+                  className={`p-3 rounded-xl border text-left transition-colors ${
                     socraticMode === item.id
                       ? 'border-indigo-600 bg-indigo-50/50 ring-1 ring-indigo-600 shadow-xs'
                       : 'border-slate-200 bg-white hover:bg-slate-50'
@@ -159,7 +158,7 @@ export function AiTutorConfigModal({ open, onClose }: AiTutorConfigModalProps) {
           {/* Prompt Instruction */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+              <label htmlFor="custom-prompt-textarea" className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                 <FileCode className="h-3.5 w-3.5 text-indigo-600" />
                 System Prompt Chỉ thị cho AI
               </label>
@@ -173,10 +172,12 @@ export function AiTutorConfigModal({ open, onClose }: AiTutorConfigModalProps) {
               </button>
             </div>
             <textarea
+              id="custom-prompt-textarea"
               rows={5}
               value={customPrompt}
               onChange={(e) => setCustomPrompt(e.target.value)}
               placeholder="Nhập prompt điều hướng AI..."
+              aria-label="System Prompt Chỉ thị cho AI"
               className="w-full rounded-xl border border-slate-200 bg-slate-50/50 p-3.5 font-mono text-xs text-slate-800 outline-none transition focus:border-indigo-600 focus:bg-white focus:ring-2 focus:ring-indigo-100"
             />
           </div>
@@ -185,36 +186,40 @@ export function AiTutorConfigModal({ open, onClose }: AiTutorConfigModalProps) {
           <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <label htmlFor="temperature-slider" className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                   <Sliders className="h-3.5 w-3.5 text-indigo-600" />
                   Độ ngẫu nhiên (Temperature): <span className="font-mono text-indigo-600">{temperature}</span>
                 </label>
                 <p className="text-[11px] text-slate-500">Giá trị thấp giúp AI trả lời chính xác, bám sát rubric hơn.</p>
               </div>
               <input
+                id="temperature-slider"
                 type="range"
                 min="0.1"
                 max="0.8"
                 step="0.05"
                 value={temperature}
                 onChange={(e) => setTemperature(parseFloat(e.target.value))}
+                aria-label="Độ ngẫu nhiên (Temperature)"
                 className="w-32 accent-indigo-600"
               />
             </div>
 
             <div className="pt-3 border-t border-slate-200/80 flex items-center justify-between">
               <div>
-                <p className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <label htmlFor="enable-rag-checkbox" className="text-xs font-bold text-slate-800 flex items-center gap-1.5 cursor-pointer">
                   <BrainCircuit className="h-3.5 w-3.5 text-indigo-600" />
                   Tích hợp RAG (Rubrics &amp; Test Cases)
-                </p>
+                </label>
                 <p className="text-[11px] text-slate-500">Tự động nạp tiêu chí chấm và testcase ẩn vào ngữ cảnh AI.</p>
               </div>
               <input
+                id="enable-rag-checkbox"
                 type="checkbox"
                 checked={enableRag}
                 onChange={(e) => setEnableRag(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 accent-indigo-600"
+                aria-label="Tích hợp RAG (Rubrics & Test Cases)"
+                className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 accent-indigo-600 cursor-pointer"
               />
             </div>
           </div>
@@ -246,7 +251,7 @@ export function AiTutorConfigModal({ open, onClose }: AiTutorConfigModalProps) {
             <span>Áp dụng cấu hình</span>
           </button>
         </div>
-      </div>
+      </dialog>
     </div>
   );
 }

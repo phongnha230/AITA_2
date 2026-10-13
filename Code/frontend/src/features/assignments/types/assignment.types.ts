@@ -8,6 +8,8 @@ export interface TestCase {
   assignmentId?: string;
   orderIndex: number;
   label: string;
+  questionNumber?: number | string;
+  questionTitle?: string;
   rationaleTag: RationaleTag;
   isHidden: boolean;
   timeLimitMs: number;
@@ -56,6 +58,8 @@ export interface Assignment {
   pdfFilePath?: string;
   starterCodePath?: string;
   status: AssignmentStatus;
+  durationMinutes?: number | null;
+  accessCode?: string | null;
   createdBy?: string;
   createdAt: string;
   updatedAt: string;

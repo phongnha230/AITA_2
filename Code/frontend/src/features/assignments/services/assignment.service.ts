@@ -138,6 +138,24 @@ export const assignmentService = {
    * Lấy danh sách bài giải mẫu
    */
   /**
+   * Thiết lập Rubric chấm điểm AI cho đề thi
+   */
+  async setRubricRules(assignmentId: string, rules: any[]): Promise<any[]> {
+    await this.ensureLecturerAuth();
+    const res = await api.put(`/assignments/${assignmentId}/rubrics`, { rules });
+    return res.data?.data || [];
+  },
+
+  /**
+   * Lấy danh sách Rubric của đề thi
+   */
+  async getRubricRules(assignmentId: string): Promise<any[]> {
+    await this.ensureLecturerAuth();
+    const res = await api.get(`/assignments/${assignmentId}/rubrics`);
+    return res.data?.data || [];
+  },
+
+  /**
    * Lấy danh sách bài nộp của một đề thi (Dành cho Giảng viên)
    */
   async getSubmissionsByAssignment(assignmentId: string): Promise<LecturerSubmission[]> {
@@ -155,9 +173,9 @@ export const assignmentService = {
           paperCode: 'SE1901_Q1',
           submissionChannel: 'ZIP_UPLOAD',
           status: 'GRADED',
-          sandboxScore: 8.5,
-          aiScore: 8.0,
-          finalScore: 8.35,
+          sandboxScore: 6.0,
+          aiScore: 1.5,
+          finalScore: 7.5,
           compileSuccess: true,
           submittedAt: new Date(Date.now() - 3600000).toISOString(),
           gradedAt: new Date(Date.now() - 1800000).toISOString(),
@@ -167,8 +185,8 @@ export const assignmentService = {
             email: 'phongnhatd@fpt.edu.vn',
           },
           testResults: [
-            { id: 'tr-1', testCaseId: 'tc-1', verdict: 'PASSED', earnedPoints: 1.0, executionTimeMs: 45 },
-            { id: 'tr-2', testCaseId: 'tc-2', verdict: 'PASSED', earnedPoints: 1.0, executionTimeMs: 52 },
+            { id: 'tr-1', testCaseId: 'tc-1', verdict: 'PASSED', earnedPoints: 3.0, executionTimeMs: 45 },
+            { id: 'tr-2', testCaseId: 'tc-2', verdict: 'PASSED', earnedPoints: 3.0, executionTimeMs: 52 },
             { id: 'tr-3', testCaseId: 'tc-3', verdict: 'FAILED', earnedPoints: 0.0, executionTimeMs: 2000 },
           ],
         },
@@ -181,9 +199,9 @@ export const assignmentService = {
           gitRepoUrl: 'https://github.com/diepnv/swd392-pe-submission',
           gitCommitHash: '9a8b7c6',
           status: 'GRADED',
-          sandboxScore: 10.0,
-          aiScore: 9.5,
-          finalScore: 9.85,
+          sandboxScore: 8.0,
+          aiScore: 1.9,
+          finalScore: 9.9,
           compileSuccess: true,
           submittedAt: new Date(Date.now() - 7200000).toISOString(),
           gradedAt: new Date(Date.now() - 3600000).toISOString(),

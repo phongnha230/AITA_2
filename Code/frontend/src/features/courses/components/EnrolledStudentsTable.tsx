@@ -23,6 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { formatDateTime } from '@/lib/formatDate';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -202,13 +203,7 @@ export const EnrolledStudentsTable: React.FC<EnrolledStudentsTableProps> = ({
                       </div>
                     </TableCell>
                     <TableCell className="px-5 py-4 text-slate-600 font-medium whitespace-nowrap">
-                      {new Date(enrollment.joinedAt).toLocaleDateString('vi-VN', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
+                      {formatDateTime(enrollment.joinedAt)}
                     </TableCell>
                     <TableCell className="px-5 py-4 whitespace-nowrap">
                       {isVerified ? (

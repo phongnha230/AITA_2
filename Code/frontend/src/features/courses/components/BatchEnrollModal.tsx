@@ -105,11 +105,10 @@ export const BatchEnrollModal: React.FC<BatchEnrollModalProps> = ({
       />
 
       {/* Modal Dialog */}
-      <div
-        role="dialog"
-        aria-modal="true"
+      <dialog
+        open
         aria-labelledby="batch-enroll-title"
-        className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl border border-slate-200/90 transition-all duration-200 animate-in fade-in zoom-in-95 sm:p-7"
+        className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl border border-slate-200/90 transition-colors duration-200 animate-in fade-in zoom-in-95 sm:p-7 block m-0 text-slate-900"
       >
         {/* Header */}
         <div className="flex items-start justify-between pb-4 border-b border-slate-100">
@@ -157,7 +156,7 @@ export const BatchEnrollModal: React.FC<BatchEnrollModalProps> = ({
         <form onSubmit={handleSubmit} className="mt-5 space-y-4">
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+              <label htmlFor="student-uuids-input" className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
                 <FileText className="h-3.5 w-3.5 text-indigo-600" />
                 Danh sách Student UUIDs
               </label>
@@ -166,10 +165,12 @@ export const BatchEnrollModal: React.FC<BatchEnrollModalProps> = ({
               </span>
             </div>
             <textarea
+              id="student-uuids-input"
               rows={6}
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               placeholder="Dán danh sách ID sinh viên (mỗi mã một dòng hoặc cách nhau bằng dấu phẩy)&#10;Ví dụ:&#10;8f9d0c24-4f01-419b-a05e-88c227b9c9d1&#10;7b2c1a10-2e33-4f11-9a99-99a112c3d4e5"
+              aria-label="Danh sách Student UUIDs"
               disabled={loading}
               className="w-full rounded-xl border border-slate-200 bg-slate-50/60 p-3.5 font-mono text-xs text-slate-800 outline-none transition focus:border-indigo-600 focus:bg-white focus:ring-2 focus:ring-indigo-100 placeholder:text-slate-400"
             />
@@ -214,7 +215,7 @@ export const BatchEnrollModal: React.FC<BatchEnrollModalProps> = ({
             </button>
           </div>
         </form>
-      </div>
+      </dialog>
     </div>
   );
 };

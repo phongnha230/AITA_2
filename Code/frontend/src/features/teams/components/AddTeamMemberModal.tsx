@@ -79,11 +79,10 @@ export const AddTeamMemberModal: React.FC<AddTeamMemberModalProps> = ({
       />
 
       {/* Modal Dialog */}
-      <div
-        role="dialog"
-        aria-modal="true"
+      <dialog
+        open
         aria-labelledby="add-member-title"
-        className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-200/90 transition-all duration-200 animate-in fade-in zoom-in-95 sm:p-7"
+        className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-200/90 transition-colors duration-200 animate-in fade-in zoom-in-95 sm:p-7 block m-0 text-slate-900"
       >
         {/* Header */}
         <div className="flex items-start justify-between pb-4 border-b border-slate-100">
@@ -122,16 +121,18 @@ export const AddTeamMemberModal: React.FC<AddTeamMemberModalProps> = ({
         {/* Form */}
         <form onSubmit={handleSubmit} className="mt-5 space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-              Email FPT của sinh viên <span className="text-rose-500">*</span>
+            <label htmlFor="student-email-input" className="block text-xs font-semibold text-slate-700 mb-1.5">
+              Email của thành viên <span className="text-rose-500">*</span>
             </label>
             <div className="relative">
               <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <input
+                id="student-email-input"
                 type="email"
                 value={studentEmail}
                 onChange={(e) => setStudentEmail(e.target.value)}
-                placeholder="sinhvien@fpt.edu.vn"
+                placeholder="thanhvien@gmail.com"
+                aria-label="Email của thành viên"
                 disabled={loading}
                 required
                 className="w-full rounded-xl border border-slate-200 bg-slate-50/60 pl-10 pr-3.5 py-2.5 text-xs text-slate-900 outline-none transition focus:border-indigo-600 focus:bg-white focus:ring-2 focus:ring-indigo-100 sm:text-sm"
@@ -140,11 +141,13 @@ export const AddTeamMemberModal: React.FC<AddTeamMemberModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
+            <label htmlFor="team-role-select" className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
               <Shield className="h-3.5 w-3.5 text-indigo-600" />
               Vai trò trong nhóm
             </label>
             <select
+              id="team-role-select"
+              aria-label="Vai trò trong nhóm"
               value={role}
               onChange={(e) => setRole(e.target.value as any)}
               disabled={loading}
@@ -184,7 +187,7 @@ export const AddTeamMemberModal: React.FC<AddTeamMemberModalProps> = ({
             </button>
           </div>
         </form>
-      </div>
+      </dialog>
     </div>
   );
 };

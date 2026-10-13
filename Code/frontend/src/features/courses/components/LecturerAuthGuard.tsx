@@ -35,7 +35,7 @@ export function LecturerAuthGuard({ children }: LecturerAuthGuardProps) {
 
       if (!currentUser) {
         localStorage.removeItem('user');
-        router.replace(`/login?redirectTo=${encodeURIComponent(pathname)}`);
+        window.location.replace(`/login?redirectTo=${encodeURIComponent(pathname)}`);
         return;
       }
 
@@ -45,7 +45,7 @@ export function LecturerAuthGuard({ children }: LecturerAuthGuardProps) {
         setIsChecking(false);
         redirectTimer = setTimeout(() => {
           if (active) {
-            router.replace('/student/dashboard');
+            window.location.replace('/student/dashboard');
           }
         }, 2000);
         return;
