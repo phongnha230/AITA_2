@@ -67,6 +67,21 @@ export class GradeSubmissionAiUseCase {
       };
     }
 
+    // Định dạng báo cáo lỗi logic & Clean Code chi tiết
+    let enrichedFeedback = parsed.codeQualityFeedback || 'Hoàn tất đánh giá.';
+    if (parsed.rootCauseAnalysis && parsed.rootCauseAnalysis.length > 0) {
+      enrichedFeedback += '\n\n🔍 **PHÂN TÍCH NGUYÊN NHÂN LỖI LOGIC (ROOT CAUSE):**\n' +
+        parsed.rootCauseAnalysis
+          .map((rc: any) => `- **${rc.failedTestLabel}** (Dòng ${rc.errorLine || 'N/A'}): ${rc.reason}`)
+          .join('\n');
+    }
+    if (parsed.cleanCodeAudit && parsed.cleanCodeAudit.length > 0) {
+      enrichedFeedback += '\n\n✨ **KIỂM ĐỊNH CLEAN CODE:**\n' +
+        parsed.cleanCodeAudit
+          .map((cc: any) => `- [${cc.severity || 'NOTE'}] Dòng ${cc.line}: ${cc.issue} 👉 *Gợi ý:* ${cc.suggestion}`)
+          .join('\n');
+    }
+
     // 6. Tính tổng điểm AI = Tổng các earnedPoints của từng tiêu chí Rubric
     const rubricBreakdown = (parsed.rubricBreakdown || []).map((r: any) => ({
       rubricId: r.rubricId || 'custom-rubric',
@@ -77,9 +92,9 @@ export class GradeSubmissionAiUseCase {
       feedback: r.feedback || '',
     }));
 
-    const overallAiScore = Number(
-      rubricBreakdown.reduce((sum: number, item: any) => sum + item.earnedPoints, 0).toFixed(2)
-    );
+    // Strict PE: AI Clean Code tối đa 2.0 điểm
+    const rawAiScore = rubricBreakdown.reduce((sum: number, item: any) => sum + item.earnedPoints, 0);
+    const overallAiScore = Number(Math.min(2.0, Math.max(0, rawAiScore)).toFixed(2));
 
     // 7. Lưu kết quả AI Grading vào CSDL
     const savedResult = await this.aiGradingRepository.save({
@@ -88,7 +103,7 @@ export class GradeSubmissionAiUseCase {
       rubricBreakdown,
       detectedTimeComplexity: parsed.detectedTimeComplexity,
       detectedSpaceComplexity: parsed.detectedSpaceComplexity,
-      codeQualityFeedback: parsed.codeQualityFeedback || 'Hoàn tất đánh giá.',
+      codeQualityFeedback: enrichedFeedback,
       ragContextUsed: {
         rubricCount: ragContext.rubricRules.length,
         failedTestCount: ragContext.failedTestCases.length,
@@ -97,9 +112,9 @@ export class GradeSubmissionAiUseCase {
       tokensConsumed: llmResponse.tokensConsumed || 0,
     });
 
-    // 8. Cập nhật finalScore cho submission = sandboxScore + overallAiScore
+    // 8. Cập nhật finalScore cho submission = sandboxScore (max 8.0) + overallAiScore (max 2.0) = max 10.0
     const sandboxScore = Number(submission.sandboxScore || 0);
-    const finalScore = Number((sandboxScore + overallAiScore).toFixed(2));
+    const finalScore = Number(Math.min(10.0, Math.max(0, sandboxScore + overallAiScore)).toFixed(2));
 
     await this.submissionRepository.updateAiGradingScores(submissionId, {
       aiScore: overallAiScore,

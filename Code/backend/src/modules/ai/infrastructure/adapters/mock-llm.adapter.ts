@@ -5,27 +5,27 @@ export class MockLlmAdapter implements ILlmProvider {
     if (options.jsonMode) {
       return {
         text: JSON.stringify({
-          overallAiScore: 2.5,
+          overallAiScore: 1.8,
           detectedTimeComplexity: 'O(n log n)',
           detectedSpaceComplexity: 'O(1)',
           codeQualityFeedback:
-            'Mã nguồn có cấu trúc rõ ràng, đặt tên biến tuân theo camelCase chuẩn, thuật toán tối ưu.',
+            'Mã nguồn có cấu trúc rõ ràng, đặt tên biến tuân theo camelCase chuẩn, thuật toán tối ưu, không có dấu hiệu hardcode.',
           rubricBreakdown: [
             {
               rubricId: 'default-rubric-1',
               category: 'TIME_COMPLEXITY',
-              title: 'Độ phức tạp thuật toán',
-              earnedPoints: 1.5,
-              maxPoints: 1.5,
+              title: 'Độ phức tạp thuật toán kỳ vọng',
+              earnedPoints: 1.0,
+              maxPoints: 1.0,
               feedback: 'Thuật toán đạt O(n log n) đúng theo yêu cầu đề bài.',
             },
             {
               rubricId: 'default-rubric-2',
               category: 'CLEAN_CODE',
-              title: 'Clean Code & Quy chuẩn đặt tên',
-              earnedPoints: 1.0,
-              maxPoints: 1.5,
-              feedback: 'Code sạch sẽ, cần bổ sung thêm comment giải thích các logic xử lý mảng.',
+              title: 'Clean Code & Chống Hardcode mã nguồn',
+              earnedPoints: 0.8,
+              maxPoints: 1.0,
+              feedback: 'Code sạch sẽ, biến đặt tên rõ ràng, hàm xử lý tổng quát.',
             },
           ],
         }),
