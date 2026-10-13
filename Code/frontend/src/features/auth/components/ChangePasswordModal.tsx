@@ -19,14 +19,71 @@ interface ChangePasswordModalProps {
   onClose: () => void;
 }
 
+interface PasswordInputProps {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (val: string) => void;
+  placeholder: string;
+  disabled: boolean;
+  minLength?: number;
+}
+
+function PasswordInput({
+  id,
+  label,
+  value,
+  onChange,
+  placeholder,
+  disabled,
+  minLength,
+}: PasswordInputProps) {
+  const [show, setShow] = useState(false);
+
+  return (
+    <div>
+      <label htmlFor={id} className="block text-xs font-semibold text-slate-700 mb-1.5">
+        {label} <span className="text-rose-500">*</span>
+      </label>
+      <div className="relative">
+        <input
+          id={id}
+          type={show ? 'text' : 'password'}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          aria-label={label}
+          disabled={disabled}
+          required
+          minLength={minLength}
+          className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3.5 py-2.5 pr-10 text-xs text-slate-900 outline-none transition focus:border-indigo-600 focus:bg-white focus:ring-2 focus:ring-indigo-100 sm:text-sm"
+        />
+        <button
+          type="button"
+          onClick={() => setShow(!show)}
+          tabIndex={-1}
+          aria-label={show ? `Ẩn ${label.toLowerCase()}` : `Hiện ${label.toLowerCase()}`}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+        >
+          {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function validatePasswords(current: string, next: string, confirm: string): string | null {
+  if (!current) return 'Vui lòng nhập mật khẩu hiện tại.';
+  if (next.length < 6) return 'Mật khẩu mới phải có ít nhất 6 ký tự.';
+  if (next !== confirm) return 'Mật khẩu xác nhận không khớp với mật khẩu mới.';
+  if (current === next) return 'Mật khẩu mới không được trùng với mật khẩu hiện tại.';
+  return null;
+}
+
 export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps) {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-
-  const [showCurrent, setShowCurrent] = useState(false);
-  const [showNew, setShowNew] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,20 +96,9 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
     setError(null);
     setSuccess(null);
 
-    if (!currentPassword) {
-      setError('Vui lòng nhập mật khẩu hiện tại.');
-      return;
-    }
-    if (newPassword.length < 6) {
-      setError('Mật khẩu mới phải có ít nhất 6 ký tự.');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setError('Mật khẩu xác nhận không khớp với mật khẩu mới.');
-      return;
-    }
-    if (currentPassword === newPassword) {
-      setError('Mật khẩu mới không được trùng với mật khẩu hiện tại.');
+    const validationError = validatePasswords(currentPassword, newPassword, confirmPassword);
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
@@ -95,11 +141,10 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
       />
 
       {/* Modal Dialog */}
-      <div
-        role="dialog"
-        aria-modal="true"
+      <dialog
+        open
         aria-labelledby="change-password-title"
-        className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-200/90 transition-all duration-200 animate-in fade-in zoom-in-95 sm:p-7"
+        className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-200/90 transition-colors duration-200 animate-in fade-in zoom-in-95 sm:p-7 block m-0 text-slate-900"
       >
         {/* Header */}
         <div className="flex items-start justify-between pb-4 border-b border-slate-100">
@@ -145,84 +190,33 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="mt-5 space-y-4">
-          {/* Mật khẩu hiện tại */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-              Mật khẩu hiện tại <span className="text-rose-500">*</span>
-            </label>
-            <div className="relative">
-              <input
-                type={showCurrent ? 'text' : 'password'}
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                placeholder="Nhập mật khẩu đang sử dụng"
-                disabled={loading}
-                required
-                className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3.5 py-2.5 pr-10 text-xs text-slate-900 outline-none transition focus:border-indigo-600 focus:bg-white focus:ring-2 focus:ring-indigo-100 sm:text-sm"
-              />
-              <button
-                type="button"
-                onClick={() => setShowCurrent(!showCurrent)}
-                tabIndex={-1}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-              >
-                {showCurrent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-          </div>
+          <PasswordInput
+            id="current-password-input"
+            label="Mật khẩu hiện tại"
+            value={currentPassword}
+            onChange={setCurrentPassword}
+            placeholder="Nhập mật khẩu đang sử dụng"
+            disabled={loading}
+          />
 
-          {/* Mật khẩu mới */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-              Mật khẩu mới <span className="text-rose-500">*</span>
-            </label>
-            <div className="relative">
-              <input
-                type={showNew ? 'text' : 'password'}
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Tối thiểu 6 ký tự"
-                disabled={loading}
-                required
-                minLength={6}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3.5 py-2.5 pr-10 text-xs text-slate-900 outline-none transition focus:border-indigo-600 focus:bg-white focus:ring-2 focus:ring-indigo-100 sm:text-sm"
-              />
-              <button
-                type="button"
-                onClick={() => setShowNew(!showNew)}
-                tabIndex={-1}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-              >
-                {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-          </div>
+          <PasswordInput
+            id="new-password-input"
+            label="Mật khẩu mới"
+            value={newPassword}
+            onChange={setNewPassword}
+            placeholder="Tối thiểu 6 ký tự"
+            disabled={loading}
+            minLength={6}
+          />
 
-          {/* Xác nhận mật khẩu mới */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-              Xác nhận mật khẩu mới <span className="text-rose-500">*</span>
-            </label>
-            <div className="relative">
-              <input
-                type={showConfirm ? 'text' : 'password'}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Nhập lại mật khẩu mới"
-                disabled={loading}
-                required
-                className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3.5 py-2.5 pr-10 text-xs text-slate-900 outline-none transition focus:border-indigo-600 focus:bg-white focus:ring-2 focus:ring-indigo-100 sm:text-sm"
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirm(!showConfirm)}
-                tabIndex={-1}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-              >
-                {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-          </div>
+          <PasswordInput
+            id="confirm-password-input"
+            label="Xác nhận mật khẩu mới"
+            value={confirmPassword}
+            onChange={setConfirmPassword}
+            placeholder="Nhập lại mật khẩu mới"
+            disabled={loading}
+          />
 
           {/* Action buttons */}
           <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
@@ -253,7 +247,7 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
             </button>
           </div>
         </form>
-      </div>
+      </dialog>
     </div>
   );
 }

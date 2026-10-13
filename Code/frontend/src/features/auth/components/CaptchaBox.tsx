@@ -81,21 +81,26 @@ export default function CaptchaBox({ onCodeChange }: CaptchaBoxProps) {
   }, [onCodeChange]);
 
   useEffect(() => {
+    // react-doctor-disable-next-line react-doctor/no-pass-data-to-parent
     drawCaptcha();
   }, [drawCaptcha]);
 
   return (
     <div className="flex items-center gap-2">
-      <div className="relative overflow-hidden rounded-lg border border-slate-200 bg-slate-100 shadow-inner">
+      <button
+        type="button"
+        onClick={drawCaptcha}
+        aria-label="Bấm để đổi mã Captcha khác"
+        title="Bấm để đổi mã khác"
+        className="relative overflow-hidden rounded-lg border border-slate-200 bg-slate-100 shadow-inner p-0 cursor-pointer block focus-visible:outline-indigo-500"
+      >
         <canvas
           ref={canvasRef}
           width={130}
           height={42}
-          className="block cursor-pointer select-none"
-          title="Bấm để đổi mã khác"
-          onClick={drawCaptcha}
+          className="block select-none"
         />
-      </div>
+      </button>
       <button
         type="button"
         onClick={drawCaptcha}

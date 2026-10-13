@@ -83,7 +83,7 @@ export default function LoginCredentialsForm({
       <Button
         type="submit"
         disabled={isSubmitting}
-        className="mt-2 h-11 w-full rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-xs transition-all"
+        className="mt-2 h-11 w-full rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-xs transition-colors"
       >
         {isSubmitting ? (
           <>

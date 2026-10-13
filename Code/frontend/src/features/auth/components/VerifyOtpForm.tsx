@@ -168,6 +168,7 @@ export default function VerifyOtpForm() {
       } else {
         setErrorMessage('Không thể hoàn tất đăng ký lúc này. Vui lòng thử lại.');
       }
+    } finally {
       setIsSubmitting(false);
     }
   }, [otp, router, getTargetEmail]);
@@ -185,14 +186,15 @@ export default function VerifyOtpForm() {
 
       {/* 6 Digit Input */}
       <div className="flex justify-center gap-2 sm:gap-3">
-        {otp.map((digit, idx) => (
+        {(['otp_1', 'otp_2', 'otp_3', 'otp_4', 'otp_5', 'otp_6'] as const).map((slotKey, idx) => (
           <input
-            key={idx}
+            key={slotKey}
+            aria-label={`Chữ số xác thực OTP thứ ${idx + 1}`}
             ref={(el) => { inputRefs.current[idx] = el; }}
             type="text"
             inputMode="numeric"
             maxLength={1}
-            value={digit}
+            value={otp[idx]}
             onChange={(e) => handleInputChange(idx, e.target.value)}
             onKeyDown={(e) => handleKeyDown(idx, e)}
             className="h-12 w-11 sm:h-14 sm:w-12 rounded-xl border border-slate-200 bg-white text-center text-xl font-bold text-slate-800 shadow-xs focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
@@ -224,7 +226,7 @@ export default function VerifyOtpForm() {
       <Button
         type="submit"
         disabled={isSubmitting || otp.join('').length !== 6}
-        className="h-11 w-full rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-xs transition-all"
+        className="h-11 w-full rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-xs transition-colors"
       >
         {isSubmitting ? (
           <>

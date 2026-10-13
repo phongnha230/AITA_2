@@ -18,7 +18,7 @@ export default function RegisterForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
+  const recaptchaTokenRef = useRef<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -49,7 +49,7 @@ export default function RegisterForm() {
     }
 
     // 2. Validate Google reCAPTCHA
-    if (siteKey && !recaptchaToken) {
+    if (siteKey && !recaptchaTokenRef.current) {
       setErrorMessage('Vui lòng hoàn tất xác thực "Tôi không phải người máy" bên dưới.');
       return;
     }
@@ -58,7 +58,7 @@ export default function RegisterForm() {
 
     try {
       // 1. Gọi backend để sinh OTP và gửi email
-      await authService.sendOtp(email.trim(), fullName.trim(), recaptchaToken || undefined);
+      await authService.sendOtp(email.trim(), fullName.trim(), recaptchaTokenRef.current || undefined);
 
       // 2. Lưu thông tin đăng ký tạm thời để xác thực ở bước OTP
       const pendingData = {
@@ -78,7 +78,8 @@ export default function RegisterForm() {
       const msg = err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi gửi mã OTP. Vui lòng thử lại.';
       setErrorMessage(msg);
       recaptchaRef.current?.reset();
-      setRecaptchaToken(null);
+      recaptchaTokenRef.current = null;
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -116,7 +117,7 @@ export default function RegisterForm() {
             type="email"
             autoComplete="email"
             className="h-11 rounded-lg bg-white pl-10 pr-3 text-sm border-slate-200 focus-visible:ring-indigo-500"
-            placeholder="VD: sinhvien@fpt.edu.vn"
+            placeholder="VD: yourname@gmail.com"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -179,8 +180,8 @@ export default function RegisterForm() {
             <ReCAPTCHA
               ref={recaptchaRef}
               sitekey={siteKey}
-              onChange={(token) => setRecaptchaToken(token)}
-              onExpired={() => setRecaptchaToken(null)}
+              onChange={(token) => { recaptchaTokenRef.current = token; }}
+              onExpired={() => { recaptchaTokenRef.current = null; }}
             />
           </div>
         ) : (
@@ -203,7 +204,7 @@ export default function RegisterForm() {
       <Button
         type="submit"
         disabled={isSubmitting}
-        className="mt-3 h-11 w-full rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-xs transition-all"
+        className="mt-3 h-11 w-full rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-xs transition-colors"
       >
         {isSubmitting ? (
           <>

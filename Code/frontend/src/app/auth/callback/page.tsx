@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { authService } from '@/features/auth/services/auth.service';
+import { saveAuthTokens } from '@/lib/tokenStorage';
 
 function AuthCallbackLoading() {
   return (
@@ -25,7 +26,6 @@ function AuthCallbackContent() {
   useEffect(() => {
     const token = searchParams.get('token');
     const refreshToken = searchParams.get('refreshToken');
-    const role = searchParams.get('role');
     const redirectTo = searchParams.get('redirectTo') || '/dashboard';
     const err = searchParams.get('error');
 
@@ -42,11 +42,7 @@ function AuthCallbackContent() {
     }
 
     if (token) {
-      localStorage.setItem('token', token);
-      localStorage.setItem('aita_token', token);
-    }
-    if (refreshToken) {
-      localStorage.setItem('refreshToken', refreshToken);
+      saveAuthTokens(token, refreshToken || undefined);
     }
 
     // Verify session using HttpOnly Cookie
@@ -57,7 +53,7 @@ function AuthCallbackContent() {
           localStorage.setItem('user', JSON.stringify(user));
           if (user.role) localStorage.setItem('user_role', user.role);
 
-          const targetRole = user.role || role;
+          const targetRole = user.role;
           let destination = '/student/dashboard';
           if (targetRole === 'ADMIN') {
             destination = '/admin/dashboard';
@@ -69,13 +65,13 @@ function AuthCallbackContent() {
             destination = redirectTo;
           }
 
-          router.replace(destination);
+          window.location.replace(destination);
         } else {
-          router.replace('/login');
+          window.location.replace('/login');
         }
       })
       .catch(() => {
-        router.replace('/login');
+        window.location.replace('/login');
       });
   }, [router, searchParams]);
 
