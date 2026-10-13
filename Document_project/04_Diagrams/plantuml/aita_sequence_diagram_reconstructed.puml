@@ -1,0 +1,167 @@
+@startuml
+title AITA — Automated PE Grading with Sandbox & RAG\nSequence Diagram (Reconstructed from the supplied image)
+
+' Reconstructed approximation: some original message labels were too small to read.
+' Verify method names, status values, and exact persistence calls against source code.
+
+!theme plain
+hide footbox
+autonumber
+skinparam backgroundColor #F7FAFC
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 13
+skinparam titleFontSize 20
+skinparam titleFontColor #123B67
+skinparam sequence {
+  ArrowColor #2563EB
+  LifeLineBorderColor #94A3B8
+  LifeLineBackgroundColor #F1F5F9
+  ParticipantBorderColor #60A5FA
+  ParticipantBackgroundColor #EAF3FF
+  ParticipantFontColor #123B67
+  ActorBorderColor #64748B
+  ActorBackgroundColor #F8FAFC
+  ActorFontColor #1E293B
+  GroupBorderColor #94A3B8
+  GroupBackgroundColor #F1F5F9
+  BoxBorderColor #CBD5E1
+  BoxBackgroundColor #FFFFFF
+  DividerBorderColor #94A3B8
+  DividerFontColor #334155
+  ReferenceBorderColor #94A3B8
+  ReferenceBackgroundColor #FFF7ED
+  ReferenceFontColor #7C2D12
+}
+skinparam responseMessageBelowArrow true
+skinparam maxMessageSize 80
+skinparam ParticipantPadding 18
+skinparam BoxPadding 10
+
+actor "Student\n(Web UI)" as Student
+
+box "Presentation Layer" #EAF3FF
+participant "SubmissionController" as Controller
+end box
+
+box "Application Layer (Use Cases)" #F0FDF4
+participant "SubmitAssignmentUseCase" as SubmitUC
+participant "ProcessGradingJobUseCase" as ProcessUC
+end box
+
+box "Infrastructure — Queue & Worker" #FFF7E6
+participant "JobOrchestratorService" as Orchestrator
+queue "BullMQ Queue\n(Redis)" as Queue
+participant "BullMQWorker" as Worker
+end box
+
+box "Infrastructure — Docker Sandbox" #FFF1F2
+participant "SandboxRunnerFactory" as Factory
+participant "DockerSandboxRunner\n(C / Java)" as Sandbox
+end box
+
+box "Infrastructure — RAG & AI" #F5F3FF
+participant "RagKnowledgeFacade\n(ChromaDB)" as RAG
+participant "ApiProvider" as Provider
+participant "LLMProvider\n(OpenAI / Gemini)" as LLM
+end box
+
+database "MySQL Database\n(Prisma ORM)" as DB
+
+== Phase 1 — Submit assignment ==
+Student -> Controller : POST /api/submissions\nmultipart/form-data
+activate Controller
+Controller -> SubmitUC : submitAssignment(request, files)
+activate SubmitUC
+SubmitUC -> SubmitUC : Validate request and files
+SubmitUC -> DB : Create submission\nstatus = QUEUED
+activate DB
+DB --> SubmitUC : submissionId
+deactivate DB
+SubmitUC -> Orchestrator : enqueueGradingJob(submissionId)
+activate Orchestrator
+Orchestrator -> Queue : add(grading job)
+Queue --> Orchestrator : job queued
+Orchestrator --> SubmitUC : queued
+deactivate Orchestrator
+SubmitUC --> Controller : submissionId + status
+deactivate SubmitUC
+Controller --> Student : HTTP 202 Accepted\n"Job is queued"
+deactivate Controller
+
+== Phase 2 — Worker starts grading ==
+Queue -> Worker : Deliver queued job
+activate Worker
+Worker -> ProcessUC : processGradingJob(submissionId)
+activate ProcessUC
+ProcessUC -> DB : Load submission, assignment,\ntest cases and rubric
+DB --> ProcessUC : Submission context
+ProcessUC -> DB : Update job status = RUNNING
+DB --> ProcessUC : Updated
+
+== Phase 3 — Compile and execute in sandbox ==
+ProcessUC -> Factory : createRunner(language)
+activate Factory
+Factory --> ProcessUC : sandbox runner
+deactivate Factory
+ProcessUC -> Sandbox : compileAndRun(source, testCases)
+activate Sandbox
+note right of Sandbox
+  Execute untrusted code in an isolated
+  container with resource limits and timeout.
+  Exact limits depend on deployment settings.
+end note
+Sandbox --> ProcessUC : compile status + test results
+deactivate Sandbox
+
+alt Compilation or execution failed
+  ProcessUC -> DB : Save compile/runtime error\nand grading status
+  DB --> ProcessUC : Saved
+else Execution completed
+  ProcessUC -> DB : Save test results and score inputs
+  DB --> ProcessUC : Saved
+end
+
+== Phase 4 — AI-assisted grading with RAG ==
+opt AI/RAG grading is enabled for this assignment
+  ProcessUC -> RAG : retrieveRelevantKnowledge(context)
+  activate RAG
+  RAG -> DB : Load rubric / course context\n(if stored in MySQL)
+  DB --> RAG : Knowledge metadata
+  RAG -> Provider : Search relevant vector chunks
+  activate Provider
+  Provider -> RAG : Retrieved context
+  deactivate Provider
+  RAG --> ProcessUC : Relevant context
+  deactivate RAG
+
+  ProcessUC -> LLM : gradeSubmission(code, results,\nrubric, retrievedContext)
+  activate LLM
+  LLM --> ProcessUC : Feedback + suggested score
+  deactivate LLM
+end
+
+== Phase 5 — Persist final result ==
+ProcessUC -> DB : Save final score, feedback,\ntest summary and status
+DB --> ProcessUC : Persisted
+ProcessUC --> Worker : Grading result
+deactivate ProcessUC
+Worker -> Queue : Complete job / record failure
+Queue --> Worker : Job state updated
+deactivate Worker
+
+== Phase 6 — Client retrieves result ==
+Student -> Controller : GET submission status/result
+activate Controller
+Controller -> DB : Read submission and grading result
+DB --> Controller : Current status + result
+Controller --> Student : HTTP 200 OK\nStatus, score and feedback
+deactivate Controller
+
+note over Student,DB
+  This is a reconstructed, report-friendly sequence diagram based on the screenshot.
+  Several original call labels were unreadable; verify endpoints, method names,
+  status transitions, and whether RAG reads from MySQL or another knowledge source.
+end note
+
+@enduml
