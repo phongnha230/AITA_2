@@ -38,6 +38,37 @@ export interface AdminDashboardData {
     aiScore: number;
     finalScore: number;
   }>;
+  liveSessions?: Array<{
+    code: string;
+    subject: string;
+    room: string;
+    proctor: string;
+    badge: string;
+    badgeTone: 'warning' | 'student' | 'neutral';
+    progressLabel: string;
+    progressValue: string;
+    percent: number;
+    barColor: string;
+  }>;
+  opsEvents?: Array<{
+    time: string;
+    level: 'Warning' | 'Info' | 'Success' | 'Proctor Alert';
+    subsystem: string;
+    message: string;
+    status: string;
+    action: string;
+  }>;
+  hourlyThroughput?: {
+    labels: string[];
+    submissions: number[];
+    aiCalls: number[];
+  };
+  roomClusterLoad?: Array<{
+    label: string;
+    value: number;
+    secondaryValue: number;
+    subLabel: string;
+  }>;
 }
 
 export const adminDashboardService = {

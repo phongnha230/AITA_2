@@ -53,6 +53,16 @@ export const AiKeysPage: React.FC = () => {
   const limit = keys.reduce((s, k) => s + k.dailyRequestLimit, 0);
   const throttled = keys.filter((k) => k.consecutiveFailures >= 3).length;
 
+  const keysWithLatency = keys.filter((k) => typeof k.latencyMs === 'number' && k.latencyMs > 0);
+  const avgLatency = keysWithLatency.length > 0
+    ? Math.round(keysWithLatency.reduce((s, k) => s + (k.latencyMs || 0), 0) / keysWithLatency.length)
+    : 480;
+  const totalFailures = keys.reduce((s, k) => s + (k.consecutiveFailures || 0), 0);
+  const successRate = used > 0
+    ? Math.max(0, Math.min(100, ((used - totalFailures) / used) * 100)).toFixed(1)
+    : '100.0';
+  const estimatedCost = (used * 0.0015).toFixed(2);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return keys.filter((k) => (filter === 'ALL' || k.provider === filter) && (!q || `${k.keyAlias} ${k.purposeTitle ?? ''} ${k.keyPreview ?? ''}`.toLowerCase().includes(q)));
@@ -60,11 +70,13 @@ export const AiKeysPage: React.FC = () => {
 
   const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const visible = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const pageProviders = (p: AiProvider) => keys.slice(0, PAGE_SIZE).filter((k) => k.provider === p).length;
 
   const tabs: { id: Filter; label: string }[] = [
-    { id: 'ALL', label: `Tất cả (${PAGE_SIZE})` },
-    ...(['OPENAI', 'GEMINI', 'ANTHROPIC', 'DEEPSEEK'] as AiProvider[]).map((p) => ({ id: p, label: `${PROVIDER_LABEL[p]} (${filter === 'ALL' ? pageProviders(p) : keys.filter((k) => k.provider === p).length})` })),
+    { id: 'ALL', label: `Tất cả (${keys.length})` },
+    ...(['OPENAI', 'GEMINI', 'ANTHROPIC', 'DEEPSEEK'] as AiProvider[]).map((p) => ({
+      id: p,
+      label: `${PROVIDER_LABEL[p]} (${keys.filter((k) => k.provider === p).length})`,
+    })),
   ];
 
   const guard = async (task: () => Promise<void>, fallback: string) => {
@@ -124,13 +136,13 @@ export const AiKeysPage: React.FC = () => {
           <p className="mt-1.5 flex justify-between text-[11px] font-semibold"><span className="text-emerald-600">{keys.length ? Math.round((active / keys.length) * 100) : 0}% đang hoạt động</span><span className="text-slate-500">{keys.length - active} Keys dự phòng</span></p>
         </MiniStat>
         <MiniStat label="Tỷ lệ thành công (SR)" iconClass="bg-emerald-50 text-emerald-600" icon={<CheckCircle2 className="h-5 w-5" />}>
-          <p className="text-3xl font-bold text-emerald-600">99.85%</p>
-          <p className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-600"><Activity className="h-3.5 w-3.5" /> Latency tb: 640ms</p>
+          <p className="text-3xl font-bold text-emerald-600">{successRate}%</p>
+          <p className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-600"><Activity className="h-3.5 w-3.5" /> Latency tb: {avgLatency}ms</p>
         </MiniStat>
-        <MiniStat label="Chi phí tháng hiện tại" iconClass="bg-blue-50 text-blue-600" icon={<Wallet className="h-5 w-5" />}>
-          <p className="text-3xl font-bold text-slate-900">$142.60 <span className="text-sm font-medium text-slate-500">/ $500 max</span></p>
-          <ProgressBar className="mt-3" value={28.5} />
-          <p className="mt-1.5 flex justify-between text-[11px] font-semibold"><span className="text-slate-600">Đã dùng: 28.5% Budget</span><span className="text-emerald-600">An toàn</span></p>
+        <MiniStat label="Chi phí hôm nay (ước tính)" iconClass="bg-blue-50 text-blue-600" icon={<Wallet className="h-5 w-5" />}>
+          <p className="text-3xl font-bold text-slate-900">${estimatedCost} <span className="text-sm font-medium text-slate-500">/ $50.00 max</span></p>
+          <ProgressBar className="mt-3" value={Math.min(100, (Number(estimatedCost) / 50) * 100)} />
+          <p className="mt-1.5 flex justify-between text-[11px] font-semibold"><span className="text-slate-600">{used} reqs đã xử lý</span><span className="text-emerald-600">Hạn mức OK</span></p>
         </MiniStat>
         <MiniStat label="Cảnh báo Rate Limit" iconClass="bg-emerald-50 text-emerald-600" icon={<CheckCircle2 className="h-5 w-5" />}>
           <p className="text-3xl font-bold text-slate-900">{throttled} <span className="text-base font-medium text-slate-500">Key</span></p>
@@ -189,7 +201,7 @@ export const AiKeysPage: React.FC = () => {
 
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <div className="xl:col-span-2"><RouterSettings /></div>
-        <TrafficStats />
+        <TrafficStats keys={keys} />
       </section>
       <AddKeyModal open={adding} onClose={() => setAdding(false)} onCreated={() => { toast.success('Đã thêm khóa API mới.'); void reload(); }} />
     </>

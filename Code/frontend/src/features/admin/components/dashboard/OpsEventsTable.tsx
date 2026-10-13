@@ -36,12 +36,13 @@ const FILTERS: { id: Filter; label: string }[] = [
 const matches = (e: OpsEvent, f: Filter) =>
   f === 'all' || (f === 'warning' && e.level === 'Warning') || (f === 'security' && e.level === 'Proctor Alert');
 
-export const OpsEventsTable: React.FC = () => {
+export const OpsEventsTable: React.FC<{ events?: OpsEvent[] }> = ({ events: propEvents }) => {
   const toast = useToast();
   const [filter, setFilter] = useState<Filter>('all');
   const [sent, setSent] = useState<Set<string>>(new Set());
   const [detail, setDetail] = useState<OpsEvent | null>(null);
-  const rows = OPS_EVENTS.filter((e) => matches(e, filter));
+  const eventList = propEvents && propEvents.length > 0 ? propEvents : OPS_EVENTS;
+  const rows = eventList.filter((e) => matches(e, filter));
 
   const act = (e: OpsEvent) => {
     if (e.level === 'Proctor Alert') {

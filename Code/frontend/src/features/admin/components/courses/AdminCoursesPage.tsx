@@ -6,16 +6,7 @@ import {
   BookOpen,
   Plus,
   Search,
-  Users,
-  KeyRound,
-  Trash2,
   RefreshCw,
-  ExternalLink,
-  ShieldCheck,
-  CheckCircle2,
-  AlertCircle,
-  QrCode,
-  UserX,
 } from 'lucide-react';
 import { courseService } from '@/features/courses/services/course.service';
 import type { Course, CreateCoursePayload } from '@/features/courses/types/course.types';
@@ -23,18 +14,10 @@ import { PageHeader } from '../ui/PageHeader';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '../ui/Badge';
-import { Modal } from '../ui/Modal';
-import { FormField } from '../ui/FormField';
 import { useToast } from '../ui/Toast';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { CreateCourseModal } from './CreateCourseModal';
+import { CourseStudentsModal } from './CourseStudentsModal';
+import { AdminCoursesTable } from './AdminCoursesTable';
 
 export const AdminCoursesPage: React.FC = () => {
   const toast = useToast();
@@ -215,233 +198,35 @@ export const AdminCoursesPage: React.FC = () => {
       </Card>
 
       {/* Main Table */}
-      <Card className="overflow-hidden p-0">
-        <div className="overflow-x-auto">
-          <Table className="min-w-[1000px]">
-            <TableHeader className="bg-slate-50/80">
-              <TableRow>
-                <TableHead className="w-28">Mã môn</TableHead>
-                <TableHead>Tên khóa học</TableHead>
-                <TableHead>Giảng viên phụ trách</TableHead>
-                <TableHead className="w-28">Học kỳ</TableHead>
-                <TableHead className="w-32">Sĩ số (SV)</TableHead>
-                <TableHead>Mã vào lớp (PIN)</TableHead>
-                <TableHead className="w-28">Trạng thái</TableHead>
-                <TableHead className="text-right">Thao tác</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center py-10 text-slate-500 text-sm">
-                    {loading ? 'Đang tải danh sách khóa học...' : 'Không tìm thấy khóa học nào phù hợp.'}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filtered.map((c) => (
-                  <TableRow key={c.id}>
-                    <TableCell className="font-mono text-xs font-bold text-blue-600">
-                      {c.code}
-                    </TableCell>
-                    <TableCell>
-                      <p className="font-semibold text-sm text-slate-900">{c.name}</p>
-                      <p className="text-xs text-slate-500 font-mono">ID: {c.id}</p>
-                    </TableCell>
-                    <TableCell>
-                      <p className="text-sm font-medium text-slate-900">
-                        {c.lecturer?.fullName ?? 'Chưa phân công'}
-                      </p>
-                      <p className="text-xs text-slate-500">{c.lecturer?.email ?? '—'}</p>
-                    </TableCell>
-                    <TableCell>
-                      <Badge tone="neutral">{c.semester}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedCourse(c);
-                          setStudentsModalOpen(true);
-                        }}
-                        className="inline-flex items-center gap-1.5 font-bold text-xs text-blue-600 hover:underline"
-                        title="Xem danh sách sinh viên"
-                      >
-                        <Users className="h-3.5 w-3.5" />
-                        {c.enrolledStudentsCount || c.enrollments?.length || 0} / {c.capacity || 40} SV
-                      </button>
-                    </TableCell>
-                    <TableCell>
-                      {c.enrollmentCode ? (
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-mono text-xs font-bold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded border border-emerald-200">
-                            {c.enrollmentCode}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleRevokeCode(c)}
-                            title="Khóa mã vào lớp"
-                            className="text-slate-400 hover:text-rose-600 p-1"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ) : (
-                        <Button
-                          variant="ghost"
-                          className="h-7 px-2 text-xs text-slate-500 hover:text-blue-600"
-                          onClick={() => handleGenerateCode(c)}
-                        >
-                          <KeyRound className="h-3 w-3 mr-1" /> Tạo mã
-                        </Button>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge tone={c.isActive ? 'student' : 'warning'} dot>
-                        {c.isActive ? 'Đang mở' : 'Đã đóng'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          className="h-8 w-8 p-0 text-slate-400 hover:text-blue-600"
-                          title="Xem danh sách sinh viên"
-                          onClick={() => {
-                            setSelectedCourse(c);
-                            setStudentsModalOpen(true);
-                          }}
-                        >
-                          <Users className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          className="h-8 w-8 p-0 text-slate-400 hover:text-rose-600"
-                          title="Xóa khóa học"
-                          onClick={() => handleDelete(c)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </Card>
+      <AdminCoursesTable
+        courses={filtered}
+        loading={loading}
+        onSelectCourseForStudents={(c) => {
+          setSelectedCourse(c);
+          setStudentsModalOpen(true);
+        }}
+        onGenerateCode={handleGenerateCode}
+        onRevokeCode={handleRevokeCode}
+        onDeleteCourse={handleDelete}
+      />
 
       {/* Modal Tạo Khóa Học Mới */}
-      <Modal open={createOpen} title="Tạo Khóa Học / Lớp Học Mới" onClose={() => setCreateOpen(false)}>
-        <form onSubmit={handleCreate} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <FormField label="Mã môn học (Code)">
-              <Input
-                required
-                value={createForm.code}
-                onChange={(e) => setCreateForm({ ...createForm, code: e.target.value })}
-                placeholder="VD: PRF192, SWD392"
-                className="font-mono uppercase"
-              />
-            </FormField>
-            <FormField label="Học kỳ (Semester)">
-              <Input
-                required
-                value={createForm.semester}
-                onChange={(e) => setCreateForm({ ...createForm, semester: e.target.value })}
-                placeholder="VD: Fall 2026, Spring 2027"
-              />
-            </FormField>
-          </div>
-
-          <FormField label="Tên môn học đầy đủ">
-            <Input
-              required
-              value={createForm.name}
-              onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
-              placeholder="VD: Lập trình C cơ bản, Kiến trúc phần mềm"
-            />
-          </FormField>
-
-          <div className="grid grid-cols-2 gap-4">
-            <FormField label="Sức chứa tối đa (Sinh viên)">
-              <Input
-                type="number"
-                min={1}
-                value={createForm.capacity || 40}
-                onChange={(e) => setCreateForm({ ...createForm, capacity: Number(e.target.value) })}
-              />
-            </FormField>
-            <FormField label="Phòng máy (LAB)">
-              <Input
-                value={createForm.room || 'LAB-302'}
-                onChange={(e) => setCreateForm({ ...createForm, room: e.target.value })}
-                placeholder="VD: LAB-302, AL-L402"
-              />
-            </FormField>
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-            <Button onClick={() => setCreateOpen(false)}>Hủy</Button>
-            <Button type="submit" variant="primary" disabled={submitting}>
-              {submitting ? 'Đang tạo...' : 'Tạo khóa học'}
-            </Button>
-          </div>
-        </form>
-      </Modal>
+      <CreateCourseModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        form={createForm}
+        onChangeForm={setCreateForm}
+        onSubmit={handleCreate}
+        submitting={submitting}
+      />
 
       {/* Modal Xem Danh Sách Sinh Viên Trong Lớp */}
-      <Modal
+      <CourseStudentsModal
         open={studentsModalOpen}
-        title={selectedCourse ? `Danh Sách Sinh Viên: ${selectedCourse.code} - ${selectedCourse.name}` : 'Danh sách sinh viên'}
         onClose={() => setStudentsModalOpen(false)}
-        side={true}
-      >
-        <div className="space-y-4">
-          <div className="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200">
-            <div>
-              <p className="text-xs text-slate-500">Giảng viên: <strong className="text-slate-800">{selectedCourse?.lecturer?.fullName ?? 'Chưa phân công'}</strong></p>
-              <p className="text-xs text-slate-500">Tổng sinh viên ghi danh: <strong className="text-blue-600">{selectedCourse?.enrollments?.length ?? 0} sinh viên</strong></p>
-            </div>
-            {selectedCourse?.enrollmentCode && (
-              <span className="font-mono text-xs bg-emerald-50 text-emerald-700 px-2 py-1 rounded font-bold border border-emerald-200">
-                PIN: {selectedCourse.enrollmentCode}
-              </span>
-            )}
-          </div>
-
-          {selectedCourse?.enrollments && selectedCourse.enrollments.length > 0 ? (
-            <div className="divide-y divide-slate-100 border border-slate-100 rounded-xl overflow-hidden">
-              {selectedCourse.enrollments.map((enr, i) => (
-                <div key={enr.studentId} className="flex items-center justify-between p-3 hover:bg-slate-50 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-mono text-slate-400 w-6">{i + 1}</span>
-                    <div>
-                      <p className="text-sm font-semibold text-slate-900">{enr.student.fullName}</p>
-                      <p className="text-xs text-slate-500 font-mono">{enr.student.studentCode || enr.student.email}</p>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    className="h-8 px-2 text-rose-600 hover:bg-rose-50 hover:text-rose-700 text-xs"
-                    onClick={() => handleRemoveStudent(enr.studentId, enr.student.fullName)}
-                  >
-                    <UserX className="h-3.5 w-3.5 mr-1" /> Gỡ khỏi lớp
-                  </Button>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-slate-500 text-sm">
-              Chưa có sinh viên nào ghi danh vào lớp học này.
-            </div>
-          )}
-
-          <div className="flex justify-end pt-4">
-            <Button onClick={() => setStudentsModalOpen(false)}>Đóng</Button>
-          </div>
-        </div>
-      </Modal>
+        course={selectedCourse}
+        onRemoveStudent={handleRemoveStudent}
+      />
     </>
   );
 };

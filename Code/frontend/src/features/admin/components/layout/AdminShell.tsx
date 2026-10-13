@@ -44,7 +44,7 @@ export const AdminShell: React.FC<{ children: React.ReactNode }> = ({ children }
       }
 
       // Unauthenticated -> redirect to real login
-      router.replace('/login?redirectTo=/admin/dashboard&error=unauthenticated');
+      window.location.replace('/login?redirectTo=/admin/dashboard&error=unauthenticated');
     };
 
     verifyAdmin();

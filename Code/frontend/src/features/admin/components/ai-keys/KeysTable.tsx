@@ -46,12 +46,9 @@ export const KeysTable: React.FC<KeysTableProps> = ({ keys, total, allCount, pag
           <Table className="min-w-[980px]">
             <TableHeader className="bg-slate-50/80">
               <TableRow>
-                <TableHead>Khóa &amp; Provider</TableHead>
-                <TableHead>Mục đích sử dụng</TableHead>
-                <TableHead>Rate limit (RPM/TPM)</TableHead>
-                <TableHead>Hạn mức sử dụng (Quota)</TableHead>
-                <TableHead>Độ trễ</TableHead>
-                <TableHead>Trạng thái</TableHead>
+                {['Khóa & Provider', 'Mục đích sử dụng', 'Rate limit (RPM/TPM)', 'Hạn mức sử dụng (Quota)', 'Độ trễ', 'Trạng thái'].map((h) => (
+                  <TableHead key={h}>{h}</TableHead>
+                ))}
                 <TableHead className="text-right">Xóa</TableHead>
               </TableRow>
             </TableHeader>

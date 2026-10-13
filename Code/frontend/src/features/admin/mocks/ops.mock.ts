@@ -110,7 +110,7 @@ export const SAMPLE_STUDENT: StudentProfile = {
     { name: 'CSD201_SE1802', subject: 'CSD201', lecturer: 'Cô Mai Lan' },
   ],
   exams: [
-    { name: 'PE PRF192 - Lần 1', score: '8.5 (Sandbox 6.0 + AI 2.5)', passed: true, submissions: 2 },
+    { name: 'PE PRF192 - Lần 1', score: '7.8 (Sandbox 6.0 + AI 1.8)', passed: true, submissions: 2 },
     { name: 'PE CSD201 - Lần 1', score: '4.0 (Sandbox 3.0 + AI 1.0)', passed: false, submissions: 3 },
   ],
   securityFlags: [{ reason: 'Sandbox chặn timeout / fork-bomb (CSD201)', ip: '10.14.22.31' }],

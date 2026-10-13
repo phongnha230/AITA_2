@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ArrowRight, LayoutGrid } from 'lucide-react';
 import { LIVE_SESSIONS, type LiveSession } from '../../mocks/ops.mock';
 import { Badge } from '../ui/Badge';
@@ -13,11 +13,17 @@ import { RoomMatrixModal } from './RoomMatrixModal';
 
 const WAITING = 'Chờ phát đề thi';
 
-export const LiveSessions: React.FC = () => {
+export const LiveSessions: React.FC<{ sessions?: LiveSession[] }> = ({ sessions: propSessions }) => {
   const toast = useToast();
-  const [sessions, setSessions] = useState<LiveSession[]>(LIVE_SESSIONS);
+  const [sessions, setSessions] = useState<LiveSession[]>(propSessions && propSessions.length > 0 ? propSessions : LIVE_SESSIONS);
   const [detail, setDetail] = useState<LiveSession | null>(null);
   const [matrixOpen, setMatrixOpen] = useState(false);
+
+  useEffect(() => {
+    if (propSessions && propSessions.length > 0) {
+      setSessions(propSessions);
+    }
+  }, [propSessions]);
 
   const activate = (s: LiveSession) => {
     setSessions((list) =>

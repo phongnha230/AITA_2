@@ -80,7 +80,7 @@ export const BarChart: React.FC<BarChartProps> = ({
               <div className="flex items-end gap-1 w-full justify-center h-full">
                 {/* Primary Bar */}
                 <div
-                  className="w-full max-w-[20px] rounded-t-md transition-all duration-300 hover:brightness-110"
+                  className="w-full max-w-[20px] rounded-t-md transition-transform duration-300 hover:brightness-110"
                   style={{
                     height: `${h1}%`,
                     backgroundColor: primaryColor,
@@ -89,7 +89,7 @@ export const BarChart: React.FC<BarChartProps> = ({
                 {/* Secondary Bar (if present) */}
                 {item.secondaryValue !== undefined && (
                   <div
-                    className="w-full max-w-[20px] rounded-t-md transition-all duration-300 hover:brightness-110"
+                    className="w-full max-w-[20px] rounded-t-md transition-transform duration-300 hover:brightness-110"
                     style={{
                       height: `${h2}%`,
                       backgroundColor: secondaryColor,

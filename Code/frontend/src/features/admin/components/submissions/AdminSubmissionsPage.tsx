@@ -35,6 +35,21 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
+const formatSubmissionTime = (isoString: string): string => {
+  try {
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return isoString;
+    const hours = String(d.getHours()).padStart(2, '0');
+    const mins = String(d.getMinutes()).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${hours}:${mins} • ${day}/${month}/${year}`;
+  } catch {
+    return isoString;
+  }
+};
+
 export const AdminSubmissionsPage: React.FC = () => {
   const toast = useToast();
   const [loading, setLoading] = useState(true);
@@ -205,8 +220,7 @@ export const AdminSubmissionsPage: React.FC = () => {
                       <p className="text-xs text-slate-700 truncate max-w-xs">{sub.assignmentTitle}</p>
                     </TableCell>
                     <TableCell className="font-mono text-xs text-slate-500 whitespace-nowrap">
-                      {new Date(sub.submittedAt).toLocaleTimeString('vi-VN')} •{' '}
-                      {new Date(sub.submittedAt).toLocaleDateString('vi-VN')}
+                      {formatSubmissionTime(sub.submittedAt)}
                     </TableCell>
                     <TableCell className="text-center font-bold text-sm">
                       <span className={sub.sandboxScore >= 8 ? 'text-emerald-600' : 'text-slate-700'}>
