@@ -110,8 +110,9 @@ export function useStudentSubmission(submissionId: string | null): UseStudentSub
     const token = localStorage.getItem('token') || localStorage.getItem('aita_token') || '';
     const sseUrl = `${baseUrl}/jobs/${encodeURIComponent(cleanId)}/events?token=${encodeURIComponent(token)}`;
 
+    let es: EventSource | null = null;
     try {
-      const es = new EventSource(sseUrl);
+      es = new EventSource(sseUrl);
       eventSourceRef.current = es;
 
       es.onopen = () => {
@@ -127,7 +128,7 @@ export function useStudentSubmission(submissionId: string | null): UseStudentSub
             setGradingJob(data);
 
             if (data.status === 'COMPLETED' || data.status === 'FAILED') {
-              es.close();
+              es?.close();
               setIsStreaming(false);
               setIsLiveActive(false);
 
@@ -147,9 +148,9 @@ export function useStudentSubmission(submissionId: string | null): UseStudentSub
         }
       };
 
-      es.addEventListener('end', async () => {
+      const handleEnd = async () => {
         if (!active) return;
-        es.close();
+        es?.close();
         setIsStreaming(false);
         setIsLiveActive(false);
 
@@ -161,27 +162,36 @@ export function useStudentSubmission(submissionId: string | null): UseStudentSub
         } catch {
           // ignore
         }
-      });
+      };
+
+      es.addEventListener('end', handleEnd);
 
       es.onerror = () => {
         if (!active) return;
-        es.close();
+        es?.close();
         setIsStreaming(false);
         // Fallback to Polling if SSE stream drops or fails
         setUsePollingFallback(true);
       };
+
+      return () => {
+        active = false;
+        if (es) {
+          es.removeEventListener('end', handleEnd);
+          es.close();
+        }
+        if (eventSourceRef.current) {
+          eventSourceRef.current.close();
+          eventSourceRef.current = null;
+        }
+        setIsStreaming(false);
+      };
     } catch {
       setUsePollingFallback(true);
+      return () => {
+        active = false;
+      };
     }
-
-    return () => {
-      active = false;
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-        eventSourceRef.current = null;
-      }
-      setIsStreaming(false);
-    };
   }, [isLiveActive, cleanId, usePollingFallback]);
 
   // 3. Fallback Polling Effect (Only active if SSE encounters error or is unsupported)

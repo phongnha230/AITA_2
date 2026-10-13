@@ -3,23 +3,13 @@
 import Link from 'next/link';
 import { CalendarClock, Clock3, RefreshCw } from 'lucide-react';
 import type { ResourceState, StudentAssignment, StudentCourse } from '../../types/student.types';
+import { formatDateTime } from '@/lib/formatDate';
 
 interface UpcomingExamsProps {
   state: ResourceState<StudentAssignment[]>;
   upcomingAssignments: StudentAssignment[];
   courses: StudentCourse[];
   onRetry: () => void;
-}
-
-const dateTimeFormatter = new Intl.DateTimeFormat('vi-VN', {
-  dateStyle: 'medium',
-  timeStyle: 'short',
-});
-
-function formatDateTime(value: string): string {
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return 'Thời gian chưa được cập nhật';
-  return dateTimeFormatter.format(date);
 }
 
 export function UpcomingExams({ state, upcomingAssignments, courses, onRetry }: UpcomingExamsProps) {
@@ -53,7 +43,7 @@ export function UpcomingExams({ state, upcomingAssignments, courses, onRetry }: 
             type="button"
             onClick={onRetry}
             aria-label="Thử tải lại kỳ thi"
-            className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-elevated-sm transition-all hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-elevated-sm transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
           >
             <RefreshCw aria-hidden="true" className="h-3.5 w-3.5" />
             <span>Thử lại</span>
@@ -92,7 +82,7 @@ export function UpcomingExams({ state, upcomingAssignments, courses, onRetry }: 
             return (
               <article
                 key={assignment.id}
-                className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-elevated-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-elevated"
+                className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-elevated-sm transition-colors duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-elevated"
               >
                 <div className="flex items-start gap-3.5">
                   <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-700 ring-1 ring-amber-100/80">

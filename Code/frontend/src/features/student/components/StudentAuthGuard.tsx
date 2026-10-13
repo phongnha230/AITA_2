@@ -23,7 +23,7 @@ export function StudentAuthGuard({ children }: StudentAuthGuardProps) {
     const checkAuth = async () => {
       if (typeof window !== 'undefined' && !localStorage.getItem('token') && !localStorage.getItem('user')) {
         // Unauthenticated -> redirect to login
-        router.replace(`/login?redirectTo=${encodeURIComponent(pathname)}`);
+        window.location.replace(`/login?redirectTo=${encodeURIComponent(pathname)}`);
         return;
       }
 
@@ -41,7 +41,7 @@ export function StudentAuthGuard({ children }: StudentAuthGuardProps) {
           localStorage.removeItem('user');
           localStorage.removeItem('token');
         }
-        router.replace(`/login?redirectTo=${encodeURIComponent(pathname)}`);
+        window.location.replace(`/login?redirectTo=${encodeURIComponent(pathname)}`);
         return;
       }
 
@@ -53,7 +53,7 @@ export function StudentAuthGuard({ children }: StudentAuthGuardProps) {
         setIsChecking(false);
         redirectTimer = setTimeout(() => {
           if (active) {
-            router.replace('/dashboard');
+            window.location.replace('/dashboard');
           }
         }, 2000);
         return;

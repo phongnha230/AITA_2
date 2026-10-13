@@ -32,7 +32,7 @@ const QUICK_PROMPTS = [
 export function AiTutorFloatingButton() {
   const [isOpen, setIsOpen] = useState(false);
   const [activeSubmissionId, setActiveSubmissionId] = useState<string | null>(null);
-  const [conversationId, setConversationId] = useState<string | null>(null);
+  const conversationIdRef = useRef<string | null>(null);
   const [messages, setMessages] = useState<MessageItem[]>([
     {
       id: 'welcome',
@@ -51,26 +51,6 @@ export function AiTutorFloatingButton() {
 
   const handleSendMessageRef = useRef<((textToSend?: string, overrideSubId?: string) => Promise<void>) | null>(null);
 
-  // Lắng nghe sự kiện mở AI Tutor từ các trang khác (ví dụ: trang kết quả bài thi)
-  useEffect(() => {
-    const handleOpenTutor = (e: any) => {
-      const detail = e.detail || {};
-      setIsOpen(true);
-      if (detail.submissionId && detail.submissionId !== activeSubmissionId) {
-        setActiveSubmissionId(detail.submissionId);
-        setConversationId(null); // Reset để tạo/kết nối phiên mới theo submissionId
-      }
-      if (detail.prompt) {
-        setTimeout(() => {
-          handleSendMessageRef.current?.(detail.prompt, detail.submissionId);
-        }, 150);
-      }
-    };
-
-    window.addEventListener('open-ai-tutor', handleOpenTutor);
-    return () => window.removeEventListener('open-ai-tutor', handleOpenTutor);
-  }, [activeSubmissionId]);
-
   const handleSendMessage = async (textToSend?: string, overrideSubId?: string) => {
     const text = (textToSend || inputValue).trim();
     if (!text || isLoading) return;
@@ -87,14 +67,14 @@ export function AiTutorFloatingButton() {
 
     try {
       const subId = overrideSubId || activeSubmissionId || undefined;
-      let currentConvoId = conversationId;
+      let currentConvoId = conversationIdRef.current;
       if (!currentConvoId) {
         const convo = await studentService.startTutorConversation(
           subId,
           subId ? `Hỗ trợ gỡ lỗi bài nộp ${subId.slice(0, 8)}` : 'Tư vấn giải thuật Socratic'
         );
         currentConvoId = convo.id;
-        setConversationId(convo.id);
+        conversationIdRef.current = convo.id;
       }
 
       const response = await studentService.sendTutorMessage(currentConvoId, text);
@@ -117,7 +97,29 @@ export function AiTutorFloatingButton() {
     }
   };
 
-  handleSendMessageRef.current = handleSendMessage;
+  useEffect(() => {
+    handleSendMessageRef.current = handleSendMessage;
+  });
+
+  // Lắng nghe sự kiện mở AI Tutor từ các trang khác (ví dụ: trang kết quả bài thi)
+  useEffect(() => {
+    const handleOpenTutor = (e: any) => {
+      const detail = e.detail || {};
+      setIsOpen(true);
+      if (detail.submissionId && detail.submissionId !== activeSubmissionId) {
+        setActiveSubmissionId(detail.submissionId);
+        conversationIdRef.current = null; // Reset để tạo/kết nối phiên mới theo submissionId
+      }
+      if (detail.prompt) {
+        handleSendMessageRef.current?.(detail.prompt, detail.submissionId);
+      }
+    };
+
+    window.addEventListener('open-ai-tutor', handleOpenTutor);
+    return () => {
+      window.removeEventListener('open-ai-tutor', handleOpenTutor);
+    };
+  }, [activeSubmissionId]);
 
   return (
     <>
@@ -126,7 +128,7 @@ export function AiTutorFloatingButton() {
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex items-center gap-2.5 rounded-full bg-indigo-600 px-4 py-3 text-white shadow-xl shadow-indigo-600/30 transition-all hover:bg-indigo-700 hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
+          className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex items-center gap-2.5 rounded-full bg-indigo-600 px-4 py-3 text-white shadow-xl shadow-indigo-600/30 transition-colors hover:bg-indigo-700 hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
         >
           <Sparkles className="h-5 w-5 animate-pulse text-amber-300" />
           <span className="text-xs font-bold tracking-wide">Trợ giảng Socratic AI</span>
@@ -155,6 +157,7 @@ export function AiTutorFloatingButton() {
             <button
               type="button"
               onClick={() => setIsOpen(false)}
+              aria-label="Đóng Trợ giảng AI"
               className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
             >
               <X size={16} />
@@ -198,9 +201,9 @@ export function AiTutorFloatingButton() {
           {messages.length <= 1 && (
             <div className="p-3 border-t border-slate-100 bg-white space-y-1.5">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Gợi ý câu hỏi nhanh:</p>
-              {QUICK_PROMPTS.map((prompt, i) => (
+              {QUICK_PROMPTS.map((prompt) => (
                 <button
-                  key={i}
+                  key={prompt}
                   type="button"
                   onClick={() => handleSendMessage(prompt)}
                   className="block w-full text-left rounded-lg bg-slate-50 hover:bg-indigo-50 border border-slate-200/60 hover:border-indigo-200 px-2.5 py-1.5 text-[11px] text-slate-700 hover:text-indigo-700 transition-colors truncate"
@@ -223,6 +226,7 @@ export function AiTutorFloatingButton() {
               <input
                 type="text"
                 placeholder="Nhập câu hỏi hoặc mô tả lỗi..."
+                aria-label="Nội dung câu hỏi cho AI"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 disabled={isLoading}
@@ -231,6 +235,7 @@ export function AiTutorFloatingButton() {
               <Button
                 type="submit"
                 size="sm"
+                aria-label="Gửi câu hỏi"
                 disabled={isLoading || !inputValue.trim()}
                 className="h-9 w-9 p-0 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shrink-0"
               >

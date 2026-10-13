@@ -65,10 +65,11 @@ export function RecentSubmissionsList({ onSelectSubmission }: RecentSubmissionsL
           const isPassed = score >= 5.0;
 
           return (
-            <div
+            <button
+              type="button"
               key={sub.id}
               onClick={() => onSelectSubmission(sub.id)}
-              className="group cursor-pointer rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs transition-all hover:border-indigo-300 hover:shadow-md hover:-translate-y-0.5"
+              className="group cursor-pointer rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs transition-colors hover:border-indigo-300 hover:shadow-md hover:-translate-y-0.5 text-left w-full"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
@@ -112,7 +113,7 @@ export function RecentSubmissionsList({ onSelectSubmission }: RecentSubmissionsL
                   Xem chi tiết <ArrowRight size={13} />
                 </span>
               </div>
-            </div>
+            </button>
           );
         })}
       </div>

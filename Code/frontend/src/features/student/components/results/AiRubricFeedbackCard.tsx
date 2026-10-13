@@ -74,7 +74,7 @@ export function AiRubricFeedbackCard({ aiGradingResult, submissionId }: AiRubric
             <button
               type="button"
               onClick={handleOpenAiTutor}
-              className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-md shadow-indigo-600/20 transition-all hover:bg-indigo-700 hover:scale-105 active:scale-95"
+              className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-md shadow-indigo-600/20 transition-colors hover:bg-indigo-700 hover:scale-105 active:scale-95"
             >
               <Sparkles className="h-3.5 w-3.5 text-amber-300" />
               <span>Hỏi Trợ giảng Socratic AI</span>
@@ -113,7 +113,7 @@ export function AiRubricFeedbackCard({ aiGradingResult, submissionId }: AiRubric
             <button
               type="button"
               onClick={handleOpenAiTutor}
-              className="inline-flex items-center gap-1.5 rounded-full bg-indigo-600 px-3.5 py-1 text-xs font-bold text-white shadow-sm transition-all hover:bg-indigo-700 hover:scale-105 active:scale-95"
+              className="inline-flex items-center gap-1.5 rounded-full bg-indigo-600 px-3.5 py-1 text-xs font-bold text-white shadow-sm transition-colors hover:bg-indigo-700 hover:scale-105 active:scale-95"
             >
               <Sparkles className="h-3.5 w-3.5 text-amber-300 animate-pulse" />
               <span>Trò chuyện với AI về bài này</span>
@@ -168,15 +168,15 @@ export function AiRubricFeedbackCard({ aiGradingResult, submissionId }: AiRubric
             Chi tiết các tiêu chí Rubric
           </h4>
           <div className="mt-3 space-y-2.5">
-            {rubricItems.map((item, idx) => {
-              const name = item.criterionName || item.criterion || item.name || `Tiêu chí ${idx + 1}`;
+            {rubricItems.map((item) => {
+              const name = item.criterionName || item.criterion || 'Tiêu chí đánh giá';
               const score = item.earnedPoints ?? item.score ?? item.points ?? '--';
               const max = item.maxPoints ? ` / ${item.maxPoints}` : '';
               const comment = item.feedback || item.comment;
 
               return (
                 <div
-                  key={`${name}-${idx}`}
+                  key={item.criterionName || item.criterion || name}
                   className="rounded-xl border border-slate-200/80 bg-white p-3.5 text-xs shadow-2xs"
                 >
                   <div className="flex items-center justify-between gap-2">

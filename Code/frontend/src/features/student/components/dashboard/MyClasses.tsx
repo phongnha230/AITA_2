@@ -37,7 +37,7 @@ export function MyClasses({ state, onRetry, onJoin }: MyClassesProps) {
         <div className="flex items-center gap-2">
           <Link
             href="/student/courses"
-            className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50/70 px-3 text-xs font-semibold text-blue-700 transition-all hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50/70 px-3 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
           >
             <GraduationCap className="h-3.5 w-3.5" />
             <span>Khám phá tất cả lớp</span>
@@ -48,7 +48,7 @@ export function MyClasses({ state, onRetry, onJoin }: MyClassesProps) {
               type="button"
               onClick={onRetry}
               aria-label="Thử tải lại lớp học"
-              className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-elevated-sm transition-all hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-elevated-sm transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
             >
               <RefreshCw aria-hidden="true" className="h-3.5 w-3.5" />
               <span>Thử lại</span>
@@ -82,13 +82,13 @@ export function MyClasses({ state, onRetry, onJoin }: MyClassesProps) {
             <button
               type="button"
               onClick={onJoin}
-              className="inline-flex min-h-10 items-center justify-center rounded-xl bg-blue-600 px-5 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+              className="inline-flex min-h-10 items-center justify-center rounded-xl bg-blue-600 px-5 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
             >
               Nhập mã tham gia
             </button>
             <Link
               href="/student/courses"
-              className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+              className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
             >
               <GraduationCap className="h-4 w-4 text-blue-600" />
               <span>Xem danh sách lớp của các GV</span>
@@ -102,7 +102,7 @@ export function MyClasses({ state, onRetry, onJoin }: MyClassesProps) {
           {state.data.map((course) => (
             <article
               key={course.id}
-              className="flex flex-col justify-between rounded-xl border border-slate-200/80 bg-white p-4 shadow-elevated-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-elevated"
+              className="flex flex-col justify-between rounded-xl border border-slate-200/80 bg-white p-4 shadow-elevated-sm transition-colors duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-elevated"
             >
               <div>
                 <div className="flex items-start justify-between gap-2.5">

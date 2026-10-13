@@ -44,12 +44,6 @@ export function CourseJoinModal({
     course?: StudentCourse;
   } | null>(null);
 
-  useEffect(() => {
-    if (open) {
-      setCode('');
-      setFeedback(null);
-    }
-  }, [open, targetCourse]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();

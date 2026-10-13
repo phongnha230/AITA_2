@@ -1,78 +1,94 @@
 'use client';
 
 import {
-  AlertTriangle,
-  Bot,
-  CheckCircle2,
-  Clock,
+  FileCode,
+  HardDriveUpload,
   Cpu,
-  Layers,
+  Bot,
+  Award,
   Loader2,
-  Send,
-  XCircle,
 } from 'lucide-react';
-import type { GradingJobInfo, GradingJobStatus } from '../../types/student.types';
+import type { GradingJobInfo } from '../../types/student.types';
+import { LifecycleStepCard } from './LifecycleStepCard';
+import { LifecycleStatusBadge } from './LifecycleStatusBadge';
 
 interface GradingLifecycleProgressProps {
   gradingJob: GradingJobInfo | null;
   submissionStatus: string;
-  isPolling: boolean;
+  isPolling?: boolean;
   isStreaming?: boolean;
 }
 
-interface StepDef {
+interface StepConfig {
   id: string;
   label: string;
   sublabel: string;
-  icon: typeof Send;
+  icon: typeof FileCode;
 }
 
-const LIFECYCLE_STEPS: StepDef[] = [
-  { id: 'SUBMITTED', label: 'Nộp bài', sublabel: 'Ghi nhận bài làm', icon: Send },
-  { id: 'QUEUE', label: 'Hàng đợi / Tiền xử lý', sublabel: 'Điều phối & Chuẩn bị', icon: Layers },
-  { id: 'SANDBOX', label: 'Docker Sandbox', sublabel: 'Biên dịch & Testcases', icon: Cpu },
-  { id: 'AI', label: 'Đánh giá AI', sublabel: 'Phân tích Rubric', icon: Bot },
-  { id: 'COMPLETED', label: 'Hoàn tất', sublabel: 'Tổng hợp kết quả', icon: CheckCircle2 },
+const LIFECYCLE_STEPS: StepConfig[] = [
+  {
+    id: 'QUEUED',
+    label: '1. Nhận bài thi',
+    sublabel: 'Ghi nhận hàng đợi Celery',
+    icon: HardDriveUpload,
+  },
+  {
+    id: 'SANDBOX_PREPARING',
+    label: '2. Khởi tạo Sandbox',
+    sublabel: 'Build container cô lập',
+    icon: Cpu,
+  },
+  {
+    id: 'SANDBOX_RUNNING',
+    label: '3. Chấm Testcases',
+    sublabel: 'Thực thi & đối chiếu I/O',
+    icon: FileCode,
+  },
+  {
+    id: 'AI_EVALUATING',
+    label: '4. Đánh giá Socratic AI',
+    sublabel: 'Phân tích Clean Code & gợi ý',
+    icon: Bot,
+  },
+  {
+    id: 'COMPLETED',
+    label: '5. Hoàn tất & Bảng điểm',
+    sublabel: 'Tính tổng kết 10đ chuẩn PE',
+    icon: Award,
+  },
 ];
 
 function getStepState(
   stepId: string,
-  jobStatus: GradingJobStatus | string,
-): 'completed' | 'active' | 'failed' | 'retrying' | 'waiting' {
-  if (jobStatus === 'FAILED') {
-    if (stepId === 'COMPLETED') return 'failed';
-    return 'completed';
+  currentStatus: string
+): 'completed' | 'active' | 'retrying' | 'failed' | 'pending' {
+  const statusOrder = [
+    'QUEUED',
+    'SANDBOX_PREPARING',
+    'SANDBOX_RUNNING',
+    'AI_EVALUATING',
+    'COMPLETED',
+  ];
+
+  if (currentStatus === 'FAILED') {
+    return stepId === 'SANDBOX_RUNNING' || stepId === 'AI_EVALUATING' ? 'failed' : 'pending';
   }
 
-  if (jobStatus === 'RETRYING') {
-    if (stepId === 'SANDBOX' || stepId === 'AI') return 'retrying';
-    if (stepId === 'COMPLETED') return 'waiting';
-    return 'completed';
+  if (currentStatus === 'RETRYING') {
+    return stepId === 'SANDBOX_RUNNING' ? 'retrying' : 'pending';
   }
 
-  if (jobStatus === 'COMPLETED') {
+  const currentIndex = statusOrder.indexOf(currentStatus);
+  const stepIndex = statusOrder.indexOf(stepId);
+
+  if (stepIndex < currentIndex || currentStatus === 'COMPLETED') {
     return 'completed';
   }
-
-  switch (stepId) {
-    case 'SUBMITTED':
-      return 'completed';
-    case 'QUEUE':
-      if (jobStatus === 'QUEUED' || jobStatus === 'PREPROCESSING') return 'active';
-      return ['RUNNING_SANDBOX', 'RUNNING_AI'].includes(jobStatus) ? 'completed' : 'active';
-    case 'SANDBOX':
-      if (jobStatus === 'QUEUED' || jobStatus === 'PREPROCESSING') return 'waiting';
-      if (jobStatus === 'RUNNING_SANDBOX') return 'active';
-      return jobStatus === 'RUNNING_AI' ? 'completed' : 'waiting';
-    case 'AI':
-      if (['QUEUED', 'PREPROCESSING', 'RUNNING_SANDBOX'].includes(jobStatus)) return 'waiting';
-      if (jobStatus === 'RUNNING_AI') return 'active';
-      return 'waiting';
-    case 'COMPLETED':
-      return 'waiting';
-    default:
-      return 'waiting';
+  if (stepIndex === currentIndex) {
+    return 'active';
   }
+  return 'pending';
 }
 
 const timeFormatter = new Intl.DateTimeFormat('vi-VN', {
@@ -95,10 +111,7 @@ export function GradingLifecycleProgress({
   isStreaming,
 }: GradingLifecycleProgressProps) {
   const currentStatus = (gradingJob?.status ?? submissionStatus ?? 'QUEUED').toUpperCase();
-
   const isFailed = currentStatus === 'FAILED';
-  const isRetrying = currentStatus === 'RETRYING';
-  const isCompleted = currentStatus === 'COMPLETED';
 
   return (
     <section className="overflow-hidden rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs sm:p-6">
@@ -126,100 +139,25 @@ export function GradingLifecycleProgress({
           </p>
         </div>
 
-
         <div>
-          {isCompleted && (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
-              <CheckCircle2 className="h-4 w-4" />
-              ĐÃ CHẤM XONG
-            </span>
-          )}
-          {isFailed && (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-bold text-rose-700">
-              <XCircle className="h-4 w-4" />
-              CHẤM THẤT BẠI
-            </span>
-          )}
-          {isRetrying && (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
-              <AlertTriangle className="h-4 w-4" />
-              ĐANG THỬ LẠI (LẦN {gradingJob?.retryCount ?? 1})
-            </span>
-          )}
-          {!isCompleted && !isFailed && !isRetrying && (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
-              <Clock className="h-4 w-4" />
-              ĐANG XỬ LÝ
-            </span>
-          )}
+          <LifecycleStatusBadge
+            currentStatus={currentStatus}
+            retryCount={gradingJob?.retryCount}
+          />
         </div>
       </div>
 
       {/* 5-Step Visualizer */}
       <div className="mt-6">
         <ol className="grid grid-cols-1 gap-3 sm:grid-cols-5">
-          {LIFECYCLE_STEPS.map((step, idx) => {
-            const state = getStepState(step.id, currentStatus);
-            const Icon = step.icon;
-
-            return (
-              <li
-                key={step.id}
-                className={`relative flex flex-col justify-between rounded-xl border p-3.5 transition-all ${
-                  state === 'completed'
-                    ? 'border-emerald-200 bg-emerald-50/50 text-slate-800'
-                    : state === 'active'
-                      ? 'border-blue-500 bg-blue-50/80 text-blue-900 ring-2 ring-blue-500/20'
-                      : state === 'retrying'
-                        ? 'border-amber-400 bg-amber-50/70 text-amber-900 ring-2 ring-amber-400/20'
-                        : state === 'failed'
-                          ? 'border-rose-400 bg-rose-50/80 text-rose-900 ring-2 ring-rose-400/20'
-                          : 'border-slate-200/80 bg-slate-50/60 text-slate-400'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span
-                    className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold ${
-                      state === 'completed'
-                        ? 'bg-emerald-600 text-white'
-                        : state === 'active'
-                          ? 'bg-blue-600 text-white animate-pulse'
-                          : state === 'retrying'
-                            ? 'bg-amber-600 text-white'
-                            : state === 'failed'
-                              ? 'bg-rose-600 text-white'
-                              : 'bg-slate-200 text-slate-500'
-                    }`}
-                  >
-                    {state === 'completed' ? (
-                      <CheckCircle2 className="h-4 w-4" />
-                    ) : state === 'failed' ? (
-                      <XCircle className="h-4 w-4" />
-                    ) : (
-                      idx + 1
-                    )}
-                  </span>
-                  <Icon
-                    aria-hidden="true"
-                    className={`h-4 w-4 ${
-                      state === 'completed'
-                        ? 'text-emerald-600'
-                        : state === 'active'
-                          ? 'text-blue-600'
-                          : state === 'failed'
-                            ? 'text-rose-600'
-                            : 'text-slate-400'
-                    }`}
-                  />
-                </div>
-
-                <div className="mt-3">
-                  <p className="text-xs font-bold tracking-tight">{step.label}</p>
-                  <p className="text-[10px] text-slate-500 mt-0.5">{step.sublabel}</p>
-                </div>
-              </li>
-            );
-          })}
+          {LIFECYCLE_STEPS.map((step, idx) => (
+            <LifecycleStepCard
+              key={step.id}
+              step={step}
+              state={getStepState(step.id, currentStatus)}
+              index={idx}
+            />
+          ))}
         </ol>
       </div>
 

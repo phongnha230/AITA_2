@@ -16,21 +16,11 @@ import type { StudentExamViewModel } from '../../types/student.types';
 import { ExamStatusBadge } from './ExamStatusBadge';
 import { SubmitExamModal } from './SubmitExamModal';
 import { ExamDetailModal } from './ExamDetailModal';
+import { formatDateTime } from '@/lib/formatDate';
 
 interface ExamCardProps {
   exam: StudentExamViewModel;
   featured?: boolean;
-}
-
-const examDateTimeFormatter = new Intl.DateTimeFormat('vi-VN', {
-  dateStyle: 'medium',
-  timeStyle: 'short',
-});
-
-function formatDateTime(value: string): string {
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return 'Chưa có thời gian';
-  return examDateTimeFormatter.format(date);
 }
 
 function formatDateBadge(value: string): { dayOfWeek: string; dateNum: string; monthStr: string } | null {
@@ -128,7 +118,7 @@ export function ExamCard({ exam, featured = false }: ExamCardProps) {
           <button
             type="button"
             onClick={() => setIsDetailOpen(true)}
-            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 shadow-sm transition-all duration-200 hover:bg-slate-50 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 shadow-sm transition-colors duration-200 hover:bg-slate-50 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
           >
             <FileText className="h-4 w-4 text-slate-500" />
             <span>Xem đề bài</span>
@@ -136,14 +126,14 @@ export function ExamCard({ exam, featured = false }: ExamCardProps) {
           <button
             type="button"
             onClick={() => setIsSubmitOpen(true)}
-            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 text-xs font-semibold text-white shadow-sm transition-all duration-200 hover:bg-indigo-700 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 text-xs font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-indigo-700 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
           >
             <HardDriveUpload className="h-4 w-4" />
             <span>Nộp bài PE (.zip)</span>
           </button>
           <Link
             href="/student/results"
-            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-xs font-semibold text-slate-700 shadow-sm transition-all duration-200 hover:bg-slate-50 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-xs font-semibold text-slate-700 shadow-sm transition-colors duration-200 hover:bg-slate-50 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
           >
             <Sparkles className="h-4 w-4 text-indigo-600" />
             <span>Xem kết quả &amp; Chấm điểm AI</span>
@@ -162,7 +152,7 @@ export function ExamCard({ exam, featured = false }: ExamCardProps) {
   }
 
   return (
-    <article className="flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 shadow-elevated-sm transition-all duration-200 hover:border-blue-300 hover:shadow-elevated hover:-translate-y-0.5 sm:p-6">
+    <article className="flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 shadow-elevated-sm transition-colors duration-200 hover:border-blue-300 hover:shadow-elevated hover:-translate-y-0.5 sm:p-6">
       <div className="flex items-start gap-4">
         {/* Date badge on left */}
         {dateBadge ? (
@@ -221,7 +211,7 @@ export function ExamCard({ exam, featured = false }: ExamCardProps) {
         <button
           type="button"
           onClick={() => setIsDetailOpen(true)}
-          className="inline-flex min-h-8 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-2xs transition-all hover:bg-slate-50 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
+          className="inline-flex min-h-8 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-2xs transition-colors hover:bg-slate-50 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
         >
           <FileText className="h-3.5 w-3.5 text-slate-500" />
           <span>Xem đề bài</span>
@@ -229,14 +219,14 @@ export function ExamCard({ exam, featured = false }: ExamCardProps) {
         <button
           type="button"
           onClick={() => setIsSubmitOpen(true)}
-          className="inline-flex min-h-8 items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 py-1 text-xs font-semibold text-white shadow-2xs transition-all hover:bg-indigo-700 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
+          className="inline-flex min-h-8 items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 py-1 text-xs font-semibold text-white shadow-2xs transition-colors hover:bg-indigo-700 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
         >
           <HardDriveUpload className="h-3.5 w-3.5" />
           <span>Nộp bài</span>
         </button>
         <Link
           href="/student/results"
-          className="inline-flex min-h-8 items-center gap-1.5 rounded-xl border border-blue-100 bg-blue-50/60 px-3 py-1 text-xs font-semibold text-blue-700 shadow-2xs transition-all hover:bg-blue-100/80 hover:text-blue-800 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+          className="inline-flex min-h-8 items-center gap-1.5 rounded-xl border border-blue-100 bg-blue-50/60 px-3 py-1 text-xs font-semibold text-blue-700 shadow-2xs transition-colors hover:bg-blue-100/80 hover:text-blue-800 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
         >
           <FileCheck2 className="h-3.5 w-3.5" />
           <span>Xem kết quả</span>

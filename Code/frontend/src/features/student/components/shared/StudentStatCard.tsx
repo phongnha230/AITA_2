@@ -26,7 +26,7 @@ export function StudentStatCard({
   loading = false,
 }: StudentStatCardProps) {
   return (
-    <article className="group flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 shadow-elevated-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-elevated">
+    <article className="group flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 shadow-elevated-sm transition-colors duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-elevated">
       <div className="flex items-start justify-between gap-3">
         <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 leading-tight">
           {label}
