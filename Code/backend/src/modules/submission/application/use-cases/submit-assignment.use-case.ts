@@ -5,8 +5,10 @@ import { Submission } from '../../domain/entities/submission.entity.js';
 import { IArtifactExtractor } from '../services/artifact-extractor.interface.js';
 import { IGradingDispatcher } from '../services/grading-dispatcher.interface.js';
 import { SubmitAssignmentInput } from '../dtos/submission.dto.js';
+import fs from 'node:fs/promises';
 import { GitIngestionService, gitIngestionService } from '../../infrastructure/storage/git-ingestion.service.js';
 import { ValidationError, NotFoundError, ForbiddenError } from '../../../../shared/domain/exceptions/app.error.js';
+import { cloudinaryService } from '../../../../infrastructure/storage/cloudinary.service.js';
 
 export interface SubmitAssignmentDeps {
   submissionRepository: ISubmissionRepository;
@@ -129,9 +131,31 @@ export class SubmitAssignmentUseCase {
           submission.id
         );
 
+        let finalZipPath = stagingResult.stagedPath;
+
+        // Nếu Cloudinary đã được cấu hình, tự động sao lưu file ZIP lên Cloud
+        if (cloudinaryService.isConfigured()) {
+          try {
+            const cloudResult = await cloudinaryService.uploadZip(request.uploadedZipPath, {
+              folder: 'aita/submissions',
+              publicId: `sub-${submission.id}`,
+            });
+            finalZipPath = cloudResult.secureUrl;
+          } catch (cloudErr: any) {
+            console.warn(`[SubmitAssignment] Sao lưu ZIP lên Cloudinary thất bại, lưu đường dẫn cục bộ:`, cloudErr.message);
+          }
+        }
+
+        // Tự động dọn dẹp file ZIP tạm trong thư mục uploads để tránh đầy dung lượng server
+        try {
+          await fs.unlink(request.uploadedZipPath);
+        } catch {
+          // Bỏ qua nếu file đã được dọn
+        }
+
         const updated = await submissionRepository.updateZipFilePath(
           submission.id,
-          stagingResult.stagedPath
+          finalZipPath
         );
 
         await gradingDispatcher.dispatch(submission.id, stagingResult.stagedPath);
@@ -142,6 +166,7 @@ export class SubmitAssignmentUseCase {
         throw error;
       }
     }
+
 
     if (request.submissionChannel === 'GIT_COMMIT' && request.gitRepoUrl) {
       try {

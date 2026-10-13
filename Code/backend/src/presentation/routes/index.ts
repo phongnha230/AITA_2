@@ -2,6 +2,7 @@ import { Router } from 'express';
 
 import healthRouter from './health.route.js';
 import jobRouter from './job.route.js';
+import uploadRouter from './upload.route.js';
 
 import authRouter from '../../modules/auth/presentation/routes/auth.route.js';
 import userRouter from '../../modules/user/presentation/routes/user.route.js';
@@ -56,6 +57,7 @@ router.use('/submissions', submissionRouter);
 router.use('/sandbox', sandboxRouter);
 router.use('/ai', aiRouter);
 router.use('/teams', teamRouter);
+router.use('/upload', uploadRouter);
 
 
 // ============================================================

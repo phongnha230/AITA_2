@@ -54,6 +54,11 @@ const envSchema = z.object({
   // AI LLM & Vector DB
   CHROMA_DB_URL: z.string().optional().default('http://localhost:8000'),
   GEMINI_API_KEYS: z.string().optional().default(''),
+
+  // Cloudinary Cloud Storage
+  CLOUDINARY_CLOUD_NAME: z.string().optional().default(''),
+  CLOUDINARY_API_KEY: z.string().optional().default(''),
+  CLOUDINARY_API_SECRET: z.string().optional().default(''),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);
