@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useStudentAcademicData } from './useStudentAcademicData';
 import { getStudentServiceErrorMessage, studentService } from '../services/student.service';
-import type { ResourceState, SandboxStatus } from '../types/student.types';
+import type { PublicSandboxHealth, ResourceState } from '../types/student.types';
 
 const loadingState = <T,>(data: T): ResourceState<T> => ({
   status: 'loading',
@@ -13,8 +13,8 @@ const loadingState = <T,>(data: T): ResourceState<T> => ({
 
 export function useStudentDashboard() {
   const academic = useStudentAcademicData();
-  const [sandbox, setSandbox] = useState<ResourceState<SandboxStatus | null>>(() =>
-    loadingState<SandboxStatus | null>(null),
+  const [sandbox, setSandbox] = useState<ResourceState<PublicSandboxHealth | null>>(() =>
+    loadingState<PublicSandboxHealth | null>(null),
   );
   const [sandboxAttempt, setSandboxAttempt] = useState(0);
   const now = Date.now();
@@ -38,7 +38,7 @@ export function useStudentDashboard() {
     let active = true;
 
     studentService
-      .getSandboxStatus()
+      .getSandboxHealth()
       .then((sandboxStatus) => {
         if (active) setSandbox({ status: 'success', data: sandboxStatus, error: null });
       })
@@ -55,7 +55,7 @@ export function useStudentDashboard() {
   }, [sandboxAttempt]);
 
   const retrySandbox = () => {
-    setSandbox(loadingState<SandboxStatus | null>(null));
+    setSandbox(loadingState<PublicSandboxHealth | null>(null));
     setSandboxAttempt((attempt) => attempt + 1);
   };
 

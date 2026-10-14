@@ -76,7 +76,7 @@ export interface IAssignmentRepository {
   findByCourseId(courseId: string): Promise<AssignmentListRecord[]>;
   create(data: CreateAssignmentData): Promise<Assignment>;
   update(id: string, data: Partial<CreateAssignmentData>): Promise<Assignment>;
-  delete(id: string): Promise<void>;
+  deleteIfNoSubmissions(id: string): Promise<'DELETED' | 'NOT_FOUND' | 'HAS_SUBMISSIONS'>;
 
   // Test cases
   addTestCase(assignmentId: string, data: CreateTestCaseDto): Promise<TestCase>;

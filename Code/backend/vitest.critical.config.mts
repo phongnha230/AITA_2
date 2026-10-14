@@ -6,6 +6,7 @@ export default defineConfig({
     include: [
       'tests/unit/refresh-token.use-case.test.ts',
       'tests/unit/assignment-access.policy.test.ts',
+      'tests/unit/delete-assignment.use-case.test.ts',
       'tests/unit/git-ingestion-security.test.ts',
       'tests/unit/zip-extractor-security.test.ts',
       'tests/unit/ai-grading-output.test.ts',
@@ -25,6 +26,7 @@ export default defineConfig({
       include: [
         'src/modules/auth/application/use-cases/refresh-token.use-case.ts',
         'src/modules/assignment/infrastructure/policies/prisma-assignment-access.policy.ts',
+        'src/modules/assignment/application/use-cases/delete-assignment.use-case.ts',
         'src/modules/submission/infrastructure/storage/github-url.validator.ts',
         'src/modules/submission/infrastructure/storage/zip-extractor.service.ts',
         'src/modules/ai/application/services/ai-grading-output.service.ts',

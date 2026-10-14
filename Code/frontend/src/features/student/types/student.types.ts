@@ -80,13 +80,25 @@ export interface CourseJoinResult {
   course: StudentCourse;
 }
 
-export interface SandboxStatus {
-  status: string;
-  useDockerSandboxConfig: boolean;
-  dockerDaemonRunning: boolean;
-  activeMode: string;
-  localJavaVersion: string;
-  supportedLanguages: string[];
+export interface PublicSandboxHealth {
+  status: 'ready';
+}
+
+export type TutorMessageRole = 'USER' | 'ASSISTANT' | 'SYSTEM';
+
+export interface TutorMessage {
+  id: string;
+  role: TutorMessageRole;
+  content: string;
+  createdAt?: string;
+}
+
+export interface TutorConversation {
+  id: string;
+  submissionId: string;
+  title: string;
+  status: 'ACTIVE' | 'CLOSED';
+  messages: TutorMessage[];
 }
 
 export type ResourceStatus = 'loading' | 'success' | 'error';

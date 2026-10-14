@@ -8,6 +8,7 @@ import { ManageRubricsUseCase } from '../../application/use-cases/manage-rubrics
 import { ManageSolutionsUseCase } from '../../application/use-cases/manage-solutions.use-case.js';
 import { GetProctoringDataUseCase } from '../../application/use-cases/get-proctoring-data.use-case.js';
 import { ControlSessionUseCase } from '../../application/use-cases/control-session.use-case.js';
+import { DeleteAssignmentUseCase } from '../../application/use-cases/delete-assignment.use-case.js';
 import { sendSuccess } from '../../../../shared/presentation/utils/api-response.util.js';
 import { UnauthorizedError } from '../../../../shared/domain/exceptions/app.error.js';
 
@@ -17,6 +18,7 @@ export class AssignmentController {
     private readonly getAssignmentDetailUseCase: GetAssignmentDetailUseCase,
     private readonly getAssignmentsByCourseUseCase: GetAssignmentsByCourseUseCase,
     private readonly updateAssignmentUseCase: UpdateAssignmentUseCase,
+    private readonly deleteAssignmentUseCase: DeleteAssignmentUseCase,
     private readonly manageTestCasesUseCase: ManageTestCasesUseCase,
     private readonly manageRubricsUseCase: ManageRubricsUseCase,
     private readonly manageSolutionsUseCase: ManageSolutionsUseCase,
@@ -65,6 +67,15 @@ export class AssignmentController {
       const requester = req.user ? { userId: req.user.userId, role: req.user.role } : undefined;
       const updated = await this.updateAssignmentUseCase.execute(req.params.id, req.body, requester);
       sendSuccess(res, updated, 'Cập nhật đề thi thành công.');
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  deleteAssignment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      await this.deleteAssignmentUseCase.execute(req.params.id);
+      sendSuccess(res, null, 'Đã xóa đề thi thành công.');
     } catch (error) {
       next(error);
     }

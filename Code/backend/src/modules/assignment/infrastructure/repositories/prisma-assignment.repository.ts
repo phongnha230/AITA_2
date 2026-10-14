@@ -140,9 +140,24 @@ export class PrismaAssignmentRepository implements IAssignmentRepository {
     return this.toDomain(raw);
   }
 
-  async delete(id: string): Promise<void> {
-    await this.prisma.assignment.delete({
-      where: { id },
+  async deleteIfNoSubmissions(
+    id: string
+  ): Promise<'DELETED' | 'NOT_FOUND' | 'HAS_SUBMISSIONS'> {
+    return this.prisma.$transaction(async (transaction) => {
+      const assignment = await transaction.assignment.findUnique({
+        where: { id },
+        select: { _count: { select: { submissions: true } } },
+      });
+      if (!assignment) return 'NOT_FOUND';
+      if (assignment._count.submissions > 0) return 'HAS_SUBMISSIONS';
+
+      const deleted = await transaction.assignment.deleteMany({
+        where: {
+          id,
+          submissions: { none: {} },
+        },
+      });
+      return deleted.count === 1 ? 'DELETED' : 'HAS_SUBMISSIONS';
     });
   }
 

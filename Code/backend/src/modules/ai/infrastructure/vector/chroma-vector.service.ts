@@ -29,6 +29,7 @@ export interface RetrievedSolutionChunk {
 export interface ISolutionVectorStore {
   indexSolutionVersion(version: SolutionVectorVersion, chunks: CodeChunk[]): Promise<void>;
   deleteStaleVersions(assignmentId: string, currentContentHash: string): Promise<void>;
+  deleteAssignment(assignmentId: string): Promise<void>;
   queryRelevantChunks(version: SolutionVectorVersion, queryText: string): Promise<RetrievedSolutionChunk[]>;
 }
 
@@ -93,6 +94,11 @@ export class ChromaVectorService implements ISolutionVectorStore {
       (_id, index) => existing.metadatas?.[index]?.contentHash !== currentContentHash
     );
     if (staleIds.length > 0) await collection.delete({ ids: staleIds });
+  }
+
+  public async deleteAssignment(assignmentId: string): Promise<void> {
+    const collection = await this.getCollection();
+    await collection.delete({ where: { assignmentId: { $eq: assignmentId } } });
   }
 
   public async queryRelevantChunks(

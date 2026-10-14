@@ -25,7 +25,7 @@ function normalizeAiKey(value: unknown): AiApiKey {
   if (!isRecord(value)) throw new Error('AI key response không hợp lệ.');
   const raw = value;
   const provider = requiredString(raw.provider, 'provider');
-  if (!['GEMINI', 'OPENAI', 'ANTHROPIC', 'DEEPSEEK'].includes(provider)) {
+  if (!['GEMINI', 'OPENAI'].includes(provider)) {
     throw new Error('AI key response có provider không được hỗ trợ.');
   }
   const availabilityStatus = requiredString(raw.availabilityStatus, 'availabilityStatus');
@@ -84,8 +84,9 @@ export const adminAiKeyService = {
   /**
    * Bật / Tắt trạng thái khóa API trên Backend
    */
-  async setActive(id: string, isActive: boolean): Promise<void> {
-    await api.patch(`/ai/api-keys/${id}/toggle`, { isActive });
+  async setActive(id: string, isActive: boolean): Promise<AiApiKey> {
+    const res = await api.patch(`/ai/api-keys/${id}/toggle`, { isActive });
+    return normalizeAiKey(res.data.data);
   },
 
   /**
