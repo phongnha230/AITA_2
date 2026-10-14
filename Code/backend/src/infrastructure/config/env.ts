@@ -56,7 +56,15 @@ const envSchema = z.object({
 
   // AI LLM & Vector DB
   CHROMA_DB_URL: z.string().optional().default('http://localhost:8000'),
+  GEMINI_API_KEY: z.string().optional().default(''),
   GEMINI_API_KEYS: z.string().optional().default(''),
+  GEMINI_GENERATION_MODEL: z.string().default('gemini-3.8-flash'),
+  GEMINI_EMBEDDING_MODEL: z.string().default('gemini-embedding-001'),
+  AI_GRADING_REQUIRE_READY_RAG: z.preprocess(
+    (value) => value === 'true',
+    z.boolean().default(false)
+  ),
+  ALLOW_MOCK_LLM: z.preprocess((value) => value === 'true', z.boolean().default(false)),
 
   // Cloudinary Cloud Storage
   CLOUDINARY_CLOUD_NAME: z.string().optional().default(''),

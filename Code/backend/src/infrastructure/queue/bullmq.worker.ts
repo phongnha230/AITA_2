@@ -14,6 +14,7 @@ import {
     GradingJobData,
     GradingJobResult,
 } from "./bullmq.queue.js";
+import { AppError } from "../../shared/domain/exceptions/app.error.js";
 
 
 // ============================================================
@@ -66,7 +67,7 @@ type ProcessingStage =
 // WHOLE JOB TIMEOUT
 // ============================================================
 
-const GRADING_JOB_TIMEOUT_MS = 30_000;
+const GRADING_JOB_TIMEOUT_MS = 120_000;
 
 
 // ============================================================
@@ -183,11 +184,11 @@ function extractSandboxScore(
         return undefined;
     }
 
-    // TV5 contributes maximum 7 points.
+    // Sandbox contributes maximum 8 points.
     return clamp(
         score,
         0,
-        7
+        8
     );
 }
 
@@ -211,11 +212,11 @@ function extractAiScore(
         return undefined;
     }
 
-    // TV6 contributes maximum 3 points.
+    // AI rubric contributes maximum 2 points.
     return clamp(
         score,
         0,
-        3
+        2
     );
 }
 
@@ -237,11 +238,23 @@ function getErrorMessage(
 
 
 function getErrorStage(
-    stage: ProcessingStage
+    stage: ProcessingStage,
+    error: unknown
 ):
     | "SANDBOX_EXECUTION"
     | "AI_EVALUATION"
+    | "AI_RAG"
+    | "INPUT_TOO_LARGE"
     | "SYSTEM" {
+
+    if (error instanceof AppError) {
+        if (error.errorCode === "INPUT_TOO_LARGE") return "INPUT_TOO_LARGE";
+        if (
+            error.errorCode === "AI_RAG_UNAVAILABLE"
+            || error.errorCode === "AI_PROVIDER_UNAVAILABLE"
+            || error.errorCode === "AI_FEEDBACK_LEAKAGE"
+        ) return "AI_RAG";
+    }
 
     switch (stage) {
 
@@ -507,7 +520,8 @@ async function markFailedAttempt(
 
     const errorStage =
         getErrorStage(
-            stage
+            stage,
+            error
         );
 
     const logMessage =

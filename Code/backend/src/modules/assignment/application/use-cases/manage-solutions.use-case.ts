@@ -1,11 +1,9 @@
 import { IAssignmentRepository } from '../../domain/repositories/assignment.repository.interface.js';
 import { UpsertSolutionDto } from '../dtos/assignment.dto.js';
 import { NotFoundError } from '../../../../shared/domain/exceptions/app.error.js';
-import { RagKnowledgeFacade } from '../../../ai/infrastructure/facades/rag-knowledge.facade.js';
+import { enqueueRagIndexing } from '../../../ai/infrastructure/queue/rag-indexing.queue.js';
 
 export class ManageSolutionsUseCase {
-  private ragKnowledgeFacade = new RagKnowledgeFacade();
-
   constructor(private readonly assignmentRepository: IAssignmentRepository) {}
 
   async upsert(assignmentId: string, dto: UpsertSolutionDto) {
@@ -14,12 +12,10 @@ export class ManageSolutionsUseCase {
       throw new NotFoundError(`Đề thi với ID: ${assignmentId}`);
     }
     const result = await this.assignmentRepository.upsertSolution(assignmentId, dto);
-
-    // Kích hoạt RAG Vector Ingestion vào ChromaDB ngầm
-    this.ragKnowledgeFacade.indexAssignmentSolution(assignmentId).catch((err) => {
-      console.warn(`[ManageSolutionsUseCase] Indexing ChromaDB failed for assignment ${assignmentId}:`, err.message);
+    await enqueueRagIndexing({
+      solutionId: result.id,
+      contentHash: result.contentHash,
     });
-
     return result;
   }
 

@@ -2,12 +2,17 @@ import app from './app.js';
 import { env } from './infrastructure/config/env.js';
 import { startGradingWorker, stopGradingWorker } from './infrastructure/queue/grading-worker.bootstrap.js';
 import { workspaceCleanupService } from './infrastructure/storage/workspace-cleanup.service.js';
+import {
+  startRagIndexingWorker,
+  stopRagIndexingWorker,
+} from './modules/ai/infrastructure/queue/rag-indexing.queue.js';
 
 const PORT = env.PORT;
 
 // Khởi động BullMQ Grading Worker (Sandbox + AI Grader)
 try {
   startGradingWorker();
+  startRagIndexingWorker();
 } catch (err) {
   console.warn(`⚠️ [Server] Không thể khởi động Grading Worker tự động (vui lòng kiểm tra Redis):`, err);
 }
@@ -30,6 +35,7 @@ const server = app.listen(PORT, () => {
 const shutdown = async () => {
   console.log('\n🛑 Shutting down server...');
   await stopGradingWorker();
+  await stopRagIndexingWorker();
   server.close(() => {
     console.log('✅ HTTP server closed.');
     process.exit(0);

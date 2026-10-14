@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { IAssignmentRepository, CreateAssignmentData } from '../../domain/repositories/assignment.repository.interface.js';
 import { Assignment } from '../../domain/entities/assignment.entity.js';
+import { createHash } from 'node:crypto';
 
 export class PrismaAssignmentRepository implements IAssignmentRepository {
   constructor(private readonly prisma: PrismaClient) {}
@@ -219,14 +220,24 @@ export class PrismaAssignmentRepository implements IAssignmentRepository {
 
   // --- Solutions (RAG) ---
   async upsertSolution(assignmentId: string, data: any): Promise<any> {
-    return this.prisma.assignmentSolution.create({
-      data: {
-        assignmentId,
-        title: data.title,
-        sourceCode: data.sourceCode,
-        explanation: data.explanation ?? null,
-        isActive: true,
-      },
+    const contentHash = createHash('sha256').update(data.sourceCode, 'utf8').digest('hex');
+    return this.prisma.$transaction(async (transaction) => {
+      await transaction.assignmentSolution.updateMany({
+        where: { assignmentId, isActive: true },
+        data: { isActive: false, activeKey: null },
+      });
+      return transaction.assignmentSolution.create({
+        data: {
+          assignmentId,
+          activeKey: assignmentId,
+          contentHash,
+          indexStatus: 'PENDING',
+          title: data.title,
+          sourceCode: data.sourceCode,
+          explanation: data.explanation ?? null,
+          isActive: true,
+        },
+      });
     });
   }
 

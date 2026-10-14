@@ -19,13 +19,14 @@
     "test:e2e": "vitest run tests/e2e",
     "test:coverage": "vitest run --coverage",
     "test:db": "tsx scripts/test-db-connection.ts",
-    "test:tidb": "tsx scripts/test-tidb-only.ts"
+    "test:tidb": "tsx scripts/test-tidb-only.ts",
+    "rag:backfill": "tsx scripts/backfill-rag-index.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
+    "@google/genai": "^2.29.1",
     "@prisma/client": "^5.22.0",
     "@types/bcrypt": "^6.0.0",
     "bcrypt": "^6.0.0",
@@ -43,6 +44,9 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.4.0",
     "nodemailer": "^10.0.16",
+    "tree-sitter": "^0.21.1",
+    "tree-sitter-c": "^0.21.4",
+    "tree-sitter-java": "^0.21.0",
     "unzipper": "^0.12.5",
     "zod": "^3.23.8"
   },
