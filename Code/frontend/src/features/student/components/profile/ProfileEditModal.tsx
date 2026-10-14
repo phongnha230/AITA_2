@@ -57,8 +57,8 @@ export function ProfileEditModal({ open, profile, onClose, onSave }: ProfileEdit
     try {
       setIsUploadingImage(true);
       setError(null);
-      const result = await uploadService.uploadImage(file, 'aita/avatars');
-      setAvatarUrl(result.secureUrl);
+      const result = await uploadService.uploadAvatar(file);
+      setAvatarUrl(result.avatarUrl);
     } catch (err: any) {
       console.error('Lỗi upload avatar lên Cloudinary:', err);
       setError(err.response?.data?.message || err.message || 'Không thể tải ảnh lên Cloudinary. Vui lòng thử lại.');
