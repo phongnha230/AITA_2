@@ -16,19 +16,7 @@ declare global {
 const tokenService = new JwtTokenService();
 
 export const authenticateJWT = (req: Request, _res: Response, next: NextFunction): void => {
-  let token = req.cookies?.token;
-
-  if (!token) {
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      token = authHeader.split(' ')[1];
-    }
-  }
-
-  // Hỗ trợ token từ query string cho SSE (Server-Sent Events) khi client không gửi được header
-  if (!token && typeof req.query?.token === 'string') {
-    token = req.query.token;
-  }
+  const token = req.cookies?.token;
 
   if (!token) {
     throw new UnauthorizedError('Vui lòng đăng nhập để tiếp tục (phiên đăng nhập hết hạn hoặc thiếu token).');

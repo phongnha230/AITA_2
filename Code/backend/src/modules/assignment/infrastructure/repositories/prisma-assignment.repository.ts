@@ -303,8 +303,9 @@ export class PrismaAssignmentRepository implements IAssignmentRepository {
     });
   }
 
-  async getAllAssignmentsForProctoring(): Promise<any[]> {
+  async getAllAssignmentsForProctoring(lecturerId?: string): Promise<any[]> {
     return this.prisma.assignment.findMany({
+      where: lecturerId ? { course: { lecturerId } } : undefined,
       include: {
         course: {
           select: {

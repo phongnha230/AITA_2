@@ -3,6 +3,7 @@ import { IPasswordHasher } from '../../domain/services/password-hasher.service.i
 import { ITokenService } from '../../domain/services/token.service.interface.js';
 import { LoginDto } from '../dtos/auth.dto.js';
 import { UnauthorizedError, ForbiddenError } from '../../../../shared/domain/exceptions/app.error.js';
+import { hashRefreshToken } from '../../infrastructure/services/refresh-token-hash.service.js';
 
 export interface LoginResult {
   token: string;
@@ -61,6 +62,9 @@ export class LoginUseCase {
 
     const accessToken = this.tokenService.generateAccessToken(tokenPayload);
     const refreshToken = this.tokenService.generateRefreshToken(tokenPayload);
+    await this.userRepository.update(user.id, {
+      refreshTokenHash: hashRefreshToken(refreshToken),
+    });
 
     // 5. Xác định trang chuyển hướng theo Role
     let redirectTo = '/student/dashboard';

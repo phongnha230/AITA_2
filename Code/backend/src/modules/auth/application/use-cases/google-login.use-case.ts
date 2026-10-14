@@ -3,6 +3,7 @@ import { IOAuthService } from '../../domain/services/oauth.service.interface.js'
 import { ITokenService } from '../../domain/services/token.service.interface.js';
 import { ForbiddenError } from '../../../../shared/domain/exceptions/app.error.js';
 import { LoginResult } from './login.use-case.js';
+import { hashRefreshToken } from '../../infrastructure/services/refresh-token-hash.service.js';
 
 export class GoogleLoginUseCase {
   constructor(
@@ -71,6 +72,9 @@ export class GoogleLoginUseCase {
 
     const accessToken = this.tokenService.generateAccessToken(tokenPayload);
     const refreshToken = this.tokenService.generateRefreshToken(tokenPayload);
+    await this.userRepository.update(user.id, {
+      refreshTokenHash: hashRefreshToken(refreshToken),
+    });
 
     // 4. Xác định trang chuyển hướng
     let redirectTo = '/student/dashboard';

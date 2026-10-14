@@ -29,6 +29,7 @@ const envSchema = z.object({
   JWT_EXPIRES_IN: z.string().default('15m'),
   JWT_REFRESH_SECRET: z.string().min(16, 'JWT_REFRESH_SECRET must be at least 16 characters'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('30d'),
+  COOKIE_SAME_SITE: z.enum(['lax', 'strict', 'none']).default('lax'),
 
   // Google OAuth 2.0
   GOOGLE_CLIENT_ID: z.string().optional().default(''),
@@ -50,6 +51,8 @@ const envSchema = z.object({
 
   // Google reCAPTCHA v2
   RECAPTCHA_SECRET_KEY: z.string().optional().default(''),
+  ALLOW_IN_MEMORY_AUTH_CHALLENGES: z.preprocess((value) => value === 'true', z.boolean().default(false)),
+  DEV_FIXED_OTP: z.string().regex(/^\d{6}$/).optional(),
 
   // AI LLM & Vector DB
   CHROMA_DB_URL: z.string().optional().default('http://localhost:8000'),
@@ -59,6 +62,21 @@ const envSchema = z.object({
   CLOUDINARY_CLOUD_NAME: z.string().optional().default(''),
   CLOUDINARY_API_KEY: z.string().optional().default(''),
   CLOUDINARY_API_SECRET: z.string().optional().default(''),
+}).superRefine((config, context) => {
+  if (config.NODE_ENV === 'production' && config.DEV_FIXED_OTP) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['DEV_FIXED_OTP'],
+      message: 'DEV_FIXED_OTP is forbidden in production',
+    });
+  }
+  if (config.COOKIE_SAME_SITE === 'none' && !config.FRONTEND_URL.startsWith('https://')) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['FRONTEND_URL'],
+      message: 'SameSite=None requires an HTTPS frontend URL',
+    });
+  }
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

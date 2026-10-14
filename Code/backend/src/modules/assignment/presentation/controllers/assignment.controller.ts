@@ -147,9 +147,10 @@ export class AssignmentController {
   };
 
   // --- Live Proctoring & Session Control ---
-  getProctoringRooms = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+  getProctoringRooms = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const rooms = await this.getProctoringDataUseCase.getAllRooms();
+      if (!req.user) throw new UnauthorizedError();
+      const rooms = await this.getProctoringDataUseCase.getAllRooms(req.user);
       sendSuccess(res, rooms, 'Lấy danh sách phòng thi giám sát trực tiếp thành công.');
     } catch (error) {
       next(error);

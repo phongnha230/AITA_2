@@ -6,6 +6,7 @@ import rateLimit from 'express-rate-limit';
 import apiRouter from './presentation/routes/index.js';
 import { errorHandler } from './shared/presentation/middlewares/error.middleware.js';
 import { env } from './infrastructure/config/env.js';
+import { enforceTrustedOrigin } from './shared/presentation/middlewares/origin.middleware.js';
 
 const app: Express = express();
 
@@ -45,6 +46,7 @@ app.use(
   })
 );
 app.use(cookieParser());
+app.use(enforceTrustedOrigin);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

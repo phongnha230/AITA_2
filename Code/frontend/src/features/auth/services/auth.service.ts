@@ -1,5 +1,4 @@
 import api from '../../../lib/api';
-import { saveAuthTokens } from '../../../lib/tokenStorage';
 
 export interface User {
   id: string;
@@ -10,8 +9,6 @@ export interface User {
 }
 
 export interface AuthResponse {
-  token: string;
-  refreshToken?: string;
   user: User;
   redirectTo: string;
 }
@@ -21,22 +18,16 @@ export const authService = {
     const response = await api.post('/auth/login', { username, password });
     const data = response.data.data;
     if (typeof window !== 'undefined') {
-      if (data.token) {
-        saveAuthTokens(data.token, data.refreshToken);
-      }
       localStorage.setItem('user', JSON.stringify(data.user));
       localStorage.setItem('user_role', data.user.role);
     }
     return data;
   },
 
-  async register(data: { email: string; password: string; fullName: string; role?: string }): Promise<AuthResponse> {
+  async register(data: { email: string; password: string; fullName: string }): Promise<AuthResponse> {
     const response = await api.post('/auth/register', data);
     const authData = response.data.data;
     if (typeof window !== 'undefined') {
-      if (authData.token) {
-        saveAuthTokens(authData.token, authData.refreshToken);
-      }
       localStorage.setItem('user', JSON.stringify(authData.user));
       if (authData.user.role) localStorage.setItem('user_role', authData.user.role);
     }
@@ -85,12 +76,9 @@ export const authService = {
       // ignore
     } finally {
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('token');
         localStorage.removeItem('user');
-        localStorage.removeItem('aita_token');
         localStorage.removeItem('aita_user');
         localStorage.removeItem('user_role');
-        localStorage.removeItem('refreshToken');
         window.location.href = '/login';
       }
     }

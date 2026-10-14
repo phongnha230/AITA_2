@@ -1,5 +1,4 @@
-import axios from 'axios';
-import { getAuthToken } from './tokenStorage';
+import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1',
@@ -10,25 +9,39 @@ const api = axios.create({
   },
 });
 
-// Request Interceptor: Attach JWT Token
-api.interceptors.request.use(
-  (config) => {
-    if (typeof window !== 'undefined') {
-      const token = getAuthToken() || localStorage.getItem('token') || localStorage.getItem('aita_token');
-      if (token && config.headers) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+interface RetryableRequestConfig extends InternalAxiosRequestConfig {
+  _retry?: boolean;
+}
 
-// Response Interceptor: Handle errors without forcing redirect to login
+let refreshPromise: Promise<void> | null = null;
+
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    return Promise.reject(error);
+  async (error: AxiosError) => {
+    const config = error.config as RetryableRequestConfig | undefined;
+    const url = config?.url || '';
+    const isAuthEndpoint = ['/auth/login', '/auth/register', '/auth/refresh-token'].some((path) =>
+      url.includes(path),
+    );
+
+    if (error.response?.status !== 401 || !config || config._retry || isAuthEndpoint) {
+      return Promise.reject(error);
+    }
+
+    config._retry = true;
+    refreshPromise ??= api
+      .post('/auth/refresh-token')
+      .then(() => undefined)
+      .finally(() => {
+        refreshPromise = null;
+      });
+
+    try {
+      await refreshPromise;
+      return api(config);
+    } catch {
+      return Promise.reject(error);
+    }
   }
 );
 

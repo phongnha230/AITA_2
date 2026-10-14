@@ -15,6 +15,7 @@ export class AdminUpdateUserUseCase {
       ...(dto.fullName !== undefined && { fullName: dto.fullName }),
       ...(dto.role !== undefined && { role: dto.role }),
       ...(dto.status !== undefined && { status: dto.status }),
+      ...(dto.status === 'SUSPENDED' && { refreshTokenHash: null }),
       ...(dto.avatarUrl !== undefined && { avatarUrl: dto.avatarUrl }),
     });
 
