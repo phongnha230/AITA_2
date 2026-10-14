@@ -100,7 +100,8 @@ export class UserController {
 
       const result = await cloudinaryService.uploadImage(req.file, {
         folder: 'aita/avatars',
-        publicId: `avatar-${req.user.userId}`,
+        publicId: req.user.userId,
+        overwrite: true,
       });
 
       const updated = await this.updateProfileUseCase.execute(req.user.userId, {

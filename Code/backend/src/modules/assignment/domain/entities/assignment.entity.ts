@@ -65,6 +65,10 @@ export class Assignment {
     return this.props.accessCode;
   }
 
+  get maxFileSizeBytes(): bigint {
+    return this.props.maxFileSizeBytes;
+  }
+
   get status(): AssignmentStatus {
     return this.props.status;
   }
@@ -114,6 +118,7 @@ export class Assignment {
       accessCode: this.props.accessCode,
       isStarted: this.isStarted(),
       isClosed: this.isClosed(),
+      maxFileSizeBytes: Number(this.props.maxFileSizeBytes),
       allowGitSubmission: this.props.allowGitSubmission,
       allowZipSubmission: this.props.allowZipSubmission,
       status: this.props.status,

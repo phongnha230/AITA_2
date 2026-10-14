@@ -6,6 +6,71 @@ import { workspaceService, WorkspaceService } from './workspace.service.js';
 import { ValidationError } from '../../../../shared/domain/exceptions/app.error.js';
 
 const execFileAsync = promisify(execFile);
+const MAX_FILES = 5_000;
+const MAX_DEPTH = 20;
+
+export const validateGitHubRepositoryUrl = (value: string): string => {
+  let parsed: URL;
+  try {
+    parsed = new URL(value.trim());
+  } catch {
+    throw new ValidationError('Đường dẫn GitHub repository không hợp lệ.');
+  }
+
+  if (
+    parsed.protocol !== 'https:' ||
+    parsed.hostname !== 'github.com' ||
+    parsed.username ||
+    parsed.password ||
+    parsed.port ||
+    parsed.search ||
+    parsed.hash
+  ) {
+    throw new ValidationError('Chỉ chấp nhận URL HTTPS công khai từ github.com.');
+  }
+
+  if (!/^\/[A-Za-z0-9-]+\/[A-Za-z0-9._-]+(?:\.git)?$/.test(parsed.pathname)) {
+    throw new ValidationError('URL phải có dạng https://github.com/{owner}/{repo}[.git].');
+  }
+
+  return parsed.toString();
+};
+
+const validateWorkingTree = async (root: string, maxBytes: bigint | number): Promise<void> => {
+  const limit = Number(maxBytes);
+  if (!Number.isSafeInteger(limit) || limit <= 0) {
+    throw new ValidationError('Giới hạn dung lượng bài nộp không hợp lệ.');
+  }
+
+  let fileCount = 0;
+  let totalBytes = 0;
+  const visit = async (current: string, depth: number): Promise<void> => {
+    if (depth > MAX_DEPTH) {
+      throw new ValidationError(`Repository vượt quá độ sâu thư mục tối đa ${MAX_DEPTH}.`);
+    }
+    for (const entry of await fs.readdir(current, { withFileTypes: true })) {
+      if (depth === 0 && entry.name === '.git') continue;
+      const absolutePath = path.join(current, entry.name);
+      if (entry.isSymbolicLink()) {
+        throw new ValidationError('Repository không được chứa symbolic link.');
+      }
+      if (entry.isDirectory()) {
+        await visit(absolutePath, depth + 1);
+        continue;
+      }
+      if (!entry.isFile()) continue;
+      fileCount += 1;
+      if (fileCount > MAX_FILES) {
+        throw new ValidationError(`Repository vượt quá ${MAX_FILES} files.`);
+      }
+      totalBytes += (await fs.stat(absolutePath)).size;
+      if (totalBytes > limit) {
+        throw new ValidationError('Repository vượt quá giới hạn dung lượng của đề thi.');
+      }
+    }
+  };
+  await visit(root, 0);
+};
 
 export interface ContributorMetric {
   authorName: string;
@@ -34,33 +99,38 @@ export class GitIngestionService {
   public async cloneAndAnalyze(
     gitRepoUrl: string,
     gitCommitHash: string | null | undefined,
-    submissionId: string
+    submissionId: string,
+    maxFileSizeBytes: bigint | number
   ): Promise<GitIngestionResult> {
-    if (!gitRepoUrl || !gitRepoUrl.trim().startsWith('http')) {
-      throw new ValidationError('Đường dẫn GitHub repository không hợp lệ');
-    }
-
-    const cleanRepoUrl = gitRepoUrl.trim();
+    const cleanRepoUrl = validateGitHubRepositoryUrl(gitRepoUrl);
     const workspacePath = await this.workspace.createCleanWorkspace(submissionId);
 
     try {
-      // 1. Git Clone với depth 50 để lấy lịch sử commits gần nhất
+      // Shallow clone only; submodules are intentionally not initialized.
       try {
-        await execFileAsync('git', ['clone', '--depth', '50', cleanRepoUrl, workspacePath], {
+        await execFileAsync('git', [
+          '-c',
+          'protocol.ext.allow=never',
+          'clone',
+          '--depth',
+          '1',
+          '--single-branch',
+          '--no-tags',
+          '--',
+          cleanRepoUrl,
+          workspacePath,
+        ], {
           timeout: 60000,
+          env: { ...process.env, GIT_TERMINAL_PROMPT: '0', GCM_INTERACTIVE: 'Never' },
         });
-      } catch (cloneErr: any) {
-        const errorMsg = cloneErr.stderr || cloneErr.message || '';
-        if (
-          errorMsg.includes('Authentication failed') ||
-          errorMsg.includes('Repository not found') ||
-          errorMsg.includes('fatal: could not read Username')
-        ) {
-          throw new ValidationError(
-            'Không thể truy cập GitHub repository. Vui lòng đảm bảo repository ở chế độ Public (công khai) hoặc đường dẫn chính xác.'
-          );
-        }
-        throw new ValidationError(`Lỗi khi clone Git repository: ${errorMsg}`);
+      } catch (cloneError: unknown) {
+        console.error('[GitIngestionService] Clone failed', {
+          submissionId,
+          error: cloneError instanceof Error ? cloneError.message : 'Unknown clone error',
+        });
+        throw new ValidationError(
+          'Không thể clone GitHub repository trong 60 giây. Hãy kiểm tra repository công khai và URL.'
+        );
       }
 
       // 2. Checkout Commit cụ thể nếu sinh viên chỉ định
@@ -74,8 +144,7 @@ export class GitIngestionService {
           );
         }
         try {
-          // Truyền cleanHash sau DETACH HEAD mode để git không hiểu là flag
-          await execFileAsync('git', ['-c', 'advice.detachedHead=false', 'checkout', cleanHash, '--'], {
+          await execFileAsync('git', ['-c', 'advice.detachedHead=false', 'checkout', '--detach', cleanHash], {
             cwd: workspacePath,
             timeout: 10000,
           });
@@ -90,6 +159,8 @@ export class GitIngestionService {
         });
         resolvedHash = headHash.trim();
       }
+
+      await validateWorkingTree(workspacePath, maxFileSizeBytes);
 
       // 3. Đếm số lượng Commit (Commit Count)
       let commitCount = 1;
@@ -237,10 +308,14 @@ export class GitIngestionService {
         extractedVercelUrl,
         contributors,
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       await this.workspace.cleanupWorkspace(submissionId);
       if (err instanceof ValidationError) throw err;
-      throw new Error(`[GitIngestionService] Lỗi khi clone và xử lý Git repo: ${err.message}`);
+      console.error('[GitIngestionService] Ingestion failed', {
+        submissionId,
+        error: err instanceof Error ? err.message : 'Unknown ingestion error',
+      });
+      throw new Error('[GitIngestionService] Lỗi khi clone và xử lý Git repository.');
     }
   }
 }

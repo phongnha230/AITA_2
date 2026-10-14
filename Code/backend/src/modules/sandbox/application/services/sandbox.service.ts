@@ -55,7 +55,8 @@ export class SandboxService implements ISandboxService {
     ) {
       const stagingResult = await this.artifactExtractor.extractAndStage(
         submission.zipFilePath,
-        submission.id
+        submission.id,
+        submission.assignment.maxFileSizeBytes
       );
       executionFolderPath = stagingResult.stagedPath;
       await prisma.submission.update({
@@ -83,8 +84,11 @@ export class SandboxService implements ISandboxService {
         inputData: tc.stdinInput || tc.inputFileContent || '',
         expectedOutput: tc.expectedStdout || tc.expectedFileContent || '',
         outputFileName: tc.expectedFileName,
-        timeLimitMs: tc.timeLimitMs,
-        memoryLimitMb: Math.round(tc.memoryLimitKb / 1024) || 256,
+        timeLimitMs: Math.min(10_000, Math.max(100, tc.timeLimitMs)),
+        memoryLimitMb: Math.min(
+          512,
+          Math.max(32, Math.round(tc.memoryLimitKb / 1024) || 256)
+        ),
         score: Number(tc.points),
       })
     );
