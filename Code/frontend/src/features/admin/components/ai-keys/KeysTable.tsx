@@ -90,6 +90,9 @@ export const KeysTable: React.FC<KeysTableProps> = ({ keys, total, allCount, pag
                     </TableCell>
                     <TableCell className="py-4">
                       <p className="text-[11px] font-semibold text-slate-600">Dashboard pool</p>
+                      {k.provider !== 'GEMINI' && (
+                        <p className="mt-1 text-[10px] text-slate-500">Không tham gia Gemini pool</p>
+                      )}
                       <span className={cn(
                         'mt-1 inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold',
                         k.availabilityStatus === 'AVAILABLE' && 'bg-emerald-50 text-emerald-700',

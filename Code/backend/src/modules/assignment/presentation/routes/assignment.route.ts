@@ -62,6 +62,13 @@ router.put(
   validateBody(UpdateAssignmentSchema),
   assignmentController.updateAssignment
 );
+router.delete(
+  '/:id',
+  authenticateJWT,
+  authorizeRoles('LECTURER', 'ADMIN'),
+  requireAssignmentManage,
+  assignmentController.deleteAssignment
+);
 router.get('/course/:courseId', authenticateJWT, requireCourseView, assignmentController.getAssignmentsByCourse);
 
 

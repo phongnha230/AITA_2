@@ -8,10 +8,8 @@ interface TrafficStatsProps {
 }
 
 const PROVIDERS: { id: AiProvider; label: string; color: string }[] = [
-  { id: 'OPENAI', label: 'OpenAI', color: 'bg-blue-600' },
   { id: 'GEMINI', label: 'Gemini', color: 'bg-emerald-600' },
-  { id: 'ANTHROPIC', label: 'Claude', color: 'bg-violet-600' },
-  { id: 'DEEPSEEK', label: 'DeepSeek', color: 'bg-cyan-600' },
+  { id: 'OPENAI', label: 'OpenAI (legacy)', color: 'bg-slate-400' },
 ];
 
 export const TrafficStats: React.FC<TrafficStatsProps> = ({ keys = [] }) => {

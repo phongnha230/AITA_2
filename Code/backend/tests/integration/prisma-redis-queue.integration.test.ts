@@ -6,6 +6,7 @@ import { PrismaAiApiKeyRepository } from '../../src/modules/ai/infrastructure/re
 import { ApiKeyCipherService } from '../../src/modules/ai/infrastructure/security/api-key-cipher.service.js';
 import { RedisRpmLimiter } from '../../src/modules/ai/infrastructure/credentials/redis-rpm-limiter.js';
 import { GeminiCredentialPoolService } from '../../src/modules/ai/infrastructure/credentials/gemini-credential-pool.service.js';
+import { PrismaAssignmentRepository } from '../../src/modules/assignment/infrastructure/repositories/prisma-assignment.repository.js';
 
 const describeInfrastructure = process.env.RUN_INFRA_INTEGRATION === 'true' ? describe : describe.skip;
 
@@ -16,6 +17,9 @@ describeInfrastructure('disposable Prisma, Redis and BullMQ infrastructure', () 
   });
 
   afterAll(async () => {
+    await prisma.course.deleteMany({ where: { code: { startsWith: 'CI-DEL-' } } });
+    await prisma.course.deleteMany({ where: { code: { startsWith: 'CI-USED-' } } });
+    await prisma.user.deleteMany({ where: { email: { startsWith: 'ci-assignment-delete-' } } });
     await prisma.aiApiKey.deleteMany({ where: { keyAlias: { startsWith: 'CI Gemini Pool' } } });
     const rpmKeys = await redisConnection.keys('ai:key:*:rpm');
     if (rpmKeys.length > 0) await redisConnection.del(...rpmKeys);
@@ -100,5 +104,98 @@ describeInfrastructure('disposable Prisma, Redis and BullMQ infrastructure', () 
     const updated = await prisma.aiApiKey.findUniqueOrThrow({ where: { id: key.id } });
     expect(updated.currentRequestsToday).toBe(1);
     expect(updated.usageDate?.toISOString().slice(0, 10)).toBe(new Date().toISOString().slice(0, 10));
+  });
+
+  it('deletes an assignment without submissions and cascades authored resources', async () => {
+    const lecturer = await prisma.user.create({
+      data: {
+        email: `ci-assignment-delete-empty-${Date.now()}@example.com`,
+        fullName: 'CI Assignment Lecturer',
+        role: 'LECTURER',
+      },
+    });
+    const course = await prisma.course.create({
+      data: {
+        code: `CI-DEL-${Date.now()}`,
+        name: 'CI assignment deletion',
+        semester: 'CI',
+        lecturerId: lecturer.id,
+      },
+    });
+    const assignment = await prisma.assignment.create({
+      data: {
+        courseId: course.id,
+        title: 'Disposable empty assignment',
+        environment: 'C_GCC',
+        startTime: new Date(),
+        deadline: new Date(Date.now() + 60_000),
+        createdBy: lecturer.id,
+        testCases: {
+          create: {
+            label: 'Sample',
+            rationaleTag: 'FUNCTIONAL',
+          },
+        },
+        rubricRules: {
+          create: {
+            criterionName: 'Correctness',
+            description: 'Correct result',
+            maxPoints: 1,
+          },
+        },
+      },
+    });
+
+    const repository = new PrismaAssignmentRepository(prisma);
+    await expect(repository.deleteIfNoSubmissions(assignment.id)).resolves.toBe('DELETED');
+    await expect(prisma.assignment.findUnique({ where: { id: assignment.id } })).resolves.toBeNull();
+    await expect(prisma.testCase.count({ where: { assignmentId: assignment.id } })).resolves.toBe(0);
+    await expect(prisma.rubricRule.count({ where: { assignmentId: assignment.id } })).resolves.toBe(0);
+  });
+
+  it('does not delete an assignment that already has a submission', async () => {
+    const lecturer = await prisma.user.create({
+      data: {
+        email: `ci-assignment-delete-owner-${Date.now()}@example.com`,
+        fullName: 'CI Assignment Owner',
+        role: 'LECTURER',
+      },
+    });
+    const student = await prisma.user.create({
+      data: {
+        email: `ci-assignment-delete-student-${Date.now()}@example.com`,
+        fullName: 'CI Assignment Student',
+        role: 'STUDENT',
+      },
+    });
+    const course = await prisma.course.create({
+      data: {
+        code: `CI-USED-${Date.now()}`,
+        name: 'CI used assignment',
+        semester: 'CI',
+        lecturerId: lecturer.id,
+      },
+    });
+    const assignment = await prisma.assignment.create({
+      data: {
+        courseId: course.id,
+        title: 'Disposable used assignment',
+        environment: 'JAVA_JDK',
+        startTime: new Date(),
+        deadline: new Date(Date.now() + 60_000),
+        createdBy: lecturer.id,
+      },
+    });
+    await prisma.submission.create({
+      data: {
+        assignmentId: assignment.id,
+        userId: student.id,
+        submissionChannel: 'ZIP_UPLOAD',
+      },
+    });
+
+    const repository = new PrismaAssignmentRepository(prisma);
+    await expect(repository.deleteIfNoSubmissions(assignment.id)).resolves.toBe('HAS_SUBMISSIONS');
+    await expect(prisma.assignment.findUnique({ where: { id: assignment.id } })).resolves.not.toBeNull();
   });
 });

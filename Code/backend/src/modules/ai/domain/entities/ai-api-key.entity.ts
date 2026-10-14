@@ -108,6 +108,7 @@ export class AiApiKey {
   }
 
   public availabilityStatus(now: Date = new Date()): AiKeyAvailabilityStatus {
+    if (this.props.provider !== 'GEMINI') return 'DISABLED';
     if (!this.props.isActive) return 'DISABLED';
     if (this.props.cooldownUntil && this.props.cooldownUntil > now) return 'COOLDOWN';
     if (this.currentRequestsToday >= this.props.dailyRequestLimit) return 'QUOTA_EXHAUSTED';
