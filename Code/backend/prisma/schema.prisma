@@ -150,16 +150,23 @@ model RubricRule {
 }
 
 model AssignmentSolution {
-  id           String     @id @default(uuid()) @db.Char(36)
-  assignmentId String     @map("assignment_id") @db.Char(36)
-  createdAt    DateTime   @default(now()) @map("created_at")
-  chromaDocId  String?    @map("chroma_doc_id") @db.VarChar(128)
-  explanation  String?    @db.LongText
-  isActive     Boolean    @default(true) @map("is_active")
-  sourceCode   String     @map("source_code") @db.LongText
-  title        String     @db.VarChar(200)
-  updatedAt    DateTime   @updatedAt @map("updated_at")
-  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  id             String              @id @default(uuid()) @db.Char(36)
+  assignmentId   String              @map("assignment_id") @db.Char(36)
+  activeKey      String?             @unique @map("active_key") @db.Char(36)
+  contentHash    String              @map("content_hash") @db.Char(64)
+  indexStatus    SolutionIndexStatus @default(PENDING) @map("index_status")
+  indexedAt      DateTime?           @map("indexed_at")
+  indexError     String?             @map("index_error") @db.LongText
+  embeddingModel String?             @map("embedding_model") @db.VarChar(100)
+  chunkerVersion String?             @map("chunker_version") @db.VarChar(50)
+  createdAt      DateTime            @default(now()) @map("created_at")
+  chromaDocId    String?             @map("chroma_doc_id") @db.VarChar(128)
+  explanation    String?             @db.LongText
+  isActive       Boolean             @default(true) @map("is_active")
+  sourceCode     String              @map("source_code") @db.LongText
+  title          String              @db.VarChar(200)
+  updatedAt      DateTime            @updatedAt @map("updated_at")
+  assignment     Assignment          @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
 
   @@index([assignmentId], map: "idx_solutions_assignment")
   @@map("assignment_solutions")
@@ -448,7 +455,15 @@ enum ErrorStage {
   SANDBOX_COMPILATION
   SANDBOX_EXECUTION
   AI_EVALUATION
+  AI_RAG
+  INPUT_TOO_LARGE
   SYSTEM
+}
+
+enum SolutionIndexStatus {
+  PENDING
+  READY
+  FAILED
 }
 
 enum TestCaseVerdict {

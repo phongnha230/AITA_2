@@ -1,136 +1,160 @@
+import { GoogleGenAI } from '@google/genai';
 import { ChromaClient, Collection } from 'chromadb';
 import { env } from '../../../../infrastructure/config/env.js';
 import { CodeChunk } from '../chunking/code-chunker.js';
 
+const COLLECTION_NAME = 'aita_solution_code_chunks_v2';
+const EMBEDDING_DIMENSION = 768;
+
+export interface SolutionVectorVersion {
+  assignmentId: string;
+  solutionId: string;
+  contentHash: string;
+  environment: string;
+  embeddingModel: string;
+  chunkerVersion: string;
+}
+
+export interface RetrievedSolutionChunk {
+  id: string;
+  symbol: string;
+  file: string;
+  code: string;
+  startLine: number;
+  endLine: number;
+  similarity: number;
+  embeddingModel: string;
+  chunkerVersion: string;
+}
+
 export class ChromaVectorService {
-  private client: ChromaClient;
-  private collectionName = 'aita_solution_code_chunks';
+  private readonly client: ChromaClient;
   private collection: Collection | null = null;
-  private isAvailable = false;
 
   constructor() {
-    this.client = new ChromaClient({
-      path: env.CHROMA_DB_URL || 'http://localhost:8000',
+    this.client = new ChromaClient({ path: env.CHROMA_DB_URL });
+  }
+
+  private getApiKey(): string {
+    const key = env.GEMINI_API_KEY.trim() || env.GEMINI_API_KEYS.split(',')[0]?.trim();
+    if (!key) throw new Error('GEMINI_API_KEY is required for RAG embeddings.');
+    return key;
+  }
+
+  private async embed(contents: string[], taskType: 'RETRIEVAL_DOCUMENT' | 'RETRIEVAL_QUERY'): Promise<number[][]> {
+    const client = new GoogleGenAI({ apiKey: this.getApiKey() });
+    const response = await client.models.embedContent({
+      model: env.GEMINI_EMBEDDING_MODEL,
+      contents,
+      config: {
+        taskType,
+        outputDimensionality: EMBEDDING_DIMENSION,
+      },
+    });
+    const embeddings = response.embeddings?.map((item) => item.values ?? []);
+    if (!embeddings || embeddings.length !== contents.length || embeddings.some((item) => item.length !== EMBEDDING_DIMENSION)) {
+      throw new Error('Gemini returned invalid RAG embeddings.');
+    }
+    return embeddings;
+  }
+
+  private async getCollection(): Promise<Collection> {
+    if (this.collection) return this.collection;
+    this.collection = await this.client.getOrCreateCollection({
+      name: COLLECTION_NAME,
+      metadata: {
+        description: 'AITA solution code chunks v2',
+        'hnsw:space': 'cosine',
+      },
+    });
+    return this.collection;
+  }
+
+  public async indexSolutionVersion(
+    version: SolutionVectorVersion,
+    chunks: CodeChunk[]
+  ): Promise<void> {
+    if (chunks.length === 0) throw new Error('Cannot index an empty solution.');
+    const collection = await this.getCollection();
+    const documents = chunks.map(
+      (chunk) => `File: ${chunk.file}\nSymbol: ${chunk.name}\nLines: ${chunk.startLine}-${chunk.endLine}\n${chunk.code}`
+    );
+    const embeddings = await this.embed(
+      documents.map((document) => document.slice(0, 8_192)),
+      'RETRIEVAL_DOCUMENT'
+    );
+    await collection.upsert({
+      ids: chunks.map((chunk) => `${version.solutionId}:${version.contentHash}:${chunk.id}`),
+      embeddings,
+      documents,
+      metadatas: chunks.map((chunk) => ({
+        assignmentId: version.assignmentId,
+        solutionId: version.solutionId,
+        contentHash: version.contentHash,
+        environment: version.environment,
+        file: chunk.file,
+        symbol: chunk.name,
+        startLine: chunk.startLine,
+        endLine: chunk.endLine,
+        embeddingModel: version.embeddingModel,
+        chunkerVersion: version.chunkerVersion,
+      })),
     });
   }
 
-  /**
-   * Khởi tạo kết nối & Collection trong ChromaDB
-   */
-  private async getCollection(): Promise<Collection | null> {
-    if (this.collection) return this.collection;
-
-    try {
-      this.collection = await this.client.getOrCreateCollection({
-        name: this.collectionName,
-        metadata: { description: 'AITA PE Exam Solutions Function Chunks for RAG Grading' },
-      });
-      this.isAvailable = true;
-      return this.collection;
-    } catch (err: any) {
-      console.warn(`[ChromaVectorService] ⚠️ ChromaDB không khả dụng tại ${env.CHROMA_DB_URL}: ${err.message}. Sử dụng Fallback in-memory.`);
-      this.isAvailable = false;
-      return null;
-    }
-  }
-
-  /**
-   * Lưu các đoạn code chunk của bài giải mẫu vào ChromaDB
-   */
-  public async indexSolutionChunks(
-    assignmentId: string,
-    chunks: CodeChunk[],
-    environment: string
-  ): Promise<void> {
-    if (chunks.length === 0) return;
-
+  public async deleteStaleVersions(assignmentId: string, currentContentHash: string): Promise<void> {
     const collection = await this.getCollection();
-    if (!collection) {
-      return; // Không kết nối được ChromaDB, hệ thống vẫn hoạt động bằng fallback
-    }
-
-    try {
-      const ids = chunks.map((c) => `${assignmentId}_${c.id}`);
-      const documents = chunks.map(
-        (c) => `// Function: ${c.name} (${c.type})\n${c.code}`
-      );
-      const metadatas = chunks.map((c) => ({
-        assignmentId,
-        chunkId: c.id,
-        functionName: c.name,
-        startLine: c.startLine,
-        endLine: c.endLine,
-        environment,
-      }));
-
-      // Xóa các chunk cũ của assignment này (nếu có cập nhật đề)
-      try {
-        await collection.delete({
-          where: { assignmentId: { $eq: assignmentId } },
-        });
-      } catch {
-        // Bỏ qua nếu chưa có
-      }
-
-      await collection.add({
-        ids,
-        documents,
-        metadatas,
-      });
-
-      console.log(`[ChromaVectorService] ✅ Đã đánh chỉ mục ${chunks.length} chunks cho bài thi ${assignmentId} vào ChromaDB.`);
-    } catch (err: any) {
-      console.error('[ChromaVectorService] Lỗi khi lưu chunks vào ChromaDB:', err.message);
-    }
+    const existing = await collection.get({
+      where: { assignmentId: { $eq: assignmentId } },
+      include: ['metadatas'],
+    });
+    const staleIds = existing.ids.filter(
+      (_id, index) => existing.metadatas?.[index]?.contentHash !== currentContentHash
+    );
+    if (staleIds.length > 0) await collection.delete({ ids: staleIds });
   }
 
-  /**
-   * Truy vấn tìm các hàm đáp án chuẩn liên quan nhất tới lỗi của sinh viên
-   */
   public async queryRelevantChunks(
-    assignmentId: string,
-    queryText: string,
-    topK = 2
-  ): Promise<Array<{ name: string; code: string; distance?: number }>> {
+    version: SolutionVectorVersion,
+    queryText: string
+  ): Promise<RetrievedSolutionChunk[]> {
     const collection = await this.getCollection();
-    if (!collection) {
-      return [];
-    }
+    const [queryEmbedding] = await this.embed([queryText.slice(0, 8_192)], 'RETRIEVAL_QUERY');
+    const results = await collection.query({
+      queryEmbeddings: [queryEmbedding],
+      nResults: 8,
+      where: {
+        $and: [
+          { assignmentId: { $eq: version.assignmentId } },
+          { solutionId: { $eq: version.solutionId } },
+          { contentHash: { $eq: version.contentHash } },
+        ],
+      },
+    });
 
-    try {
-      const results = await collection.query({
-        queryTexts: [queryText],
-        nResults: topK,
-        where: { assignmentId: { $eq: assignmentId } },
-      });
-
-      if (!results.documents || results.documents.length === 0 || !results.documents[0]) {
-        return [];
-      }
-
-      const docs = results.documents[0];
-      const metas = results.metadatas ? results.metadatas[0] : [];
-      const distances = results.distances ? results.distances[0] : [];
-
-      const relevantChunks: Array<{ name: string; code: string; distance?: number }> = [];
-
-      for (let i = 0; i < docs.length; i++) {
-        const doc = docs[i];
-        if (doc) {
-          const meta = metas[i] as any;
-          const dist = distances && distances[i] !== null && distances[i] !== undefined ? Number(distances[i]) : undefined;
-          relevantChunks.push({
-            name: meta?.functionName || 'Unknown',
-            code: doc,
-            distance: dist,
-          });
-        }
-      }
-
-      return relevantChunks;
-    } catch (err: any) {
-      console.warn('[ChromaVectorService] Lỗi truy vấn ChromaDB:', err.message);
-      return [];
-    }
+    const documents = results.documents?.[0] ?? [];
+    const metadatas = results.metadatas?.[0] ?? [];
+    const distances = results.distances?.[0] ?? [];
+    const ids = results.ids?.[0] ?? [];
+    return documents
+      .map((document, index): RetrievedSolutionChunk | null => {
+        if (!document) return null;
+        const metadata = metadatas[index];
+        const similarity = 1 - Number(distances[index] ?? 1);
+        if (!metadata || similarity < 0.7) return null;
+        return {
+          id: ids[index],
+          symbol: String(metadata.symbol ?? 'unknown'),
+          file: String(metadata.file ?? 'unknown'),
+          code: document,
+          startLine: Number(metadata.startLine ?? 0),
+          endLine: Number(metadata.endLine ?? 0),
+          similarity,
+          embeddingModel: String(metadata.embeddingModel ?? version.embeddingModel),
+          chunkerVersion: String(metadata.chunkerVersion ?? version.chunkerVersion),
+        };
+      })
+      .filter((chunk): chunk is RetrievedSolutionChunk => chunk !== null)
+      .slice(0, 4);
   }
 }
