@@ -48,7 +48,7 @@ export class GetProctoringDataUseCase {
       actor.role === 'ADMIN' ? undefined : actor.userId
     );
 
-    return assignments.map((a: any) => {
+    return assignments.map((a) => {
       const startTime = new Date(a.startTime);
       const deadline = new Date(a.deadline);
       const totalStudents = a.course._count?.enrollments || 0;
@@ -95,16 +95,16 @@ export class GetProctoringDataUseCase {
     const totalTestCases = assignment.testCases?.length || 0;
 
     // Map each enrolled student to a PC station
-    const stations = enrollments.map((enr: any, index: number) => {
+    const stations = enrollments.map((enr, index: number) => {
       const student = enr.student;
       const pcNumber = `PC-${String(index + 1).padStart(2, '0')}`;
-      const submission = submissions.find((s: any) => s.userId === student.id);
+      const submission = submissions.find((candidate) => candidate.userId === student.id);
 
       if (submission) {
         const isCompiling =
           submission.status === 'RUNNING_SANDBOX' || submission.status === 'RUNNING_AI';
         const passedCases = Array.isArray(submission.testResults)
-          ? submission.testResults.filter((tr: any) => tr.verdict === 'PASSED').length
+          ? submission.testResults.filter((testResult) => testResult.verdict === 'PASSED').length
           : 0;
         const totalCases = Math.max(totalTestCases, submission.testResults?.length || 0);
         const score =
@@ -148,18 +148,18 @@ export class GetProctoringDataUseCase {
       };
     });
 
-    const submittedCount = stations.filter((s: any) => s.status === 'submitted').length;
+    const submittedCount = stations.filter((station) => station.status === 'submitted').length;
     const workingCount = stations.filter(
-      (s: any) => s.status === 'working' || s.status === 'compiling'
+      (station) => station.status === 'working' || station.status === 'compiling'
     ).length;
     const submittedWithScores = stations.filter(
-      (s: any) => s.status === 'submitted' && s.score !== undefined
+      (station) => station.status === 'submitted' && station.score !== undefined
     );
     const averageScore =
       submittedWithScores.length > 0
         ? Number(
             (
-              submittedWithScores.reduce((acc: number, cur: any) => acc + (cur.score || 0), 0) /
+              submittedWithScores.reduce((acc, station) => acc + (station.score || 0), 0) /
               submittedWithScores.length
             ).toFixed(1)
           )

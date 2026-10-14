@@ -5,9 +5,11 @@ import { requireSubmissionAccess } from '../../../assignment/presentation/middle
 import { validateBody } from '../../../../shared/presentation/middlewares/validate.middleware.js';
 import { executeSandboxSchema } from '../../application/dtos/sandbox.dto.js';
 import { SandboxController } from '../controllers/sandbox.controller.js';
+import { container } from '../../../../infrastructure/container/container.js';
 import { enforceSandboxPayloadLimits } from '../middlewares/sandbox-limits.middleware.js';
 
 const router = Router();
+const sandboxController: SandboxController = container.sandboxController;
 const directExecutionLimiter = createAuthRateLimiter({
   scope: 'sandbox-execute',
   max: 10,
@@ -15,12 +17,12 @@ const directExecutionLimiter = createAuthRateLimiter({
   identity: (request) => request.user?.userId ?? 'anonymous',
 });
 
-router.get('/health', SandboxController.health);
+router.get('/health', sandboxController.health);
 router.get(
   '/status',
   authenticateJWT,
   authorizeRoles('ADMIN'),
-  SandboxController.getStatus
+  sandboxController.getStatus
 );
 
 router.post(
@@ -30,7 +32,7 @@ router.post(
   directExecutionLimiter,
   enforceSandboxPayloadLimits,
   validateBody(executeSandboxSchema),
-  SandboxController.executeCode
+  sandboxController.executeCode
 );
 
 router.post(
@@ -38,7 +40,7 @@ router.post(
   authenticateJWT,
   authorizeRoles('ADMIN', 'LECTURER'),
   requireSubmissionAccess,
-  SandboxController.gradeSubmission
+  sandboxController.gradeSubmission
 );
 
 export default router;

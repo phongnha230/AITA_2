@@ -4,37 +4,13 @@ import path from 'node:path';
 import fs from 'node:fs/promises';
 import { workspaceService, WorkspaceService } from './workspace.service.js';
 import { ValidationError } from '../../../../shared/domain/exceptions/app.error.js';
+import { validateGitHubRepositoryUrl } from './github-url.validator.js';
+import { logger } from '../../../../infrastructure/logging/logger.js';
+export { validateGitHubRepositoryUrl } from './github-url.validator.js';
 
 const execFileAsync = promisify(execFile);
 const MAX_FILES = 5_000;
 const MAX_DEPTH = 20;
-
-export const validateGitHubRepositoryUrl = (value: string): string => {
-  let parsed: URL;
-  try {
-    parsed = new URL(value.trim());
-  } catch {
-    throw new ValidationError('Đường dẫn GitHub repository không hợp lệ.');
-  }
-
-  if (
-    parsed.protocol !== 'https:' ||
-    parsed.hostname !== 'github.com' ||
-    parsed.username ||
-    parsed.password ||
-    parsed.port ||
-    parsed.search ||
-    parsed.hash
-  ) {
-    throw new ValidationError('Chỉ chấp nhận URL HTTPS công khai từ github.com.');
-  }
-
-  if (!/^\/[A-Za-z0-9-]+\/[A-Za-z0-9._-]+(?:\.git)?$/.test(parsed.pathname)) {
-    throw new ValidationError('URL phải có dạng https://github.com/{owner}/{repo}[.git].');
-  }
-
-  return parsed.toString();
-};
 
 const validateWorkingTree = async (root: string, maxBytes: bigint | number): Promise<void> => {
   const limit = Number(maxBytes);
@@ -124,9 +100,10 @@ export class GitIngestionService {
           env: { ...process.env, GIT_TERMINAL_PROMPT: '0', GCM_INTERACTIVE: 'Never' },
         });
       } catch (cloneError: unknown) {
-        console.error('[GitIngestionService] Clone failed', {
+        logger.error('git_clone_failed', {
           submissionId,
-          error: cloneError instanceof Error ? cloneError.message : 'Unknown clone error',
+          stage: 'GIT_CLONE',
+          error: cloneError,
         });
         throw new ValidationError(
           'Không thể clone GitHub repository trong 60 giây. Hãy kiểm tra repository công khai và URL.'
@@ -311,9 +288,10 @@ export class GitIngestionService {
     } catch (err: unknown) {
       await this.workspace.cleanupWorkspace(submissionId);
       if (err instanceof ValidationError) throw err;
-      console.error('[GitIngestionService] Ingestion failed', {
+      logger.error('git_ingestion_failed', {
         submissionId,
-        error: err instanceof Error ? err.message : 'Unknown ingestion error',
+        stage: 'GIT_INGESTION',
+        error: err,
       });
       throw new Error('[GitIngestionService] Lỗi khi clone và xử lý Git repository.');
     }

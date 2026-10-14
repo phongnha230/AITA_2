@@ -1,4 +1,8 @@
-import { PrismaClient, ApiProvider as PrismaApiProvider } from '@prisma/client';
+import {
+  AiApiKey as PrismaAiApiKey,
+  PrismaClient,
+  ApiProvider as PrismaApiProvider,
+} from '@prisma/client';
 import {
   IAiApiKeyRepository,
   CreateAiApiKeyData,
@@ -8,7 +12,7 @@ import { AiApiKey, ApiProvider } from '../../domain/entities/ai-api-key.entity.j
 export class PrismaAiApiKeyRepository implements IAiApiKeyRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
-  private toDomain(raw: any): AiApiKey {
+  private toDomain(raw: PrismaAiApiKey): AiApiKey {
     return new AiApiKey({
       id: raw.id,
       provider: raw.provider,
@@ -53,7 +57,7 @@ export class PrismaAiApiKeyRepository implements IAiApiKeyRepository {
     const list = await this.prisma.aiApiKey.findMany({
       orderBy: { createdAt: 'desc' },
     });
-    return list.map((r: any) => this.toDomain(r));
+    return list.map((key) => this.toDomain(key));
   }
 
   async create(data: CreateAiApiKeyData): Promise<AiApiKey> {

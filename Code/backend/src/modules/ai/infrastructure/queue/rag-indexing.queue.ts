@@ -4,9 +4,17 @@ import { redisConnection } from '../../../../infrastructure/redis/redis.client.j
 import { CHUNKER_VERSION, CodeChunker } from '../chunking/code-chunker.js';
 import { ChromaVectorService } from '../vector/chroma-vector.service.js';
 import { env } from '../../../../infrastructure/config/env.js';
+import {
+  IRagIndexingQueue,
+  RagIndexingRequest,
+} from '../../application/services/rag-indexing-queue.interface.js';
+import { logger } from '../../../../infrastructure/logging/logger.js';
+import {
+  getRagIndexRetryDelay,
+  RAG_INDEX_MAX_ATTEMPTS,
+} from '../../../../infrastructure/queue/retry-policy.js';
 
 export const RAG_INDEXING_QUEUE_NAME = 'rag-indexing';
-const retryDelaysMs = [10_000, 30_000, 120_000, 300_000, 900_000];
 
 export interface RagIndexingJobData {
   solutionId: string;
@@ -20,12 +28,18 @@ export const ragIndexingQueue = new Queue<RagIndexingJobData>(RAG_INDEXING_QUEUE
 export const enqueueRagIndexing = async (data: RagIndexingJobData): Promise<void> => {
   await ragIndexingQueue.add('index-solution', data, {
     jobId: `rag-index:${data.solutionId}:${data.contentHash}`,
-    attempts: 6,
+    attempts: RAG_INDEX_MAX_ATTEMPTS,
     backoff: { type: 'rag-indexing' },
     removeOnComplete: { count: 500 },
     removeOnFail: { count: 500 },
   });
 };
+
+export class BullMqRagIndexingQueue implements IRagIndexingQueue {
+  enqueue(data: RagIndexingRequest): Promise<void> {
+    return enqueueRagIndexing(data);
+  }
+}
 
 let activeWorker: Worker<RagIndexingJobData> | null = null;
 
@@ -102,15 +116,17 @@ export const startRagIndexingWorker = (): Worker<RagIndexingJobData> => {
     settings: {
       backoffStrategy: (attemptsMade, type) => {
         if (type !== 'rag-indexing') return -1;
-        return retryDelaysMs[Math.min(attemptsMade - 1, retryDelaysMs.length - 1)];
+        return getRagIndexRetryDelay(attemptsMade);
       },
     },
   });
   activeWorker.on('failed', (job, error) => {
-    console.error('[RagIndexingWorker] Indexing failed', {
+    logger.error('rag_indexing_failed', {
+      jobId: job?.id,
       solutionId: job?.data.solutionId,
       attempt: job?.attemptsMade,
-      error: error.message,
+      stage: 'RAG_INDEXING',
+      error,
     });
   });
   return activeWorker;

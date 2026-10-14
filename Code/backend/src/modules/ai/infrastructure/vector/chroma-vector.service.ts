@@ -27,7 +27,13 @@ export interface RetrievedSolutionChunk {
   chunkerVersion: string;
 }
 
-export class ChromaVectorService {
+export interface ISolutionVectorStore {
+  indexSolutionVersion(version: SolutionVectorVersion, chunks: CodeChunk[]): Promise<void>;
+  deleteStaleVersions(assignmentId: string, currentContentHash: string): Promise<void>;
+  queryRelevantChunks(version: SolutionVectorVersion, queryText: string): Promise<RetrievedSolutionChunk[]>;
+}
+
+export class ChromaVectorService implements ISolutionVectorStore {
   private readonly client: ChromaClient;
   private collection: Collection | null = null;
 

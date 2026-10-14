@@ -6,6 +6,7 @@ import { GetAssignmentSubmissionsUseCase } from '../../application/use-cases/get
 import { GetAllSubmissionsUseCase } from '../../application/use-cases/get-all-submissions.use-case.js';
 import { sendSuccess } from '../../../../shared/presentation/utils/api-response.util.js';
 import { UnauthorizedError } from '../../../../shared/domain/exceptions/app.error.js';
+import { logger } from '../../../../infrastructure/logging/logger.js';
 
 
 export class SubmissionController {
@@ -34,7 +35,15 @@ export class SubmissionController {
 
       // Cleanup temp file if needed
       if (uploadedFile?.path) {
-        await fs.rm(uploadedFile.path, { force: true }).catch(() => {});
+        try {
+          await fs.rm(uploadedFile.path, { force: true });
+        } catch (cleanupError) {
+          logger.error('submission_upload_cleanup_failed', {
+            requestId: req.header('x-request-id'),
+            stage: 'UPLOAD_CLEANUP',
+            error: cleanupError,
+          });
+        }
       }
 
       sendSuccess(
@@ -45,7 +54,15 @@ export class SubmissionController {
       );
     } catch (error) {
       if (uploadedFile?.path) {
-        await fs.rm(uploadedFile.path, { force: true }).catch(() => {});
+        try {
+          await fs.rm(uploadedFile.path, { force: true });
+        } catch (cleanupError) {
+          logger.error('submission_upload_cleanup_failed', {
+            requestId: req.header('x-request-id'),
+            stage: 'UPLOAD_CLEANUP',
+            error: cleanupError,
+          });
+        }
       }
       next(error);
     }

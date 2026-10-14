@@ -17,10 +17,12 @@
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
     "test:e2e": "vitest run tests/e2e",
-    "test:coverage": "vitest run --coverage",
+    "test:coverage": "vitest run --coverage && npm run test:coverage:critical",
+    "test:coverage:critical": "vitest run --config vitest.critical.config.mts --coverage",
     "test:db": "tsx scripts/test-db-connection.ts",
     "test:tidb": "tsx scripts/test-tidb-only.ts",
-    "rag:backfill": "tsx scripts/backfill-rag-index.ts"
+    "rag:backfill": "tsx scripts/backfill-rag-index.ts",
+    "rag:evaluate": "tsx scripts/evaluate-rag-retrieval.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

@@ -15,6 +15,7 @@ import {
     GradingJobResult,
 } from "./bullmq.queue.js";
 import { AppError } from "../../shared/domain/exceptions/app.error.js";
+import { logger } from "../logging/logger.js";
 
 
 // ============================================================
@@ -560,9 +561,14 @@ async function markFailedAttempt(
             },
         });
 
-        console.log(
-            `[Worker] ${job.id}: RETRYING (${currentAttempt}/${maxAttempts})`
-        );
+        logger.warn("grading_job_retrying", {
+            jobId: job.id,
+            submissionId,
+            stage,
+            attempt: currentAttempt,
+            maxAttempts,
+            error,
+        });
 
         return;
     }
@@ -606,9 +612,14 @@ async function markFailedAttempt(
         }),
     ]);
 
-    console.error(
-        `[Worker] ${job.id}: FAILED permanently after ${currentAttempt} attempts.`
-    );
+    logger.error("grading_job_failed", {
+        jobId: job.id,
+        submissionId,
+        stage,
+        attempt: currentAttempt,
+        maxAttempts,
+        error,
+    });
 }
 
 
@@ -624,13 +635,11 @@ async function processGradingJob(
     dependencies: GradingWorkerDependencies
 ): Promise<GradingJobResult> {
 
-    console.log(
-        `[Worker] Processing job ${job.id}`
-    );
-
-    console.log(
-        `[Worker] Submission: ${job.data.submissionId}`
-    );
+    logger.info("grading_job_started", {
+        jobId: job.id,
+        submissionId: job.data.submissionId,
+        stage: "SYSTEM",
+    });
 
 
     let currentStage:
@@ -667,9 +676,11 @@ async function processGradingJob(
         });
 
 
-        console.log(
-            `[Worker] ${job.id}: RUNNING_SANDBOX`
-        );
+        logger.info("grading_job_stage", {
+            jobId: job.id,
+            submissionId: job.data.submissionId,
+            stage: "RUNNING_SANDBOX",
+        });
 
 
         let sandboxResult: unknown = {
@@ -719,9 +730,11 @@ async function processGradingJob(
         });
 
 
-        console.log(
-            `[Worker] ${job.id}: RUNNING_AI`
-        );
+        logger.info("grading_job_stage", {
+            jobId: job.id,
+            submissionId: job.data.submissionId,
+            stage: "RUNNING_AI",
+        });
 
 
         let aiResult: unknown = {
@@ -770,9 +783,11 @@ async function processGradingJob(
         });
 
 
-        console.log(
-            `[Worker] ${job.id}: COMPLETED`
-        );
+        logger.info("grading_job_completed", {
+            jobId: job.id,
+            submissionId: job.data.submissionId,
+            stage: "COMPLETED",
+        });
 
 
         return {
@@ -813,10 +828,12 @@ async function processGradingJob(
                  * Do not hide the original Sandbox/AI error.
                  * Log lifecycle persistence error separately.
                  */
-                console.error(
-                    `[Worker] Could not persist failure lifecycle for job ${job.id}:`,
-                    lifecycleError
-                );
+                logger.error("grading_lifecycle_persist_failed", {
+                    jobId: job.id,
+                    submissionId: job.data.submissionId,
+                    stage: currentStage,
+                    error: lifecycleError,
+                });
             }
         }
 
@@ -878,9 +895,11 @@ export function createGradingWorker(
         "completed",
         (job) => {
 
-            console.log(
-                `[Worker] Job ${job.id} completed successfully.`
-            );
+            logger.info("grading_worker_job_completed", {
+                jobId: job.id,
+                submissionId: job.data.submissionId,
+                stage: "COMPLETED",
+            });
         }
     );
 
@@ -889,13 +908,14 @@ export function createGradingWorker(
         "failed",
         (job, error) => {
 
-            console.error(
-                `[Worker] Job ${job?.id} failed. Attempt ${job?.attemptsMade}/${job?.opts.attempts}`
-            );
-
-            console.error(
-                `[Worker] Reason: ${error.message}`
-            );
+            logger.error("grading_worker_job_failed", {
+                jobId: job?.id,
+                submissionId: job?.data.submissionId,
+                stage: "WORKER",
+                attempt: job?.attemptsMade,
+                maxAttempts: job?.opts.attempts,
+                error,
+            });
         }
     );
 
@@ -904,10 +924,7 @@ export function createGradingWorker(
         "error",
         (error) => {
 
-            console.error(
-                "[Worker] Worker error:",
-                error
-            );
+            logger.error("grading_worker_error", { stage: "WORKER", error });
         }
     );
 

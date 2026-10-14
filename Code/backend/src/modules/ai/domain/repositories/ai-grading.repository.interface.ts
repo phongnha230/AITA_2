@@ -1,4 +1,4 @@
-import { AiGradingResult, RubricEvaluationItem } from '../entities/ai-grading-result.entity.js';
+import { AiGradingResult, RagContextReference, RubricEvaluationItem } from '../entities/ai-grading-result.entity.js';
 
 export interface SaveAiGradingResultData {
   submissionId: string;
@@ -7,7 +7,7 @@ export interface SaveAiGradingResultData {
   detectedTimeComplexity?: string | null;
   detectedSpaceComplexity?: string | null;
   codeQualityFeedback: string;
-  ragContextUsed?: any;
+  ragContextUsed?: RagContextReference[];
   tokensConsumed?: number;
 }
 
