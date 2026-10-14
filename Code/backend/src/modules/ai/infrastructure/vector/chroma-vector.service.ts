@@ -1,10 +1,9 @@
-import { GoogleGenAI } from '@google/genai';
 import { ChromaClient, Collection } from 'chromadb';
 import { env } from '../../../../infrastructure/config/env.js';
+import { IEmbeddingProvider } from '../../application/services/embedding-provider.interface.js';
 import { CodeChunk } from '../chunking/code-chunker.js';
 
 const COLLECTION_NAME = 'aita_solution_code_chunks_v2';
-const EMBEDDING_DIMENSION = 768;
 
 export interface SolutionVectorVersion {
   assignmentId: string;
@@ -37,31 +36,8 @@ export class ChromaVectorService implements ISolutionVectorStore {
   private readonly client: ChromaClient;
   private collection: Collection | null = null;
 
-  constructor() {
+  constructor(private readonly embeddingProvider: IEmbeddingProvider) {
     this.client = new ChromaClient({ path: env.CHROMA_DB_URL });
-  }
-
-  private getApiKey(): string {
-    const key = env.GEMINI_API_KEY.trim() || env.GEMINI_API_KEYS.split(',')[0]?.trim();
-    if (!key) throw new Error('GEMINI_API_KEY is required for RAG embeddings.');
-    return key;
-  }
-
-  private async embed(contents: string[], taskType: 'RETRIEVAL_DOCUMENT' | 'RETRIEVAL_QUERY'): Promise<number[][]> {
-    const client = new GoogleGenAI({ apiKey: this.getApiKey() });
-    const response = await client.models.embedContent({
-      model: env.GEMINI_EMBEDDING_MODEL,
-      contents,
-      config: {
-        taskType,
-        outputDimensionality: EMBEDDING_DIMENSION,
-      },
-    });
-    const embeddings = response.embeddings?.map((item) => item.values ?? []);
-    if (!embeddings || embeddings.length !== contents.length || embeddings.some((item) => item.length !== EMBEDDING_DIMENSION)) {
-      throw new Error('Gemini returned invalid RAG embeddings.');
-    }
-    return embeddings;
   }
 
   private async getCollection(): Promise<Collection> {
@@ -85,9 +61,8 @@ export class ChromaVectorService implements ISolutionVectorStore {
     const documents = chunks.map(
       (chunk) => `File: ${chunk.file}\nSymbol: ${chunk.name}\nLines: ${chunk.startLine}-${chunk.endLine}\n${chunk.code}`
     );
-    const embeddings = await this.embed(
-      documents.map((document) => document.slice(0, 8_192)),
-      'RETRIEVAL_DOCUMENT'
+    const embeddings = await this.embeddingProvider.embedDocuments(
+      documents.map((document) => document.slice(0, 8_192))
     );
     await collection.upsert({
       ids: chunks.map((chunk) => `${version.solutionId}:${version.contentHash}:${chunk.id}`),
@@ -125,7 +100,7 @@ export class ChromaVectorService implements ISolutionVectorStore {
     queryText: string
   ): Promise<RetrievedSolutionChunk[]> {
     const collection = await this.getCollection();
-    const [queryEmbedding] = await this.embed([queryText.slice(0, 8_192)], 'RETRIEVAL_QUERY');
+    const queryEmbedding = await this.embeddingProvider.embedQuery(queryText.slice(0, 8_192));
     const results = await collection.query({
       queryEmbeddings: [queryEmbedding],
       nResults: 8,
