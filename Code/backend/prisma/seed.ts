@@ -264,71 +264,7 @@ async function main() {
   }
   console.log('✅ Đã ghi danh sinh viên vào các khóa học.');
 
-  // 4. KHO KHÓA AI API KEYS
-  const keysData = [
-    {
-      provider: 'GEMINI' as const,
-      keyAlias: 'Key-01: Google Gemini 1.5 Pro (Primary)',
-      keyHint: '7e1U',
-      encryptedSecret: 'ENC_GEMINI_15_PRO_SECRET_KEY_MOCK',
-      iv: 'a1b2c3d4e5f6g7h8',
-      authTag: 'auth_tag_mock_1',
-      dailyRequestLimit: 5000,
-      currentRequestsToday: 1420,
-      rpmLimit: 60,
-      consecutiveFailures: 0,
-      isActive: true,
-    },
-    {
-      provider: 'OPENAI' as const,
-      keyAlias: 'Key-02: OpenAI GPT-4o Mini (Rubric Engine)',
-      keyHint: 'a8K1',
-      encryptedSecret: 'ENC_OPENAI_GPT4O_SECRET_KEY_MOCK',
-      iv: 'b2c3d4e5f6g7h8i9',
-      authTag: 'auth_tag_mock_2',
-      dailyRequestLimit: 3000,
-      currentRequestsToday: 890,
-      rpmLimit: 40,
-      consecutiveFailures: 0,
-      isActive: true,
-    },
-    {
-      provider: 'GEMINI' as const,
-      keyAlias: 'Key-03: Gemini 1.5 Flash (Socratic Tutor Pool)',
-      keyHint: '9x4F',
-      encryptedSecret: 'ENC_GEMINI_FLASH_SECRET_KEY_MOCK',
-      iv: 'c3d4e5f6g7h8i9j0',
-      authTag: 'auth_tag_mock_3',
-      dailyRequestLimit: 10000,
-      currentRequestsToday: 3250,
-      rpmLimit: 120,
-      consecutiveFailures: 0,
-      isActive: true,
-    },
-    {
-      provider: 'OPENAI' as const,
-      keyAlias: 'Key-04: OpenAI GPT-4o Fallback Pool',
-      keyHint: 'd11A',
-      encryptedSecret: 'ENC_OPENAI_FALLBACK_SECRET_KEY_MOCK',
-      iv: 'd4e5f6g7h8i9j0k1',
-      authTag: 'auth_tag_mock_4',
-      dailyRequestLimit: 1500,
-      currentRequestsToday: 120,
-      rpmLimit: 20,
-      consecutiveFailures: 0,
-      isActive: false,
-    },
-  ];
-
-  for (const k of keysData) {
-    const existing = await prisma.aiApiKey.findFirst({ where: { keyAlias: k.keyAlias } });
-    if (!existing) {
-      await prisma.aiApiKey.create({ data: k });
-    }
-  }
-  console.log('✅ Đã tạo kho khóa AI API Keys.');
-
-  // 5. ĐỀ THI / BÀI TẬP (ASSIGNMENTS)
+  // 4. ĐỀ THI / BÀI TẬP (ASSIGNMENTS)
   const now = new Date();
   const assignmentsData = [
     {

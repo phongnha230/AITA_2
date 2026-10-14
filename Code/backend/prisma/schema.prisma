@@ -215,8 +215,12 @@ model AiApiKey {
   provider             ApiProvider  @default(GEMINI)
   isActive             Boolean      @default(true) @map("is_active")
   lastUsedAt           DateTime?    @map("last_used_at")
+  usageDate            DateTime?    @map("usage_date") @db.Date
+  cooldownUntil        DateTime?    @map("cooldown_until")
+  lastErrorCode        String?      @map("last_error_code") @db.VarChar(64)
   createdAt            DateTime     @default(now()) @map("created_at")
   authTag              String       @map("auth_tag") @db.VarChar(64)
+  encryptionVersion    Int          @default(1) @map("encryption_version")
   consecutiveFailures  Int          @default(0) @map("consecutive_failures")
   currentRequestsToday Int          @default(0) @map("current_requests_today")
   dailyRequestLimit    Int          @default(1500) @map("daily_request_limit")
@@ -229,6 +233,7 @@ model AiApiKey {
   gradingJobs          GradingJob[]
 
   @@index([provider, isActive, currentRequestsToday, lastUsedAt], map: "idx_ai_keys_rotator")
+  @@index([provider, isActive, cooldownUntil], map: "idx_ai_keys_availability")
   @@map("ai_api_keys")
 }
 

@@ -1,30 +1,13 @@
 import prisma from '../src/infrastructure/database/prisma.client.js';
-import { PrismaAiGradingRepository } from '../src/modules/ai/infrastructure/repositories/prisma-ai-grading.repository.js';
-import { PrismaAiApiKeyRepository } from '../src/modules/ai/infrastructure/repositories/prisma-ai-api-key.repository.js';
-import { PrismaAiTutorRepository } from '../src/modules/ai/infrastructure/repositories/prisma-ai-tutor.repository.js';
-import { ApiKeyRotatorFacade } from '../src/modules/ai/infrastructure/facades/api-key-rotator.facade.js';
-import { RagKnowledgeFacade } from '../src/modules/ai/infrastructure/facades/rag-knowledge.facade.js';
-import { PrismaSubmissionRepository } from '../src/modules/submission/infrastructure/repositories/prisma-submission.repository.js';
-import { GradeSubmissionAiUseCase } from '../src/modules/ai/application/use-cases/grade-submission-ai.use-case.js';
-import { StartTutorConversationUseCase } from '../src/modules/ai/application/use-cases/start-tutor-conversation.use-case.js';
-import { SendTutorMessageUseCase } from '../src/modules/ai/application/use-cases/send-tutor-message.use-case.js';
-import { ManageApiKeysUseCase } from '../src/modules/ai/application/use-cases/manage-api-keys.use-case.js';
+import { container } from '../src/infrastructure/container/container.js';
 
 async function main() {
   console.log('--- Testing Member 6: RAG Engine, AI Semantic Grader & Socratic Tutor ---');
 
-  const aiGradingRepo = new PrismaAiGradingRepository(prisma);
-  const aiApiKeyRepo = new PrismaAiApiKeyRepository(prisma);
-  const aiTutorRepo = new PrismaAiTutorRepository(prisma);
-  const submissionRepo = new PrismaSubmissionRepository(prisma);
-
-  const keyRotator = new ApiKeyRotatorFacade(aiApiKeyRepo);
-  const ragFacade = new RagKnowledgeFacade();
-
-  const gradeAiUseCase = new GradeSubmissionAiUseCase(aiGradingRepo, submissionRepo, keyRotator, ragFacade);
-  const startTutorUseCase = new StartTutorConversationUseCase(aiTutorRepo, submissionRepo);
-  const sendTutorUseCase = new SendTutorMessageUseCase(aiTutorRepo, submissionRepo, keyRotator);
-  const manageKeysUseCase = new ManageApiKeysUseCase(aiApiKeyRepo);
+  const gradeAiUseCase = container.gradeSubmissionAiUseCase;
+  const startTutorUseCase = container.startTutorConversationUseCase;
+  const sendTutorUseCase = container.sendTutorMessageUseCase;
+  const manageKeysUseCase = container.manageApiKeysUseCase;
 
   // 1. Test Admin Create & Encrypt API Key
   console.log('\n[1] Testing AI API Key Management & AES-256-GCM Encryption:');

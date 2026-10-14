@@ -1,22 +1,23 @@
 import { IAiApiKeyRepository } from '../../domain/repositories/ai-api-key.repository.interface.js';
 import { CreateAiApiKeyInput } from '../dtos/ai-api-key.dto.js';
-import { ApiKeyRotatorFacade } from '../../infrastructure/facades/api-key-rotator.facade.js';
+import { IApiKeyCipher } from '../../infrastructure/security/api-key-cipher.service.js';
 import { NotFoundError } from '../../../../shared/domain/exceptions/app.error.js';
 
 export class ManageApiKeysUseCase {
-  constructor(private readonly apiKeyRepository: IAiApiKeyRepository) {}
+  constructor(
+    private readonly apiKeyRepository: IAiApiKeyRepository,
+    private readonly cipher: IApiKeyCipher
+  ) {}
 
   public async createKey(dto: CreateAiApiKeyInput) {
     const keyHint = `...${dto.rawApiKey.slice(-4)}`;
-    const { encryptedSecret, iv, authTag } = ApiKeyRotatorFacade.encryptKey(dto.rawApiKey);
+    const encrypted = this.cipher.encrypt(dto.rawApiKey);
 
     const apiKey = await this.apiKeyRepository.create({
       provider: dto.provider,
       keyAlias: dto.keyAlias,
       keyHint,
-      encryptedSecret,
-      iv,
-      authTag,
+      ...encrypted,
       dailyRequestLimit: dto.dailyRequestLimit,
       rpmLimit: dto.rpmLimit,
     });

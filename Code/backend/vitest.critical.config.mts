@@ -13,6 +13,10 @@ export default defineConfig({
       'tests/unit/source-collector.test.ts',
       'tests/unit/code-chunker.test.ts',
       'tests/unit/retry-and-score-policy.test.ts',
+      'tests/unit/api-key-cipher.test.ts',
+      'tests/unit/gemini-key-pool.test.ts',
+      'tests/unit/redis-rpm-limiter.test.ts',
+      'tests/unit/reencrypt-ai-keys.test.ts',
     ],
     coverage: {
       provider: 'v8',
@@ -29,6 +33,10 @@ export default defineConfig({
         'src/modules/ai/infrastructure/chunking/code-chunker.ts',
         'src/modules/ai/application/services/score-calculator.service.ts',
         'src/infrastructure/queue/retry-policy.ts',
+        'src/modules/ai/infrastructure/security/api-key-cipher.service.ts',
+        'src/modules/ai/infrastructure/credentials/gemini-credential-pool.service.ts',
+        'src/modules/ai/infrastructure/credentials/redis-rpm-limiter.ts',
+        'src/modules/ai/application/use-cases/reencrypt-ai-keys.use-case.ts',
       ],
       thresholds: {
         branches: 80,

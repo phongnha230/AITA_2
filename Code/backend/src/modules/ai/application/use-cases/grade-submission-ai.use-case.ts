@@ -39,6 +39,7 @@ export class GradeSubmissionAiUseCase {
     let gradingOutput: ValidatedGradingOutput | null = null;
     for (let attempt = 0; attempt < 2; attempt += 1) {
       const llmResponse = await this.aiGenerationService.executeWithKeyRotation(prompt, {
+        operation: 'GRADING_GENERATION',
         systemInstruction: RubricGradingPrompt.buildSystemInstruction(attempt === 1),
         temperature: 0.1,
         jsonMode: true,

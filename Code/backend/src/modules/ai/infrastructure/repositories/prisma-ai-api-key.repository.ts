@@ -6,6 +6,8 @@ import {
 import {
   IAiApiKeyRepository,
   CreateAiApiKeyData,
+  AiKeyFailureUpdate,
+  EncryptedSecretUpdate,
 } from '../../domain/repositories/ai-api-key.repository.interface.js';
 import { AiApiKey, ApiProvider } from '../../domain/entities/ai-api-key.entity.js';
 
@@ -21,11 +23,15 @@ export class PrismaAiApiKeyRepository implements IAiApiKeyRepository {
       encryptedSecret: raw.encryptedSecret,
       iv: raw.iv,
       authTag: raw.authTag,
+      encryptionVersion: raw.encryptionVersion,
       dailyRequestLimit: raw.dailyRequestLimit,
       currentRequestsToday: raw.currentRequestsToday,
+      usageDate: raw.usageDate,
       rpmLimit: raw.rpmLimit,
       consecutiveFailures: raw.consecutiveFailures,
       isActive: raw.isActive,
+      cooldownUntil: raw.cooldownUntil,
+      lastErrorCode: raw.lastErrorCode,
       lastUsedAt: raw.lastUsedAt,
       createdAt: raw.createdAt,
       updatedAt: raw.updatedAt,
@@ -37,12 +43,12 @@ export class PrismaAiApiKeyRepository implements IAiApiKeyRepository {
     return raw ? this.toDomain(raw) : null;
   }
 
-  async findAvailableKey(provider: ApiProvider = 'GEMINI'): Promise<AiApiKey | null> {
-    const raw = await this.prisma.aiApiKey.findFirst({
+  async findCandidates(provider: ApiProvider = 'GEMINI', now: Date = new Date()): Promise<AiApiKey[]> {
+    const rows = await this.prisma.aiApiKey.findMany({
       where: {
         provider,
         isActive: true,
-        consecutiveFailures: { lt: 3 },
+        OR: [{ cooldownUntil: null }, { cooldownUntil: { lte: now } }],
       },
       orderBy: [
         { currentRequestsToday: 'asc' },
@@ -50,7 +56,7 @@ export class PrismaAiApiKeyRepository implements IAiApiKeyRepository {
       ],
     });
 
-    return raw ? this.toDomain(raw) : null;
+    return rows.map((row) => this.toDomain(row));
   }
 
   async findAll(): Promise<AiApiKey[]> {
@@ -69,6 +75,7 @@ export class PrismaAiApiKeyRepository implements IAiApiKeyRepository {
         encryptedSecret: data.encryptedSecret,
         iv: data.iv,
         authTag: data.authTag,
+        encryptionVersion: data.encryptionVersion,
         dailyRequestLimit: data.dailyRequestLimit ?? 1500,
         rpmLimit: data.rpmLimit ?? 60,
       },
@@ -77,31 +84,58 @@ export class PrismaAiApiKeyRepository implements IAiApiKeyRepository {
     return this.toDomain(raw);
   }
 
-  async incrementUsage(id: string): Promise<void> {
+  async reserveDailyUsage(id: string, utcDay: Date, now: Date): Promise<boolean> {
+    const updated = await this.prisma.$executeRaw`
+      UPDATE ai_api_keys
+      SET current_requests_today = CASE
+            WHEN usage_date IS NULL OR usage_date < ${utcDay} THEN 1
+            ELSE current_requests_today + 1
+          END,
+          usage_date = ${utcDay},
+          last_used_at = ${now}
+      WHERE id = ${id}
+        AND is_active = 1
+        AND (cooldown_until IS NULL OR cooldown_until <= ${now})
+        AND (
+          usage_date IS NULL
+          OR usage_date < ${utcDay}
+          OR current_requests_today < daily_request_limit
+        )
+    `;
+    return updated === 1;
+  }
+
+  async recordFailure(id: string, update: AiKeyFailureUpdate): Promise<void> {
     await this.prisma.aiApiKey.update({
       where: { id },
       data: {
-        currentRequestsToday: { increment: 1 },
-        lastUsedAt: new Date(),
+        consecutiveFailures: update.consecutiveFailures,
+        cooldownUntil: update.cooldownUntil,
+        lastErrorCode: update.lastErrorCode,
+        ...(typeof update.isActive === 'boolean' ? { isActive: update.isActive } : {}),
       },
     });
   }
 
-  async recordFailure(id: string): Promise<void> {
-    await this.prisma.aiApiKey.update({
-      where: { id },
-      data: {
-        consecutiveFailures: { increment: 1 },
-      },
-    });
-  }
-
-  async resetConsecutiveFailures(id: string): Promise<void> {
+  async recordSuccess(id: string): Promise<void> {
     await this.prisma.aiApiKey.update({
       where: { id },
       data: {
         consecutiveFailures: 0,
+        cooldownUntil: null,
+        lastErrorCode: null,
       },
+    });
+  }
+
+  async updateEncryptedSecret(id: string, update: EncryptedSecretUpdate): Promise<void> {
+    await this.prisma.aiApiKey.update({ where: { id }, data: update });
+  }
+
+  async markMigrationFailure(id: string): Promise<void> {
+    await this.prisma.aiApiKey.updateMany({
+      where: { id, encryptionVersion: 1 },
+      data: { isActive: false, lastErrorCode: 'LEGACY_DECRYPTION_FAILED' },
     });
   }
 

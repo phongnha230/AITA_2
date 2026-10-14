@@ -102,6 +102,7 @@ export const DEFAULT_ADMIN_SETTINGS: AdminSettings = {
 export interface AiApiKey {
   id: string;
   provider: AiProvider;
+  source: 'DASHBOARD';
   keyAlias: string;
   keyHint: string;
   /** Masked key preview such as "sk-proj-9x4F...a8K1" (UI only). */
@@ -110,11 +111,15 @@ export interface AiApiKey {
   purposeNote?: string;
   dailyRequestLimit: number;
   currentRequestsToday: number;
+  usageDate?: string | null;
   rpmLimit: number;
   tpmLimit?: number;
   latencyMs?: number | null;
   consecutiveFailures: number;
   isActive: boolean;
+  cooldownUntil?: string | null;
+  lastErrorCode?: string | null;
+  availabilityStatus: 'AVAILABLE' | 'COOLDOWN' | 'QUOTA_EXHAUSTED' | 'DISABLED';
   lastUsedAt?: string | null;
   createdAt: string;
   updatedAt: string;
