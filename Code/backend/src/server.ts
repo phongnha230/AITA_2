@@ -6,6 +6,7 @@ import {
   startRagIndexingWorker,
   stopRagIndexingWorker,
 } from './modules/ai/infrastructure/queue/rag-indexing.queue.js';
+import { logger } from './infrastructure/logging/logger.js';
 
 const PORT = env.PORT;
 
@@ -14,12 +15,14 @@ try {
   startGradingWorker();
   startRagIndexingWorker();
 } catch (err) {
-  console.warn(`⚠️ [Server] Không thể khởi động Grading Worker tự động (vui lòng kiểm tra Redis):`, err);
+  logger.warn('worker_start_failed', { stage: 'SERVER_STARTUP', error: err });
 }
 
 // Chạy dọn dẹp workspace cũ định kỳ (1 ngày 1 lần)
 setInterval(() => {
-  workspaceCleanupService.cleanupOldWorkspaces(7).catch(() => {});
+  workspaceCleanupService.cleanupOldWorkspaces(7).catch((error: unknown) => {
+    logger.error('workspace_cleanup_failed', { stage: 'WORKSPACE_CLEANUP', error });
+  });
 }, 24 * 60 * 60 * 1000);
 
 const server = app.listen(PORT, () => {

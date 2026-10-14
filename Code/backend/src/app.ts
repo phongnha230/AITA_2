@@ -7,8 +7,10 @@ import apiRouter from './presentation/routes/index.js';
 import { errorHandler } from './shared/presentation/middlewares/error.middleware.js';
 import { env } from './infrastructure/config/env.js';
 import { enforceTrustedOrigin } from './shared/presentation/middlewares/origin.middleware.js';
+import { attachRequestContext } from './shared/presentation/middlewares/request-context.middleware.js';
 
 const app: Express = express();
+app.use(attachRequestContext);
 
 const allowedOrigins = [
   env.FRONTEND_URL,

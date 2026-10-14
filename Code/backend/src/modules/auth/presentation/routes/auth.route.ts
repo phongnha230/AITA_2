@@ -1,16 +1,5 @@
 import { Router } from 'express';
-import { AuthController } from '../controllers/auth.controller.js';
-import { LoginUseCase } from '../../application/use-cases/login.use-case.js';
-import { RegisterUseCase } from '../../application/use-cases/register.use-case.js';
-import { GoogleLoginUseCase } from '../../application/use-cases/google-login.use-case.js';
-import { ChangePasswordUseCase } from '../../application/use-cases/change-password.use-case.js';
-import { RefreshTokenUseCase } from '../../application/use-cases/refresh-token.use-case.js';
-import { LogoutUseCase } from '../../application/use-cases/logout.use-case.js';
-import { PrismaUserRepository } from '../../../user/infrastructure/repositories/prisma-user.repository.js';
-import { BcryptHasherService } from '../../infrastructure/services/bcrypt-hasher.service.js';
-import { JwtTokenService } from '../../infrastructure/services/jwt-token.service.js';
-import { GoogleOAuthService } from '../../infrastructure/services/google-oauth.service.js';
-import prisma from '../../../../infrastructure/database/prisma.client.js';
+import { container } from '../../../../infrastructure/container/container.js';
 import { validateBody } from '../../../../shared/presentation/middlewares/validate.middleware.js';
 import {
   LoginSchema,
@@ -35,27 +24,7 @@ const verifyOtpLimiter = createAuthRateLimiter({ scope: 'verify-otp', max: 5, wi
 const registerLimiter = createAuthRateLimiter({ scope: 'register', max: 5, windowSeconds: 900, identity: identityByEmail });
 
 
-// Composition Root for Auth
-const userRepository = new PrismaUserRepository(prisma);
-const passwordHasher = new BcryptHasherService();
-const tokenService = new JwtTokenService();
-const oauthService = new GoogleOAuthService();
-
-const loginUseCase = new LoginUseCase(userRepository, passwordHasher, tokenService);
-const registerUseCase = new RegisterUseCase(userRepository, passwordHasher, tokenService);
-const googleLoginUseCase = new GoogleLoginUseCase(userRepository, oauthService, tokenService);
-const changePasswordUseCase = new ChangePasswordUseCase(userRepository, passwordHasher);
-const refreshTokenUseCase = new RefreshTokenUseCase(userRepository, tokenService);
-const logoutUseCase = new LogoutUseCase(userRepository, tokenService);
-
-const authController = new AuthController(
-  loginUseCase,
-  registerUseCase,
-  googleLoginUseCase,
-  changePasswordUseCase,
-  refreshTokenUseCase,
-  logoutUseCase
-);
+const authController = container.authController;
 
 // Traditional Email/Password Auth
 router.post('/login', loginLimiter, validateBody(LoginSchema), authController.login);

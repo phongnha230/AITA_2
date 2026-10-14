@@ -29,6 +29,44 @@ export interface WebActionStep {
   timeoutMs?: number; // Step timeout (default 10000ms)
 }
 
+type WebAction = WebActionStep['action'];
+const webActions = new Set<WebAction>([
+  'GOTO', 'FILL', 'CLICK', 'SELECT', 'CHECK', 'UNCHECK', 'PRESS_KEY', 'WAIT_FOR',
+  'WAIT_FOR_TIMEOUT', 'ASSERT_VISIBLE', 'ASSERT_TEXT', 'ASSERT_VALUE', 'ASSERT_URL', 'SCREENSHOT',
+]);
+
+interface PageLike {
+  goto(url: string, options: Record<string, unknown>): Promise<unknown>;
+  fill(target: string, value: string, options: Record<string, unknown>): Promise<unknown>;
+  click(target: string, options: Record<string, unknown>): Promise<unknown>;
+  selectOption(target: string, value: string, options: Record<string, unknown>): Promise<unknown>;
+  check(target: string, options: Record<string, unknown>): Promise<unknown>;
+  uncheck(target: string, options: Record<string, unknown>): Promise<unknown>;
+  press(target: string, value: string, options: Record<string, unknown>): Promise<unknown>;
+  keyboard: { press(value: string): Promise<unknown> };
+  waitForSelector(target: string, options: Record<string, unknown>): Promise<unknown>;
+  waitForTimeout(milliseconds: number): Promise<unknown>;
+  isVisible(target: string, options: Record<string, unknown>): Promise<boolean>;
+  innerText(target: string, options: Record<string, unknown>): Promise<string>;
+  inputValue(target: string, options: Record<string, unknown>): Promise<string>;
+  url(): string;
+}
+
+interface BrowserLike {
+  newContext(options: Record<string, unknown>): Promise<{ newPage(): Promise<PageLike> }>;
+  close(): Promise<void>;
+}
+
+interface ChromiumLike {
+  launch(options: Record<string, unknown>): Promise<BrowserLike>;
+}
+
+function isWebActionStep(value: unknown): value is WebActionStep {
+  if (!value || typeof value !== 'object') return false;
+  const action = (value as { action?: unknown }).action;
+  return typeof action === 'string' && webActions.has(action as WebAction);
+}
+
 export class PlaywrightWebRunner implements ISandboxRunner {
   /**
    * Chạy kịch bản kiểm thử Web / Vercel tự động
@@ -47,12 +85,12 @@ export class PlaywrightWebRunner implements ISandboxRunner {
     const targetBaseUrl = await this.resolveTargetBaseUrl(stagedFolderPath);
 
     // 2. Thử load thư viện Playwright (nếu đã cài đặt)
-    let playwrightChromium: any = null;
+    let playwrightChromium: ChromiumLike | null = null;
     try {
       // Dynamic import to avoid fatal build error if playwright is optional
       // @ts-ignore
-      const pw = await import('playwright');
-      playwrightChromium = pw.chromium;
+      const playwrightModule = await import('playwright') as unknown as { chromium?: ChromiumLike };
+      playwrightChromium = playwrightModule.chromium ?? null;
     } catch {
       playwrightChromium = null;
     }
@@ -145,12 +183,13 @@ export class PlaywrightWebRunner implements ISandboxRunner {
    */
   private parseTestCaseSteps(inputData: string, baseUrl: string): WebActionStep[] {
     try {
-      const parsed = JSON.parse(inputData);
-      if (Array.isArray(parsed)) {
+      const parsed: unknown = JSON.parse(inputData);
+      if (Array.isArray(parsed) && parsed.every(isWebActionStep)) {
         return parsed;
       }
-      if (parsed.steps && Array.isArray(parsed.steps)) {
-        return parsed.steps;
+      if (parsed && typeof parsed === 'object') {
+        const steps = (parsed as { steps?: unknown }).steps;
+        if (Array.isArray(steps) && steps.every(isWebActionStep)) return steps;
       }
     } catch {
       // Not JSON, convert plain text lines to basic steps
@@ -165,7 +204,10 @@ export class PlaywrightWebRunner implements ISandboxRunner {
     } else {
       for (const line of lines) {
         const parts = line.split('|').map((p) => p.trim());
-        const action = parts[0]?.toUpperCase() as any;
+        const candidate = parts[0]?.toUpperCase();
+        const action: WebAction | null = candidate && webActions.has(candidate as WebAction)
+          ? candidate as WebAction
+          : null;
         if (action === 'GOTO') {
           steps.push({ action: 'GOTO', target: parts[1] || baseUrl, timeoutMs: 15000 });
         } else if (action === 'FILL') {
@@ -205,15 +247,14 @@ export class PlaywrightWebRunner implements ISandboxRunner {
    * Chạy kịch bản với Playwright Chromium thật
    */
   private async runRealBrowserSteps(
-    chromium: any,
+    chromium: ChromiumLike,
     tc: TestCaseInput,
     steps: WebActionStep[],
     baseUrl: string,
     startTime: number
   ): Promise<TestCaseResult> {
-    let browser: any = null;
-    let page: any = null;
-    let logs: string[] = [];
+    let browser: BrowserLike | null = null;
+    const logs: string[] = [];
 
     try {
       browser = await chromium.launch({
@@ -223,7 +264,7 @@ export class PlaywrightWebRunner implements ISandboxRunner {
       const context = await browser.newContext({
         viewport: { width: 1280, height: 720 },
       });
-      page = await context.newPage();
+      const page = await context.newPage();
 
       for (let i = 0; i < steps.length; i++) {
         const step = steps[i];
@@ -352,9 +393,10 @@ export class PlaywrightWebRunner implements ISandboxRunner {
         executionTimeMs,
         memoryUsedKb: 45000,
       };
-    } catch (err: any) {
+    } catch (error: unknown) {
       const executionTimeMs = Date.now() - startTime;
-      logs.push(`❌ Step Failed: ${err.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+      logs.push(`❌ Step Failed: ${message}`);
 
       return {
         testCaseId: tc.id,
@@ -365,7 +407,7 @@ export class PlaywrightWebRunner implements ISandboxRunner {
         expectedOutput: tc.expectedOutput || 'All steps completed successfully',
         executionTimeMs,
         memoryUsedKb: 30000,
-        errorMessage: err.message,
+        errorMessage: message,
       };
     } finally {
       if (browser) {

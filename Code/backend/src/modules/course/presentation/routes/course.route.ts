@@ -1,18 +1,5 @@
 import { Router } from 'express';
-import { CourseController } from '../controllers/course.controller.js';
-import { CreateCourseUseCase } from '../../application/use-cases/create-course.use-case.js';
-import { GetCoursesUseCase } from '../../application/use-cases/get-courses.use-case.js';
-import { GetCourseByIdUseCase } from '../../application/use-cases/get-course-by-id.use-case.js';
-import { UpdateCourseUseCase } from '../../application/use-cases/update-course.use-case.js';
-import { DeleteCourseUseCase } from '../../application/use-cases/delete-course.use-case.js';
-import { EnrollStudentsUseCase } from '../../application/use-cases/enroll-students.use-case.js';
-import { RemoveStudentUseCase } from '../../application/use-cases/remove-student.use-case.js';
-import { GenerateJoinCodeUseCase } from '../../application/use-cases/generate-join-code.use-case.js';
-import { RevokeJoinCodeUseCase } from '../../application/use-cases/revoke-join-code.use-case.js';
-import { JoinCourseByCodeUseCase } from '../../application/use-cases/join-course-by-code.use-case.js';
-import { PrismaCourseRepository } from '../../infrastructure/repositories/prisma-course.repository.js';
-import { PrismaUserRepository } from '../../../user/infrastructure/repositories/prisma-user.repository.js';
-import prisma from '../../../../infrastructure/database/prisma.client.js';
+import { container } from '../../../../infrastructure/container/container.js';
 import { authenticateJWT, authorizeRoles } from '../../../auth/presentation/middlewares/auth.middleware.js';
 import { validateBody, validateQuery } from '../../../../shared/presentation/middlewares/validate.middleware.js';
 import {
@@ -26,33 +13,7 @@ import {
 
 const router = Router();
 
-// Composition Root for Course
-const courseRepository = new PrismaCourseRepository(prisma);
-const userRepository = new PrismaUserRepository(prisma);
-
-const createCourseUseCase = new CreateCourseUseCase(courseRepository, userRepository);
-const getCoursesUseCase = new GetCoursesUseCase(courseRepository);
-const getCourseByIdUseCase = new GetCourseByIdUseCase(courseRepository);
-const updateCourseUseCase = new UpdateCourseUseCase(courseRepository);
-const deleteCourseUseCase = new DeleteCourseUseCase(courseRepository);
-const enrollStudentsUseCase = new EnrollStudentsUseCase(courseRepository);
-const removeStudentUseCase = new RemoveStudentUseCase(courseRepository);
-const generateJoinCodeUseCase = new GenerateJoinCodeUseCase(courseRepository);
-const revokeJoinCodeUseCase = new RevokeJoinCodeUseCase(courseRepository);
-const joinCourseByCodeUseCase = new JoinCourseByCodeUseCase(courseRepository);
-
-const courseController = new CourseController(
-  createCourseUseCase,
-  getCoursesUseCase,
-  getCourseByIdUseCase,
-  updateCourseUseCase,
-  deleteCourseUseCase,
-  enrollStudentsUseCase,
-  removeStudentUseCase,
-  generateJoinCodeUseCase,
-  revokeJoinCodeUseCase,
-  joinCourseByCodeUseCase
-);
+const courseController = container.courseController;
 
 // Routes
 router.get('/', authenticateJWT, validateQuery(QueryCoursesSchema), courseController.getCourses);

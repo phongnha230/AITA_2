@@ -4,23 +4,28 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { NextFunction, Request, Response } from 'express';
-import prisma from '../../../../infrastructure/database/prisma.client.js';
 import { env } from '../../../../infrastructure/config/env.js';
 import { sendSuccess } from '../../../../shared/presentation/utils/api-response.util.js';
 import { ValidationError } from '../../../../shared/domain/exceptions/app.error.js';
 import { ExecuteSandboxInput } from '../../application/dtos/sandbox.dto.js';
-import { SandboxService } from '../../application/services/sandbox.service.js';
+import { ISandboxService } from '../../application/services/sandbox.service.js';
+import { ISandboxRepository } from '../../domain/interfaces/sandbox.repository.interface.js';
 import { TestCaseInput } from '../../domain/interfaces/sandbox-runner.interface.js';
 import { SandboxRunnerFactory } from '../../infrastructure/sandbox-runner.factory.js';
 
 const execFileAsync = promisify(execFile);
 
 export class SandboxController {
-  public static async health(_req: Request, res: Response): Promise<void> {
-    res.status(200).json({ status: 'ready' });
-  }
+  constructor(
+    private readonly sandboxService: ISandboxService,
+    private readonly sandboxRepository: ISandboxRepository
+  ) {}
 
-  public static async getStatus(_req: Request, res: Response, next: NextFunction): Promise<void> {
+  public health = async (_req: Request, res: Response): Promise<void> => {
+    res.status(200).json({ status: 'ready' });
+  };
+
+  public getStatus = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       let dockerAvailable = false;
       try {
@@ -30,11 +35,8 @@ export class SandboxController {
         dockerAvailable = false;
       }
 
-      const [activeExecutions, totalGradedCount, failedExecutions] = await Promise.all([
-        prisma.gradingJob.count({ where: { status: 'RUNNING_SANDBOX' } }),
-        prisma.submission.count({ where: { status: 'GRADED' } }),
-        prisma.gradingJob.count({ where: { status: 'FAILED' } }),
-      ]);
+      const { activeExecutions, totalGradedCount, failedExecutions } =
+        await this.sandboxRepository.getStatusCounts();
 
       sendSuccess(res, {
         status: 'READY',
@@ -54,9 +56,9 @@ export class SandboxController {
     } catch (error) {
       next(error);
     }
-  }
+  };
 
-  public static async executeCode(req: Request, res: Response, next: NextFunction): Promise<void> {
+  public executeCode = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const tempDir = path.resolve(env.WORKSPACE_DIR, `api_test_${crypto.randomUUID()}`);
     try {
       const input = req.body as ExecuteSandboxInput;
@@ -96,9 +98,9 @@ export class SandboxController {
         });
       }
     }
-  }
+  };
 
-  public static async gradeSubmission(req: Request, res: Response, next: NextFunction): Promise<void> {
+  public gradeSubmission = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { submissionId } = req.params;
       if (!submissionId) {
@@ -107,10 +109,10 @@ export class SandboxController {
       const languageOverride = typeof req.body?.languageOverride === 'string'
         ? req.body.languageOverride
         : undefined;
-      const summary = await SandboxService.gradeSubmission(submissionId, languageOverride);
+      const summary = await this.sandboxService.gradeSubmission(submissionId, languageOverride);
       sendSuccess(res, summary, `Chấm điểm bài nộp ${submissionId} thành công`);
     } catch (error) {
       next(error);
     }
-  }
+  };
 }

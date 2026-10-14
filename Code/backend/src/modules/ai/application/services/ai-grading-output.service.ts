@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { RubricEvaluationItem } from '../../domain/entities/ai-grading-result.entity.js';
 import { ValidationError } from '../../../../shared/domain/exceptions/app.error.js';
+import { AiScoreCalculator } from './score-calculator.service.js';
 
 export interface GradingRubricRule {
   id: string;
@@ -30,6 +31,8 @@ export interface ValidatedGradingOutput {
 }
 
 export class AiGradingOutputService {
+  constructor(private readonly scoreCalculator = new AiScoreCalculator()) {}
+
   validateAndScore(rawText: string, rubricRules: GradingRubricRule[]): ValidatedGradingOutput {
     let json: unknown;
     try {
@@ -69,10 +72,9 @@ export class AiGradingOutputService {
       throw new ValidationError('AI không trả về đầy đủ các rubric được yêu cầu.');
     }
 
-    const rawScore = rubricBreakdown.reduce((sum, item) => sum + item.earnedPoints, 0);
     return {
       rubricBreakdown,
-      overallAiScore: Number(Math.min(2, Math.max(0, rawScore)).toFixed(2)),
+      overallAiScore: this.scoreCalculator.calculate(rubricBreakdown),
       detectedTimeComplexity: parsed.data.detectedTimeComplexity,
       detectedSpaceComplexity: parsed.data.detectedSpaceComplexity,
       codeQualityFeedback: parsed.data.codeQualityFeedback,

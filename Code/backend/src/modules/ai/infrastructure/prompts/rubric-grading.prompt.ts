@@ -1,4 +1,4 @@
-import { RagContext } from '../facades/rag-knowledge.facade.js';
+import { RagContext } from '../../application/services/rag-knowledge.service.interface.js';
 
 export class RubricGradingPrompt {
   public static buildSystemInstruction(strictLeakageMode = false): string {

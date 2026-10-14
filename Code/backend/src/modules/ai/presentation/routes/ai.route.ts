@@ -1,18 +1,5 @@
 import { Router } from 'express';
-import { AiGradingController } from '../controllers/ai-grading.controller.js';
-import { AiTutorController } from '../controllers/ai-tutor.controller.js';
-import { AiApiKeyController } from '../controllers/ai-api-key.controller.js';
-import { GradeSubmissionAiUseCase } from '../../application/use-cases/grade-submission-ai.use-case.js';
-import { StartTutorConversationUseCase } from '../../application/use-cases/start-tutor-conversation.use-case.js';
-import { SendTutorMessageUseCase } from '../../application/use-cases/send-tutor-message.use-case.js';
-import { GetTutorConversationUseCase } from '../../application/use-cases/get-tutor-conversation.use-case.js';
-import { ManageApiKeysUseCase } from '../../application/use-cases/manage-api-keys.use-case.js';
-import { PrismaAiGradingRepository } from '../../infrastructure/repositories/prisma-ai-grading.repository.js';
-import { PrismaAiApiKeyRepository } from '../../infrastructure/repositories/prisma-ai-api-key.repository.js';
-import { PrismaAiTutorRepository } from '../../infrastructure/repositories/prisma-ai-tutor.repository.js';
-import { ApiKeyRotatorFacade } from '../../infrastructure/facades/api-key-rotator.facade.js';
-import { RagKnowledgeFacade } from '../../infrastructure/facades/rag-knowledge.facade.js';
-import prisma from '../../../../infrastructure/database/prisma.client.js';
+import { container } from '../../../../infrastructure/container/container.js';
 import { authenticateJWT, authorizeRoles } from '../../../auth/presentation/middlewares/auth.middleware.js';
 import { validateBody } from '../../../../shared/presentation/middlewares/validate.middleware.js';
 import {
@@ -21,44 +8,12 @@ import {
 } from '../../application/dtos/ai-tutor.dto.js';
 import { CreateAiApiKeySchema } from '../../application/dtos/ai-api-key.dto.js';
 
-import { PrismaSubmissionRepository } from '../../../submission/infrastructure/repositories/prisma-submission.repository.js';
 
 const router = Router();
 
-// Composition Root for AI Module
-const aiGradingRepository = new PrismaAiGradingRepository(prisma);
-const aiApiKeyRepository = new PrismaAiApiKeyRepository(prisma);
-const aiTutorRepository = new PrismaAiTutorRepository(prisma);
-const submissionRepository = new PrismaSubmissionRepository(prisma);
-
-const apiKeyRotatorFacade = new ApiKeyRotatorFacade(aiApiKeyRepository);
-const ragKnowledgeFacade = new RagKnowledgeFacade();
-
-export const gradeSubmissionAiUseCase = new GradeSubmissionAiUseCase(
-  aiGradingRepository,
-  submissionRepository,
-  apiKeyRotatorFacade,
-  ragKnowledgeFacade
-);
-const startTutorConversationUseCase = new StartTutorConversationUseCase(
-  aiTutorRepository,
-  submissionRepository
-);
-const sendTutorMessageUseCase = new SendTutorMessageUseCase(
-  aiTutorRepository,
-  submissionRepository,
-  apiKeyRotatorFacade
-);
-const getTutorConversationUseCase = new GetTutorConversationUseCase(aiTutorRepository);
-const manageApiKeysUseCase = new ManageApiKeysUseCase(aiApiKeyRepository);
-
-const aiGradingController = new AiGradingController(gradeSubmissionAiUseCase);
-const aiTutorController = new AiTutorController(
-  startTutorConversationUseCase,
-  sendTutorMessageUseCase,
-  getTutorConversationUseCase
-);
-const aiApiKeyController = new AiApiKeyController(manageApiKeysUseCase);
+const aiGradingController = container.aiGradingController;
+const aiTutorController = container.aiTutorController;
+const aiApiKeyController = container.aiApiKeyController;
 
 // 1. AI Grading Endpoints
 router.post(

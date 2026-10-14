@@ -1,10 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import { AppError } from '../../domain/exceptions/app.error.js';
 import { sendError } from '../utils/api-response.util.js';
+import { logger } from '../../../infrastructure/logging/logger.js';
 
 export const errorHandler = (
   err: Error | AppError,
-  _req: Request,
+  req: Request,
   res: Response,
   _next: NextFunction
 ): void => {
@@ -13,7 +14,12 @@ export const errorHandler = (
     return;
   }
 
-  console.error('🔥 [Unhandled Error]:', err);
+  logger.error('request_unhandled_error', {
+    requestId: req.header('x-request-id'),
+    method: req.method,
+    path: req.path,
+    error: err,
+  });
 
   const isDevelopment = process.env.NODE_ENV === 'development';
   sendError(

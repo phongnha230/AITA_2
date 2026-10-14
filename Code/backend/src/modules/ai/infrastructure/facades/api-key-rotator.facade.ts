@@ -5,14 +5,19 @@ import { GeminiAdapter } from '../adapters/gemini.adapter.js';
 import { MockLlmAdapter } from '../adapters/mock-llm.adapter.js';
 import { env } from '../../../../infrastructure/config/env.js';
 import { AppError } from '../../../../shared/domain/exceptions/app.error.js';
+import { logger } from '../../../../infrastructure/logging/logger.js';
+import {
+  AiGenerationOptions,
+  IAiGenerationService,
+} from '../../application/services/ai-generation.service.interface.js';
 
 const ENCRYPTION_ALGORITHM = 'aes-256-gcm';
 const SECRET_KEY = crypto
   .createHash('sha256')
-  .update(env.JWT_SECRET || 'aita_master_key_secret_2024')
+  .update(env.JWT_SECRET)
   .digest();
 
-export class ApiKeyRotatorFacade {
+export class ApiKeyRotatorFacade implements IAiGenerationService {
   private geminiAdapter = new GeminiAdapter();
   private mockAdapter = new MockLlmAdapter();
 
@@ -53,12 +58,7 @@ export class ApiKeyRotatorFacade {
    */
   async executeWithKeyRotation(
     prompt: string,
-    options: {
-      systemInstruction?: string;
-      temperature?: number;
-      maxOutputTokens?: number;
-      jsonMode?: boolean;
-    }
+    options: AiGenerationOptions
   ) {
     // 1. Kiểm tra nếu có GEMINI_API_KEY trong env
     const envKey = env.GEMINI_API_KEY.trim();
@@ -68,8 +68,11 @@ export class ApiKeyRotatorFacade {
           ...options,
           apiKey: envKey,
         });
-      } catch (err: any) {
-        console.warn('[ApiKeyRotatorFacade] Env GEMINI_API_KEY failed, trying DB keys ->', err.message);
+      } catch (error: unknown) {
+        logger.warn('gemini_env_key_failed', {
+          stage: 'AI_PROVIDER',
+          error: error instanceof Error ? error : new Error(String(error)),
+        });
       }
     }
 
@@ -90,8 +93,12 @@ export class ApiKeyRotatorFacade {
         await this.apiKeyRepository.incrementUsage(dbKey.id);
         await this.apiKeyRepository.resetConsecutiveFailures(dbKey.id);
         return result;
-      } catch (err: any) {
-        console.warn(`[ApiKeyRotatorFacade] Key ${dbKey.keyAlias} error:`, err.message);
+      } catch (error: unknown) {
+        logger.warn('gemini_database_key_failed', {
+          stage: 'AI_PROVIDER',
+          keyAlias: dbKey.keyAlias,
+          error: error instanceof Error ? error : new Error(String(error)),
+        });
         await this.apiKeyRepository.recordFailure(dbKey.id);
       }
     }
