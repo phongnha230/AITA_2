@@ -4,6 +4,8 @@ export interface TeamMemberProps {
   userId: string;
   role: string;
   joinedAt: Date;
+  gitAuthorEmail?: string | null;
+  githubUsername?: string | null;
   user?: {
     id: string;
     fullName: string;

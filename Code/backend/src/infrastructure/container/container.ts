@@ -71,6 +71,8 @@ import { SubmitAssignmentUseCase } from '../../modules/submission/application/us
 import { GetSubmissionStatusUseCase } from '../../modules/submission/application/use-cases/get-submission-status.use-case.js';
 import { GetAssignmentSubmissionsUseCase } from '../../modules/submission/application/use-cases/get-assignment-submissions.use-case.js';
 import { GetAllSubmissionsUseCase } from '../../modules/submission/application/use-cases/get-all-submissions.use-case.js';
+import { SubmitTeamAssignmentUseCase } from '../../modules/submission/application/use-cases/submit-team-assignment.use-case.js';
+import { AdjustParticipantScoreUseCase } from '../../modules/submission/application/use-cases/adjust-participant-score.use-case.js';
 
 import { CreateTeamUseCase } from '../../modules/team/application/use-cases/create-team.use-case.js';
 import { ManageTeamUseCase } from '../../modules/team/application/use-cases/manage-team.use-case.js';
@@ -232,6 +234,16 @@ class ServiceContainer {
   public readonly getSubmissionStatusUseCase = new GetSubmissionStatusUseCase(this.submissionRepository);
   public readonly getAssignmentSubmissionsUseCase = new GetAssignmentSubmissionsUseCase(this.submissionRepository);
   public readonly getAllSubmissionsUseCase = new GetAllSubmissionsUseCase(this.submissionRepository);
+  public readonly submitTeamAssignmentUseCase = new SubmitTeamAssignmentUseCase({
+    submissionRepository: this.submissionRepository,
+    assignmentRepository: this.assignmentRepository,
+    teamRepository: this.teamRepository,
+    gradingDispatcher: this.gradingDispatcher,
+  });
+  public readonly adjustParticipantScoreUseCase = new AdjustParticipantScoreUseCase(
+    this.submissionRepository,
+    this.courseRepository
+  );
 
   // Use Cases - Team
   public readonly createTeamUseCase = new CreateTeamUseCase(this.teamRepository);
@@ -313,7 +325,9 @@ class ServiceContainer {
     this.submitAssignmentUseCase,
     this.getSubmissionStatusUseCase,
     this.getAssignmentSubmissionsUseCase,
-    this.getAllSubmissionsUseCase
+    this.getAllSubmissionsUseCase,
+    this.submitTeamAssignmentUseCase,
+    this.adjustParticipantScoreUseCase
   );
   public readonly teamController = new TeamController(this.createTeamUseCase, this.manageTeamUseCase);
   public readonly aiGradingController = new AiGradingController(this.gradeSubmissionAiUseCase);

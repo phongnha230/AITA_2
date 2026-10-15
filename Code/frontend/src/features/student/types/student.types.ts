@@ -44,7 +44,7 @@ export interface StudentCourse {
   } | null;
 }
 
-export type AssignmentEnvironment = 'C_GCC' | 'JAVA_JDK';
+export type AssignmentEnvironment = 'C_GCC' | 'JAVA_JDK' | 'REACT_JS';
 export type AssignmentStatus = 'DRAFT' | 'PUBLISHED' | 'CLOSED' | 'ARCHIVED';
 
 export interface StudentAssignment {
@@ -173,6 +173,9 @@ export interface StudentSubmissionDetail {
   zipFileSize?: number | null;
   gitRepoUrl?: string | null;
   gitCommitHash?: string | null;
+  deployedUrl?: string | null;
+  teamId?: string | null;
+  attemptNo?: number;
   status: string;
   sandboxScore?: number | null;
   aiScore?: number | null;
@@ -194,6 +197,7 @@ export interface StudentSubmissionDetail {
     id: string;
     title: string;
     courseId: string;
+    environment?: AssignmentEnvironment;
     gradingVersion?: number;
     functionalMaxScore?: number;
     algorithmMaxScore?: number;
@@ -202,6 +206,25 @@ export interface StudentSubmissionDetail {
   gradingJob?: GradingJobInfo | null;
   testResults?: SubmissionTestResult[];
   aiGradingResult?: SubmissionAiGradingResult | null;
+  participants?: Array<{
+    userId: string;
+    teamRole: string;
+    adjustedScore?: number | null;
+    adjustmentReason?: string | null;
+    effectiveScore?: number | null;
+    user?: { id: string; fullName: string; email: string };
+  }>;
+  gitContributors?: Array<{
+    id: string;
+    authorName: string;
+    authorEmail: string;
+    commitCount: number;
+    linesAdded: number;
+    linesDeleted: number;
+    contributionPct: number;
+    matchedUserId?: string | null;
+    activeDays: number;
+  }>;
 }
 
 export interface RecentSubmissionItem {

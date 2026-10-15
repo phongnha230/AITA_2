@@ -7,6 +7,8 @@ import { GetAllSubmissionsUseCase } from '../../application/use-cases/get-all-su
 import { sendSuccess } from '../../../../shared/presentation/utils/api-response.util.js';
 import { UnauthorizedError } from '../../../../shared/domain/exceptions/app.error.js';
 import { logger } from '../../../../infrastructure/logging/logger.js';
+import { SubmitTeamAssignmentUseCase } from '../../application/use-cases/submit-team-assignment.use-case.js';
+import { AdjustParticipantScoreUseCase } from '../../application/use-cases/adjust-participant-score.use-case.js';
 
 
 export class SubmissionController {
@@ -14,7 +16,9 @@ export class SubmissionController {
     private readonly submitAssignmentUseCase: SubmitAssignmentUseCase,
     private readonly getSubmissionStatusUseCase: GetSubmissionStatusUseCase,
     private readonly getAssignmentSubmissionsUseCase: GetAssignmentSubmissionsUseCase,
-    private readonly getAllSubmissionsUseCase: GetAllSubmissionsUseCase
+    private readonly getAllSubmissionsUseCase: GetAllSubmissionsUseCase,
+    private readonly submitTeamAssignmentUseCase: SubmitTeamAssignmentUseCase,
+    private readonly adjustParticipantScoreUseCase: AdjustParticipantScoreUseCase
   ) {}
 
   submitAssignment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -64,6 +68,38 @@ export class SubmissionController {
           });
         }
       }
+      next(error);
+    }
+  };
+
+  submitTeamAssignment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!req.user?.userId) throw new UnauthorizedError('Cần đăng nhập để nộp bài nhóm.');
+      const submission = await this.submitTeamAssignmentUseCase.execute({
+        assignmentId: req.params.assignmentId,
+        teamId: req.body.teamId,
+        gitCommitHash: req.body.gitCommitHash,
+        userId: req.user.userId,
+      });
+      sendSuccess(res, submission.toJSON(), 'Đã tạo attempt nhóm và xếp hàng chấm.', 201);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  adjustParticipantScore = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!req.user?.userId) throw new UnauthorizedError('Cần đăng nhập để điều chỉnh điểm.');
+      const result = await this.adjustParticipantScoreUseCase.execute({
+        submissionId: req.params.submissionId,
+        participantUserId: req.params.userId,
+        adjustedScore: req.body.adjustedScore,
+        reason: req.body.reason,
+        requestingUserId: req.user.userId,
+        requestingUserRole: req.user.role,
+      });
+      sendSuccess(res, result, 'Đã cập nhật điểm hiệu lực của thành viên.');
+    } catch (error) {
       next(error);
     }
   };

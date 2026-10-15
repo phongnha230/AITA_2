@@ -20,7 +20,10 @@ export class GetSubmissionStatusUseCase {
     // IDOR Guard: STUDENT chỉ được xem bài nộp của chính mình
     if (
       request.requestingUserRole === 'STUDENT' &&
-      (submission as any).userId !== request.requestingUserId
+      submission.userId !== request.requestingUserId &&
+      !submission.participants?.some(
+        (participant: { userId: string }) => participant.userId === request.requestingUserId
+      )
     ) {
       throw new ForbiddenError('Bạn không có quyền xem bài nộp này.');
     }

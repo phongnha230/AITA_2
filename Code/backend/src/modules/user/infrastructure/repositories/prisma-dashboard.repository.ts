@@ -482,8 +482,14 @@ export class PrismaDashboardRepository implements IDashboardRepository {
     });
 
     const submissions = await this.prisma.submission.findMany({
-      where: { userId },
+      where: {
+        OR: [
+          { userId, teamId: null },
+          { participants: { some: { userId } } },
+        ],
+      },
       include: {
+        participants: { where: { userId }, select: { adjustedScore: true } },
         assignment: {
           include: {
             course: {
@@ -523,14 +529,21 @@ export class PrismaDashboardRepository implements IDashboardRepository {
     }
 
     const uniqueSubmittedAssignmentIds = new Set<string>();
-    const gradedSubmissions: any[] = [];
+    const officialGradedByAssignment = new Map<string, any>();
 
     for (const sub of submissions) {
       uniqueSubmittedAssignmentIds.add(sub.assignmentId);
       if (sub.status === 'GRADED' && sub.finalScore !== null) {
-        gradedSubmissions.push(sub);
+        const current = officialGradedByAssignment.get(sub.assignmentId);
+        if (!current || sub.attemptNo > current.attemptNo) {
+          officialGradedByAssignment.set(sub.assignmentId, sub);
+        }
       }
     }
+    const gradedSubmissions = Array.from(officialGradedByAssignment.values());
+    const effectiveScore = (submission: any): number => Number(
+      submission.participants?.[0]?.adjustedScore ?? submission.finalScore ?? 0
+    );
 
     const submittedAssignmentsCount = uniqueSubmittedAssignmentIds.size;
     const completionRate =
@@ -544,7 +557,7 @@ export class PrismaDashboardRepository implements IDashboardRepository {
     let failedCount = 0;
 
     for (const sub of gradedSubmissions) {
-      const score = Number(sub.finalScore);
+      const score = effectiveScore(sub);
       totalScoreSum += score;
       if (score > highestScore) highestScore = score;
       if (score >= 5.0) {
@@ -566,12 +579,12 @@ export class PrismaDashboardRepository implements IDashboardRepository {
       );
 
       const uniqueSubmittedInCourse = new Set(courseSubmissions.map((s: any) => s.assignmentId));
-      const gradedInCourse = courseSubmissions.filter(
-        (s: any) => s.status === 'GRADED' && s.finalScore !== null
+      const gradedInCourse = gradedSubmissions.filter(
+        (s: any) => s.assignment?.course?.id === enr.course.id
       );
 
       const courseScoreSum = gradedInCourse.reduce(
-        (acc: number, cur: any) => acc + Number(cur.finalScore),
+        (acc: number, cur: any) => acc + effectiveScore(cur),
         0
       );
       const courseAvg =
@@ -605,17 +618,17 @@ export class PrismaDashboardRepository implements IDashboardRepository {
       status: s.status,
       sandboxScore: Number(s.sandboxScore || 0),
       aiScore: Number(s.aiScore || 0),
-      finalScore: Number(s.finalScore || 0),
+      finalScore: effectiveScore(s),
     }));
 
     const envMap = new Map<string, { count: number; totalScore: number; gradedCount: number }>();
 
-    for (const sub of submissions) {
+    for (const sub of gradedSubmissions) {
       const env = sub.assignment?.environment || 'OTHER';
       const existing = envMap.get(env) || { count: 0, totalScore: 0, gradedCount: 0 };
       existing.count += 1;
       if (sub.status === 'GRADED' && sub.finalScore !== null) {
-        existing.totalScore += Number(sub.finalScore);
+        existing.totalScore += effectiveScore(sub);
         existing.gradedCount += 1;
       }
       envMap.set(env, existing);

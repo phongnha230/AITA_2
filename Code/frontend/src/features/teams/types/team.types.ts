@@ -4,6 +4,8 @@ export interface TeamMember {
   userId: string;
   role: 'LEADER' | 'MEMBER' | string;
   joinedAt: string;
+  gitAuthorEmail?: string | null;
+  githubUsername?: string | null;
   user?: {
     id: string;
     fullName: string;
@@ -48,4 +50,21 @@ export interface UpdateTeamPayload {
 export interface AddTeamMemberPayload {
   studentEmail: string;
   role?: 'LEADER' | 'MEMBER';
+}
+
+export interface TeamAssignmentOption {
+  id: string;
+  title: string;
+  environment: string;
+  submissionType: 'INDIVIDUAL' | 'GROUP';
+  status: string;
+  deadline: string;
+}
+
+export interface TeamSubmissionResult {
+  id: string;
+  attemptNo: number;
+  status: string;
+  gitCommitHash?: string | null;
+  deployedUrl?: string | null;
 }

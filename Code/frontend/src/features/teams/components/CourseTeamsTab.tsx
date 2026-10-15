@@ -13,11 +13,15 @@ import {
   UserCheck,
   UserPlus,
   Users2,
+  Pencil,
+  Send,
 } from 'lucide-react';
 import { teamService } from '../services/team.service';
 import type { Team } from '../types/team.types';
 import { CreateTeamModal } from './CreateTeamModal';
 import { AddTeamMemberModal } from './AddTeamMemberModal';
+import { TeamProjectModal } from './TeamProjectModal';
+import { TeamSubmissionModal } from './TeamSubmissionModal';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -38,6 +42,8 @@ export const CourseTeamsTab: React.FC<CourseTeamsTabProps> = ({
   const [loading, setLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedTeamForAdd, setSelectedTeamForAdd] = useState<Team | null>(null);
+  const [selectedTeamForEdit, setSelectedTeamForEdit] = useState<Team | null>(null);
+  const [selectedTeamForSubmit, setSelectedTeamForSubmit] = useState<Team | null>(null);
 
   const fetchTeams = useCallback(async () => {
     setLoading(true);
@@ -65,6 +71,11 @@ export const CourseTeamsTab: React.FC<CourseTeamsTabProps> = ({
       prev.map((t) => (t.id === updatedTeam.id ? updatedTeam : t))
     );
     onShowToast(`Đã thêm thành viên vào nhóm "${updatedTeam.name}" thành công!`);
+  };
+
+  const handleTeamUpdated = (updatedTeam: Team) => {
+    setTeams((previous) => previous.map((team) => team.id === updatedTeam.id ? updatedTeam : team));
+    onShowToast(`Đã cập nhật dự án của "${updatedTeam.name}".`);
   };
 
   const handleRemoveMember = async (teamId: string, userId: string, memberName: string) => {
@@ -231,6 +242,14 @@ export const CourseTeamsTab: React.FC<CourseTeamsTabProps> = ({
                       </a>
                     )}
                   </div>
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    <Button type="button" size="sm" variant="outline" onClick={() => setSelectedTeamForEdit(team)} className="h-8 text-xs">
+                      <Pencil className="mr-1.5 h-3.5 w-3.5" /> Cập nhật dự án
+                    </Button>
+                    <Button type="button" size="sm" onClick={() => setSelectedTeamForSubmit(team)} className="h-8 bg-indigo-600 text-xs hover:bg-indigo-700">
+                      <Send className="mr-1.5 h-3.5 w-3.5" /> Nộp cho assignment
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Team Members List */}
@@ -320,6 +339,16 @@ export const CourseTeamsTab: React.FC<CourseTeamsTabProps> = ({
           onSuccess={handleMemberAdded}
         />
       )}
+      <TeamProjectModal
+        team={selectedTeamForEdit}
+        onClose={() => setSelectedTeamForEdit(null)}
+        onSuccess={handleTeamUpdated}
+      />
+      <TeamSubmissionModal
+        team={selectedTeamForSubmit}
+        onClose={() => setSelectedTeamForSubmit(null)}
+        onSubmitted={onShowToast}
+      />
     </div>
   );
 };

@@ -16,6 +16,11 @@ export interface ITeamRepository {
   findByUserAndCourse(userId: string, courseId: string): Promise<Team | null>;
   addMember(teamId: string, userId: string, role?: string): Promise<Team>;
   removeMember(teamId: string, userId: string): Promise<void>;
+  updateMemberGitIdentity(
+    teamId: string,
+    userId: string,
+    data: { gitAuthorEmail: string | null; githubUsername: string | null }
+  ): Promise<Team>;
   update(id: string, data: Partial<CreateTeamData>): Promise<Team>;
   delete(id: string): Promise<void>;
 }
