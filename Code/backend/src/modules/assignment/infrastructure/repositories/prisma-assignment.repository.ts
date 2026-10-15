@@ -33,6 +33,10 @@ export class PrismaAssignmentRepository implements IAssignmentRepository {
       createdBy: raw.createdBy,
       createdAt: raw.createdAt,
       updatedAt: raw.updatedAt,
+      gradingVersion: raw.gradingVersion,
+      functionalMaxScore: Number(raw.functionalMaxScore),
+      algorithmMaxScore: Number(raw.algorithmMaxScore),
+      cleanCodeMaxScore: Number(raw.cleanCodeMaxScore),
     });
   }
 
@@ -114,6 +118,10 @@ export class PrismaAssignmentRepository implements IAssignmentRepository {
         allowGitSubmission: data.allowGitSubmission !== undefined ? data.allowGitSubmission : true,
         allowZipSubmission: data.allowZipSubmission !== undefined ? data.allowZipSubmission : true,
         status: data.status || 'DRAFT',
+        gradingVersion: data.gradingVersion ?? 1,
+        functionalMaxScore: data.functionalMaxScore ?? 8,
+        algorithmMaxScore: data.algorithmMaxScore ?? 2,
+        cleanCodeMaxScore: data.cleanCodeMaxScore ?? 0,
         createdBy: data.createdBy,
       },
     });
@@ -227,6 +235,7 @@ export class PrismaAssignmentRepository implements IAssignmentRepository {
           maxPoints: r.maxPoints,
           weight: r.weight || 1.0,
           orderIndex: r.orderIndex || index + 1,
+          criterionType: r.criterionType ?? 'GENERAL',
         })),
       }),
     ]);
@@ -243,7 +252,14 @@ export class PrismaAssignmentRepository implements IAssignmentRepository {
 
   // --- Solutions (RAG) ---
   async upsertSolution(assignmentId: string, data: UpsertSolutionDto): Promise<AssignmentSolution> {
-    const contentHash = createHash('sha256').update(data.sourceCode, 'utf8').digest('hex');
+    const contentHash = createHash('sha256').update(JSON.stringify({
+      sourceCode: data.sourceCode,
+      explanation: data.explanation ?? null,
+      expectedTimeComplexity: data.expectedTimeComplexity ?? null,
+      expectedSpaceComplexity: data.expectedSpaceComplexity ?? null,
+      acceptedStrategies: data.acceptedStrategies ?? [],
+      algorithmNotes: data.algorithmNotes ?? null,
+    }), 'utf8').digest('hex');
     return this.prisma.$transaction(async (transaction) => {
       await transaction.assignmentSolution.updateMany({
         where: { assignmentId, isActive: true },
@@ -258,6 +274,10 @@ export class PrismaAssignmentRepository implements IAssignmentRepository {
           title: data.title,
           sourceCode: data.sourceCode,
           explanation: data.explanation ?? null,
+          expectedTimeComplexity: data.expectedTimeComplexity ?? null,
+          expectedSpaceComplexity: data.expectedSpaceComplexity ?? null,
+          acceptedStrategies: data.acceptedStrategies ?? [],
+          algorithmNotes: data.algorithmNotes ?? null,
           isActive: true,
         },
       });

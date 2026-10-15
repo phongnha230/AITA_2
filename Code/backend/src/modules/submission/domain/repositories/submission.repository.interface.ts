@@ -26,6 +26,8 @@ export interface ISubmissionRepository {
     id: string,
     data: {
       aiScore: number;
+      algorithmScore?: number | null;
+      cleanCodeScore?: number | null;
       finalScore: number;
       status: SubmissionStatus;
       gradedAt: Date;

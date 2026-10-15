@@ -22,6 +22,8 @@ export interface SubmissionProps {
   status: SubmissionStatus;
   sandboxScore?: number | null;
   aiScore?: number | null;
+  algorithmScore?: number | null;
+  cleanCodeScore?: number | null;
   finalScore?: number | null;
   compileSuccess?: boolean | null;
   compileOutput?: string | null;
@@ -38,6 +40,10 @@ export interface SubmissionProps {
     id: string;
     title: string;
     courseId: string;
+    gradingVersion?: number;
+    functionalMaxScore?: number;
+    algorithmMaxScore?: number;
+    cleanCodeMaxScore?: number;
   };
 }
 
@@ -96,6 +102,14 @@ export class Submission {
     return this.props.aiScore;
   }
 
+  get algorithmScore(): number | null | undefined {
+    return this.props.algorithmScore;
+  }
+
+  get cleanCodeScore(): number | null | undefined {
+    return this.props.cleanCodeScore;
+  }
+
   get finalScore(): number | null | undefined {
     return this.props.finalScore;
   }
@@ -152,6 +166,14 @@ export class Submission {
       aiScore:
         this.props.aiScore !== null && this.props.aiScore !== undefined
           ? Number(this.props.aiScore)
+          : null,
+      algorithmScore:
+        this.props.algorithmScore !== null && this.props.algorithmScore !== undefined
+          ? Number(this.props.algorithmScore)
+          : null,
+      cleanCodeScore:
+        this.props.cleanCodeScore !== null && this.props.cleanCodeScore !== undefined
+          ? Number(this.props.cleanCodeScore)
           : null,
       finalScore:
         this.props.finalScore !== null && this.props.finalScore !== undefined

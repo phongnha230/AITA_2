@@ -40,6 +40,7 @@ export interface SandboxExecutionSummary {
   totalScore: number;
   maxScore: number;
   sandboxScore?: number;
+  algorithmPerformanceScore?: number;
   results: TestCaseResult[];
 }
 

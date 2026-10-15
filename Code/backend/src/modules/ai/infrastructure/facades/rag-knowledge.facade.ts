@@ -55,6 +55,10 @@ export class RagKnowledgeFacade implements IRagKnowledgeService {
       `Assignment: ${assignment.title}`,
       `Description: ${assignment.description ?? ''}`,
       `Language: ${assignment.environment}`,
+      `Expected time complexity: ${solution.expectedTimeComplexity ?? ''}`,
+      `Expected space complexity: ${solution.expectedSpaceComplexity ?? ''}`,
+      `Accepted strategies: ${JSON.stringify(solution.acceptedStrategies ?? [])}`,
+      `Algorithm grading notes: ${solution.algorithmNotes ?? ''}`,
       `Compiler error: ${submission.compileOutput ?? ''}`,
       `Failed tests: ${failedTestCases.map((test) =>
         `${test.label} ${test.rationaleTag} ${test.verdict} ${test.diffLog ?? test.actualStdout ?? ''}`
@@ -85,6 +89,14 @@ export class RagKnowledgeFacade implements IRagKnowledgeService {
       assignmentTitle: assignment.title,
       assignmentDescription: assignment.description,
       environment: assignment.environment,
+      algorithmSpecification: {
+        expectedTimeComplexity: solution.expectedTimeComplexity,
+        expectedSpaceComplexity: solution.expectedSpaceComplexity,
+        acceptedStrategies: Array.isArray(solution.acceptedStrategies)
+          ? solution.acceptedStrategies.filter((item): item is string => typeof item === 'string')
+          : [],
+        notes: solution.algorithmNotes,
+      },
       referenceSolutionSource: solution.sourceCode,
       relevantSolutionChunks,
       rubricRules: assignment.rubricRules.map((rule) => ({
@@ -93,6 +105,7 @@ export class RagKnowledgeFacade implements IRagKnowledgeService {
         description: rule.description,
         maxPoints: Number(rule.maxPoints),
         weight: Number(rule.weight),
+        criterionType: rule.criterionType,
       })),
       failedTestCases,
     };

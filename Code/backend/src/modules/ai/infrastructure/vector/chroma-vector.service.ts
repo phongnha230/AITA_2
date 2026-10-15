@@ -24,6 +24,7 @@ export interface RetrievedSolutionChunk {
   similarity: number;
   embeddingModel: string;
   chunkerVersion: string;
+  chunkType: string;
 }
 
 export interface ISolutionVectorStore {
@@ -76,6 +77,7 @@ export class ChromaVectorService implements ISolutionVectorStore {
         environment: version.environment,
         file: chunk.file,
         symbol: chunk.name,
+        chunkType: chunk.type,
         startLine: chunk.startLine,
         endLine: chunk.endLine,
         embeddingModel: version.embeddingModel,
@@ -139,6 +141,7 @@ export class ChromaVectorService implements ISolutionVectorStore {
           similarity,
           embeddingModel: String(metadata.embeddingModel ?? version.embeddingModel),
           chunkerVersion: String(metadata.chunkerVersion ?? version.chunkerVersion),
+          chunkType: String(metadata.chunkType ?? 'FUNCTION'),
         };
       })
       .filter((chunk): chunk is RetrievedSolutionChunk => chunk !== null)

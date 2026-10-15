@@ -2,7 +2,7 @@ import Parser from 'tree-sitter';
 import C from 'tree-sitter-c';
 import Java from 'tree-sitter-java';
 
-export const CHUNKER_VERSION = 'tree-sitter-v1';
+export const CHUNKER_VERSION = 'tree-sitter-v2-algorithm-spec';
 
 export interface CodeChunk {
   id: string;
@@ -11,7 +11,7 @@ export interface CodeChunk {
   code: string;
   startLine: number;
   endLine: number;
-  type: 'FUNCTION' | 'CLASS' | 'BLOCK';
+  type: 'FUNCTION' | 'CLASS' | 'BLOCK' | 'SPECIFICATION';
 }
 
 const findIdentifier = (node: Parser.SyntaxNode): string | null => {

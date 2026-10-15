@@ -8,6 +8,17 @@ export interface ISandboxService {
   gradeSubmission(submissionId: string, languageOverride?: string): Promise<SandboxExecutionSummary>;
 }
 
+export const calculatePerformanceScore = (
+  testCases: Array<{ id: string; rationaleTag: string }>,
+  results: Array<{ testCaseId: string; passed: boolean }>
+): number => {
+  const performanceCases = testCases.filter((testCase) => testCase.rationaleTag === 'PERFORMANCE');
+  if (performanceCases.length === 0) return 0;
+  const passedIds = new Set(results.filter((result) => result.passed).map((result) => result.testCaseId));
+  const passedCount = performanceCases.filter((testCase) => passedIds.has(testCase.id)).length;
+  return Number((passedCount / performanceCases.length).toFixed(2));
+};
+
 export class SandboxService implements ISandboxService {
   constructor(
     private readonly sandboxRepository: ISandboxRepository,
@@ -57,17 +68,23 @@ export class SandboxService implements ISandboxService {
       outputFileName: testCase.expectedFileName,
       timeLimitMs: Math.min(10_000, Math.max(100, testCase.timeLimitMs)),
       memoryLimitMb: Math.min(512, Math.max(32, Math.round(testCase.memoryLimitKb / 1024) || 256)),
-      score: testCase.points,
+      score: testCase.rationaleTag === 'PERFORMANCE' ? 0 : testCase.points,
     }));
 
     const runner = SandboxRunnerFactory.createRunner(
       languageOverride || submission.assignment.environment || 'C_GCC'
     );
     const summary = await runner.execute(executionFolderPath, testCases);
+    const algorithmPerformanceScore = calculatePerformanceScore(testCasesToRun, summary.results);
     const normalizedSandboxScore = Number(
-      (((summary.totalScore / (summary.maxScore || 1)) * 8) || 0).toFixed(2)
+      (((summary.totalScore / (summary.maxScore || 1)) * submission.assignment.functionalMaxScore) || 0).toFixed(2)
     );
-    await this.sandboxRepository.replaceTestResults(submission, summary, normalizedSandboxScore);
-    return { ...summary, sandboxScore: normalizedSandboxScore };
+    await this.sandboxRepository.replaceTestResults(
+      submission,
+      summary,
+      normalizedSandboxScore,
+      algorithmPerformanceScore
+    );
+    return { ...summary, sandboxScore: normalizedSandboxScore, algorithmPerformanceScore };
   }
 }

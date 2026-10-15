@@ -20,6 +20,10 @@ export interface AssignmentProps {
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
+  gradingVersion?: number;
+  functionalMaxScore?: number;
+  algorithmMaxScore?: number;
+  cleanCodeMaxScore?: number;
 }
 
 export class Assignment {
@@ -125,6 +129,10 @@ export class Assignment {
       createdBy: this.props.createdBy,
       createdAt: this.props.createdAt,
       updatedAt: this.props.updatedAt,
+      gradingVersion: this.props.gradingVersion ?? 1,
+      functionalMaxScore: this.props.functionalMaxScore ?? 8,
+      algorithmMaxScore: this.props.algorithmMaxScore ?? 2,
+      cleanCodeMaxScore: this.props.cleanCodeMaxScore ?? 0,
     };
   }
 }

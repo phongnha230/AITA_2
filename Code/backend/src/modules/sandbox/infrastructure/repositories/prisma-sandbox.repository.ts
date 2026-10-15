@@ -20,6 +20,7 @@ export class PrismaSandboxRepository implements ISandboxRepository {
           select: {
             environment: true,
             maxFileSizeBytes: true,
+            functionalMaxScore: true,
             testCases: {
               select: {
                 id: true,
@@ -33,6 +34,7 @@ export class PrismaSandboxRepository implements ISandboxRepository {
                 timeLimitMs: true,
                 memoryLimitKb: true,
                 points: true,
+                rationaleTag: true,
               },
             },
           },
@@ -44,9 +46,11 @@ export class PrismaSandboxRepository implements ISandboxRepository {
       ...submission,
       assignment: {
         ...submission.assignment,
+        functionalMaxScore: Number(submission.assignment.functionalMaxScore),
         testCases: submission.assignment.testCases.map((testCase) => ({
           ...testCase,
           points: Number(testCase.points),
+          rationaleTag: testCase.rationaleTag,
         })),
       },
     };
@@ -62,7 +66,8 @@ export class PrismaSandboxRepository implements ISandboxRepository {
   async replaceTestResults(
     submission: SandboxSubmissionRecord,
     summary: SandboxExecutionSummary,
-    normalizedSandboxScore: number
+    normalizedSandboxScore: number,
+    algorithmPerformanceScore: number
   ): Promise<void> {
     const testCaseById = new Map(submission.assignment.testCases.map((testCase) => [testCase.id, testCase]));
     await this.prisma.$transaction(async (transaction) => {
@@ -83,7 +88,9 @@ export class PrismaSandboxRepository implements ISandboxRepository {
               executionTimeMs: result.executionTimeMs,
               memoryUsedKb: result.memoryUsedKb,
               actualStdout: result.actualOutput || null,
-              earnedPoints: result.passed ? (testCaseById.get(result.testCaseId)?.points ?? 0) : 0,
+              earnedPoints: result.passed && testCaseById.get(result.testCaseId)?.rationaleTag !== 'PERFORMANCE'
+                ? (testCaseById.get(result.testCaseId)?.points ?? 0)
+                : 0,
               diffLog: result.errorMessage || null,
             };
           }),
@@ -93,6 +100,7 @@ export class PrismaSandboxRepository implements ISandboxRepository {
         where: { id: submission.id },
         data: {
           sandboxScore: normalizedSandboxScore,
+          algorithmPerformanceScore,
           compileSuccess: !summary.compileError,
           compileOutput: summary.compileError || null,
         },

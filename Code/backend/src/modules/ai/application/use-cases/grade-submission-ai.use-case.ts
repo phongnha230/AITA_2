@@ -68,6 +68,7 @@ export class GradeSubmissionAiUseCase {
 
     const ragContextUsed = ragContext.relevantSolutionChunks.map((chunk) => ({
       chunkId: chunk.id,
+      chunkType: chunk.chunkType,
       symbol: chunk.symbol,
       similarity: chunk.similarity,
       embeddingModel: chunk.embeddingModel,
@@ -88,6 +89,8 @@ export class GradeSubmissionAiUseCase {
     const finalScore = Number(Math.min(10, Math.max(0, sandboxScore + gradingOutput.overallAiScore)).toFixed(2));
     await this.submissionRepository.updateAiGradingScores(submissionId, {
       aiScore: gradingOutput.overallAiScore,
+      algorithmScore: gradingOutput.algorithmScore,
+      cleanCodeScore: gradingOutput.cleanCodeScore,
       finalScore,
       status: 'GRADED',
       gradedAt: new Date(),

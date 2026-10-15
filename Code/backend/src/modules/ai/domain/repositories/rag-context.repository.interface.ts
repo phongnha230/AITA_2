@@ -11,6 +11,7 @@ export interface RagSubmissionData {
       description: string;
       maxPoints: number;
       weight: number;
+      criterionType: 'GENERAL' | 'ALGORITHM' | 'CLEAN_CODE';
     }>;
     activeSolution: {
       id: string;
@@ -21,6 +22,10 @@ export interface RagSubmissionData {
       embeddingModel: string | null;
       chunkerVersion: string | null;
       sourceCode: string;
+      expectedTimeComplexity: string | null;
+      expectedSpaceComplexity: string | null;
+      acceptedStrategies: unknown;
+      algorithmNotes: string | null;
     } | null;
   };
   testResults: Array<{
