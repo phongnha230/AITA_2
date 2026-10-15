@@ -5,6 +5,7 @@ import { RegisterUseCase } from '../../application/use-cases/register.use-case.j
 import { GoogleLoginUseCase } from '../../application/use-cases/google-login.use-case.js';
 import { ChangePasswordUseCase } from '../../application/use-cases/change-password.use-case.js';
 import { RefreshTokenUseCase } from '../../application/use-cases/refresh-token.use-case.js';
+import { LogoutUseCase } from '../../application/use-cases/logout.use-case.js';
 import { PrismaUserRepository } from '../../../user/infrastructure/repositories/prisma-user.repository.js';
 import { BcryptHasherService } from '../../infrastructure/services/bcrypt-hasher.service.js';
 import { JwtTokenService } from '../../infrastructure/services/jwt-token.service.js';
@@ -22,21 +23,16 @@ import {
   GoogleIdTokenSchema,
 } from '../../application/dtos/auth.dto.js';
 import { authenticateJWT } from '../middlewares/auth.middleware.js';
-import rateLimit from 'express-rate-limit';
+import { createAuthRateLimiter } from '../middlewares/auth-rate-limit.middleware.js';
 
 const router = Router();
 
-// Rate limiter nghiêm ngặt cho endpoints nhạy cảm: 10 request / 15 phút mỗi IP
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: {
-    success: false,
-    message: 'Quá nhiều lần thử đăng nhập. Vui lòng thử lại sau 15 phút.',
-  },
-});
+const identityByEmail = (req: import('express').Request): string =>
+  String(req.body?.email || req.body?.username || 'anonymous');
+const loginLimiter = createAuthRateLimiter({ scope: 'login', max: 10, windowSeconds: 900, identity: identityByEmail });
+const sendOtpLimiter = createAuthRateLimiter({ scope: 'send-otp', max: 3, windowSeconds: 900, identity: identityByEmail });
+const verifyOtpLimiter = createAuthRateLimiter({ scope: 'verify-otp', max: 5, windowSeconds: 900, identity: identityByEmail });
+const registerLimiter = createAuthRateLimiter({ scope: 'register', max: 5, windowSeconds: 900, identity: identityByEmail });
 
 
 // Composition Root for Auth
@@ -50,20 +46,22 @@ const registerUseCase = new RegisterUseCase(userRepository, passwordHasher, toke
 const googleLoginUseCase = new GoogleLoginUseCase(userRepository, oauthService, tokenService);
 const changePasswordUseCase = new ChangePasswordUseCase(userRepository, passwordHasher);
 const refreshTokenUseCase = new RefreshTokenUseCase(userRepository, tokenService);
+const logoutUseCase = new LogoutUseCase(userRepository, tokenService);
 
 const authController = new AuthController(
   loginUseCase,
   registerUseCase,
   googleLoginUseCase,
   changePasswordUseCase,
-  refreshTokenUseCase
+  refreshTokenUseCase,
+  logoutUseCase
 );
 
 // Traditional Email/Password Auth
-router.post('/login', authLimiter, validateBody(LoginSchema), authController.login);
-router.post('/register', authLimiter, validateBody(RegisterSchema), authController.register);
-router.post('/send-otp', authLimiter, validateBody(SendOtpSchema), authController.sendOtp);
-router.post('/verify-otp', authLimiter, validateBody(VerifyOtpSchema), authController.verifyOtp);
+router.post('/login', loginLimiter, validateBody(LoginSchema), authController.login);
+router.post('/register', registerLimiter, validateBody(RegisterSchema), authController.register);
+router.post('/send-otp', sendOtpLimiter, validateBody(SendOtpSchema), authController.sendOtp);
+router.post('/verify-otp', verifyOtpLimiter, validateBody(VerifyOtpSchema), authController.verifyOtp);
 router.post('/refresh-token', authController.refreshToken);
 router.post('/logout', authController.logout);
 router.get('/me', authenticateJWT, authController.me);
@@ -72,7 +70,7 @@ router.post('/change-password', authenticateJWT, validateBody(ChangePasswordSche
 // Google OAuth 2.0 Endpoints
 router.get('/google', authController.getGoogleAuthUrl);
 router.get('/google/callback', authController.googleCallback);
-router.post('/google/code', authLimiter, validateBody(GoogleLoginCodeSchema), authController.googleLoginWithCode);
-router.post('/google/token', authLimiter, validateBody(GoogleIdTokenSchema), authController.googleLoginWithIdToken);
+router.post('/google/code', loginLimiter, validateBody(GoogleLoginCodeSchema), authController.googleLoginWithCode);
+router.post('/google/token', loginLimiter, validateBody(GoogleIdTokenSchema), authController.googleLoginWithIdToken);
 
 export default router;

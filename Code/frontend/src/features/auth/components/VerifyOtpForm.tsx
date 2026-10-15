@@ -135,7 +135,6 @@ export default function VerifyOtpForm() {
             fullName: pendingData.fullName,
             email: pendingData.email,
             password: pendingData.password,
-            role: 'STUDENT',
           });
         } catch (regError) {
           if (isAxiosError<{ message?: string }>(regError)) {

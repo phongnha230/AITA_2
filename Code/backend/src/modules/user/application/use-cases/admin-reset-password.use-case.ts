@@ -19,6 +19,7 @@ export class AdminResetPasswordUseCase {
 
     await this.userRepository.update(targetUserId, {
       passwordHash,
+      refreshTokenHash: null,
     });
 
     return {

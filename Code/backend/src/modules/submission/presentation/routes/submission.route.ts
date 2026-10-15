@@ -15,6 +15,10 @@ import { ValidationError } from '../../../../shared/domain/exceptions/app.error.
 import { PrismaAssignmentRepository } from '../../../assignment/infrastructure/repositories/prisma-assignment.repository.js';
 import { PrismaCourseRepository } from '../../../course/infrastructure/repositories/prisma-course.repository.js';
 import { env } from '../../../../infrastructure/config/env.js';
+import {
+  requireAssignmentManage,
+  requireSubmissionAccess,
+} from '../../../assignment/presentation/middlewares/assignment-access.middleware.js';
 
 const router = Router();
 
@@ -65,8 +69,9 @@ router.get(
   '/assignment/:assignmentId',
   authenticateJWT,
   authorizeRoles('LECTURER', 'ADMIN'),
+  requireAssignmentManage,
   submissionController.getSubmissionsByAssignment
 );
-router.get('/:id', authenticateJWT, submissionController.getSubmissionStatus);
+router.get('/:id', authenticateJWT, requireSubmissionAccess, submissionController.getSubmissionStatus);
 
 export default router;

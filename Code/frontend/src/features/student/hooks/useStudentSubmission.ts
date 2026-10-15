@@ -107,12 +107,11 @@ export function useStudentSubmission(submissionId: string | null): UseStudentSub
 
     let active = true;
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
-    const token = localStorage.getItem('token') || localStorage.getItem('aita_token') || '';
-    const sseUrl = `${baseUrl}/jobs/${encodeURIComponent(cleanId)}/events?token=${encodeURIComponent(token)}`;
+    const sseUrl = `${baseUrl}/jobs/${encodeURIComponent(cleanId)}/events`;
 
     let es: EventSource | null = null;
     try {
-      es = new EventSource(sseUrl);
+      es = new EventSource(sseUrl, { withCredentials: true });
       eventSourceRef.current = es;
 
       es.onopen = () => {

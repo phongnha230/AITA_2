@@ -4,7 +4,6 @@ import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { authService } from '@/features/auth/services/auth.service';
-import { saveAuthTokens } from '@/lib/tokenStorage';
 
 function AuthCallbackLoading() {
   return (
@@ -24,8 +23,6 @@ function AuthCallbackContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const token = searchParams.get('token');
-    const refreshToken = searchParams.get('refreshToken');
     const redirectTo = searchParams.get('redirectTo') || '/dashboard';
     const err = searchParams.get('error');
 
@@ -39,10 +36,6 @@ function AuthCallbackContent() {
       return () => {
         if (errTimer) clearTimeout(errTimer);
       };
-    }
-
-    if (token) {
-      saveAuthTokens(token, refreshToken || undefined);
     }
 
     // Verify session using HttpOnly Cookie

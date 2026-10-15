@@ -1,85 +1,68 @@
 import { Router } from 'express';
-
+import { JobController } from '../controllers/job.controller.js';
 import {
-  JobController,
-} from '../controllers/job.controller.js';
-import { authenticateJWT } from '../../modules/auth/presentation/middlewares/auth.middleware.js';
-
+  authenticateJWT,
+  authorizeRoles,
+} from '../../modules/auth/presentation/middlewares/auth.middleware.js';
+import { requireSubmissionAccess } from '../../modules/assignment/presentation/middlewares/assignment-access.middleware.js';
 
 const router = Router();
 
-
-/**
- * GET /jobs/metrics/overview
- * Tổng quan số liệu hàng đợi BullMQ & DB
- */
 router.get(
   '/metrics/overview',
   authenticateJWT,
+  authorizeRoles('ADMIN'),
   JobController.getQueueMetrics
 );
 
-/**
- * GET /jobs/queue/jobs
- * Danh sách jobs gần đây
- */
 router.get(
   '/queue/jobs',
   authenticateJWT,
+  authorizeRoles('ADMIN'),
   JobController.listQueueJobs
 );
 
 router.post(
   '/queue/retry-all',
   authenticateJWT,
+  authorizeRoles('ADMIN'),
   JobController.retryAllFailed
 );
 
 router.post(
   '/queue/clear-completed',
   authenticateJWT,
+  authorizeRoles('ADMIN'),
   JobController.clearCompleted
 );
 
 router.post(
   '/queue/flush-dead-letter',
   authenticateJWT,
+  authorizeRoles('ADMIN'),
   JobController.flushDeadLetter
 );
 
-/**
- * POST /jobs/:submissionId/retry
- * Thử lại một bài nộp bị lỗi
- */
 router.post(
   '/:submissionId/retry',
   authenticateJWT,
+  authorizeRoles('ADMIN'),
   JobController.retryJob
 );
 
-/**
- * GET /jobs/:submissionId
- *
- * Lấy progress / lifecycle của grading job.
- * Yêu cầu đăng nhập để tránh lộ trạng thái bài nộp.
- */
 router.get(
   '/:submissionId',
   authenticateJWT,
+  requireSubmissionAccess,
   JobController.getJobStatus
 );
 
-
-/**
- * GET /jobs/:submissionId/events
- *
- * Server-Sent Events (SSE) để Frontend lắng nghe tiến trình chấm bài Realtime.
- * Yêu cầu đăng nhập — token được truyền qua query param ?token= do SSE không hỗ trợ header.
- */
+// EventSource authenticates with the HttpOnly access cookie.
 router.get(
   '/:submissionId/events',
   authenticateJWT,
+  requireSubmissionAccess,
   JobController.streamJobEvents
 );
 
-export default router;
+export default router;

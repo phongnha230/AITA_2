@@ -43,8 +43,10 @@ function deriveRoomStatus(
 export class GetProctoringDataUseCase {
   constructor(private readonly assignmentRepository: IAssignmentRepository) {}
 
-  async getAllRooms() {
-    const assignments = await this.assignmentRepository.getAllAssignmentsForProctoring();
+  async getAllRooms(actor: { userId: string; role: string }) {
+    const assignments = await this.assignmentRepository.getAllAssignmentsForProctoring(
+      actor.role === 'ADMIN' ? undefined : actor.userId
+    );
 
     return assignments.map((a: any) => {
       const startTime = new Date(a.startTime);

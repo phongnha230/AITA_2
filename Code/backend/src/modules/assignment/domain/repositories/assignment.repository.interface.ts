@@ -41,6 +41,6 @@ export interface IAssignmentRepository {
 
   // Proctoring & Live Sessions
   getProctoringAssignment(assignmentId: string): Promise<any | null>;
-  getAllAssignmentsForProctoring(): Promise<any[]>;
+  getAllAssignmentsForProctoring(lecturerId?: string): Promise<any[]>;
 }
 

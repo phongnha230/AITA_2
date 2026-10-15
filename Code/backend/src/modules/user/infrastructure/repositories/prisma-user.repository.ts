@@ -158,6 +158,25 @@ export class PrismaUserRepository implements IUserRepository {
     });
   }
 
+  async rotateRefreshTokenHash(id: string, currentHash: string, nextHash: string): Promise<boolean> {
+    const result = await this.prisma.user.updateMany({
+      where: { id, refreshTokenHash: currentHash },
+      data: { refreshTokenHash: nextHash },
+    });
+    return result.count === 1;
+  }
+
+  async clearRefreshTokenHash(id: string, expectedHash?: string): Promise<boolean> {
+    const result = await this.prisma.user.updateMany({
+      where: {
+        id,
+        ...(expectedHash !== undefined && { refreshTokenHash: expectedHash }),
+      },
+      data: { refreshTokenHash: null },
+    });
+    return result.count === 1;
+  }
+
   async findAll(filter?: FindUsersFilter): Promise<{ users: User[]; total: number }> {
     const page = filter?.page && filter.page > 0 ? filter.page : 1;
     const limit = filter?.limit && filter.limit > 0 ? filter.limit : 10;
