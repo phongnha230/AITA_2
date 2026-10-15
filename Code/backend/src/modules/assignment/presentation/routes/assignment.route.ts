@@ -10,6 +10,7 @@ import {
   UpsertSolutionSchema,
   ControlSessionSchema,
 } from '../../application/dtos/assignment.dto.js';
+import { SubmitTeamAssignmentSchema } from '../../../submission/application/dtos/submission.dto.js';
 import {
   requireAssignmentManage,
   requireAssignmentView,
@@ -20,8 +21,16 @@ import {
 const router = Router();
 
 const assignmentController = container.assignmentController;
+const submissionController = container.submissionController;
 
 // Routes
+router.post(
+  '/:assignmentId/team-submissions',
+  authenticateJWT,
+  authorizeRoles('STUDENT'),
+  validateBody(SubmitTeamAssignmentSchema),
+  submissionController.submitTeamAssignment
+);
 router.post(
   '/',
   authenticateJWT,
@@ -87,6 +96,7 @@ router.put(
   authenticateJWT,
   authorizeRoles('LECTURER', 'ADMIN'),
   requireTestCaseManage,
+  validateBody(CreateTestCaseSchema.partial()),
   assignmentController.updateTestCase
 );
 router.delete(

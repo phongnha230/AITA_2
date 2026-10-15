@@ -5,6 +5,7 @@ import {
   createTeamSchema,
   addTeamMemberSchema,
   updateTeamSchema,
+  updateGitIdentitySchema,
 } from '../../application/dtos/team.dto.js';
 import { sendSuccess } from '../../../../shared/presentation/utils/api-response.util.js';
 import { UnauthorizedError } from '../../../../shared/domain/exceptions/app.error.js';
@@ -95,6 +96,18 @@ export class TeamController {
       const team = await this.manageTeamUseCase.updateTeam(req.params.id, validated, userId);
 
       sendSuccess(res, team.toJSON(), 'Cập nhật thông tin nhóm thành công');
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  updateMyGitIdentity = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) throw new UnauthorizedError('Cần đăng nhập để thực hiện');
+      const validated = updateGitIdentitySchema.parse(req.body);
+      const team = await this.manageTeamUseCase.updateMyGitIdentity(req.params.id, userId, validated);
+      sendSuccess(res, team.toJSON(), 'Cập nhật Git identity thành công');
     } catch (error) {
       next(error);
     }

@@ -20,6 +20,14 @@ export const updateTeamSchema = z.object({
   deployedUrl: z.string().url().optional().or(z.literal('')),
 });
 
+export const updateGitIdentitySchema = z.object({
+  gitAuthorEmail: z.string().trim().email('Git author email không hợp lệ').nullable(),
+  githubUsername: z.string().trim().regex(/^[A-Za-z0-9-]{1,39}$/, 'GitHub username không hợp lệ').nullable(),
+}).refine((value) => value.gitAuthorEmail !== null || value.githubUsername !== null, {
+  message: 'Cần cung cấp ít nhất Git author email hoặc GitHub username.',
+});
+
 export type CreateTeamInput = z.infer<typeof createTeamSchema>;
 export type AddTeamMemberInput = z.infer<typeof addTeamMemberSchema>;
 export type UpdateTeamInput = z.infer<typeof updateTeamSchema>;
+export type UpdateGitIdentityInput = z.infer<typeof updateGitIdentitySchema>;

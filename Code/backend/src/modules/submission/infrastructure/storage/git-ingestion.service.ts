@@ -55,6 +55,23 @@ export interface ContributorMetric {
   linesAdded: number;
   linesDeleted: number;
   contributionPct: number;
+  matchedUserId: string | null;
+  activeDays: number;
+  firstCommitAt: Date | null;
+  lastCommitAt: Date | null;
+}
+
+export interface GitParticipantIdentity {
+  userId: string;
+  accountEmail?: string | null;
+  gitAuthorEmail?: string | null;
+  githubUsername?: string | null;
+}
+
+export interface GitAnalysisWindow {
+  since: Date;
+  until: Date;
+  participantIdentities?: GitParticipantIdentity[];
 }
 
 export interface GitIngestionResult {
@@ -76,21 +93,21 @@ export class GitIngestionService {
     gitRepoUrl: string,
     gitCommitHash: string | null | undefined,
     submissionId: string,
-    maxFileSizeBytes: bigint | number
+    maxFileSizeBytes: bigint | number,
+    analysisWindow: GitAnalysisWindow
   ): Promise<GitIngestionResult> {
     const cleanRepoUrl = validateGitHubRepositoryUrl(gitRepoUrl);
-    const workspacePath = await this.workspace.createCleanWorkspace(submissionId);
+    let workspacePath = '';
 
     try {
-      // Shallow clone only; submodules are intentionally not initialized.
+      workspacePath = await this.workspace.createCleanWorkspace(submissionId);
+      const cloneStartedAt = Date.now();
       try {
         await execFileAsync('git', [
           '-c',
           'protocol.ext.allow=never',
           'clone',
-          '--depth',
-          '1',
-          '--single-branch',
+          '--filter=blob:none',
           '--no-tags',
           '--',
           cleanRepoUrl,
@@ -98,6 +115,11 @@ export class GitIngestionService {
         ], {
           timeout: 60000,
           env: { ...process.env, GIT_TERMINAL_PROMPT: '0', GCM_INTERACTIVE: 'Never' },
+        });
+        logger.info('git_clone_completed', {
+          submissionId,
+          stage: 'GIT_CLONE',
+          durationMs: Date.now() - cloneStartedAt,
         });
       } catch (cloneError: unknown) {
         logger.error('git_clone_failed', {
@@ -111,7 +133,7 @@ export class GitIngestionService {
       }
 
       // 2. Checkout Commit cụ thể nếu sinh viên chỉ định
-      let resolvedHash = gitCommitHash || '';
+      let resolvedHash = '';
       if (gitCommitHash && gitCommitHash.trim()) {
         const cleanHash = gitCommitHash.trim();
         // Chỉ chấp nhận hex hash 7–40 ký tự — chặn argument injection (vd: --orphan)
@@ -121,109 +143,131 @@ export class GitIngestionService {
           );
         }
         try {
+          try {
+            await execFileAsync('git', ['cat-file', '-e', `${cleanHash}^{commit}`], {
+              cwd: workspacePath,
+              timeout: 10_000,
+            });
+          } catch {
+            await execFileAsync('git', ['fetch', '--no-tags', 'origin', cleanHash], {
+              cwd: workspacePath,
+              timeout: 30_000,
+              env: { ...process.env, GIT_TERMINAL_PROMPT: '0', GCM_INTERACTIVE: 'Never' },
+            });
+          }
           await execFileAsync('git', ['-c', 'advice.detachedHead=false', 'checkout', '--detach', cleanHash], {
             cwd: workspacePath,
             timeout: 10000,
           });
-          resolvedHash = cleanHash;
         } catch {
           throw new ValidationError(`Mã Git Commit Hash '${cleanHash}' không tồn tại trong repository.`);
         }
-      } else {
-        const { stdout: headHash } = await execFileAsync('git', ['rev-parse', 'HEAD'], {
-          cwd: workspacePath,
-          timeout: 5000,
-        });
-        resolvedHash = headHash.trim();
+      }
+
+      const { stdout: headHash } = await execFileAsync('git', ['rev-parse', 'HEAD'], {
+        cwd: workspacePath,
+        timeout: 5000,
+      });
+      resolvedHash = headHash.trim().toLowerCase();
+      if (!/^[a-f0-9]{40}$/.test(resolvedHash)) {
+        throw new ValidationError('Không thể resolve commit thành full SHA 40 ký tự.');
       }
 
       await validateWorkingTree(workspacePath, maxFileSizeBytes);
 
-      // 3. Đếm số lượng Commit (Commit Count)
-      let commitCount = 1;
-      try {
-        const { stdout: countOut } = await execFileAsync('git', ['rev-list', '--count', 'HEAD'], {
-          cwd: workspacePath,
-          timeout: 5000,
-        });
-        commitCount = parseInt(countOut.trim(), 10) || 1;
-      } catch {
-        commitCount = 1;
-      }
-
-      // 4. Tính toán mức độ biến động code (LOC Churn) & bóc tách từng tác giả (Contributors)
-      let locChurn = 0;
+      let commitCount = 0;
       const contributorsMap = new Map<
         string,
-        { name: string; email: string; commits: number; added: number; deleted: number }
+        {
+          name: string;
+          email: string;
+          commits: number;
+          added: number;
+          deleted: number;
+          activeDays: Set<string>;
+          firstCommitAt: Date | null;
+          lastCommitAt: Date | null;
+        }
       >();
 
       try {
-        const { stdout: shortlogOut } = await execFileAsync(
+        const { stdout: logOutput } = await execFileAsync(
           'git',
-          ['shortlog', '-sne', '--no-merges', 'HEAD'],
+          [
+            'log',
+            '--no-merges',
+            `--since=${analysisWindow.since.toISOString()}`,
+            `--until=${analysisWindow.until.toISOString()}`,
+            '--format=%x1e%H%x1f%an%x1f%ae%x1f%aI',
+            '--numstat',
+            'HEAD',
+          ],
           {
             cwd: workspacePath,
-            timeout: 10000,
+            timeout: 30_000,
+            maxBuffer: 10 * 1024 * 1024,
           }
         );
-
-        const lines = shortlogOut.split('\n').filter(Boolean);
-        for (const line of lines) {
-          const match = line.trim().match(/^(\d+)\s+(.+?)\s+<([^>]+)>/);
-          if (match) {
-            const count = parseInt(match[1], 10) || 0;
-            const name = match[2].trim();
-            const email = match[3].trim().toLowerCase();
-            contributorsMap.set(email, {
-              name,
-              email,
-              commits: count,
-              added: 0,
-              deleted: 0,
-            });
+        const excludedPath = /(^|\/)(node_modules|dist|build|coverage)(\/|$)|(^|\/)(package-lock\.json|pnpm-lock\.yaml|yarn\.lock)$|\.min\.(js|css)$/i;
+        for (const record of logOutput.split('\x1e').filter((item) => item.trim())) {
+          const [header, ...numstatLines] = record.trim().split(/\r?\n/);
+          const [, name = '', rawEmail = '', isoDate = ''] = header.split('\x1f');
+          const email = rawEmail.trim().toLowerCase();
+          if (!email || /(?:dependabot|\[bot\]|bot@)/i.test(`${name} ${email}`)) continue;
+          const commitDate = new Date(isoDate);
+          const contributor = contributorsMap.get(email) ?? {
+            name: name.trim(),
+            email,
+            commits: 0,
+            added: 0,
+            deleted: 0,
+            activeDays: new Set<string>(),
+            firstCommitAt: null,
+            lastCommitAt: null,
+          };
+          contributor.commits += 1;
+          commitCount += 1;
+          if (!Number.isNaN(commitDate.getTime())) {
+            contributor.activeDays.add(commitDate.toISOString().slice(0, 10));
+            contributor.firstCommitAt = !contributor.firstCommitAt || commitDate < contributor.firstCommitAt ? commitDate : contributor.firstCommitAt;
+            contributor.lastCommitAt = !contributor.lastCommitAt || commitDate > contributor.lastCommitAt ? commitDate : contributor.lastCommitAt;
           }
-        }
-
-        const { stdout: statOut } = await execFileAsync(
-          'git',
-          ['log', '--shortstat', '--no-merges'],
-          {
-            cwd: workspacePath,
-            timeout: 10000,
+          for (const line of numstatLines) {
+            const [added, deleted, filePath = ''] = line.split('\t');
+            if (!filePath || excludedPath.test(filePath)) continue;
+            contributor.added += /^\d+$/.test(added) ? Number(added) : 0;
+            contributor.deleted += /^\d+$/.test(deleted) ? Number(deleted) : 0;
           }
-        );
-
-        const insertionMatches = statOut.match(/(\d+)\s+insertion/g) || [];
-        const deletionMatches = statOut.match(/(\d+)\s+deletion/g) || [];
-
-        let insertions = 0;
-        let deletions = 0;
-
-        for (const m of insertionMatches) {
-          const num = parseInt(m.split(' ')[0], 10);
-          if (!isNaN(num)) insertions += num;
+          contributorsMap.set(email, contributor);
         }
-
-        for (const m of deletionMatches) {
-          const num = parseInt(m.split(' ')[0], 10);
-          if (!isNaN(num)) deletions += num;
-        }
-
-        locChurn = insertions + deletions;
-      } catch {
-        locChurn = 0;
+      } catch (error) {
+        logger.error('git_analysis_failed', { submissionId, stage: 'GIT_ANALYSIS', error });
+        throw new Error('Không thể phân tích lịch sử Git của bài nộp.');
       }
 
-      // 5. Tính % đóng góp của từng thành viên
+      const locChurn = Array.from(contributorsMap.values()).reduce(
+        (sum, contributor) => sum + contributor.added + contributor.deleted,
+        0
+      );
       const contributors: ContributorMetric[] = [];
       const totalCommits = Array.from(contributorsMap.values()).reduce(
         (sum, c) => sum + c.commits,
         0
       );
 
+      const identities = analysisWindow.participantIdentities ?? [];
+      const normalize = (value?: string | null): string => value?.trim().toLowerCase() ?? '';
+      const totalChurn = locChurn;
       for (const c of contributorsMap.values()) {
-        const pct = totalCommits > 0 ? Number(((c.commits / totalCommits) * 100).toFixed(2)) : 100;
+        const commitShare = totalCommits > 0 ? c.commits / totalCommits : 0;
+        const contributorChurn = c.added + c.deleted;
+        const churnShare = totalChurn > 0 ? contributorChurn / totalChurn : 0;
+        const pct = Number(((totalChurn > 0 ? (0.3 * commitShare) + (0.7 * churnShare) : commitShare) * 100).toFixed(2));
+        const noreplyUsername = c.email.match(/^(?:\d+\+)?([^@]+)@users\.noreply\.github\.com$/i)?.[1]?.toLowerCase();
+        const matchedIdentity = identities.find((identity) => {
+          const emails = [identity.accountEmail, identity.gitAuthorEmail].map(normalize).filter(Boolean);
+          return emails.includes(c.email) || Boolean(noreplyUsername && normalize(identity.githubUsername) === noreplyUsername);
+        });
         contributors.push({
           authorName: c.name,
           authorEmail: c.email,
@@ -231,6 +275,10 @@ export class GitIngestionService {
           linesAdded: c.added,
           linesDeleted: c.deleted,
           contributionPct: pct,
+          matchedUserId: matchedIdentity?.userId ?? null,
+          activeDays: c.activeDays.size,
+          firstCommitAt: c.firstCommitAt,
+          lastCommitAt: c.lastCommitAt,
         });
       }
 
@@ -286,13 +334,22 @@ export class GitIngestionService {
         contributors,
       };
     } catch (err: unknown) {
-      await this.workspace.cleanupWorkspace(submissionId);
-      if (err instanceof ValidationError) throw err;
       logger.error('git_ingestion_failed', {
         submissionId,
         stage: 'GIT_INGESTION',
         error: err,
       });
+      try {
+        await this.workspace.cleanupWorkspace(submissionId);
+      } catch (cleanupError) {
+        logger.error('git_ingestion_cleanup_failed', {
+          submissionId,
+          stage: 'GIT_CLEANUP',
+          workspacePath,
+          error: cleanupError,
+        });
+      }
+      if (err instanceof ValidationError) throw err;
       throw new Error('[GitIngestionService] Lỗi khi clone và xử lý Git repository.');
     }
   }

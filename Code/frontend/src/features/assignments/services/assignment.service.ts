@@ -260,6 +260,18 @@ export const assignmentService = {
     return res.data?.data;
   },
 
+  async adjustParticipantScore(
+    submissionId: string,
+    userId: string,
+    payload: { adjustedScore: number | null; reason: string }
+  ): Promise<unknown> {
+    const response = await api.patch(
+      `/submissions/${encodeURIComponent(submissionId)}/participants/${encodeURIComponent(userId)}/score`,
+      payload
+    );
+    return response.data?.data;
+  },
+
   /**
    * Lấy danh sách tất cả các phòng thi giám sát trực tiếp từ CSDL
    */

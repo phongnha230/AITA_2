@@ -33,6 +33,8 @@ export class PrismaTeamRepository implements ITeamRepository {
             userId: m.userId,
             role: m.role,
             joinedAt: m.joinedAt,
+            gitAuthorEmail: m.gitAuthorEmail,
+            githubUsername: m.githubUsername,
             user: m.user
               ? {
                   id: m.user.id,
@@ -153,6 +155,23 @@ export class PrismaTeamRepository implements ITeamRepository {
         },
       },
     });
+  }
+
+  async updateMemberGitIdentity(
+    teamId: string,
+    userId: string,
+    data: { gitAuthorEmail: string | null; githubUsername: string | null }
+  ): Promise<Team> {
+    await this.prisma.teamMember.update({
+      where: { uk_team_member: { teamId, userId } },
+      data: {
+        gitAuthorEmail: data.gitAuthorEmail?.trim().toLowerCase() ?? null,
+        githubUsername: data.githubUsername?.trim().toLowerCase() ?? null,
+      },
+    });
+    const updated = await this.findById(teamId);
+    if (!updated) throw new Error(`Team ${teamId} disappeared after Git identity update.`);
+    return updated;
   }
 
   async update(id: string, data: Partial<CreateTeamData>): Promise<Team> {

@@ -5,6 +5,8 @@ import { container } from '../../../../infrastructure/container/container.js';
 import { authenticateJWT, authorizeRoles } from '../../../auth/presentation/middlewares/auth.middleware.js';
 import { ValidationError } from '../../../../shared/domain/exceptions/app.error.js';
 import { env } from '../../../../infrastructure/config/env.js';
+import { validateBody } from '../../../../shared/presentation/middlewares/validate.middleware.js';
+import { AdjustParticipantScoreSchema } from '../../application/dtos/submission.dto.js';
 import {
   requireAssignmentManage,
   requireSubmissionAccess,
@@ -33,6 +35,13 @@ function uploadSingleZip(req: Request, res: Response, next: NextFunction): void 
 // Routes
 router.get('/', authenticateJWT, authorizeRoles('ADMIN'), submissionController.getAllSubmissions);
 router.post('/', authenticateJWT, uploadSingleZip, submissionController.submitAssignment);
+router.patch(
+  '/:submissionId/participants/:userId/score',
+  authenticateJWT,
+  authorizeRoles('LECTURER', 'ADMIN'),
+  validateBody(AdjustParticipantScoreSchema),
+  submissionController.adjustParticipantScore
+);
 router.get(
   '/assignment/:assignmentId',
   authenticateJWT,

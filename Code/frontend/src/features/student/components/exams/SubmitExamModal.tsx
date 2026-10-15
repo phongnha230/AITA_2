@@ -8,6 +8,8 @@ import {
   HardDriveUpload,
   LoaderCircle,
   Send,
+  Globe,
+  Users,
 } from 'lucide-react';
 import {
   Dialog,
@@ -44,7 +46,9 @@ export function SubmitExamModal({ exam, isOpen, onClose }: SubmitExamModalProps)
               <HardDriveUpload size={18} />
             </span>
             <DialogTitle className="text-lg font-bold text-slate-900">
-              Nộp bài thi thực hành PE
+              {form.assignment.submissionType === 'GROUP'
+                ? 'Nộp Final Project nhóm'
+                : 'Nộp bài thi thực hành PE'}
             </DialogTitle>
           </div>
           <DialogDescription className="text-xs text-slate-500">
@@ -63,7 +67,7 @@ export function SubmitExamModal({ exam, isOpen, onClose }: SubmitExamModalProps)
         </div>
 
         {/* Channel Switcher */}
-        {form.allowZip && form.allowGit && (
+        {form.assignment.submissionType !== 'GROUP' && form.allowZip && form.allowGit && (
           <div className="flex rounded-xl bg-slate-100 p-1 text-xs">
             <button
               type="button"
@@ -110,42 +114,115 @@ export function SubmitExamModal({ exam, isOpen, onClose }: SubmitExamModalProps)
           </div>
         ) : (
           <form onSubmit={form.handleSubmit} className="space-y-4">
-            <div className="space-y-1.5">
-              <label htmlFor="paper-code" className="text-xs font-semibold text-slate-700">
-                Mã đề thi (Paper Code)
-              </label>
-              <Input
-                id="paper-code"
-                placeholder="VD: DE01, PAPER_A (để trống nếu không có)"
-                value={form.paperCode}
-                onChange={(e) => form.setPaperCode(e.target.value)}
-                className="h-10 text-xs rounded-lg uppercase"
-                disabled={form.isSubmitting}
-              />
-            </div>
+            {form.assignment.submissionType === 'GROUP' ? (
+              <div className="space-y-3">
+                {form.loadingGroupTeam ? (
+                  <div className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 p-5 text-xs text-slate-500">
+                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                    Đang tải thông tin nhóm...
+                  </div>
+                ) : form.groupTeam ? (
+                  <div className="space-y-2 rounded-xl border border-indigo-100 bg-indigo-50/60 p-3 text-xs">
+                    <div className="flex items-center gap-2 font-semibold text-indigo-900">
+                      <Users className="h-4 w-4" />
+                      {form.groupTeam.name}
+                    </div>
+                    <p className="break-all text-slate-600">
+                      GitHub: {form.groupTeam.gitRepoUrl || 'Chưa cập nhật'}
+                    </p>
+                    <p className="break-all text-slate-600">
+                      Deploy: {form.groupTeam.deployedUrl || 'Chưa cập nhật'}
+                    </p>
+                    {(!form.groupTeam.gitRepoUrl || !form.groupTeam.deployedUrl) && (
+                      <p className="font-medium text-amber-700">
+                        Leader cần cập nhật đủ GitHub và URL deploy ở trang Nhóm trước khi nộp.
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700">
+                    Bạn chưa thuộc nhóm nào trong môn học này.
+                  </div>
+                )}
 
-            {form.channel === 'ZIP_UPLOAD' && (
-              <SubmitExamZipChannel
-                selectedFile={form.selectedFile}
-                onClearFile={() => form.setSelectedFile(null)}
-                fileInputRef={form.fileInputRef}
-                onFileChange={form.handleFileChange}
-                isDragging={form.isDragging}
-                onDragOver={form.handleDragOver}
-                onDragLeave={form.handleDragLeave}
-                onDrop={form.handleDrop}
-                disabled={form.isSubmitting}
-              />
+                <div className="space-y-1.5">
+                  <label htmlFor="group-git-commit" className="text-xs font-semibold text-slate-700">
+                    Commit SHA muốn chấm (không bắt buộc)
+                  </label>
+                  <Input
+                    id="group-git-commit"
+                    placeholder="Để trống để hệ thống chụp HEAD hiện tại"
+                    value={form.gitCommitHash}
+                    onChange={(event) => form.setGitCommitHash(event.target.value)}
+                    className="h-10 rounded-lg font-mono text-xs"
+                    disabled={form.isSubmitting || form.loadingGroupTeam}
+                  />
+                  <p className="text-[11px] text-slate-500">
+                    Khi xác nhận, hệ thống tạo snapshot bất biến của repo, deploy URL và danh sách thành viên.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="space-y-1.5">
+                  <label htmlFor="paper-code" className="text-xs font-semibold text-slate-700">
+                    Mã đề thi (Paper Code)
+                  </label>
+                  <Input
+                    id="paper-code"
+                    placeholder="VD: DE01, PAPER_A (để trống nếu không có)"
+                    value={form.paperCode}
+                    onChange={(event) => form.setPaperCode(event.target.value)}
+                    className="h-10 text-xs rounded-lg uppercase"
+                    disabled={form.isSubmitting}
+                  />
+                </div>
+
+                {form.channel === 'ZIP_UPLOAD' && (
+                  <SubmitExamZipChannel
+                    selectedFile={form.selectedFile}
+                    onClearFile={() => form.setSelectedFile(null)}
+                    fileInputRef={form.fileInputRef}
+                    onFileChange={form.handleFileChange}
+                    isDragging={form.isDragging}
+                    onDragOver={form.handleDragOver}
+                    onDragLeave={form.handleDragLeave}
+                    onDrop={form.handleDrop}
+                    disabled={form.isSubmitting}
+                  />
+                )}
+
+                {form.channel === 'GIT_COMMIT' && (
+                  <SubmitExamGitChannel
+                    gitRepoUrl={form.gitRepoUrl}
+                    setGitRepoUrl={form.setGitRepoUrl}
+                    gitCommitHash={form.gitCommitHash}
+                    setGitCommitHash={form.setGitCommitHash}
+                    disabled={form.isSubmitting}
+                  />
+                )}
+              </>
             )}
 
-            {form.channel === 'GIT_COMMIT' && (
-              <SubmitExamGitChannel
-                gitRepoUrl={form.gitRepoUrl}
-                setGitRepoUrl={form.setGitRepoUrl}
-                gitCommitHash={form.gitCommitHash}
-                setGitCommitHash={form.setGitCommitHash}
-                disabled={form.isSubmitting}
-              />
+            {form.assignment.submissionType !== 'GROUP' && form.assignment.environment === 'REACT_JS' && (
+              <div className="space-y-1.5">
+                <label htmlFor="deployed-url" className="text-xs font-semibold text-slate-700">
+                  URL deploy công khai <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <Globe className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    id="deployed-url"
+                    type="url"
+                    placeholder="https://your-app.vercel.app"
+                    value={form.deployedUrl}
+                    onChange={(event) => form.setDeployedUrl(event.target.value)}
+                    className="h-10 rounded-lg pl-9 font-mono text-xs"
+                    disabled={form.isSubmitting}
+                    required
+                  />
+                </div>
+              </div>
             )}
 
             {form.errorMessage && (
@@ -178,7 +255,7 @@ export function SubmitExamModal({ exam, isOpen, onClose }: SubmitExamModalProps)
                 ) : (
                   <>
                     <Send className="mr-1.5 h-3.5 w-3.5" />
-                    <span>Xác nhận Nộp bài</span>
+                    <span>{form.assignment.submissionType === 'GROUP' ? 'Nộp bài nhóm' : 'Xác nhận Nộp bài'}</span>
                   </>
                 )}
               </Button>

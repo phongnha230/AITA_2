@@ -2,7 +2,9 @@ import { ITeamRepository } from '../../domain/repositories/team.repository.inter
 import { IUserRepository } from '../../../user/domain/repositories/user.repository.interface.js';
 import { ICourseRepository } from '../../../course/domain/repositories/course.repository.interface.js';
 import { Team } from '../../domain/entities/team.entity.js';
-import { UpdateTeamInput } from '../dtos/team.dto.js';
+import { UpdateGitIdentityInput, UpdateTeamInput } from '../dtos/team.dto.js';
+import { validateGitHubRepositoryUrl } from '../../../submission/infrastructure/storage/github-url.validator.js';
+import { validatePublicDeploymentUrl } from '../../../submission/infrastructure/storage/deployed-url.validator.js';
 import {
   NotFoundError,
   ForbiddenError,
@@ -103,6 +105,27 @@ export class ManageTeamUseCase {
       throw new ForbiddenError('Chỉ có Trưởng nhóm mới có quyền cập nhật thông tin nhóm');
     }
 
-    return this.teamRepository.update(teamId, data);
+    const validatedData: UpdateTeamInput = {
+      ...data,
+      ...(data.gitRepoUrl !== undefined
+        ? { gitRepoUrl: data.gitRepoUrl ? validateGitHubRepositoryUrl(data.gitRepoUrl) : '' }
+        : {}),
+      ...(data.deployedUrl !== undefined
+        ? { deployedUrl: data.deployedUrl ? await validatePublicDeploymentUrl(data.deployedUrl) : '' }
+        : {}),
+    };
+    return this.teamRepository.update(teamId, validatedData);
+  }
+
+  async updateMyGitIdentity(
+    teamId: string,
+    userId: string,
+    data: UpdateGitIdentityInput
+  ): Promise<Team> {
+    const team = await this.teamRepository.findById(teamId);
+    if (!team) throw new NotFoundError('Không tìm thấy nhóm');
+    const isMember = team.members?.some((member) => member.userId === userId) ?? false;
+    if (!isMember) throw new ForbiddenError('Bạn không phải thành viên của nhóm này');
+    return this.teamRepository.updateMemberGitIdentity(teamId, userId, data);
   }
 }

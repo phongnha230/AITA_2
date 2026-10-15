@@ -1,9 +1,12 @@
 'use client';
 
-import { useState, useRef, type ChangeEvent, type DragEvent, type FormEvent } from 'react';
+import { useEffect, useState, useRef, type ChangeEvent, type DragEvent, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { studentService, getStudentServiceErrorMessage } from '../services/student.service';
 import type { StudentExamViewModel } from '../types/student.types';
+import { teamService } from '../../teams/services/team.service';
+import { authService } from '../../auth/services/auth.service';
+import type { Team } from '../../teams/types/team.types';
 
 export type SubmissionChannel = 'ZIP_UPLOAD' | 'GIT_COMMIT';
 
@@ -15,11 +18,14 @@ export function useSubmitExamForm(exam: StudentExamViewModel | null, onClose: ()
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [gitRepoUrl, setGitRepoUrl] = useState('');
   const [gitCommitHash, setGitCommitHash] = useState('');
+  const [deployedUrl, setDeployedUrl] = useState('');
   const [paperCode, setPaperCode] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successSubmissionId, setSuccessSubmissionId] = useState<string | null>(null);
+  const [groupTeam, setGroupTeam] = useState<Team | null>(null);
+  const [loadingGroupTeam, setLoadingGroupTeam] = useState(false);
 
   const assignment = exam?.assignment;
   const course = exam?.course;
@@ -29,6 +35,25 @@ export function useSubmitExamForm(exam: StudentExamViewModel | null, onClose: ()
 
   const defaultChannel: SubmissionChannel = !allowZip && allowGit ? 'GIT_COMMIT' : 'ZIP_UPLOAD';
   const channel = userChannel ?? defaultChannel;
+
+  useEffect(() => {
+    if (!assignment || assignment.submissionType !== 'GROUP') {
+      setGroupTeam(null);
+      return;
+    }
+    let active = true;
+    setLoadingGroupTeam(true);
+    const currentUserId = authService.getStoredUser()?.id;
+    teamService.getCourseTeams(assignment.courseId)
+      .then((teams) => {
+        if (!active) return;
+        const membership = teams.find((team) => team.members?.some((member) => member.userId === currentUserId));
+        setGroupTeam(membership ?? null);
+      })
+      .catch(() => active && setGroupTeam(null))
+      .finally(() => active && setLoadingGroupTeam(false));
+    return () => { active = false; };
+  }, [assignment]);
 
   const handleFileSelect = (file: File) => {
     setErrorMessage(null);
@@ -69,6 +94,7 @@ export function useSubmitExamForm(exam: StudentExamViewModel | null, onClose: ()
     setSelectedFile(null);
     setGitRepoUrl('');
     setGitCommitHash('');
+    setDeployedUrl('');
     setPaperCode('');
     setErrorMessage(null);
     setSuccessSubmissionId(null);
@@ -81,6 +107,35 @@ export function useSubmitExamForm(exam: StudentExamViewModel | null, onClose: ()
     if (!assignment) return;
     setErrorMessage(null);
 
+    if (assignment.submissionType === 'GROUP') {
+      const currentUserId = authService.getStoredUser()?.id;
+      if (!groupTeam) {
+        setErrorMessage('Bạn chưa thuộc nhóm nào trong môn học này.');
+        return;
+      }
+      if (groupTeam.leaderId !== currentUserId) {
+        setErrorMessage('Chỉ Leader của nhóm mới được nộp Final Project.');
+        return;
+      }
+      try {
+        setIsSubmitting(true);
+        const result = await teamService.submitForAssignment(assignment.id, {
+          teamId: groupTeam.id,
+          gitCommitHash: gitCommitHash.trim() || undefined,
+        });
+        setSuccessSubmissionId(result.id);
+        setTimeout(() => {
+          handleReset();
+          router.push(`/student/results?submissionId=${encodeURIComponent(result.id)}`);
+        }, 1200);
+      } catch (err) {
+        setErrorMessage(getStudentServiceErrorMessage(err, 'Nộp bài nhóm thất bại.'));
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
+
     if (channel === 'ZIP_UPLOAD' && !selectedFile) {
       setErrorMessage('Vui lòng chọn hoặc tải lên file mã nguồn (.zip) bài làm.');
       return;
@@ -90,6 +145,10 @@ export function useSubmitExamForm(exam: StudentExamViewModel | null, onClose: ()
       setErrorMessage('Vui lòng nhập đường dẫn GitHub Repository hợp lệ.');
       return;
     }
+    if (assignment.environment === 'REACT_JS' && !deployedUrl.trim()) {
+      setErrorMessage('Bài React bắt buộc có URL deploy HTTPS công khai.');
+      return;
+    }
 
     try {
       setIsSubmitting(true);
@@ -97,6 +156,9 @@ export function useSubmitExamForm(exam: StudentExamViewModel | null, onClose: ()
       const formData = new FormData();
       formData.append('assignmentId', assignment.id);
       formData.append('submissionChannel', channel);
+      if (assignment.environment === 'REACT_JS') {
+        formData.append('deployedUrl', deployedUrl.trim());
+      }
 
       if (paperCode.trim()) {
         formData.append('paperCode', paperCode.trim());
@@ -126,7 +188,12 @@ export function useSubmitExamForm(exam: StudentExamViewModel | null, onClose: ()
   };
 
   const isSubmitDisabled =
-    isSubmitting || (channel === 'ZIP_UPLOAD' ? !selectedFile : !gitRepoUrl.trim());
+    isSubmitting
+    || loadingGroupTeam
+    || (assignment?.submissionType === 'GROUP'
+      ? !groupTeam || !groupTeam.gitRepoUrl || !groupTeam.deployedUrl
+      : (channel === 'ZIP_UPLOAD' ? !selectedFile : !gitRepoUrl.trim())
+        || (assignment?.environment === 'REACT_JS' && !deployedUrl.trim()));
 
   return {
     assignment,
@@ -142,6 +209,8 @@ export function useSubmitExamForm(exam: StudentExamViewModel | null, onClose: ()
     setGitRepoUrl,
     gitCommitHash,
     setGitCommitHash,
+    deployedUrl,
+    setDeployedUrl,
     paperCode,
     setPaperCode,
     isDragging,
@@ -150,6 +219,8 @@ export function useSubmitExamForm(exam: StudentExamViewModel | null, onClose: ()
     errorMessage,
     setErrorMessage,
     successSubmissionId,
+    groupTeam,
+    loadingGroupTeam,
     handleFileChange,
     handleDragOver,
     handleDragLeave,

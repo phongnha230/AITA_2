@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Play, Bot, ExternalLink, Terminal } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ import {
 import type { LecturerSubmission } from '../../types/assignment.types';
 
 import { formatDateTime } from '@/lib/formatDate';
+import { assignmentService } from '../../services/assignment.service';
 
 interface SubmissionDetailModalProps {
   open: boolean;
@@ -33,7 +34,23 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
   onReGradeSandbox,
   onReGradeAi,
 }) => {
+  const [scoreDrafts, setScoreDrafts] = useState<Record<string, string>>({});
+  const [reasonDrafts, setReasonDrafts] = useState<Record<string, string>>({});
+  const [adjustmentError, setAdjustmentError] = useState<string | null>(null);
   if (!submission) return null;
+
+  const handleAdjustScore = async (userId: string) => {
+    try {
+      setAdjustmentError(null);
+      const rawScore = scoreDrafts[userId] ?? '';
+      await assignmentService.adjustParticipantScore(submission.id, userId, {
+        adjustedScore: rawScore.trim() === '' ? null : Number(rawScore),
+        reason: reasonDrafts[userId] ?? '',
+      });
+    } catch (error) {
+      setAdjustmentError(error instanceof Error ? error.message : 'Không thể điều chỉnh điểm.');
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -60,7 +77,7 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
             {submission.assignment?.gradingVersion === 2 ? (
               <>
                 <div>
-                  <div className="text-[11px] font-semibold text-slate-400">Thuật toán</div>
+                  <div className="text-[11px] font-semibold text-slate-400">{submission.assignment?.environment === 'REACT_JS' ? 'React Semantic' : 'Thuật toán'}</div>
                   <div className="text-lg font-black text-purple-700 mt-0.5">
                     {submission.algorithmScore ?? '-'} / {submission.assignment.algorithmMaxScore ?? 2}
                   </div>
@@ -108,6 +125,14 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
                 </a>
               </div>
             )}
+            {submission.deployedUrl && (
+              <div className="flex justify-between py-1 border-b border-slate-100">
+                <span className="text-slate-400">Website được chấm:</span>
+                <a href={submission.deployedUrl} target="_blank" rel="noreferrer" className="font-mono text-indigo-600 hover:underline">{submission.deployedUrl}</a>
+              </div>
+            )}
+            <div className="flex justify-between py-1 border-b border-slate-100"><span className="text-slate-400">Attempt:</span><strong>#{submission.attemptNo ?? 1}</strong></div>
+            {submission.gitCommitHash && <div className="flex justify-between py-1 border-b border-slate-100"><span className="text-slate-400">Commit SHA:</span><code>{submission.gitCommitHash}</code></div>}
             <div className="flex justify-between py-1 border-b border-slate-100">
               <span className="text-slate-400">Thời gian nộp:</span>
               <span className="font-semibold text-slate-800">
@@ -171,6 +196,37 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {submission.gitContributors && submission.gitContributors.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-xs font-bold text-slate-800">Bằng chứng đóng góp Git</h4>
+              {submission.gitContributors.map((contributor) => (
+                <div key={contributor.id} className="flex justify-between rounded-xl border border-slate-100 bg-slate-50 p-2.5 text-xs">
+                  <span><strong>{contributor.authorName}</strong> {!contributor.matchedUserId && <em className="text-amber-600">chưa match</em>}<br />{contributor.authorEmail}</span>
+                  <span className="text-right">
+                    <strong>{contributor.contributionPct}%</strong>
+                    {contributor.contributionPct < 10 && <em className="ml-1 text-rose-600">đóng góp thấp</em>}
+                    <br />{contributor.commitCount} commits · +{contributor.linesAdded}/-{contributor.linesDeleted}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {submission.participants && submission.participants.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-xs font-bold text-slate-800">Điều chỉnh điểm cá nhân</h4>
+              {submission.participants.map((participant) => (
+                <div key={participant.userId} className="grid gap-2 rounded-xl border border-slate-200 p-3 md:grid-cols-[1fr_100px_1.5fr_auto] md:items-center">
+                  <span className="text-xs font-semibold">{participant.user?.fullName ?? participant.userId}<br /><small className="text-slate-500">Điểm hiệu lực: {participant.effectiveScore ?? '-'}</small></span>
+                  <input type="number" min="0" max="10" step="0.1" value={scoreDrafts[participant.userId] ?? ''} onChange={(event) => setScoreDrafts((current) => ({ ...current, [participant.userId]: event.target.value }))} placeholder="0–10" className="rounded-lg border p-2 text-xs" />
+                  <input value={reasonDrafts[participant.userId] ?? ''} onChange={(event) => setReasonDrafts((current) => ({ ...current, [participant.userId]: event.target.value }))} placeholder="Lý do bắt buộc (ít nhất 5 ký tự)" className="rounded-lg border p-2 text-xs" />
+                  <Button type="button" size="sm" onClick={() => handleAdjustScore(participant.userId)}>Lưu</Button>
+                </div>
+              ))}
+              {adjustmentError && <p className="text-xs text-rose-600">{adjustmentError}</p>}
             </div>
           )}
 

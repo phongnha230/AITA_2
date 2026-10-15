@@ -4,6 +4,8 @@ import type {
   CreateTeamPayload,
   UpdateTeamPayload,
   AddTeamMemberPayload,
+  TeamAssignmentOption,
+  TeamSubmissionResult,
 } from '../types/team.types';
 
 export const teamService = {
@@ -56,5 +58,34 @@ export const teamService = {
    */
   async removeMember(teamId: string, userId: string): Promise<void> {
     await api.delete(`/teams/${encodeURIComponent(teamId)}/members/${encodeURIComponent(userId)}`);
+  },
+
+  async updateMyGitIdentity(
+    teamId: string,
+    payload: { gitAuthorEmail: string | null; githubUsername: string | null }
+  ): Promise<Team> {
+    const response = await api.patch(`/teams/${encodeURIComponent(teamId)}/members/me/git-identity`, payload);
+    return response.data?.data;
+  },
+
+  async getGroupAssignments(courseId: string): Promise<TeamAssignmentOption[]> {
+    const response = await api.get(`/assignments/course/${encodeURIComponent(courseId)}`);
+    const assignments = Array.isArray(response.data?.data) ? response.data.data : [];
+    return assignments.filter((assignment: TeamAssignmentOption) =>
+      assignment.environment === 'REACT_JS'
+      && assignment.submissionType === 'GROUP'
+      && assignment.status === 'PUBLISHED'
+    );
+  },
+
+  async submitForAssignment(
+    assignmentId: string,
+    payload: { teamId: string; gitCommitHash?: string }
+  ): Promise<TeamSubmissionResult> {
+    const response = await api.post(
+      `/assignments/${encodeURIComponent(assignmentId)}/team-submissions`,
+      payload
+    );
+    return response.data?.data;
   },
 };

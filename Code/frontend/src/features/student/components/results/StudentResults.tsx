@@ -132,6 +132,26 @@ function StudentResultsContent() {
             </div>
           </div>
 
+          {(submission.data.attemptNo || submission.data.deployedUrl || submission.data.gitCommitHash) && (
+            <section className="rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-600 shadow-elevated-sm">
+              <div className="flex flex-wrap gap-x-6 gap-y-2">
+                <span>Attempt: <strong>#{submission.data.attemptNo ?? 1}</strong></span>
+                {submission.data.gitCommitHash && <span>Commit: <code className="font-mono text-indigo-700">{submission.data.gitCommitHash}</code></span>}
+                {submission.data.deployedUrl && <a className="font-semibold text-indigo-600 hover:underline" href={submission.data.deployedUrl} target="_blank" rel="noreferrer">Mở website đã chấm</a>}
+              </div>
+              {submission.data.gitContributors && submission.data.gitContributors.length > 0 && (
+                <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {submission.data.gitContributors.map((contributor) => (
+                    <div key={contributor.id} className="rounded-xl border border-slate-100 bg-slate-50 p-2.5">
+                      <p className="font-bold text-slate-800">{contributor.authorName} {!contributor.matchedUserId && <span className="text-amber-600">(chưa match)</span>}</p>
+                      <p>{contributor.contributionPct}% · {contributor.commitCount} commits · +{contributor.linesAdded}/-{contributor.linesDeleted}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+
           {/* 1. Real Grading Lifecycle Progress */}
           <GradingLifecycleProgress
             gradingJob={gradingJob}
