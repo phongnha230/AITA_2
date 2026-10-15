@@ -16,6 +16,8 @@ import {
 } from "./bullmq.queue.js";
 import { AppError } from "../../shared/domain/exceptions/app.error.js";
 import { logger } from "../logging/logger.js";
+import { workspaceService } from "../../modules/submission/infrastructure/storage/workspace.service.js";
+import { aggregateGradingScores } from "./grading-score.service.js";
 
 
 // ============================================================
@@ -185,12 +187,7 @@ function extractSandboxScore(
         return undefined;
     }
 
-    // Sandbox contributes maximum 8 points.
-    return clamp(
-        score,
-        0,
-        8
-    );
+    return Math.max(0, score);
 }
 
 
@@ -213,12 +210,7 @@ function extractAiScore(
         return undefined;
     }
 
-    // AI rubric contributes maximum 2 points.
-    return clamp(
-        score,
-        0,
-        2
-    );
+    return Math.max(0, score);
 }
 
 
@@ -409,6 +401,16 @@ async function markCompleted(
 
                 aiScore:
                     true,
+                algorithmScore: true,
+                cleanCodeScore: true,
+                assignment: {
+                    select: {
+                        gradingVersion: true,
+                        functionalMaxScore: true,
+                        algorithmMaxScore: true,
+                        cleanCodeMaxScore: true,
+                    },
+                },
             },
         });
 
@@ -419,27 +421,17 @@ async function markCompleted(
         );
     }
 
-    const finalSandboxScore =
-        sandboxScore
-        ?? Number(
-            currentSubmission.sandboxScore
-            ?? 0
-        );
-
-    const finalAiScore =
-        aiScore
-        ?? Number(
-            currentSubmission.aiScore
-            ?? 0
-        );
-
-    const finalScore =
-        clamp(
-            finalSandboxScore
-            + finalAiScore,
-            0,
-            10
-        );
+    const aggregatedScores = aggregateGradingScores({
+        sandboxScore: sandboxScore ?? Number(currentSubmission.sandboxScore ?? 0),
+        aiScore: aiScore ?? Number(currentSubmission.aiScore ?? 0),
+        algorithmScore: readNumberField(aiResult, ["algorithmScore"]) ?? Number(currentSubmission.algorithmScore ?? 0),
+        cleanCodeScore: readNumberField(aiResult, ["cleanCodeScore"]) ?? Number(currentSubmission.cleanCodeScore ?? 0),
+    }, {
+        gradingVersion: currentSubmission.assignment.gradingVersion,
+        functionalMaxScore: Number(currentSubmission.assignment.functionalMaxScore),
+        algorithmMaxScore: Number(currentSubmission.assignment.algorithmMaxScore),
+        cleanCodeMaxScore: Number(currentSubmission.assignment.cleanCodeMaxScore),
+    });
 
     await prisma.$transaction([
 
@@ -474,19 +466,28 @@ async function markCompleted(
                     "GRADED",
 
                 sandboxScore:
-                    finalSandboxScore,
+                    aggregatedScores.sandboxScore,
 
                 aiScore:
-                    finalAiScore,
+                    aggregatedScores.aiScore,
+
+                algorithmScore: aggregatedScores.algorithmScore,
+
+                cleanCodeScore: aggregatedScores.cleanCodeScore,
 
                 finalScore:
-                    finalScore,
+                    aggregatedScores.finalScore,
 
                 gradedAt:
                     now,
             },
         }),
     ]);
+    try {
+        await workspaceService.cleanupWorkspace(submissionId);
+    } catch (error) {
+        logger.error("grading_workspace_cleanup_failed", { submissionId, stage: "CLEANUP", error });
+    }
 }
 
 
@@ -611,6 +612,15 @@ async function markFailedAttempt(
             },
         }),
     ]);
+    try {
+        await workspaceService.cleanupWorkspace(submissionId);
+    } catch (cleanupError) {
+        logger.error("grading_workspace_cleanup_failed", {
+            submissionId,
+            stage: "CLEANUP",
+            error: cleanupError,
+        });
+    }
 
     logger.error("grading_job_failed", {
         jobId: job.id,
