@@ -120,6 +120,7 @@ export const ExamDetailView: React.FC<ExamDetailViewProps> = ({ examId }) => {
       {activeTab === 'testcases' && (
         <ExamDetailTestcasesTab
           testCases={testCases}
+          functionalMaxScore={assignment.functionalMaxScore ?? 8}
           selectedTagFilter={selectedTagFilter}
           onSelectTagFilter={setSelectedTagFilter}
           copiedKey={copiedKey}

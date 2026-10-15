@@ -168,11 +168,11 @@ export const WizardStep1General: React.FC<WizardStep1GeneralProps> = ({
               ⚖ Cơ chế Khảo thí Chuẩn: Strict PE (Hybrid Grading)
             </span>
             <span className="text-[10px] font-bold text-indigo-700 bg-indigo-100/90 px-2.5 py-0.5 rounded-full border border-indigo-200">
-              8.0đ Testcases Sandbox + 2.0đ AI Clean Code = 10.0đ
+              7.0đ Chức năng + 2.0đ Thuật toán + 1.0đ Clean Code = 10.0đ
             </span>
           </div>
           <p className="text-[11px] text-slate-500 leading-relaxed">
-            Hệ thống chấm tự động cô lập qua Docker Sandbox và phân tích AI Rubric để chống hardcode kết quả.
+            Sandbox chấm độ chính xác; AI đánh giá thuật toán và Clean Code theo rubric của đề.
           </p>
         </div>
       </div>

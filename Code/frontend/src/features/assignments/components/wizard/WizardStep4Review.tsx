@@ -92,7 +92,7 @@ export const WizardStep4Review: React.FC<WizardStep4ReviewProps> = ({
           <div className="flex items-center justify-between">
             <div className="font-extrabold text-blue-900">{title || '(Chưa nhập tiêu đề đề thi)'}</div>
             <span className="px-2.5 py-0.5 rounded-lg bg-indigo-100 text-indigo-800 font-bold text-[11px] border border-indigo-200">
-              Strict PE: 8.0đ Testcases + 2.0đ AI Clean Code = 10.0đ
+              7.0đ Chức năng + 2.0đ Thuật toán + 1.0đ Clean Code = 10.0đ
             </span>
           </div>
           <p className="text-slate-600 leading-relaxed text-[11px]">
@@ -100,7 +100,7 @@ export const WizardStep4Review: React.FC<WizardStep4ReviewProps> = ({
           </p>
           <div className="text-[11px] text-indigo-700 bg-white/70 p-2.5 rounded-lg border border-indigo-100 flex items-center gap-2 font-medium">
             <span className="font-bold">Chuẩn Khảo Thí:</span>
-            8.0 điểm Testcases chạy tự động trên Sandbox + 2.0 điểm AI đánh giá Clean Code &amp; trị dứt điểm sinh viên hardcode kết quả.
+            Sandbox chấm tối đa 7 điểm chức năng; AI đánh giá tối đa 2 điểm thuật toán và 1 điểm Clean Code.
           </div>
         </div>
       </div>

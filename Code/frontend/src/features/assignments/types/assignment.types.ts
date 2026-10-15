@@ -32,6 +32,10 @@ export interface AssignmentSolution {
   title: string;
   sourceCode: string;
   explanation?: string;
+  expectedTimeComplexity?: string;
+  expectedSpaceComplexity?: string;
+  acceptedStrategies?: string[];
+  algorithmNotes?: string;
   isActive?: boolean;
 }
 
@@ -41,6 +45,7 @@ export interface RubricRuleInput {
   maxPoints: number;
   weight: number;
   orderIndex: number;
+  criterionType?: 'GENERAL' | 'ALGORITHM' | 'CLEAN_CODE';
 }
 
 export interface RubricRule extends RubricRuleInput {
@@ -74,6 +79,10 @@ export interface Assignment {
   starterCodePath?: string;
   status: AssignmentStatus;
   durationMinutes?: number | null;
+  gradingVersion?: number;
+  functionalMaxScore?: number;
+  algorithmMaxScore?: number;
+  cleanCodeMaxScore?: number;
   accessCode?: string | null;
   createdBy?: string;
   createdAt: string;
@@ -97,6 +106,10 @@ export interface CreateAssignmentPayload {
   startTime?: string;
   deadline: string;
   durationMinutes?: number;
+  gradingVersion?: number;
+  functionalMaxScore?: number;
+  algorithmMaxScore?: number;
+  cleanCodeMaxScore?: number;
   accessCode?: string | null;
   status?: AssignmentStatus;
   allowGitSubmission?: boolean;
@@ -120,6 +133,8 @@ export interface LecturerSubmission {
   status: 'PENDING' | 'QUEUED' | 'RUNNING_SANDBOX' | 'RUNNING_AI' | 'GRADED' | 'FAILED';
   sandboxScore?: number | null;
   aiScore?: number | null;
+  algorithmScore?: number | null;
+  cleanCodeScore?: number | null;
   finalScore?: number | null;
   compileSuccess?: boolean | null;
   compileOutput?: string | null;
@@ -130,6 +145,15 @@ export interface LecturerSubmission {
     fullName: string;
     email: string;
     avatarUrl?: string | null;
+  };
+  assignment?: {
+    id: string;
+    title: string;
+    courseId: string;
+    gradingVersion?: number;
+    functionalMaxScore?: number;
+    algorithmMaxScore?: number;
+    cleanCodeMaxScore?: number;
   };
   gradingJob?: {
     id: string;

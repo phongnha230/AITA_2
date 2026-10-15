@@ -97,14 +97,14 @@ export function SubmissionScoreOverview({ submission }: SubmissionScoreOverviewP
         {/* 2. Sandbox Score */}
         <article className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-elevated-sm transition-colors duration-200 hover:shadow-elevated hover:-translate-y-0.5">
           <div className="flex items-start justify-between gap-3">
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Điểm Test Cases (100%)</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Điểm chức năng (Sandbox)</p>
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100 shadow-2xs">
               <Cpu className="h-5 w-5" />
             </span>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
             <p className="text-3xl font-extrabold tabular-nums text-slate-900">{displaySandbox}</p>
-            <span className="text-xs text-slate-400">/ 10 điểm</span>
+            <span className="text-xs text-slate-400">/ {submission.assignment?.functionalMaxScore ?? 8} điểm</span>
           </div>
           <p className="mt-2.5 text-xs text-slate-500">Chấm tự động theo điểm từng Test Case</p>
         </article>
@@ -112,7 +112,9 @@ export function SubmissionScoreOverview({ submission }: SubmissionScoreOverviewP
         {/* 3. AI Analysis & Advice */}
         <article className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-elevated-sm transition-colors duration-200 hover:shadow-elevated hover:-translate-y-0.5">
           <div className="flex items-start justify-between gap-3">
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">AI Code Review</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              {submission.assignment?.gradingVersion === 2 ? 'Thuật toán + Clean Code' : 'AI Code Review'}
+            </p>
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700 ring-1 ring-indigo-100 shadow-2xs">
               <Bot className="h-5 w-5" />
             </span>
@@ -121,9 +123,13 @@ export function SubmissionScoreOverview({ submission }: SubmissionScoreOverviewP
             <p className="text-3xl font-extrabold tabular-nums text-indigo-700">
               {aiScore !== null ? aiScore.toFixed(1) : 'Sẵn sàng'}
             </p>
-            {aiScore !== null && <span className="text-xs text-slate-400">/ 10</span>}
+            {aiScore !== null && <span className="text-xs text-slate-400">/ {submission.assignment?.gradingVersion === 2 ? 3 : 2}</span>}
           </div>
-          <p className="mt-2.5 text-xs text-slate-500">Phân tích Big-O &amp; Góp ý (Tham khảo)</p>
+          <p className="mt-2.5 text-xs text-slate-500">
+            {submission.assignment?.gradingVersion === 2
+              ? `Thuật toán ${submission.algorithmScore ?? '--'}/2 • Clean Code ${submission.cleanCodeScore ?? '--'}/1`
+              : 'Phân tích Big-O & góp ý (tham khảo)'}
+          </p>
         </article>
 
         {/* 4. Compilation Status */}

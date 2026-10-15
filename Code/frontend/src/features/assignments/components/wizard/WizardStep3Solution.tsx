@@ -10,6 +10,12 @@ interface WizardStep3SolutionProps {
   setSolutionCode: (val: string) => void;
   expectedComplexity: string;
   setExpectedComplexity: (val: string) => void;
+  expectedSpaceComplexity: string;
+  setExpectedSpaceComplexity: (val: string) => void;
+  acceptedStrategiesText: string;
+  setAcceptedStrategiesText: (val: string) => void;
+  algorithmNotes: string;
+  setAlgorithmNotes: (val: string) => void;
   handleSolutionFileUpload: (file: File) => void;
   testCases: TestCase[];
   setTestCases: React.Dispatch<React.SetStateAction<TestCase[]>>;
@@ -27,6 +33,12 @@ export const WizardStep3Solution: React.FC<WizardStep3SolutionProps> = ({
   setSolutionCode,
   expectedComplexity,
   setExpectedComplexity,
+  expectedSpaceComplexity,
+  setExpectedSpaceComplexity,
+  acceptedStrategiesText,
+  setAcceptedStrategiesText,
+  algorithmNotes,
+  setAlgorithmNotes,
   handleSolutionFileUpload,
   testCases,
   setTestCases,
@@ -36,7 +48,7 @@ export const WizardStep3Solution: React.FC<WizardStep3SolutionProps> = ({
   onBack,
   onNext,
 }) => {
-  const targetTestcaseMax = 8.0;
+  const targetTestcaseMax = 7.0;
   const totalCalculatedPoints = testCases.reduce((acc, cur) => acc + (Number(cur.points) || 0), 0);
   const isExactTarget = Math.abs(totalCalculatedPoints - targetTestcaseMax) < 0.01;
   const uniqueQuestions = Array.from(new Set(testCases.map((tc) => tc.questionNumber || 'Q1')));
@@ -50,6 +62,37 @@ export const WizardStep3Solution: React.FC<WizardStep3SolutionProps> = ({
             <h2 className="font-extrabold text-sm text-slate-900">
               1. Bài Giải Code Sẵn (Reference Solution)
             </h2>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="wizard-accepted-strategies" className="block font-bold text-slate-700 mb-1">
+                Các hướng giải được chấp nhận
+              </label>
+              <textarea
+                id="wizard-accepted-strategies"
+                value={acceptedStrategiesText}
+                onChange={(e) => setAcceptedStrategiesText(e.target.value)}
+                rows={3}
+                placeholder="Ví dụ: Merge sort, Heap sort"
+                className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50"
+              />
+              <p className="mt-1 text-[10px] text-slate-500">Ngăn cách bằng dấu phẩy hoặc xuống dòng.</p>
+            </div>
+            <div>
+              <label htmlFor="wizard-algorithm-notes" className="block font-bold text-slate-700 mb-1">
+                Ghi chú chấm thuật toán
+              </label>
+              <textarea
+                id="wizard-algorithm-notes"
+                value={algorithmNotes}
+                onChange={(e) => setAlgorithmNotes(e.target.value)}
+                rows={3}
+                maxLength={4_000}
+                placeholder="Tiêu chí thuật toán, giới hạn hoặc cách giải tương đương"
+                className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50"
+              />
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <label className="px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 cursor-pointer flex items-center gap-1.5 transition shadow-sm">
@@ -72,8 +115,8 @@ export const WizardStep3Solution: React.FC<WizardStep3SolutionProps> = ({
         </div>
 
         <div className="space-y-3 text-xs">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="sm:col-span-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
               <label htmlFor="wizard-solution-title" className="block font-bold text-slate-700 mb-1">
                 Tiêu đề bài giải tham chiếu
               </label>
@@ -85,6 +128,20 @@ export const WizardStep3Solution: React.FC<WizardStep3SolutionProps> = ({
                 onChange={(e) => setSolutionTitle(e.target.value)}
                 placeholder="Ví dụ: Bài giải chuẩn PRF192 / PRO192 Reference Solution"
                 className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label htmlFor="wizard-expected-space-complexity" className="block font-bold text-slate-700 mb-1">
+                Độ phức tạp bộ nhớ kỳ vọng (Big-O)
+              </label>
+              <input
+                id="wizard-expected-space-complexity"
+                type="text"
+                aria-label="Độ phức tạp bộ nhớ kỳ vọng (Big-O)"
+                value={expectedSpaceComplexity}
+                onChange={(e) => setExpectedSpaceComplexity(e.target.value)}
+                placeholder="VD: O(n), O(1)..."
+                className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 font-mono font-bold focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
               />
             </div>
             <div>
@@ -167,11 +224,11 @@ export const WizardStep3Solution: React.FC<WizardStep3SolutionProps> = ({
                   }`}
                 />
                 <span>
-                  Chuẩn Khảo Thí Strict PE: {totalCalculatedPoints.toFixed(1)} / 8.0 điểm Testcases (+2.0đ AI Clean Code = 10.0đ)
+                  Điểm chức năng: {totalCalculatedPoints.toFixed(1)} / 7.0 • Thuật toán: 2.0 • Clean Code: 1.0
                 </span>
                 {isExactTarget ? (
                   <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold text-[10px]">
-                    ✓ Đủ 8.0đ Testcases (+2.0đ AI)
+                    ✓ Đủ 7.0đ chức năng
                   </span>
                 ) : (
                   <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 font-bold text-[10px]">
@@ -182,7 +239,7 @@ export const WizardStep3Solution: React.FC<WizardStep3SolutionProps> = ({
                 )}
               </div>
               <p className="text-[11px] text-slate-500">
-                Bao gồm {uniqueQuestions.length} câu hỏi • 8.0 điểm Testcase chạy tự động trên Docker Sandbox • 2.0 điểm AI đánh giá Clean Code &amp; trị dứt điểm sinh viên hardcode kết quả.
+                {uniqueQuestions.length} câu hỏi • 7 điểm kiểm tra kết quả • 2 điểm thuật toán • 1 điểm Clean Code.
               </p>
             </div>
 
@@ -216,7 +273,13 @@ export const WizardStep3Solution: React.FC<WizardStep3SolutionProps> = ({
       <WizardNavFooter
         onBack={onBack}
         backLabel="Quay lại Bước 2"
-        onNext={onNext}
+        onNext={() => {
+          if (!isExactTarget) {
+            window.alert('Tổng điểm test case phải đúng 7.0 điểm trước khi tiếp tục.');
+            return;
+          }
+          onNext();
+        }}
         nextLabel="Tiếp tục: Kiểm thử Sandbox & Lưu CSDL"
       />
     </div>

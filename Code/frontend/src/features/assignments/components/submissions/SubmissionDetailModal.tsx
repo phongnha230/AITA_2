@@ -50,19 +50,34 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
 
         <div className="space-y-4 pt-2">
           {/* Tổng quan điểm số */}
-          <div className="grid grid-cols-3 gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-100 text-center">
+          <div className={`grid ${submission.assignment?.gradingVersion === 2 ? 'grid-cols-4' : 'grid-cols-3'} gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-100 text-center`}>
             <div>
-              <div className="text-[11px] font-semibold text-slate-400">Điểm Sandbox (Testcases)</div>
+              <div className="text-[11px] font-semibold text-slate-400">Chức năng (Sandbox)</div>
               <div className="text-lg font-black text-slate-800 mt-0.5">
-                {submission.sandboxScore ?? '-'} / 10
+                {submission.sandboxScore ?? '-'} / {submission.assignment?.functionalMaxScore ?? 8}
               </div>
             </div>
-            <div>
-              <div className="text-[11px] font-semibold text-slate-400">Điểm AI Rubric (Clean code)</div>
-              <div className="text-lg font-black text-purple-700 mt-0.5">
-                {submission.aiScore ?? '-'} / 10
+            {submission.assignment?.gradingVersion === 2 ? (
+              <>
+                <div>
+                  <div className="text-[11px] font-semibold text-slate-400">Thuật toán</div>
+                  <div className="text-lg font-black text-purple-700 mt-0.5">
+                    {submission.algorithmScore ?? '-'} / {submission.assignment.algorithmMaxScore ?? 2}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[11px] font-semibold text-slate-400">Clean Code</div>
+                  <div className="text-lg font-black text-purple-700 mt-0.5">
+                    {submission.cleanCodeScore ?? '-'} / {submission.assignment.cleanCodeMaxScore ?? 1}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div>
+                <div className="text-[11px] font-semibold text-slate-400">Điểm AI Rubric</div>
+                <div className="text-lg font-black text-purple-700 mt-0.5">{submission.aiScore ?? '-'} / 2</div>
               </div>
-            </div>
+            )}
             <div>
               <div className="text-[11px] font-semibold text-slate-400">Điểm Tổng Kết</div>
               <div className="text-lg font-black text-emerald-700 mt-0.5">
