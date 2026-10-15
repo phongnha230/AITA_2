@@ -11,5 +11,9 @@ export interface ArtifactStagingResult {
 }
 
 export interface IArtifactExtractor {
-  extractAndStage(zipFilePath: string, submissionId: string): Promise<ArtifactStagingResult>;
+  extractAndStage(
+    zipFilePath: string,
+    submissionId: string,
+    maxExtractedBytes: bigint | number
+  ): Promise<ArtifactStagingResult>;
 }

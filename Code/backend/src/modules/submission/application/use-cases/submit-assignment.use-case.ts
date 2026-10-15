@@ -128,7 +128,8 @@ export class SubmitAssignmentUseCase {
       try {
         const stagingResult = await artifactExtractor.extractAndStage(
           request.uploadedZipPath,
-          submission.id
+          submission.id,
+          assignment.maxFileSizeBytes
         );
 
         let finalZipPath = stagingResult.stagedPath;
@@ -173,7 +174,8 @@ export class SubmitAssignmentUseCase {
         const gitResult = await this.gitIngestion.cloneAndAnalyze(
           request.gitRepoUrl,
           request.gitCommitHash,
-          submission.id
+          submission.id,
+          assignment.maxFileSizeBytes
         );
 
         const updated = await submissionRepository.updateGitMetadata(submission.id, {

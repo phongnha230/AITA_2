@@ -1,26 +1,43 @@
 import { Router } from 'express';
-import { SandboxController } from '../controllers/sandbox.controller.js';
 import { authenticateJWT, authorizeRoles } from '../../../auth/presentation/middlewares/auth.middleware.js';
+import { createAuthRateLimiter } from '../../../auth/presentation/middlewares/auth-rate-limit.middleware.js';
+import { requireSubmissionAccess } from '../../../assignment/presentation/middlewares/assignment-access.middleware.js';
+import { validateBody } from '../../../../shared/presentation/middlewares/validate.middleware.js';
+import { executeSandboxSchema } from '../../application/dtos/sandbox.dto.js';
+import { SandboxController } from '../controllers/sandbox.controller.js';
+import { enforceSandboxPayloadLimits } from '../middlewares/sandbox-limits.middleware.js';
 
 const router = Router();
+const directExecutionLimiter = createAuthRateLimiter({
+  scope: 'sandbox-execute',
+  max: 10,
+  windowSeconds: 60,
+  identity: (request) => request.user?.userId ?? 'anonymous',
+});
 
-// 1. Kiểm tra trạng thái máy chủ Sandbox (public — thông tin không nhạy cảm)
-router.get('/status', SandboxController.getStatus);
+router.get('/health', SandboxController.health);
+router.get(
+  '/status',
+  authenticateJWT,
+  authorizeRoles('ADMIN'),
+  SandboxController.getStatus
+);
 
-// 2. Chạy thử nghiệm Sandbox trực tiếp qua code gửi lên
-//    Yêu cầu đăng nhập để ngăn RCE từ unauthenticated bên ngoài
 router.post(
   '/execute',
   authenticateJWT,
-  authorizeRoles('ADMIN', 'LECTURER', 'STUDENT'),
+  authorizeRoles('ADMIN'),
+  directExecutionLimiter,
+  enforceSandboxPayloadLimits,
+  validateBody(executeSandboxSchema),
   SandboxController.executeCode
 );
 
-// 3. Chấm điểm bài nộp theo ID trong CSDL
 router.post(
   '/grade/:submissionId',
   authenticateJWT,
   authorizeRoles('ADMIN', 'LECTURER'),
+  requireSubmissionAccess,
   SandboxController.gradeSubmission
 );
 
