@@ -9,6 +9,7 @@ export interface GradingRubricRule {
   description: string;
   maxPoints: number;
   weight: number;
+  criterionType?: 'GENERAL' | 'ALGORITHM' | 'CLEAN_CODE';
 }
 
 const gradingOutputSchema = z.object({
@@ -25,6 +26,8 @@ const gradingOutputSchema = z.object({
 export interface ValidatedGradingOutput {
   rubricBreakdown: RubricEvaluationItem[];
   overallAiScore: number;
+  algorithmScore: number | null;
+  cleanCodeScore: number | null;
   detectedTimeComplexity?: string;
   detectedSpaceComplexity?: string;
   codeQualityFeedback: string;
@@ -60,7 +63,7 @@ export class AiGradingOutputService {
       seenIds.add(item.rubricId);
       return {
         rubricId: rubric.id,
-        category: 'GENERAL',
+        category: rubric.criterionType ?? 'GENERAL',
         title: rubric.criterionName,
         earnedPoints: item.earnedPoints,
         maxPoints: rubric.maxPoints,
@@ -72,9 +75,14 @@ export class AiGradingOutputService {
       throw new ValidationError('AI không trả về đầy đủ các rubric được yêu cầu.');
     }
 
+    const hasSplitRubric = rubricBreakdown.some(
+      (item) => item.category === 'ALGORITHM' || item.category === 'CLEAN_CODE'
+    );
     return {
       rubricBreakdown,
       overallAiScore: this.scoreCalculator.calculate(rubricBreakdown),
+      algorithmScore: hasSplitRubric ? this.scoreCalculator.calculateCategory(rubricBreakdown, 'ALGORITHM', 2) : null,
+      cleanCodeScore: hasSplitRubric ? this.scoreCalculator.calculateCategory(rubricBreakdown, 'CLEAN_CODE', 1) : null,
       detectedTimeComplexity: parsed.data.detectedTimeComplexity,
       detectedSpaceComplexity: parsed.data.detectedSpaceComplexity,
       codeQualityFeedback: parsed.data.codeQualityFeedback,

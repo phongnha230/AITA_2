@@ -27,7 +27,7 @@ export const ragIndexingQueue = new Queue<RagIndexingJobData>(RAG_INDEXING_QUEUE
 
 export const enqueueRagIndexing = async (data: RagIndexingJobData): Promise<void> => {
   await ragIndexingQueue.add('index-solution', data, {
-    jobId: `rag-index:${data.solutionId}:${data.contentHash}`,
+    jobId: `rag-index:${data.solutionId}:${data.contentHash}:${CHUNKER_VERSION}`,
     attempts: RAG_INDEX_MAX_ATTEMPTS,
     backoff: { type: 'rag-indexing' },
     removeOnComplete: { count: 500 },
@@ -67,6 +67,27 @@ const processIndexingJob = async (
       solution.assignment.environment,
       fileName
     );
+    const acceptedStrategies = Array.isArray(solution.acceptedStrategies)
+      ? solution.acceptedStrategies.filter((item): item is string => typeof item === 'string')
+      : [];
+    const specification = [
+      solution.expectedTimeComplexity ? `Expected time complexity: ${solution.expectedTimeComplexity}` : '',
+      solution.expectedSpaceComplexity ? `Expected space complexity: ${solution.expectedSpaceComplexity}` : '',
+      acceptedStrategies.length > 0 ? `Accepted strategies: ${acceptedStrategies.join(', ')}` : '',
+      solution.algorithmNotes ? `Grading notes: ${solution.algorithmNotes}` : '',
+      solution.explanation ? `Reference explanation: ${solution.explanation}` : '',
+    ].filter(Boolean).join('\n');
+    if (specification) {
+      chunks.push({
+        id: 'algorithm_specification',
+        name: 'Algorithm grading specification',
+        file: 'grading-specification.md',
+        code: specification,
+        startLine: 1,
+        endLine: specification.split('\n').length,
+        type: 'SPECIFICATION',
+      });
+    }
     const version = {
       assignmentId: solution.assignmentId,
       solutionId: solution.id,

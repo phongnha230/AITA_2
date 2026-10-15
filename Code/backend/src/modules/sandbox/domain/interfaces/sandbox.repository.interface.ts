@@ -12,6 +12,7 @@ export interface SandboxTestCaseRecord {
   timeLimitMs: number;
   memoryLimitKb: number;
   points: number;
+  rationaleTag: string;
 }
 
 export interface SandboxSubmissionRecord {
@@ -21,6 +22,7 @@ export interface SandboxSubmissionRecord {
   assignment: {
     environment: string;
     maxFileSizeBytes: bigint;
+    functionalMaxScore: number;
     testCases: SandboxTestCaseRecord[];
   };
 }
@@ -37,7 +39,8 @@ export interface ISandboxRepository {
   replaceTestResults(
     submission: SandboxSubmissionRecord,
     summary: SandboxExecutionSummary,
-    normalizedSandboxScore: number
+    normalizedSandboxScore: number,
+    algorithmPerformanceScore: number
   ): Promise<void>;
   getStatusCounts(): Promise<SandboxStatusCounts>;
 }

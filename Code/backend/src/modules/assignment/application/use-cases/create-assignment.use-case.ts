@@ -38,6 +38,10 @@ export class CreateAssignmentUseCase {
       allowGitSubmission: dto.allowGitSubmission !== undefined ? dto.allowGitSubmission : true,
       allowZipSubmission: dto.allowZipSubmission !== undefined ? dto.allowZipSubmission : true,
       status: dto.status || 'DRAFT',
+      gradingVersion: dto.gradingVersion,
+      functionalMaxScore: dto.functionalMaxScore,
+      algorithmMaxScore: dto.algorithmMaxScore,
+      cleanCodeMaxScore: dto.cleanCodeMaxScore,
       createdBy,
     });
 

@@ -8,7 +8,7 @@ describe('CodeChunker', () => {
       'C_GCC',
       'src/main.c'
     );
-    expect(CHUNKER_VERSION).toBe('tree-sitter-v1');
+    expect(CHUNKER_VERSION).toBe('tree-sitter-v2-algorithm-spec');
     expect(chunks[0]).toMatchObject({ name: 'add', file: 'src/main.c', startLine: 1, endLine: 3 });
   });
 

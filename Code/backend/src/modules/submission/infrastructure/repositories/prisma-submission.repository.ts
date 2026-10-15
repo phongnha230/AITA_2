@@ -23,6 +23,8 @@ export class PrismaSubmissionRepository implements ISubmissionRepository {
       status: raw.status,
       sandboxScore: raw.sandboxScore !== null && raw.sandboxScore !== undefined ? Number(raw.sandboxScore) : null,
       aiScore: raw.aiScore !== null && raw.aiScore !== undefined ? Number(raw.aiScore) : null,
+      algorithmScore: raw.algorithmScore !== null && raw.algorithmScore !== undefined ? Number(raw.algorithmScore) : null,
+      cleanCodeScore: raw.cleanCodeScore !== null && raw.cleanCodeScore !== undefined ? Number(raw.cleanCodeScore) : null,
       finalScore: raw.finalScore !== null && raw.finalScore !== undefined ? Number(raw.finalScore) : null,
       compileSuccess: raw.compileSuccess,
       compileOutput: raw.compileOutput,
@@ -42,6 +44,10 @@ export class PrismaSubmissionRepository implements ISubmissionRepository {
             id: raw.assignment.id,
             title: raw.assignment.title,
             courseId: raw.assignment.courseId,
+            gradingVersion: raw.assignment.gradingVersion,
+            functionalMaxScore: raw.assignment.functionalMaxScore !== undefined ? Number(raw.assignment.functionalMaxScore) : undefined,
+            algorithmMaxScore: raw.assignment.algorithmMaxScore !== undefined ? Number(raw.assignment.algorithmMaxScore) : undefined,
+            cleanCodeMaxScore: raw.assignment.cleanCodeMaxScore !== undefined ? Number(raw.assignment.cleanCodeMaxScore) : undefined,
           }
         : undefined,
     });
@@ -75,7 +81,7 @@ export class PrismaSubmissionRepository implements ISubmissionRepository {
       where: { id },
       include: {
         user: { select: { id: true, fullName: true, email: true } },
-        assignment: { select: { id: true, title: true, courseId: true } },
+        assignment: { select: { id: true, title: true, courseId: true, gradingVersion: true, functionalMaxScore: true, algorithmMaxScore: true, cleanCodeMaxScore: true } },
       },
     });
 
@@ -87,7 +93,7 @@ export class PrismaSubmissionRepository implements ISubmissionRepository {
       where: { id },
       include: {
         user: { select: { id: true, fullName: true, email: true } },
-        assignment: { select: { id: true, title: true, courseId: true } },
+        assignment: { select: { id: true, title: true, courseId: true, gradingVersion: true, functionalMaxScore: true, algorithmMaxScore: true, cleanCodeMaxScore: true } },
         gradingJob: {
           select: {
             id: true,
@@ -223,6 +229,8 @@ export class PrismaSubmissionRepository implements ISubmissionRepository {
     id: string,
     data: {
       aiScore: number;
+      algorithmScore?: number | null;
+      cleanCodeScore?: number | null;
       finalScore: number;
       status: SubmissionStatus;
       gradedAt: Date;
@@ -232,13 +240,15 @@ export class PrismaSubmissionRepository implements ISubmissionRepository {
       where: { id },
       data: {
         aiScore: data.aiScore,
+        algorithmScore: data.algorithmScore,
+        cleanCodeScore: data.cleanCodeScore,
         finalScore: data.finalScore,
         status: data.status,
         gradedAt: data.gradedAt,
       },
       include: {
         user: { select: { id: true, fullName: true, email: true } },
-        assignment: { select: { id: true, title: true, courseId: true } },
+        assignment: { select: { id: true, title: true, courseId: true, gradingVersion: true, functionalMaxScore: true, algorithmMaxScore: true, cleanCodeMaxScore: true } },
       },
     });
 

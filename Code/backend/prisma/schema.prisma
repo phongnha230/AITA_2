@@ -93,6 +93,10 @@ model Assignment {
   submissionType     SubmissionType       @default(INDIVIDUAL) @map("submission_type")
   accessCode         String?              @map("access_code") @db.VarChar(50)
   durationMinutes    Int?                 @default(90) @map("duration_minutes")
+  gradingVersion     Int                  @default(1) @map("grading_version")
+  functionalMaxScore Decimal              @default(8.00) @map("functional_max_score") @db.Decimal(4, 2)
+  algorithmMaxScore  Decimal              @default(2.00) @map("algorithm_max_score") @db.Decimal(4, 2)
+  cleanCodeMaxScore  Decimal              @default(0.00) @map("clean_code_max_score") @db.Decimal(4, 2)
   solutions          AssignmentSolution[]
   course             Course               @relation(fields: [courseId], references: [id], onDelete: Cascade)
   creator            User                 @relation("AssignmentCreator", fields: [createdBy], references: [id])
@@ -143,6 +147,7 @@ model RubricRule {
   maxPoints     Decimal    @map("max_points") @db.Decimal(4, 2)
   updatedAt     DateTime   @updatedAt @map("updated_at")
   weight        Decimal    @default(1.00) @db.Decimal(5, 2)
+  criterionType GradingCriterionType @default(GENERAL) @map("criterion_type")
   assignment    Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
 
   @@index([assignmentId], map: "idx_rubric_assignment")
@@ -165,6 +170,10 @@ model AssignmentSolution {
   isActive       Boolean             @default(true) @map("is_active")
   sourceCode     String              @map("source_code") @db.LongText
   title          String              @db.VarChar(200)
+  expectedTimeComplexity  String?     @map("expected_time_complexity") @db.VarChar(100)
+  expectedSpaceComplexity String?    @map("expected_space_complexity") @db.VarChar(100)
+  acceptedStrategies     Json?       @map("accepted_strategies")
+  algorithmNotes         String?     @map("algorithm_notes") @db.LongText
   updatedAt      DateTime            @updatedAt @map("updated_at")
   assignment     Assignment          @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
 
@@ -178,6 +187,9 @@ model Submission {
   gitCommitHash     String?                @map("git_commit_hash") @db.VarChar(64)
   sandboxScore      Decimal?               @default(0.00) @map("sandbox_score") @db.Decimal(4, 2)
   aiScore           Decimal?               @default(0.00) @map("ai_score") @db.Decimal(4, 2)
+  algorithmScore    Decimal?               @map("algorithm_score") @db.Decimal(4, 2)
+  algorithmPerformanceScore Decimal?         @map("algorithm_performance_score") @db.Decimal(4, 2)
+  cleanCodeScore    Decimal?               @map("clean_code_score") @db.Decimal(4, 2)
   status            SubmissionStatus       @default(PENDING)
   submittedAt       DateTime               @default(now()) @map("submitted_at")
   commitCount       Int?                   @default(0) @map("commit_count")
@@ -469,6 +481,12 @@ enum SolutionIndexStatus {
   PENDING
   READY
   FAILED
+}
+
+enum GradingCriterionType {
+  GENERAL
+  ALGORITHM
+  CLEAN_CODE
 }
 
 enum TestCaseVerdict {

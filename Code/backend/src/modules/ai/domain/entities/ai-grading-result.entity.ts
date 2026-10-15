@@ -13,6 +13,7 @@ export interface RagContextReference {
   similarity: number;
   embeddingModel: string;
   chunkerVersion: string;
+  chunkType: string;
 }
 
 export interface AiGradingResultProps {

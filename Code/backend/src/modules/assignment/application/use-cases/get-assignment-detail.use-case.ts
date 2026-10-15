@@ -42,6 +42,9 @@ export class GetAssignmentDetailUseCase {
 
     return {
       ...assignment,
+      functionalMaxScore: Number(assignment.functionalMaxScore),
+      algorithmMaxScore: Number(assignment.algorithmMaxScore),
+      cleanCodeMaxScore: Number(assignment.cleanCodeMaxScore),
       hasAccessCode: Boolean(assignment.accessCode),
       isLocked: false,
       accessCode: isLecturerOrAdmin ? assignment.accessCode : undefined,

@@ -1,6 +1,6 @@
 import { IAssignmentRepository } from '../../domain/repositories/assignment.repository.interface.js';
 import { UpdateAssignmentDto } from '../dtos/assignment.dto.js';
-import { NotFoundError, ForbiddenError } from '../../../../shared/domain/exceptions/app.error.js';
+import { NotFoundError, ForbiddenError, ValidationError } from '../../../../shared/domain/exceptions/app.error.js';
 
 export class UpdateAssignmentUseCase {
   constructor(private readonly assignmentRepository: IAssignmentRepository) {}
@@ -17,6 +17,33 @@ export class UpdateAssignmentUseCase {
 
     if (requester && requester.role !== 'ADMIN' && existing.createdBy !== requester.userId) {
       throw new ForbiddenError('Bạn không có quyền chỉnh sửa đề thi của giảng viên khác.');
+    }
+
+    if (dto.status === 'PUBLISHED' && existing.toJSON().gradingVersion === 2) {
+      const [testCases, rubricRules, solutions] = await Promise.all([
+        this.assignmentRepository.getTestCases(assignmentId, true),
+        this.assignmentRepository.getRubricRules(assignmentId),
+        this.assignmentRepository.getSolutions(assignmentId),
+      ]);
+      const testcasePoints = testCases.reduce((sum, testCase) => sum + Number(testCase.points), 0);
+      const algorithmPoints = rubricRules
+        .filter((rule) => rule.criterionType === 'ALGORITHM')
+        .reduce((sum, rule) => sum + Number(rule.maxPoints), 0);
+      const cleanCodePoints = rubricRules
+        .filter((rule) => rule.criterionType === 'CLEAN_CODE')
+        .reduce((sum, rule) => sum + Number(rule.maxPoints), 0);
+      const hasLegacyCriteria = rubricRules.some((rule) => rule.criterionType === 'GENERAL');
+
+      if (Math.abs(testcasePoints - 7) >= 0.01) {
+        throw new ValidationError('Không thể công bố đề: tổng điểm test case phải bằng 7.');
+      }
+      if (Math.abs(algorithmPoints - 2) >= 0.001 || Math.abs(cleanCodePoints - 1) >= 0.001 || hasLegacyCriteria) {
+        throw new ValidationError('Không thể công bố đề: rubric cần 2 điểm thuật toán và 1 điểm Clean Code.');
+      }
+      const activeSolution = solutions.find((solution) => solution.isActive);
+      if (!activeSolution?.expectedTimeComplexity?.trim()) {
+        throw new ValidationError('Không thể công bố đề: cần lời giải tham chiếu và Big-O thời gian kỳ vọng.');
+      }
     }
 
     const updated = await this.assignmentRepository.update(assignmentId, {

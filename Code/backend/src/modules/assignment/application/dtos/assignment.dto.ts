@@ -15,7 +15,23 @@ export const CreateAssignmentSchema = z.object({
   allowGitSubmission: z.boolean().default(true),
   allowZipSubmission: z.boolean().default(true),
   status: z.enum(['DRAFT', 'PUBLISHED', 'CLOSED', 'ARCHIVED']).default('DRAFT'),
-});
+  gradingVersion: z.number().int().min(1).max(2).default(1),
+  functionalMaxScore: z.number().finite().positive().default(8),
+  algorithmMaxScore: z.number().finite().min(0).default(2),
+  cleanCodeMaxScore: z.number().finite().min(0).default(0),
+}).refine(
+  (assignment) => Math.abs(
+    assignment.functionalMaxScore + assignment.algorithmMaxScore + assignment.cleanCodeMaxScore - 10
+  ) < 0.001,
+  { message: 'Tổng điểm các phần phải bằng 10.' }
+).refine(
+  (assignment) => assignment.gradingVersion !== 2 || (
+    assignment.functionalMaxScore === 7
+    && assignment.algorithmMaxScore === 2
+    && assignment.cleanCodeMaxScore === 1
+  ),
+  { message: 'Cấu hình chấm phiên bản 2 phải là 7 điểm chức năng, 2 điểm thuật toán và 1 điểm Clean Code.' }
+);
 
 export type CreateAssignmentDto = z.infer<typeof CreateAssignmentSchema>;
 
@@ -63,6 +79,7 @@ export const SetRubricRulesSchema = z.object({
       maxPoints: z.number().positive(),
       weight: z.number().default(1.0),
       orderIndex: z.number().int().default(1),
+      criterionType: z.enum(['GENERAL', 'ALGORITHM', 'CLEAN_CODE']).default('GENERAL'),
     })
   ).min(1, 'Danh sách Rubrics không được để trống'),
 });
@@ -73,6 +90,10 @@ export const UpsertSolutionSchema = z.object({
   title: z.string().min(1, 'Tiêu đề đáp án mẫu không được rỗng'),
   sourceCode: z.string().min(1, 'Mã nguồn đáp án mẫu không được rỗng'),
   explanation: z.string().optional(),
+  expectedTimeComplexity: z.string().trim().max(100).optional(),
+  expectedSpaceComplexity: z.string().trim().max(100).optional(),
+  acceptedStrategies: z.array(z.string().trim().min(1).max(100)).max(20).optional(),
+  algorithmNotes: z.string().trim().max(4_000).optional(),
 });
 
 export type UpsertSolutionDto = z.infer<typeof UpsertSolutionSchema>;
