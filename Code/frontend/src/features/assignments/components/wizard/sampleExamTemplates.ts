@@ -11,6 +11,9 @@ export interface SampleExamTemplate {
   zipFilesContent: Record<string, string>;
   solutionTitle: string;
   expectedComplexity?: string;
+  expectedSpaceComplexity?: string;
+  acceptedStrategies?: string[];
+  algorithmNotes?: string;
   solutionCode: string;
   testCases: TestCase[];
 }
@@ -239,16 +242,16 @@ int main() {
 };
 
 export const samplePro192Template: SampleExamTemplate = {
-  title: 'Kỳ thi Thực hành PE PRO192 / CSD201 - Spring 2025',
-  description: `Đề thi thực hành môn Lập trình Hướng đối tượng Java & Cấu trúc dữ liệu. 
-Sinh viên được cấp Skeleton Starter Code chứa Interface ICar và class Car.
+  title: 'Kỳ thi Thực hành PE PRO192 - Spring 2025',
+  description: `Đề thi thực hành minh họa môn Lập trình Hướng đối tượng Java (PRO192).
+Sinh viên được cấp Skeleton Starter Code chứa Interface ICar và class Car; trọng tâm profile PRO192 là triển khai đúng hợp đồng interface, đóng gói dữ liệu và xử lý file an toàn.
 Yêu cầu hoàn thành các phương thức:
 - Câu 1 (f1): Đếm số lượng xe có giá >= 500.
 - Câu 2 (f2): Sắp xếp danh sách xe theo rate tăng dần, nếu bằng nhau thì theo price giảm dần (Độ phức tạp kỳ vọng O(n log n)).
 - Câu 3 (f3): Ghi danh sách xe ra file đầu ra f1.txt (File I/O).`,
   environment: 'JAVA_JDK',
   durationMinutes: 90,
-  pdfFile: { name: 'PE_PRO192_CSD201_SP25_FinalExam.pdf', size: '384 KB' },
+  pdfFile: { name: 'PE_PRO192_SP25_Sample.pdf', size: '384 KB' },
   starterZipFile: { name: 'PRO192_StarterCode_Skeleton.zip', size: '128 KB' },
   zipEntries: ['src/Car.java', 'src/ICar.java', 'src/Main.java', 'src/MyCar.java'],
   zipFilesContent: {
@@ -256,10 +259,13 @@ Yêu cầu hoàn thành các phương thức:
     'src/Car.java': `package src;\n\npublic class Car {\n    private String name;\n    private double price;\n    private int rate;\n    public Car(String name, double price, int rate) {\n        this.name = name;\n        this.price = price;\n        this.rate = rate;\n    }\n    public String getName() { return name; }\n    public double getPrice() { return price; }\n    public int getRate() { return rate; }\n}`,
     'src/MyCar.java': `package src;\nimport java.util.List;\n\n// TODO: Sinh viên triển khai các phương thức f1, f2, f3 vào đây\npublic class MyCar implements ICar {\n    @Override\n    public int f1(List<Car> list) {\n        return 0;\n    }\n    @Override\n    public void f2(List<Car> list) {}\n    @Override\n    public void f3(List<Car> list, String outputFile) {}\n}`,
   },
-  solutionTitle: 'Bài giải mẫu chuẩn PRO192 / CSD201 - OOP Java Reference',
+  solutionTitle: 'Bài giải mẫu PRO192 - OOP Java Reference',
   expectedComplexity: 'O(n log n)',
+  expectedSpaceComplexity: 'O(n) auxiliary space for List.sort/Collections.sort',
+  acceptedStrategies: ['Comparator', 'Comparable', 'Collections.sort', 'List.sort'],
+  algorithmNotes: 'Đánh giá thiết kế class/interface và xử lý tài nguyên theo rubric PRO192. Phần sắp xếp chấp nhận mọi cách đúng có độ phức tạp O(n log n); không bắt buộc code giống reference.',
   solutionCode: `// ==========================================
-// PRO192 & CSD201 PE REFERENCE SOLUTION
+// PRO192 PE REFERENCE SOLUTION
 // Big-O Target: O(n log n)
 // ==========================================
 package src;
@@ -363,5 +369,31 @@ public class MyCar implements ICar {
       stdinInput: '2\\n0',
       expectedStdout: 'EMPTY_LIST',
     },
+  ],
+};
+
+export const sampleCsd201Template: SampleExamTemplate = {
+  title: 'Kỳ thi Thực hành PE CSD201 - Sorting Algorithms',
+  description: `Bài thực hành Java minh họa profile CSD201, tập trung vào cấu trúc dữ liệu mảng, sắp xếp tăng dần và xử lý trường hợp biên.\nĐầu vào gồm n và n số nguyên; in dãy đã sắp xếp trên một dòng. Lời giải cần đạt O(n log n). Đây là template minh họa để giảng viên chỉnh theo đề thực tế, không phải đề chính thức của trường.`,
+  environment: 'JAVA_JDK',
+  durationMinutes: 85,
+  pdfFile: { name: 'CSD201_PE_Sorting_Sample.pdf', size: '12 KB' },
+  starterZipFile: { name: 'CSD201_Sorting_Starter.zip', size: '2 KB' },
+  zipEntries: ['src/Main.java', 'src/IntegerSorter.java'],
+  zipFilesContent: {
+    'src/Main.java': `import java.util.Scanner;\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        if (!scanner.hasNextInt()) return;\n        int size = scanner.nextInt();\n        int[] values = new int[size];\n        for (int index = 0; index < size; index++) {\n            values[index] = scanner.nextInt();\n        }\n        IntegerSorter.sort(values);\n        for (int index = 0; index < values.length; index++) {\n            if (index > 0) System.out.print(" ");\n            System.out.print(values[index]);\n        }\n        System.out.println();\n    }\n}`,
+    'src/IntegerSorter.java': `import java.util.Arrays;\n\npublic final class IntegerSorter {\n    private IntegerSorter() {}\n\n    public static void sort(int[] values) {\n        Arrays.sort(values); // TODO: chọn và hiện thực thuật toán O(n log n)\n    }\n}`,
+  },
+  solutionTitle: 'Bài giải mẫu CSD201 - Sorting',
+  expectedComplexity: 'O(n log n)',
+  expectedSpaceComplexity: 'Theo thuật toán được chọn; nêu rõ auxiliary space',
+  acceptedStrategies: ['Merge sort', 'Heap sort', 'Arrays.sort'],
+  algorithmNotes: 'Profile CSD201: ưu tiên lựa chọn cấu trúc dữ liệu, tính đúng, độ phức tạp và edge case theo rubric ALGORITHM. Thời gian một lần chạy chỉ là tín hiệu bổ trợ, không dùng làm benchmark tuyệt đối.',
+  solutionCode: `import java.util.Arrays;\n\npublic final class IntegerSorter {\n    private IntegerSorter() {}\n\n    public static void sort(int[] values) {\n        if (values == null || values.length < 2) return;\n        Arrays.sort(values);\n    }\n}`,
+  testCases: [
+    { orderIndex: 1, questionNumber: 'Q1', label: 'CSD_SORT_MIXED', rationaleTag: 'FUNCTIONAL', isHidden: false, timeLimitMs: 2000, memoryLimitKb: 262144, points: 2, comparisonMode: 'STDIO', stdinInput: '5\n5 1 4 2 3', expectedStdout: '1 2 3 4 5' },
+    { orderIndex: 2, questionNumber: 'Q1', label: 'CSD_SORT_DUPLICATES', rationaleTag: 'PERFORMANCE', isHidden: true, timeLimitMs: 2000, memoryLimitKb: 262144, points: 2, comparisonMode: 'STDIO', stdinInput: '6\n4 2 4 1 2 1', expectedStdout: '1 1 2 2 4 4' },
+    { orderIndex: 3, questionNumber: 'Q1', label: 'CSD_SORT_SINGLE', rationaleTag: 'EDGE', isHidden: false, timeLimitMs: 1500, memoryLimitKb: 262144, points: 1.5, comparisonMode: 'STDIO', stdinInput: '1\n-7', expectedStdout: '-7' },
+    { orderIndex: 4, questionNumber: 'Q1', label: 'CSD_SORT_NEGATIVE', rationaleTag: 'BOUNDARY', isHidden: true, timeLimitMs: 2000, memoryLimitKb: 262144, points: 1.5, comparisonMode: 'STDIO', stdinInput: '5\n0 -3 8 -1 2', expectedStdout: '-3 -1 0 2 8' },
   ],
 };

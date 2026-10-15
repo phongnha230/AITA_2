@@ -5,6 +5,7 @@ export interface RagSubmissionData {
     title: string;
     description: string | null;
     environment: string;
+    courseCode: string | null;
     rubricRules: Array<{
       id: string;
       criterionName: string;
@@ -30,6 +31,8 @@ export interface RagSubmissionData {
   };
   testResults: Array<{
     verdict: string;
+    executionTimeMs: number;
+    memoryUsedKb: number;
     actualStdout: string | null;
     diffLog: string | null;
     testCase: { label: string; rationaleTag: string };

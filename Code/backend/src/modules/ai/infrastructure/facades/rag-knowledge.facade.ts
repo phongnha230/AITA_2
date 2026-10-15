@@ -3,6 +3,7 @@ import { AppError } from '../../../../shared/domain/exceptions/app.error.js';
 import { CHUNKER_VERSION } from '../chunking/code-chunker.js';
 import { ISolutionVectorStore } from '../vector/chroma-vector.service.js';
 import { IRagContextRepository } from '../../domain/repositories/rag-context.repository.interface.js';
+import { resolveJavaGradingProfile } from '../../domain/java-grading-profile.js';
 import {
   IRagKnowledgeService,
   RagContext,
@@ -21,16 +22,67 @@ export class RagKnowledgeFacade implements IRagKnowledgeService {
   ) {}
 
   async getGradingContext(submissionId: string, studentCode: string): Promise<RagContext> {
-    if (!env.AI_GRADING_REQUIRE_READY_RAG) {
-      throw new RagUnavailableError(
-        'AI grading đang tắt cho tới khi backfill RAG hoàn tất và AI_GRADING_REQUIRE_READY_RAG=true.'
-      );
-    }
     const submission = await this.ragContextRepository.findSubmissionContext(submissionId);
     if (!submission) throw new RagUnavailableError('Không tìm thấy submission để dựng RAG context.');
 
     const assignment = submission.assignment;
     const solution = assignment.activeSolution;
+    const courseCode = assignment.courseCode;
+    const javaGradingProfile = assignment.environment === 'JAVA_JDK'
+      ? resolveJavaGradingProfile(courseCode)
+      : null;
+    const failedTestCases = submission.testResults
+      .filter((testResult) => testResult.verdict !== 'PASSED')
+      .map((testResult) => ({
+        label: testResult.testCase.label,
+        rationaleTag: testResult.testCase.rationaleTag,
+        verdict: testResult.verdict,
+        actualStdout: testResult.actualStdout,
+        diffLog: testResult.diffLog,
+      }));
+    const testPerformance = submission.testResults.map((test) => ({
+      label: test.testCase.label,
+      rationaleTag: test.testCase.rationaleTag,
+      verdict: test.verdict,
+      executionTimeMs: test.executionTimeMs,
+      memoryUsedKb: test.memoryUsedKb,
+    }));
+    const rubricRules = assignment.rubricRules.map((rule) => ({
+      id: rule.id,
+      criterionName: rule.criterionName,
+      description: rule.description,
+      maxPoints: Number(rule.maxPoints),
+      weight: Number(rule.weight),
+      criterionType: rule.criterionType,
+    }));
+
+    if (assignment.environment === 'REACT_JS') {
+      return {
+        assignmentTitle: assignment.title,
+        assignmentDescription: assignment.description,
+        environment: assignment.environment,
+        courseCode,
+        javaGradingProfile: null,
+        algorithmSpecification: {
+          expectedTimeComplexity: null,
+          expectedSpaceComplexity: null,
+          acceptedStrategies: [],
+          notes: null,
+        },
+        referenceSolutionSource: '',
+        relevantSolutionChunks: [],
+        rubricRules,
+        failedTestCases,
+        testPerformance,
+      };
+    }
+
+    if (!env.AI_GRADING_REQUIRE_READY_RAG) {
+      throw new RagUnavailableError(
+        'AI grading đang tắt cho tới khi backfill RAG hoàn tất và AI_GRADING_REQUIRE_READY_RAG=true.'
+      );
+    }
+
     if (
       !solution ||
       solution.activeKey !== assignment.id ||
@@ -41,20 +93,12 @@ export class RagKnowledgeFacade implements IRagKnowledgeService {
       throw new RagUnavailableError();
     }
 
-    const failedTestCases = submission.testResults
-      .filter((testResult) => testResult.verdict !== 'PASSED')
-      .map((testResult) => ({
-        label: testResult.testCase.label,
-        rationaleTag: testResult.testCase.rationaleTag,
-        verdict: testResult.verdict,
-        actualStdout: testResult.actualStdout,
-        diffLog: testResult.diffLog,
-      }));
-
     const queryText = [
       `Assignment: ${assignment.title}`,
       `Description: ${assignment.description ?? ''}`,
       `Language: ${assignment.environment}`,
+      `Course code: ${courseCode ?? 'unknown'}`,
+      `Java grading profile: ${javaGradingProfile ?? 'not applicable'}`,
       `Expected time complexity: ${solution.expectedTimeComplexity ?? ''}`,
       `Expected space complexity: ${solution.expectedSpaceComplexity ?? ''}`,
       `Accepted strategies: ${JSON.stringify(solution.acceptedStrategies ?? [])}`,
@@ -62,6 +106,9 @@ export class RagKnowledgeFacade implements IRagKnowledgeService {
       `Compiler error: ${submission.compileOutput ?? ''}`,
       `Failed tests: ${failedTestCases.map((test) =>
         `${test.label} ${test.rationaleTag} ${test.verdict} ${test.diffLog ?? test.actualStdout ?? ''}`
+      ).join('\n')}`,
+      `Test performance observations (single sandbox run; not a benchmark): ${submission.testResults.map((test) =>
+        `${test.testCase.label} ${test.verdict} ${test.executionTimeMs}ms ${test.memoryUsedKb}KiB`
       ).join('\n')}`,
       `Student source excerpt: ${studentCode.slice(0, 4_096)}`,
     ].join('\n').slice(0, 8_192);
@@ -89,6 +136,8 @@ export class RagKnowledgeFacade implements IRagKnowledgeService {
       assignmentTitle: assignment.title,
       assignmentDescription: assignment.description,
       environment: assignment.environment,
+      courseCode,
+      javaGradingProfile,
       algorithmSpecification: {
         expectedTimeComplexity: solution.expectedTimeComplexity,
         expectedSpaceComplexity: solution.expectedSpaceComplexity,
@@ -99,15 +148,9 @@ export class RagKnowledgeFacade implements IRagKnowledgeService {
       },
       referenceSolutionSource: solution.sourceCode,
       relevantSolutionChunks,
-      rubricRules: assignment.rubricRules.map((rule) => ({
-        id: rule.id,
-        criterionName: rule.criterionName,
-        description: rule.description,
-        maxPoints: Number(rule.maxPoints),
-        weight: Number(rule.weight),
-        criterionType: rule.criterionType,
-      })),
+      rubricRules,
       failedTestCases,
+      testPerformance,
     };
   }
 }

@@ -18,6 +18,7 @@ export class PrismaRagContextRepository implements IRagContextRepository {
             title: true,
             description: true,
             environment: true,
+            course: { select: { code: true } },
             rubricRules: {
               orderBy: { orderIndex: 'asc' },
               select: {
@@ -52,6 +53,8 @@ export class PrismaRagContextRepository implements IRagContextRepository {
         testResults: {
           select: {
             verdict: true,
+            executionTimeMs: true,
+            memoryUsedKb: true,
             actualStdout: true,
             diffLog: true,
             testCase: { select: { label: true, rationaleTag: true } },
@@ -60,11 +63,12 @@ export class PrismaRagContextRepository implements IRagContextRepository {
       },
     });
     if (!submission) return null;
-    const { solutions, rubricRules, ...assignment } = submission.assignment;
+    const { solutions, rubricRules, course, ...assignment } = submission.assignment;
     return {
       compileOutput: submission.compileOutput,
       assignment: {
         ...assignment,
+        courseCode: course.code,
         rubricRules: rubricRules.map((rule) => ({
           ...rule,
           maxPoints: Number(rule.maxPoints),

@@ -15,6 +15,8 @@ export interface RagContext {
   assignmentTitle: string;
   assignmentDescription: string | null;
   environment: string;
+  courseCode: string | null;
+  javaGradingProfile: 'PRO_OOP' | 'CSD_ALGORITHM' | 'JAVA_GENERAL' | null;
   algorithmSpecification: {
     expectedTimeComplexity: string | null;
     expectedSpaceComplexity: string | null;
@@ -37,6 +39,13 @@ export interface RagContext {
     verdict: string;
     actualStdout: string | null;
     diffLog: string | null;
+  }>;
+  testPerformance: Array<{
+    label: string;
+    rationaleTag: string;
+    verdict: string;
+    executionTimeMs: number;
+    memoryUsedKb: number;
   }>;
 }
 
