@@ -76,3 +76,13 @@ export const UpsertSolutionSchema = z.object({
 });
 
 export type UpsertSolutionDto = z.infer<typeof UpsertSolutionSchema>;
+
+export const ControlSessionSchema = z.object({
+  action: z.enum(['EXTEND', 'CLOSE', 'START', 'PAUSE'], {
+    required_error: 'Hành động điều khiển phiên thi không hợp lệ (EXTEND, CLOSE, START, PAUSE)',
+  }),
+  extraMinutes: z.coerce.number().int().positive().optional(),
+});
+
+export type ControlSessionDto = z.infer<typeof ControlSessionSchema>;
+

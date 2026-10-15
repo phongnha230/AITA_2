@@ -1,4 +1,5 @@
 import { LoaderCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface GoogleSsoButtonProps {
   isLoading: boolean;
@@ -12,21 +13,22 @@ export default function GoogleSsoButton({
   onClick,
 }: GoogleSsoButtonProps) {
   return (
-    <button
+    <Button
       type="button"
+      variant="outline"
       onClick={onClick}
       disabled={isLoading || disabled}
-      className="flex w-full items-center justify-center gap-3 rounded-lg bg-slate-50 px-4 py-3 text-center text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+      className="h-11 w-full justify-center gap-2.5 rounded-lg border-slate-200 bg-white text-sm font-medium text-slate-700 shadow-xs transition-colors hover:bg-slate-50 hover:text-slate-900"
     >
-      {isLoading ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <GoogleMark />}
-      <span>Đăng nhập với Google FPT Edu (@fpt.edu.vn / @fe.edu.vn)</span>
-    </button>
+      {isLoading ? <LoaderCircle className="h-4 w-4 animate-spin text-slate-500" /> : <GoogleMark />}
+      <span>Đăng nhập bằng Google</span>
+    </Button>
   );
 }
 
 function GoogleMark() {
   return (
-    <svg aria-hidden="true" className="h-5 w-5 shrink-0" viewBox="0 0 24 24">
+    <svg aria-hidden="true" className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
       <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.66v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.15z" />
       <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.24v3.15C3.26 21.36 7.34 24 12 24z" />
       <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.24C.45 8.16 0 9.97 0 12s.45 3.84 1.24 5.42l4.04-3.15z" />

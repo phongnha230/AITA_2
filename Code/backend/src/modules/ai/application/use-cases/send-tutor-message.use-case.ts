@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import prisma from '../../../../infrastructure/database/prisma.client.js';
 import { IAiTutorRepository } from '../../domain/repositories/ai-tutor.repository.interface.js';
+import { ISubmissionRepository } from '../../../submission/domain/repositories/submission.repository.interface.js';
 import { ApiKeyRotatorFacade } from '../../infrastructure/facades/api-key-rotator.facade.js';
 import { SocraticTutorPrompt } from '../../infrastructure/prompts/socratic-tutor.prompt.js';
 import { NotFoundError, ForbiddenError, ValidationError } from '../../../../shared/domain/exceptions/app.error.js';
@@ -9,6 +9,7 @@ import { NotFoundError, ForbiddenError, ValidationError } from '../../../../shar
 export class SendTutorMessageUseCase {
   constructor(
     private readonly aiTutorRepository: IAiTutorRepository,
+    private readonly submissionRepository: ISubmissionRepository,
     private readonly apiKeyRotatorFacade: ApiKeyRotatorFacade
   ) {}
 
@@ -33,16 +34,8 @@ export class SendTutorMessageUseCase {
       content: userMessageContent,
     });
 
-    // 2. Lấy thông tin bài nộp & các testcase bị lỗi
-    const submission = await prisma.submission.findUnique({
-      where: { id: conversation.submissionId },
-      include: {
-        testResults: {
-          where: { verdict: { not: 'PASSED' } },
-          include: { testCase: true },
-        },
-      },
-    });
+    // 2. Lấy thông tin bài nộp & các testcase bị lỗi thông qua repository
+    const submission = await this.submissionRepository.findWithJobStatus(conversation.submissionId);
 
     let studentCode = '// Không tìm thấy mã nguồn';
     if (submission?.zipFilePath && fs.existsSync(submission.zipFilePath)) {
@@ -58,12 +51,15 @@ export class SendTutorMessageUseCase {
       }
     }
 
-    const failedTests = submission?.testResults
-      .map(
-        (tr: any) =>
-          `- Test ${tr.testCase.label} (${tr.testCase.rationaleTag}): Kết quả ${tr.verdict}. ${tr.diffLog || ''}`
-      )
-      .join('\n') || 'Không có testcase lỗi.';
+    const testResults = (submission?.testResults || []).filter((tr: any) => tr.verdict !== 'PASSED');
+    const failedTests = testResults.length > 0
+      ? testResults
+          .map(
+            (tr: any) =>
+              `- Test ${tr.testCase?.label || tr.testCaseId} (${tr.testCase?.rationaleTag || 'TEST'}): Kết quả ${tr.verdict}. ${tr.diffLog || ''}`
+          )
+          .join('\n')
+      : 'Không có testcase lỗi.';
 
     // 3. Lấy lịch sử tin nhắn
     const allMessages = await this.aiTutorRepository.getMessages(conversationId);
@@ -107,7 +103,6 @@ export class SendTutorMessageUseCase {
   }
 
   private detectCodeLeakage(text: string): boolean {
-    // Phát hiện nếu AI vô tình nhả block code giải hoàn chỉnh quá 10 dòng
     const codeBlockRegex = /```[\s\S]*?```/g;
     const matches = text.match(codeBlockRegex);
     if (!matches) return false;

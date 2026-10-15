@@ -17,6 +17,12 @@ export class PrismaUserRepository implements IUserRepository {
       passwordHash: raw.passwordHash,
       refreshTokenHash: raw.refreshTokenHash,
       lastLoginAt: raw.lastLoginAt,
+      studentCode: raw.studentCode,
+      phoneNumber: raw.phoneNumber,
+      major: raw.major,
+      cohort: raw.cohort,
+      githubUrl: raw.githubUrl,
+      bio: raw.bio,
       createdAt: raw.createdAt,
       updatedAt: raw.updatedAt,
     });
@@ -25,6 +31,55 @@ export class PrismaUserRepository implements IUserRepository {
   async findById(id: string): Promise<User | null> {
     const raw = await this.prisma.user.findUnique({ where: { id } });
     return raw ? this.toDomain(raw) : null;
+  }
+
+  async findDetailedById(id: string): Promise<any | null> {
+    const raw = await this.prisma.user.findUnique({
+      where: { id },
+      include: {
+        enrollments: {
+          include: {
+            course: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+                semester: true,
+                lecturer: { select: { fullName: true } },
+              },
+            },
+          },
+        },
+        coursesTaught: {
+          include: {
+            enrollments: true,
+            assignments: true,
+          },
+        },
+        submissions: {
+          take: 10,
+          orderBy: { submittedAt: 'desc' },
+          include: {
+            assignment: {
+              select: {
+                title: true,
+                course: { select: { code: true, name: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!raw) return null;
+
+    const base = this.toDomain(raw).toJSON();
+    return {
+      ...base,
+      enrollments: raw.enrollments,
+      coursesTaught: raw.coursesTaught,
+      submissions: raw.submissions,
+    };
   }
 
   async findByEmail(email: string): Promise<User | null> {
@@ -81,6 +136,12 @@ export class PrismaUserRepository implements IUserRepository {
       role: Role;
       passwordHash: string;
       refreshTokenHash: string | null;
+      studentCode: string | null;
+      phoneNumber: string | null;
+      major: string | null;
+      cohort: string | null;
+      githubUrl: string | null;
+      bio: string | null;
     }>
   ): Promise<User> {
     const raw = await this.prisma.user.update({
@@ -95,6 +156,25 @@ export class PrismaUserRepository implements IUserRepository {
       where: { id },
       data: { lastLoginAt: new Date() },
     });
+  }
+
+  async rotateRefreshTokenHash(id: string, currentHash: string, nextHash: string): Promise<boolean> {
+    const result = await this.prisma.user.updateMany({
+      where: { id, refreshTokenHash: currentHash },
+      data: { refreshTokenHash: nextHash },
+    });
+    return result.count === 1;
+  }
+
+  async clearRefreshTokenHash(id: string, expectedHash?: string): Promise<boolean> {
+    const result = await this.prisma.user.updateMany({
+      where: {
+        id,
+        ...(expectedHash !== undefined && { refreshTokenHash: expectedHash }),
+      },
+      data: { refreshTokenHash: null },
+    });
+    return result.count === 1;
   }
 
   async findAll(filter?: FindUsersFilter): Promise<{ users: User[]; total: number }> {

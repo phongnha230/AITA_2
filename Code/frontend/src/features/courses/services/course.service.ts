@@ -6,6 +6,7 @@ import {
   GenerateJoinCodeResponse,
   QueryCoursesParams,
   LecturerKpiMetrics,
+  LecturerDashboardResponse,
 } from '../types/course.types';
 
 // Fallback mock data matching the approved prototype for smooth offline/sandbox preview
@@ -187,162 +188,195 @@ export const INITIAL_MOCK_COURSES: Course[] = [
 
 export const courseService = {
   /**
+   * Lấy tổng quan Dashboard của Giảng viên (Thống kê, khóa học, 10 bài nộp mới nhất)
+   */
+  async getLecturerDashboard(): Promise<LecturerDashboardResponse> {
+    try {
+      const response = await api.get('/users/lecturer-dashboard');
+      if (response.data && response.data.data) {
+        return response.data.data;
+      }
+      throw new Error('Dữ liệu dashboard không khả dụng');
+    } catch (error) {
+      console.warn('[CourseService] Backend lecturer-dashboard unavailable, using fallback:', error);
+      return {
+        lecturer: {
+          id: 'lecturer-vd-01',
+          email: 'diepnv@fpt.edu.vn',
+          fullName: 'TS. Nguyễn Văn Điệp',
+          role: 'LECTURER',
+          status: 'ACTIVE',
+        },
+        teachingStats: {
+          totalCourses: 3,
+          totalStudents: 118,
+          totalAssignments: 14,
+          totalSubmissions: 248,
+          averageScore: 8.4,
+          pendingGradingCount: 6,
+        },
+        coursesOverview: INITIAL_MOCK_COURSES.map((c) => ({
+          id: c.id,
+          code: c.code,
+          name: c.name,
+          semester: c.semester,
+          isActive: c.isActive,
+          enrollmentCode: c.enrollmentCode,
+          codeExpiresAt: c.codeExpiresAt,
+          totalStudents: c.enrolledStudentsCount || 38,
+          totalAssignments: c._count?.assignments || 5,
+          totalSubmissions: 38,
+          averageScore: c.currentGpaAvg || 8.4,
+        })),
+        recentSubmissions: [
+          {
+            id: 'sub-recent-01',
+            studentId: 'stu-01',
+            studentName: 'Trần Đỗ Phong Nhã',
+            studentEmail: 'phongnhatd@fpt.edu.vn',
+            assignmentId: 'assign-pe-01',
+            assignmentTitle: 'Đề thi PE SWD392 Fall 2026',
+            courseCode: 'SWD392',
+            courseName: 'Kiến Trúc & Thiết Kế Phần Mềm',
+            paperCode: 'SE1901_Q1',
+            submittedAt: new Date(Date.now() - 3600000).toISOString(),
+            status: 'GRADED',
+            sandboxScore: 6.0,
+            aiScore: 1.5,
+            finalScore: 7.5,
+          },
+          {
+            id: 'sub-recent-02',
+            studentId: 'stu-02',
+            studentName: 'Nguyễn Văn Điệp',
+            studentEmail: 'diepnv@fpt.edu.vn',
+            assignmentId: 'assign-pe-01',
+            assignmentTitle: 'Đề thi PE SWD392 Fall 2026',
+            courseCode: 'SWD392',
+            courseName: 'Kiến Trúc & Thiết Kế Phần Mềm',
+            paperCode: 'SE1901_Q1',
+            submittedAt: new Date(Date.now() - 7200000).toISOString(),
+            status: 'GRADED',
+            sandboxScore: 8.0,
+            aiScore: 1.9,
+            finalScore: 9.9,
+          },
+          {
+            id: 'sub-recent-03',
+            studentId: 'stu-03',
+            studentName: 'Lê Hoàng Long',
+            studentEmail: 'longlh@fpt.edu.vn',
+            assignmentId: 'assign-pe-01',
+            assignmentTitle: 'Đề thi PE SWD392 Fall 2026',
+            courseCode: 'SWD392',
+            courseName: 'Kiến Trúc & Thiết Kế Phần Mềm',
+            paperCode: 'SE1901_Q1',
+            submittedAt: new Date(Date.now() - 10800000).toISOString(),
+            status: 'RUNNING_SANDBOX',
+            sandboxScore: 0,
+            aiScore: 0,
+            finalScore: 0,
+          },
+        ],
+        assignmentsSummary: [
+          {
+            id: 'assign-pe-01',
+            title: 'Đề thi PE SWD392 Fall 2026',
+            courseCode: 'SWD392',
+            status: 'PUBLISHED',
+            environment: 'JAVA_JDK',
+            deadline: new Date(Date.now() + 86400000 * 2).toISOString(),
+            hasAccessCode: true,
+            totalSubmissions: 38,
+            averageScore: 8.4,
+          },
+        ],
+      };
+    }
+  },
+
+  /**
    * Lấy danh sách khóa học của giảng viên
    */
   async getCourses(params?: QueryCoursesParams): Promise<Course[]> {
-    try {
-      const response = await api.get('/courses', { params });
-      if (response.data && response.data.data && Array.isArray(response.data.data)) {
-        return response.data.data;
-      }
-      return INITIAL_MOCK_COURSES;
-    } catch (error) {
-      console.warn('[CourseService] Backend unavailable, using mock dataset:', error);
-      let list = [...INITIAL_MOCK_COURSES];
-      if (params?.search) {
-        const q = params.search.toLowerCase();
-        list = list.filter(
-          (c) => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)
-        );
-      }
-      if (params?.semester && params.semester !== 'All') {
-        list = list.filter((c) => c.semester === params.semester);
-      }
-      return list;
+    const response = await api.get('/courses', { params });
+    if (response.data && response.data.data && Array.isArray(response.data.data)) {
+      return response.data.data;
     }
+    return [];
   },
 
   /**
    * Lấy chi tiết khóa học theo ID
    */
   async getCourseById(id: string): Promise<Course> {
-    try {
-      const response = await api.get(`/courses/${id}`);
-      if (response.data && response.data.data) {
-        return response.data.data;
-      }
-      throw new Error('Course not found');
-    } catch (error) {
-      console.warn(`[CourseService] Backend fetch failed for ID: ${id}, using mock detail:`, error);
-      const found = INITIAL_MOCK_COURSES.find((c) => c.id === id);
-      if (found) return found;
-      return INITIAL_MOCK_COURSES[0];
+    const response = await api.get(`/courses/${id}`);
+    if (response.data && response.data.data) {
+      return response.data.data;
     }
+    throw new Error('Không tìm thấy khóa học.');
   },
 
   /**
    * Tạo mới khóa học
    */
   async createCourse(payload: CreateCoursePayload): Promise<Course> {
-    try {
-      const response = await api.post('/courses', payload);
-      return response.data.data;
-    } catch (error) {
-      console.warn('[CourseService] Create course API fallback:', error);
-      const newCourse: Course = {
-        id: `course-${payload.code.toLowerCase()}-${Date.now()}`,
-        code: payload.code.toUpperCase(),
-        name: payload.name,
-        semester: payload.semester,
-        lecturerId: payload.lecturerId || 'lecturer-vd-01',
-        isActive: true,
-        capacity: payload.capacity || 40,
-        enrolledStudentsCount: 0,
-        syllabusProgress: 0,
-        currentGpaAvg: 0,
-        enrollmentCode: `AITA-${Math.floor(1000 + Math.random() * 9000)}`,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        _count: {
-          enrollments: 0,
-          assignments: 0,
-        },
-        enrollments: [],
-      };
-      INITIAL_MOCK_COURSES.unshift(newCourse);
-      return newCourse;
-    }
+    const response = await api.post('/courses', payload);
+    return response.data.data;
   },
 
   /**
    * Cập nhật thông tin khóa học
    */
   async updateCourse(id: string, payload: UpdateCoursePayload): Promise<Course> {
-    try {
-      const response = await api.put(`/courses/${id}`, payload);
-      return response.data.data;
-    } catch (error) {
-      console.warn(`[CourseService] Update course fallback for ${id}:`, error);
-      const index = INITIAL_MOCK_COURSES.findIndex((c) => c.id === id);
-      if (index !== -1) {
-        INITIAL_MOCK_COURSES[index] = { ...INITIAL_MOCK_COURSES[index], ...payload };
-        return INITIAL_MOCK_COURSES[index];
-      }
-      throw error;
-    }
+    const response = await api.put(`/courses/${id}`, payload);
+    return response.data.data;
+  },
+
+  /**
+   * Xóa khóa học
+   */
+  async deleteCourse(id: string): Promise<void> {
+    await api.delete(`/courses/${id}`);
   },
 
   /**
    * Giảng viên sinh mã tham gia lớp học mới (TTL động)
    */
   async generateJoinCode(id: string, expiresInMinutes: number = 30): Promise<GenerateJoinCodeResponse> {
-    try {
-      const response = await api.post(`/courses/${id}/generate-code`, { expiresInMinutes });
-      return response.data.data;
-    } catch (error) {
-      console.warn(`[CourseService] Generate join code fallback for ${id}:`, error);
-      const code = `AITA-${Math.floor(1000 + Math.random() * 9000)}`;
-      const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000).toISOString();
-      const course = INITIAL_MOCK_COURSES.find((c) => c.id === id);
-      if (course) {
-        course.enrollmentCode = code;
-        course.codeExpiresAt = expiresAt;
-      }
-      return {
-        courseId: id,
-        enrollmentCode: code,
-        expiresAt,
-        expiresInMinutes,
-        message: 'Sinh mã tham gia lớp học thành công!',
-      };
-    }
+    const response = await api.post(`/courses/${id}/generate-code`, { expiresInMinutes });
+    const raw = response.data.data;
+    return {
+      courseId: raw.courseId || id,
+      enrollmentCode: raw.joinCode || raw.enrollmentCode,
+      expiresAt: raw.expiresAt,
+      expiresInMinutes: raw.expiresInMinutes || expiresInMinutes,
+      message: raw.message || 'Sinh mã tham gia lớp học thành công!',
+    };
   },
 
   /**
    * Khóa / thu hồi mã tham gia lớp học
    */
   async revokeJoinCode(id: string): Promise<void> {
-    try {
-      await api.delete(`/courses/${id}/revoke-code`);
-    } catch (error) {
-      console.warn(`[CourseService] Revoke join code fallback for ${id}:`, error);
-      const course = INITIAL_MOCK_COURSES.find((c) => c.id === id);
-      if (course) {
-        course.enrollmentCode = null;
-        course.codeExpiresAt = null;
-      }
-    }
+    await api.delete(`/courses/${id}/revoke-code`);
   },
 
   /**
    * Xóa sinh viên khỏi lớp
    */
   async removeStudent(courseId: string, studentId: string): Promise<void> {
-    try {
-      await api.delete(`/courses/${courseId}/students/${studentId}`);
-    } catch (error) {
-      console.warn(`[CourseService] Remove student fallback for ${courseId}/${studentId}:`, error);
-      const course = INITIAL_MOCK_COURSES.find((c) => c.id === courseId);
-      if (course && course.enrollments) {
-        course.enrollments = course.enrollments.filter((e) => e.student.id !== studentId && e.student.studentCode !== studentId);
-        course._count = {
-          ...course._count,
-          enrollments: course.enrollments.length,
-          assignments: course._count?.assignments || 0,
-        };
-      }
-    }
+    await api.delete(`/courses/${courseId}/students/${studentId}`);
   },
+
+  /**
+   * Giảng viên ghi danh học viên vào lớp theo danh sách ID
+   */
+  async enrollStudents(courseId: string, studentIds: string[]): Promise<{ enrolledCount: number }> {
+    const response = await api.post(`/courses/${courseId}/enroll`, { studentIds });
+    return response.data?.data || { enrolledCount: studentIds.length };
+  },
+
 
   /**
    * Tính toán KPI tổng quan của giảng viên

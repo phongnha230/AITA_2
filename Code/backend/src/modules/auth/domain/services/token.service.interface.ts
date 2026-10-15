@@ -3,6 +3,7 @@ export interface JwtPayload {
   email: string;
   role: string;
   fullName: string;
+  tokenType?: 'access' | 'refresh';
 }
 
 export interface AuthTokens {

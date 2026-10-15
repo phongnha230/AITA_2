@@ -1,14 +1,22 @@
 import { IAssignmentRepository } from '../../domain/repositories/assignment.repository.interface.js';
 import { UpdateAssignmentDto } from '../dtos/assignment.dto.js';
-import { NotFoundError } from '../../../../shared/domain/exceptions/app.error.js';
+import { NotFoundError, ForbiddenError } from '../../../../shared/domain/exceptions/app.error.js';
 
 export class UpdateAssignmentUseCase {
   constructor(private readonly assignmentRepository: IAssignmentRepository) {}
 
-  async execute(assignmentId: string, dto: UpdateAssignmentDto) {
+  async execute(
+    assignmentId: string,
+    dto: UpdateAssignmentDto,
+    requester?: { userId: string; role: string }
+  ) {
     const existing = await this.assignmentRepository.findById(assignmentId);
     if (!existing) {
       throw new NotFoundError(`Đề thi với ID: ${assignmentId}`);
+    }
+
+    if (requester && requester.role !== 'ADMIN' && existing.createdBy !== requester.userId) {
+      throw new ForbiddenError('Bạn không có quyền chỉnh sửa đề thi của giảng viên khác.');
     }
 
     const updated = await this.assignmentRepository.update(assignmentId, {

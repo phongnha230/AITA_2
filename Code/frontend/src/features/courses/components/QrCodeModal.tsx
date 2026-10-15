@@ -1,7 +1,16 @@
 'use client';
 
 import React from 'react';
-import { X, Copy, Check } from 'lucide-react';
+import { Copy, Check } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 interface QrCodeModalProps {
   isOpen: boolean;
@@ -22,8 +31,6 @@ export const QrCodeModal: React.FC<QrCodeModalProps> = ({
 }) => {
   const [copied, setCopied] = React.useState(false);
 
-  if (!isOpen) return null;
-
   const handleCopy = () => {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
       navigator.clipboard.writeText(joinCode);
@@ -33,22 +40,22 @@ export const QrCodeModal: React.FC<QrCodeModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-      <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl border border-slate-100 flex flex-col items-center text-center relative">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition"
-        >
-          <X className="w-5 h-5" />
-        </button>
-
-        <span className="text-xs font-bold font-mono px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full border border-indigo-200">
-          {courseCode}
-        </span>
-        <h3 className="text-lg font-black text-slate-900 mt-2">{courseName}</h3>
-        <p className="text-xs text-slate-500 mt-1">
-          Quét mã bằng camera hoặc app AITA để tham gia lớp ngay lập tức
-        </p>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-sm rounded-3xl p-6 sm:p-8 bg-white border border-slate-100 shadow-2xl flex flex-col items-center text-center">
+        <DialogHeader className="items-center text-center space-y-1">
+          <Badge
+            variant="outline"
+            className="text-xs font-bold font-mono px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full border-indigo-200 mx-auto"
+          >
+            {courseCode}
+          </Badge>
+          <DialogTitle className="text-lg font-black text-slate-900 mt-2 text-center">
+            {courseName}
+          </DialogTitle>
+          <DialogDescription className="text-xs text-slate-500 mt-1 text-center">
+            Quét mã bằng camera hoặc app AITA để tham gia lớp ngay lập tức
+          </DialogDescription>
+        </DialogHeader>
 
         {/* QR Code Illustration Frame */}
         <div className="my-5 p-4 bg-white rounded-2xl border-2 border-dashed border-indigo-200 shadow-inner flex flex-col items-center">
@@ -79,22 +86,24 @@ export const QrCodeModal: React.FC<QrCodeModalProps> = ({
           <span className="text-2xl font-black font-mono tracking-widest text-indigo-950 bg-indigo-50/70 border border-indigo-200 px-4 py-2 rounded-xl">
             {joinCode}
           </span>
-          <button
+          <Button
+            size="icon"
             onClick={handleCopy}
-            className="p-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-xs transition"
+            className="h-11 w-11 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-xs transition"
             title="Sao chép mã"
           >
             {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
-          </button>
+          </Button>
         </div>
 
-        <button
+        <Button
+          variant="secondary"
           onClick={onClose}
-          className="mt-6 w-full py-2.5 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition"
+          className="mt-6 w-full h-10 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition"
         >
           Đóng cửa sổ
-        </button>
-      </div>
-    </div>
+        </Button>
+      </DialogContent>
+    </Dialog>
   );
 };

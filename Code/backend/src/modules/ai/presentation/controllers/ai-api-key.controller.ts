@@ -23,6 +23,16 @@ export class AiApiKeyController {
     }
   };
 
+  toggleKey = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { isActive } = req.body ?? {};
+      const updated = await this.manageApiKeysUseCase.toggleKey(req.params.id, isActive);
+      sendSuccess(res, updated, 'Cập nhật trạng thái API Key thành công.');
+    } catch (error) {
+      next(error);
+    }
+  };
+
   deleteKey = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const result = await this.manageApiKeysUseCase.deleteKey(req.params.id);

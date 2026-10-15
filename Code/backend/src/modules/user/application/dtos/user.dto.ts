@@ -3,6 +3,12 @@ import { z } from 'zod';
 export const UpdateProfileSchema = z.object({
   fullName: z.string().min(2, 'Họ và tên tối thiểu 2 ký tự').max(100).optional(),
   avatarUrl: z.string().url('URL ảnh đại diện không hợp lệ').optional().nullable(),
+  studentCode: z.string().max(20, 'MSSV tối đa 20 ký tự').optional().nullable(),
+  phoneNumber: z.string().max(20, 'Số điện thoại tối đa 20 ký tự').optional().nullable(),
+  major: z.string().max(100, 'Chuyên ngành tối đa 100 ký tự').optional().nullable(),
+  cohort: z.string().max(50, 'Khóa/Lớp tối đa 50 ký tự').optional().nullable(),
+  githubUrl: z.string().url('URL GitHub không hợp lệ').optional().nullable().or(z.literal('')),
+  bio: z.string().max(255, 'Giới thiệu tối đa 255 ký tự').optional().nullable(),
 });
 
 export type UpdateProfileDto = z.infer<typeof UpdateProfileSchema>;

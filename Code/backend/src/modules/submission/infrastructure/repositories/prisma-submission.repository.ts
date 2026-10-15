@@ -100,7 +100,9 @@ export class PrismaSubmissionRepository implements ISubmissionRepository {
             aiEndedAt: true,
           },
         },
-        testResults: true,
+        testResults: {
+          include: { testCase: true },
+        },
         aiGradingResult: true,
       },
     });
@@ -128,6 +130,69 @@ export class PrismaSubmissionRepository implements ISubmissionRepository {
     return rawList.map((r: any) => this.toDomain(r));
   }
 
+  async findLatestByAssignmentAndUser(assignmentId: string, userId: string): Promise<Submission | null> {
+    const raw = await this.prisma.submission.findFirst({
+      where: { assignmentId, userId },
+      include: {
+        user: { select: { id: true, fullName: true, email: true } },
+        assignment: { select: { id: true, title: true, courseId: true } },
+      },
+      orderBy: { submittedAt: 'desc' },
+    });
+
+    return raw ? this.toDomain(raw) : null;
+  }
+
+  async findLatestByUser(userId: string): Promise<Submission | null> {
+    const raw = await this.prisma.submission.findFirst({
+      where: { userId },
+      include: {
+        user: { select: { id: true, fullName: true, email: true } },
+        assignment: { select: { id: true, title: true, courseId: true } },
+      },
+      orderBy: { submittedAt: 'desc' },
+    });
+
+    return raw ? this.toDomain(raw) : null;
+  }
+
+  async findByAssignmentId(assignmentId: string): Promise<any[]> {
+    const rawList = await this.prisma.submission.findMany({
+      where: { assignmentId },
+      include: {
+        user: { select: { id: true, fullName: true, email: true, avatarUrl: true } },
+        gradingJob: {
+          select: {
+            id: true,
+            status: true,
+            queuedAt: true,
+            sandboxStartedAt: true,
+            sandboxEndedAt: true,
+            aiStartedAt: true,
+            aiEndedAt: true,
+          },
+        },
+        testResults: {
+          select: {
+            id: true,
+            testCaseId: true,
+            verdict: true,
+            earnedPoints: true,
+            executionTimeMs: true,
+          },
+        },
+      },
+      orderBy: { submittedAt: 'desc' },
+    });
+
+    return rawList.map((r: any) => ({
+      ...this.toDomain(r).toJSON(),
+      user: r.user,
+      gradingJob: r.gradingJob,
+      testResults: r.testResults,
+    }));
+  }
+
   async updateStatus(id: string, status: SubmissionStatus): Promise<Submission> {
     const raw = await this.prisma.submission.update({
       where: { id },
@@ -145,6 +210,32 @@ export class PrismaSubmissionRepository implements ISubmissionRepository {
     const raw = await this.prisma.submission.update({
       where: { id },
       data: { zipFilePath },
+      include: {
+        user: { select: { id: true, fullName: true, email: true } },
+        assignment: { select: { id: true, title: true, courseId: true } },
+      },
+    });
+
+    return this.toDomain(raw);
+  }
+
+  async updateAiGradingScores(
+    id: string,
+    data: {
+      aiScore: number;
+      finalScore: number;
+      status: SubmissionStatus;
+      gradedAt: Date;
+    }
+  ): Promise<Submission> {
+    const raw = await this.prisma.submission.update({
+      where: { id },
+      data: {
+        aiScore: data.aiScore,
+        finalScore: data.finalScore,
+        status: data.status,
+        gradedAt: data.gradedAt,
+      },
       include: {
         user: { select: { id: true, fullName: true, email: true } },
         assignment: { select: { id: true, title: true, courseId: true } },
@@ -202,6 +293,74 @@ export class PrismaSubmissionRepository implements ISubmissionRepository {
     });
 
     return this.toDomain(raw);
+  }
+
+  async findAll(query?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    search?: string;
+    assignmentId?: string;
+  }): Promise<{ submissions: any[]; total: number }> {
+    const page = Math.max(1, Number(query?.page) || 1);
+    const limit = Math.max(1, Math.min(100, Number(query?.limit) || 10));
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+    if (query?.status && query.status !== 'ALL') {
+      where.status = query.status;
+    }
+    if (query?.assignmentId) {
+      where.assignmentId = query.assignmentId;
+    }
+    if (query?.search) {
+      const q = query.search.trim();
+      where.OR = [
+        { user: { fullName: { contains: q } } },
+        { user: { email: { contains: q } } },
+        { paperCode: { contains: q } },
+        { assignment: { title: { contains: q } } },
+      ];
+    }
+
+    const [total, rawList] = await Promise.all([
+      this.prisma.submission.count({ where }),
+      this.prisma.submission.findMany({
+        where,
+        include: {
+          user: { select: { id: true, fullName: true, email: true, avatarUrl: true } },
+          assignment: {
+            select: {
+              id: true,
+              title: true,
+              courseId: true,
+              course: { select: { id: true, code: true, name: true } },
+            },
+          },
+          testResults: {
+            select: {
+              id: true,
+              testCaseId: true,
+              verdict: true,
+              earnedPoints: true,
+              executionTimeMs: true,
+            },
+          },
+        },
+        orderBy: { submittedAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+    ]);
+
+    const submissions = rawList.map((r: any) => ({
+      ...this.toDomain(r).toJSON(),
+      user: r.user,
+      assignment: r.assignment,
+      testResults: r.testResults,
+    }));
+
+    return { submissions, total };
   }
 }
 

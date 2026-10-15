@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from 'react';
 import { getStudentServiceErrorMessage, studentService } from '../services/student.service';
+import { authService } from '../../auth/services/auth.service';
 import type { StudentProfile, StudentProfileUpdate } from '../types/student.types';
 
 export type StudentProfileStatus = 'loading' | 'success' | 'error';
@@ -26,15 +27,31 @@ const StudentProfileContext = createContext<StudentProfileContextValue | null>(n
 
 const DEFAULT_STUDENT_PROFILE: StudentProfile = {
   id: 'student-demo',
-  email: 'student@fpt.edu.vn',
-  fullName: 'Sinh viên FPT',
+  email: 'student@example.com',
+  fullName: 'Sinh viên',
   role: 'STUDENT',
   status: 'ACTIVE',
   avatarUrl: null,
 };
 
+
 export function StudentProfileProvider({ children }: { children: ReactNode }) {
-  const [profile, setProfile] = useState<StudentProfile | null>(DEFAULT_STUDENT_PROFILE);
+  const [profile, setProfile] = useState<StudentProfile | null>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = authService.getStoredUser();
+      if (stored) {
+        return {
+          id: stored.id,
+          email: stored.email,
+          fullName: stored.fullName,
+          role: stored.role,
+          status: 'ACTIVE',
+          avatarUrl: stored.avatarUrl ?? null,
+        };
+      }
+    }
+    return DEFAULT_STUDENT_PROFILE;
+  });
   const [status, setStatus] = useState<StudentProfileStatus>('success');
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
@@ -52,8 +69,8 @@ export function StudentProfileProvider({ children }: { children: ReactNode }) {
       })
       .catch((_requestError: unknown) => {
         if (!active) return;
-        // Fallback to default student profile when offline or unauthenticated
-        setProfile(DEFAULT_STUDENT_PROFILE);
+        // Keep existing profile if available, otherwise fallback
+        setProfile((prev) => prev ?? DEFAULT_STUDENT_PROFILE);
         setStatus('success');
         setError(null);
       });

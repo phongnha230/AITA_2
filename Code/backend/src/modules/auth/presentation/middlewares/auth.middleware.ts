@@ -16,13 +16,12 @@ declare global {
 const tokenService = new JwtTokenService();
 
 export const authenticateJWT = (req: Request, _res: Response, next: NextFunction): void => {
-  const authHeader = req.headers.authorization;
+  const token = req.cookies?.token;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    throw new UnauthorizedError('Vui lòng đăng nhập để tiếp tục (thiếu Bearer token).');
+  if (!token) {
+    throw new UnauthorizedError('Vui lòng đăng nhập để tiếp tục (phiên đăng nhập hết hạn hoặc thiếu token).');
   }
 
-  const token = authHeader.split(' ')[1];
   try {
     const payload = tokenService.verifyAccessToken(token);
     req.user = payload;

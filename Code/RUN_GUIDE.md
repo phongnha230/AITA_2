@@ -2,9 +2,12 @@
 **Hệ thống:** AITA (AI-powered Teaching Assistant System)  
 **Môn học:** SWD392 – FPT University  
 
-Tài liệu này hướng dẫn chi tiết cách chạy dự án AITA cho 2 trường hợp:
-* **TRƯỜNG HỢP 1: Có dùng Docker** *(Khuyên dùng - Chuẩn kiến trúc, cô lập an toàn).*
-* **TRƯỜNG HỢP 2: KHÔNG dùng Docker** *(Dành cho thành viên máy RAM 8GB / Máy yếu / Không cài được Docker Desktop).*
+Tài liệu này hướng dẫn chi tiết cách chạy dự án AITA cho 2 trường hợp. Cả hai
+đều dùng **TiDB Cloud** làm cơ sở dữ liệu quan hệ; Docker chỉ phục vụ Redis,
+ChromaDB và môi trường sandbox chấm bài.
+
+* **TRƯỜNG HỢP 1: Có dùng Docker** *(Khuyên dùng - cô lập an toàn).*
+* **TRƯỜNG HỢP 2: KHÔNG dùng Docker** *(Dành cho máy yếu hoặc không có Docker Desktop).*
 
 ---
 
@@ -12,7 +15,8 @@ Tài liệu này hướng dẫn chi tiết cách chạy dự án AITA cho 2 trư
 
 1. **Node.js:** Phiên bản **v18.x** trở lên (Khuyên dùng v20.x hoặc v22.x). Kiểm tra: `node -v`.
 2. **Git:** Đã clone mã nguồn dự án về máy.
-3. **Mã nguồn:** Thư mục gốc dự án gồm 2 phân hệ chính:
+3. **TiDB Cloud:** Có cluster, database và chuỗi kết nối TLS hợp lệ.
+4. **Mã nguồn:** Thư mục gốc dự án gồm 2 phân hệ chính:
    * `Code/backend`: Express.js + TypeScript + Prisma ORM.
    * `Code/frontend`: Next.js 14 App Router + Tailwind CSS.
 
@@ -22,15 +26,17 @@ Tài liệu này hướng dẫn chi tiết cách chạy dự án AITA cho 2 trư
 
 Phù hợp cho máy có cài đặt **Docker Desktop** (đang bật).
 
-### Bước 1: Khởi động CSDL MySQL & Redis qua Docker
+### Bước 1: Khởi động Redis và ChromaDB qua Docker
 Mở Terminal tại thư mục `Code/` và chạy:
 ```bash
 cd Code
-docker compose up -d
+docker compose -f backend/docker-compose.yml --env-file backend/.env up -d
 ```
 * Kiểm tra container đang chạy: `docker ps`
-  * Container `aita-mysql` chạy tại cổng `3306`.
-  * Container `aita-redis` chạy tại cổng `6379`.
+  * Container `aita-redis` mặc định chạy tại cổng host `6380`.
+  * Container `aita-chromadb` mặc định chạy tại cổng `8000`.
+
+Compose không khởi động MySQL. Dữ liệu quan hệ được lưu trên TiDB Cloud.
 
 ### Bước 2: Cấu hình và Chạy Backend
 1. Chuyển vào thư mục backend:
@@ -45,20 +51,23 @@ docker compose up -d
    # Linux/macOS:
    cp .env.example .env
    ```
-3. Đảm bảo cấu hình trong `backend/.env` khớp với Docker:
+3. Điền chuỗi kết nối TiDB Cloud và cấu hình dịch vụ local trong `backend/.env`:
    ```ini
    PORT=5000
-   DATABASE_URL="mysql://aita_user:aita_password@localhost:3306/aita_db"
+   DATABASE_URL="mysql://<user>:<password>@<tidb-host>:4000/aita_db?sslaccept=strict"
    REDIS_HOST="localhost"
-   REDIS_PORT=6379
+   REDIS_PORT=6380
+   CHROMA_DB_URL="http://localhost:8000"
    USE_DOCKER_SANDBOX=true
    ```
-4. Cài đặt thư viện & Đồng bộ cấu trúc bảng CSDL:
+4. Cài đặt thư viện và tạo Prisma Client:
    ```bash
    npm install
    npx prisma generate
-   npx prisma db push
    ```
+
+   Không tự động chạy `prisma db push` khi khởi động. Chỉ chạy
+   `npm run prisma:push` khi chủ động muốn cập nhật schema TiDB Cloud.
 5. Khởi động Backend server (chế độ Hot-reload):
    ```bash
    npm run dev
@@ -81,13 +90,9 @@ npm run dev
 
 Dành cho các bạn máy yếu, không bật được Docker Desktop hoặc RAM 8GB.
 
-### Bước 1: Chuẩn bị MySQL & Redis trên máy cục bộ
-1. **MySQL cục bộ:**
-   * Dùng **XAMPP**, **MySQL Server** hoặc **Laragon** có sẵn trên máy.
-   * Mở MySQL Workbench hoặc phpMyAdmin (hoặc lệnh SQL):
-     ```sql
-     CREATE DATABASE aita_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-     ```
+### Bước 1: Chuẩn bị TiDB Cloud và Redis
+1. **TiDB Cloud:** đảm bảo máy có Internet và `DATABASE_URL` trong
+   `backend/.env` trỏ tới cluster TiDB Cloud.
 2. **Redis cục bộ (Windows):**
    * *Cách A (Khuyên dùng):* Tải và cài đặt **Memurai** (Redis for Windows): https://www.memurai.com
    * *Cách B (Dùng Redis Cloud miễn phí không cần cài):* Đăng ký tài khoản Upstash Redis (miễn phí), lấy chuỗi kết nối và điền vào `.env`.
@@ -105,8 +110,8 @@ Mở file `Code/backend/.env` và sửa lại:
 ```ini
 PORT=5000
 
-# Trỏ về tài khoản MySQL trên máy bạn (thay root và mật khẩu của bạn):
-DATABASE_URL="mysql://root:mat_khau_cua_ban@127.0.0.1:3306/aita_db"
+# Chuỗi kết nối TiDB Cloud có TLS:
+DATABASE_URL="mysql://<user>:<password>@<tidb-host>:4000/aita_db?sslaccept=strict"
 
 # Redis cục bộ:
 REDIS_HOST="localhost"
@@ -117,14 +122,15 @@ REDIS_PASSWORD=""
 USE_DOCKER_SANDBOX=false
 ```
 
-### Bước 4: Đồng bộ CSDL & Chạy Backend
+### Bước 4: Tạo Prisma Client và chạy Backend
 ```bash
 cd Code/backend
 npm install
 npx prisma generate
-npx prisma db push
 npm run dev
 ```
+
+Chỉ chạy `npm run prisma:push` khi chủ động muốn cập nhật schema TiDB Cloud.
 
 ### Bước 5: Chạy Frontend
 ```bash
@@ -138,32 +144,25 @@ npm run dev
 ## ⚡ FILE CHẠY NHANH 1-CLICK (CHO WINDOWS)
 
 Để tiện lợi cho ae, thư mục `Code/` đã chuẩn bị sẵn các file script tự động:
-* **`start-with-docker.bat`**: Tự động bật Docker container, migrate DB và khởi chạy Backend + Frontend trong 2 cửa sổ riêng biệt.
-* **`start-without-docker.bat`**: Kiểm tra kết nối MySQL/Redis cục bộ, migrate DB và chạy hệ thống.
+* **`start-with-docker.bat`**: Bật Redis + ChromaDB, tạo Prisma Client và khởi chạy Backend + Frontend.
+* **`start-without-docker.bat`**: Dùng TiDB Cloud + Redis local, tạo Prisma Client và chạy hệ thống.
+
+Các script khởi động không tự thay đổi schema TiDB Cloud.
 
 ---
 
 ## ❗ XỬ LÝ LỖI THƯỜNG GẶP (TROUBLESHOOTING)
 
-### 1. Lỗi: `Port 3306 is already in use` khi chạy `docker compose up`
-* **Nguyên nhân:** Máy bạn đang bật sẵn dịch vụ MySQL cục bộ (hoặc XAMPP) chiếm cổng 3306.
-* **Cách khắc phục:**
-  * *Cách 1:* Tắt dịch vụ MySQL cục bộ: Mở `services.msc`, tìm `MySQL` hoặc `MySQL80` $\to$ Chuột phải chọn **Stop**.
-  * *Cách 2:* Đổi cổng trong file `Code/docker-compose.yml`:
-    ```yaml
-    ports:
-      - "3307:3306" # Đổi cổng ngoài thành 3307
-    ```
-    Và đổi trong `backend/.env`: `mysql://aita_user:aita_password@localhost:3307/aita_db`.
+### 1. Lỗi: `PrismaClientInitializationError: Can't reach database server`
+* **Nguyên nhân:** Không có Internet, cluster TiDB đang tạm dừng, hoặc `DATABASE_URL` sai.
+* **Cách khắc phục:** Kiểm tra host, cổng `4000`, tài khoản, mật khẩu và tham số
+  `sslaccept=strict`. Ký tự đặc biệt trong mật khẩu phải được URL-encode.
 
-### 2. Lỗi: `PrismaClientInitializationError: Can't reach database server`
-* **Nguyên nhân:** CSDL chưa bật hoặc mật khẩu tài khoản trong `DATABASE_URL` bị sai.
-* **Cách khắc phục:** Kiểm tra lại MySQL (`docker ps` hoặc kiểm tra XAMPP) và mật khẩu tài khoản. Lưu ý nếu mật khẩu có ký tự đặc biệt (như `@`, `#`), cần mã hóa URL (ví dụ `@` thành `%40`).
-
-### 3. Lỗi: `ECONNREFUSED 127.0.0.1:6379` (Lỗi Redis)
+### 2. Lỗi: `ECONNREFUSED` (Redis)
 * **Nguyên nhân:** Redis server chưa được bật.
-* **Cách khắc phục:** Nếu dùng Docker, chạy `docker start aita-redis`. Nếu không dùng Docker, bật dịch vụ Memurai hoặc Redis trên máy.
+* **Cách khắc phục:** Nếu dùng Docker, chạy lại Compose và kiểm tra `REDIS_PORT=6380`.
+  Nếu không dùng Docker, bật Memurai/Redis và dùng đúng cổng local.
 
-### 4. Lỗi: `gcc is not recognized as an internal or external command` (Khi không dùng Docker)
+### 3. Lỗi: `gcc is not recognized as an internal or external command` (Khi không dùng Docker)
 * **Nguyên nhân:** Chưa cài MinGW hoặc chưa thêm thư mục `bin` của GCC vào biến môi trường PATH của Windows.
 * **Cách khắc phục:** Thêm đường dẫn `C:\mingw64\bin` vào `System Environment Variables > PATH`.

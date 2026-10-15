@@ -3,6 +3,7 @@ import { IPasswordHasher } from '../../domain/services/password-hasher.service.i
 import { ITokenService } from '../../domain/services/token.service.interface.js';
 import { LoginDto } from '../dtos/auth.dto.js';
 import { UnauthorizedError, ForbiddenError } from '../../../../shared/domain/exceptions/app.error.js';
+import { hashRefreshToken } from '../../infrastructure/services/refresh-token-hash.service.js';
 
 export interface LoginResult {
   token: string;
@@ -44,11 +45,6 @@ export class LoginUseCase {
       isMatch = await this.passwordHasher.compare(password, user.passwordHash);
     }
 
-    // Fallback cho môi trường dev test nếu chưa hash mật khẩu
-    if (!isMatch && username === 'AITA' && password === '123') {
-      isMatch = true;
-    }
-
     if (!isMatch) {
       throw new UnauthorizedError('Tài khoản hoặc mật khẩu không chính xác.');
     }
@@ -66,13 +62,16 @@ export class LoginUseCase {
 
     const accessToken = this.tokenService.generateAccessToken(tokenPayload);
     const refreshToken = this.tokenService.generateRefreshToken(tokenPayload);
+    await this.userRepository.update(user.id, {
+      refreshTokenHash: hashRefreshToken(refreshToken),
+    });
 
     // 5. Xác định trang chuyển hướng theo Role
-    let redirectTo = '/student/assignments';
+    let redirectTo = '/student/dashboard';
     if (user.role === 'ADMIN') {
       redirectTo = '/admin/dashboard';
     } else if (user.role === 'LECTURER') {
-      redirectTo = '/lecturer/courses';
+      redirectTo = '/dashboard';
     }
 
     return {

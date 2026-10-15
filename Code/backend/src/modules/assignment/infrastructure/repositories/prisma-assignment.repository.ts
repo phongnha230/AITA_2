@@ -236,4 +236,104 @@ export class PrismaAssignmentRepository implements IAssignmentRepository {
       orderBy: { createdAt: 'desc' },
     });
   }
+
+  // --- Proctoring & Live Sessions ---
+  async getProctoringAssignment(assignmentId: string): Promise<any | null> {
+    return this.prisma.assignment.findUnique({
+      where: { id: assignmentId },
+      include: {
+        course: {
+          select: {
+            id: true,
+            code: true,
+            name: true,
+            semester: true,
+            enrollments: {
+              include: {
+                student: {
+                  select: {
+                    id: true,
+                    fullName: true,
+                    email: true,
+                    studentCode: true,
+                    avatarUrl: true,
+                  },
+                },
+              },
+              orderBy: { enrolledAt: 'asc' },
+            },
+          },
+        },
+        creator: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+          },
+        },
+        testCases: {
+          select: {
+            id: true,
+            label: true,
+            points: true,
+          },
+          orderBy: { orderIndex: 'asc' },
+        },
+        submissions: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                fullName: true,
+                studentCode: true,
+              },
+            },
+            testResults: {
+              select: {
+                id: true,
+                testCaseId: true,
+                verdict: true,
+                earnedPoints: true,
+              },
+            },
+          },
+          orderBy: { submittedAt: 'desc' },
+        },
+      },
+    });
+  }
+
+  async getAllAssignmentsForProctoring(lecturerId?: string): Promise<any[]> {
+    return this.prisma.assignment.findMany({
+      where: lecturerId ? { course: { lecturerId } } : undefined,
+      include: {
+        course: {
+          select: {
+            id: true,
+            code: true,
+            name: true,
+            semester: true,
+            _count: {
+              select: { enrollments: true },
+            },
+          },
+        },
+        creator: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+          },
+        },
+        _count: {
+          select: {
+            submissions: true,
+            testCases: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
 }
+

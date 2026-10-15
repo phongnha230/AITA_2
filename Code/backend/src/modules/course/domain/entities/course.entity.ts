@@ -14,6 +14,9 @@ export interface CourseProps {
     fullName: string;
     email: string;
   };
+  enrollmentCount?: number;
+  assignmentCount?: number;
+  enrolledStudentIds?: string[];
 }
 
 export class Course {
@@ -88,6 +91,9 @@ export class Course {
       createdAt: this.props.createdAt,
       updatedAt: this.props.updatedAt,
       lecturer: this.props.lecturer,
+      enrollmentCount: this.props.enrollmentCount,
+      assignmentCount: this.props.assignmentCount,
+      enrolledStudentIds: this.props.enrolledStudentIds,
     };
   }
 }

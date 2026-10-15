@@ -44,6 +44,7 @@ export class ChangePasswordUseCase {
     const newPasswordHash = await this.passwordHasher.hash(dto.newPassword);
     await this.userRepository.update(userId, {
       passwordHash: newPasswordHash,
+      refreshTokenHash: null,
     });
   }
 }

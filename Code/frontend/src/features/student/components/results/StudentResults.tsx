@@ -19,6 +19,7 @@ import { AiRubricFeedbackCard } from './AiRubricFeedbackCard';
 import { GradingLifecycleProgress } from './GradingLifecycleProgress';
 import { SubmissionScoreOverview } from './SubmissionScoreOverview';
 import { TestCaseResultsList } from './TestCaseResultsList';
+import { RecentSubmissionsList } from './RecentSubmissionsList';
 
 function StudentResultsContent() {
   const router = useRouter();
@@ -26,7 +27,7 @@ function StudentResultsContent() {
   const currentSubmissionId = searchParams.get('submissionId');
 
   const [inputVal, setInputVal] = useState(currentSubmissionId || '');
-  const { submission, gradingJob, isPolling, refetch } = useStudentSubmission(currentSubmissionId);
+  const { submission, gradingJob, isPolling, isStreaming, refetch } = useStudentSubmission(currentSubmissionId);
 
   const handleLookup = (e: FormEvent) => {
     e.preventDefault();
@@ -50,7 +51,7 @@ function StudentResultsContent() {
               onClick={refetch}
               disabled={submission.status === 'loading'}
               aria-label="Làm mới kết quả bài nộp"
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition-all duration-200 hover:bg-slate-50 hover:shadow hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:opacity-60 disabled:hover:translate-y-0"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition-colors duration-200 hover:bg-slate-50 hover:shadow hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:opacity-60 disabled:hover:translate-y-0"
             >
               <RefreshCw aria-hidden="true" className={`h-4 w-4 ${submission.status === 'loading' ? 'animate-spin' : ''}`} />
               <span>Làm mới</span>
@@ -70,13 +71,13 @@ function StudentResultsContent() {
               value={inputVal}
               onChange={(e) => setInputVal(e.target.value)}
               placeholder="Nhập mã bài nộp (Submission ID)..."
-              className="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-11 pr-4 font-mono text-xs text-slate-900 shadow-inner outline-none transition-all placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100 sm:text-sm"
+              className="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-11 pr-4 font-mono text-xs text-slate-900 shadow-inner outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100 sm:text-sm"
             />
           </div>
           <button
             type="submit"
             disabled={!inputVal.trim()}
-            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 text-sm font-semibold text-white shadow-sm transition-all hover:bg-blue-700 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-sm"
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-sm"
           >
             <FileSearch className="h-4.5 w-4.5" />
             <span>Tra cứu kết quả</span>
@@ -94,7 +95,7 @@ function StudentResultsContent() {
           <button
             type="button"
             onClick={refetch}
-            className="min-h-9 shrink-0 rounded-xl border border-rose-300 bg-white px-3.5 text-xs font-semibold text-rose-900 shadow-sm transition-all hover:bg-rose-100 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+            className="min-h-9 shrink-0 rounded-xl border border-rose-300 bg-white px-3.5 text-xs font-semibold text-rose-900 shadow-sm transition-colors hover:bg-rose-100 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
           >
             Thử lại
           </button>
@@ -136,7 +137,9 @@ function StudentResultsContent() {
             gradingJob={gradingJob}
             submissionStatus={submission.data.status}
             isPolling={isPolling}
+            isStreaming={isStreaming}
           />
+
 
           {/* 2. Score Overview */}
           <SubmissionScoreOverview submission={submission.data} />
@@ -145,28 +148,40 @@ function StudentResultsContent() {
           <TestCaseResultsList testResults={submission.data.testResults ?? []} />
 
           {/* 4. AI Feedback */}
-          <AiRubricFeedbackCard aiGradingResult={submission.data.aiGradingResult} />
+          <AiRubricFeedbackCard
+            aiGradingResult={submission.data.aiGradingResult}
+            submissionId={submission.data.id}
+          />
         </div>
       )}
 
-      {/* Empty State when no submissionId is entered */}
+      {/* Submissions List & Empty State when no submissionId is selected */}
       {submission.status === 'success' && !currentSubmissionId && (
-        <section aria-label="Trạng thái chưa chọn bài nộp" className="py-2">
-          <StudentEmptyState
-            icon={FileCheck2}
-            title="Chưa chọn bài nộp để hiển thị kết quả"
-            description="Vui lòng nhập mã bài nộp (Submission ID) vào ô tra cứu phía trên hoặc chọn bài thi từ danh sách bài thi PE của bạn để xem chi tiết chấm điểm."
-            action={
-              <Link
-                href="/student/exams"
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-blue-700 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
-              >
-                <span>Xem danh sách bài thi PE</span>
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            }
+        <div className="space-y-6">
+          <RecentSubmissionsList
+            onSelectSubmission={(id) => {
+              setInputVal(id);
+              router.push(`/student/results?submissionId=${encodeURIComponent(id)}`);
+            }}
           />
-        </section>
+
+          <section aria-label="Trạng thái chưa chọn bài nộp" className="py-2">
+            <StudentEmptyState
+              icon={FileCheck2}
+              title="Tra cứu kết quả bài thi"
+              description="Chọn một bài nộp ở danh sách phía trên hoặc nhập mã bài nộp (Submission ID) vào ô tra cứu để xem chi tiết chấm điểm Sandbox và AI."
+              action={
+                <Link
+                  href="/student/exams"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
+                >
+                  <span>Xem danh sách bài thi PE</span>
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              }
+            />
+          </section>
+        </div>
       )}
     </div>
   );

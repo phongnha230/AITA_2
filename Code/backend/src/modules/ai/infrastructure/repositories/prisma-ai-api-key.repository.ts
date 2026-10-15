@@ -101,6 +101,14 @@ export class PrismaAiApiKeyRepository implements IAiApiKeyRepository {
     });
   }
 
+  async update(id: string, data: Partial<{ isActive: boolean; rpmLimit: number; dailyRequestLimit: number }>): Promise<AiApiKey> {
+    const raw = await this.prisma.aiApiKey.update({
+      where: { id },
+      data,
+    });
+    return this.toDomain(raw);
+  }
+
   async delete(id: string): Promise<void> {
     await this.prisma.aiApiKey.delete({ where: { id } });
   }

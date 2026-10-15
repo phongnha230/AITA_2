@@ -38,4 +38,9 @@ export interface IAssignmentRepository {
   // Solutions (RAG)
   upsertSolution(assignmentId: string, data: any): Promise<any>;
   getSolutions(assignmentId: string): Promise<any[]>;
+
+  // Proctoring & Live Sessions
+  getProctoringAssignment(assignmentId: string): Promise<any | null>;
+  getAllAssignmentsForProctoring(lecturerId?: string): Promise<any[]>;
 }
+

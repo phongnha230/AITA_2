@@ -17,6 +17,13 @@ dist/
 .next/
 **/out/
 build/
+coverage/
+**/coverage/
+test-results/
+**/test-results/
+
+# CodeGraph local index
+.codegraph/
 
 # Runtime uploads and workspace temp
 uploads/
@@ -36,4 +43,9 @@ Thumbs.db
 build_full_specification_doc.js
 create_aita_report.js
 generate_full_english_report.js
+build_defense_document.js
+build_english_defense_report.js
+doctor-report.json
+**/doctor-report.json
+
 

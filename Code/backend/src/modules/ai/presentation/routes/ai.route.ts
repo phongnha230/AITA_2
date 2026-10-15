@@ -21,24 +21,32 @@ import {
 } from '../../application/dtos/ai-tutor.dto.js';
 import { CreateAiApiKeySchema } from '../../application/dtos/ai-api-key.dto.js';
 
+import { PrismaSubmissionRepository } from '../../../submission/infrastructure/repositories/prisma-submission.repository.js';
+
 const router = Router();
 
 // Composition Root for AI Module
 const aiGradingRepository = new PrismaAiGradingRepository(prisma);
 const aiApiKeyRepository = new PrismaAiApiKeyRepository(prisma);
 const aiTutorRepository = new PrismaAiTutorRepository(prisma);
+const submissionRepository = new PrismaSubmissionRepository(prisma);
 
 const apiKeyRotatorFacade = new ApiKeyRotatorFacade(aiApiKeyRepository);
 const ragKnowledgeFacade = new RagKnowledgeFacade();
 
 export const gradeSubmissionAiUseCase = new GradeSubmissionAiUseCase(
   aiGradingRepository,
+  submissionRepository,
   apiKeyRotatorFacade,
   ragKnowledgeFacade
 );
-const startTutorConversationUseCase = new StartTutorConversationUseCase(aiTutorRepository);
+const startTutorConversationUseCase = new StartTutorConversationUseCase(
+  aiTutorRepository,
+  submissionRepository
+);
 const sendTutorMessageUseCase = new SendTutorMessageUseCase(
   aiTutorRepository,
+  submissionRepository,
   apiKeyRotatorFacade
 );
 const getTutorConversationUseCase = new GetTutorConversationUseCase(aiTutorRepository);
@@ -97,6 +105,12 @@ router.post(
   authorizeRoles('ADMIN'),
   validateBody(CreateAiApiKeySchema),
   aiApiKeyController.createKey
+);
+router.patch(
+  '/api-keys/:id/toggle',
+  authenticateJWT,
+  authorizeRoles('ADMIN'),
+  aiApiKeyController.toggleKey
 );
 router.delete(
   '/api-keys/:id',

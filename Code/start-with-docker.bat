@@ -12,29 +12,28 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-:: 2. Khởi động MySQL & Redis
-echo [1/4] Đang khởi động MySQL & Redis qua Docker Compose...
-docker compose up -d
+:: 2. Khởi động hạ tầng local (database dùng TiDB Cloud)
+echo [1/4] Kiểm tra cấu hình và khởi động Redis ^& ChromaDB qua Docker Compose...
+if not exist backend\.env (
+    echo [THÔNG BÁO] Chưa có file backend\.env, đang copy từ .env.example...
+    copy backend\.env.example backend\.env > nul
+)
+docker compose -f backend/docker-compose.yml --env-file backend/.env up -d
 
 :: Đợi 3 giây để container sẵn sàng
 timeout /t 3 /nobreak > nul
 
 :: 3. Chuẩn bị Backend
-echo [2/4] Kiểm tra Backend & CSDL Prisma...
+echo [2/4] Kiểm tra Backend ^& Prisma Client...
 cd backend
-if not exist .env (
-    echo [THÔNG BÁO] Chưa có file .env, đang copy từ .env.example...
-    copy .env.example .env > nul
-)
 
 if not exist node_modules (
     echo [CÀI ĐẶT] Đang cài đặt thư viện Backend...
     call npm install
 )
 
-echo [PRISMA] Đồng bộ cấu trúc bảng CSDL...
+echo [PRISMA] Tạo Prisma Client ^(không thay đổi schema TiDB Cloud^)...
 call npx prisma generate
-call npx prisma db push
 
 cd ..
 

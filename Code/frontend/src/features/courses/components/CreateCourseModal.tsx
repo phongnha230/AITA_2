@@ -1,8 +1,18 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Plus, BookOpen, AlertCircle } from 'lucide-react';
+import { Plus, BookOpen, AlertCircle } from 'lucide-react';
 import { CreateCoursePayload } from '../types/course.types';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface CreateCourseModalProps {
   isOpen: boolean;
@@ -21,8 +31,6 @@ export const CreateCourseModal: React.FC<CreateCourseModalProps> = ({
   const [capacity, setCapacity] = useState(40);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,70 +59,71 @@ export const CreateCourseModal: React.FC<CreateCourseModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-      <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-100 relative">
-        <button
-          onClick={onClose}
-          className="absolute top-5 right-5 p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition"
-        >
-          <X className="w-5 h-5" />
-        </button>
-
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100 shadow-xs">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-md rounded-3xl p-6 sm:p-8 bg-white border border-slate-100 shadow-2xl">
+        <DialogHeader className="flex flex-row items-center gap-3 text-left pb-2">
+          <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 shadow-xs shrink-0">
             <BookOpen className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-lg font-black text-slate-900">Tạo Khóa Học Mới</h3>
-            <p className="text-xs text-slate-500">Khai báo thông tin lớp học cho kỳ mới</p>
+            <DialogTitle className="text-lg font-black text-slate-900">
+              Tạo Khóa Học Mới
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              Khai báo thông tin lớp học cho kỳ mới
+            </DialogDescription>
           </div>
-        </div>
+        </DialogHeader>
 
         {error && (
-          <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-2 text-xs font-semibold text-rose-700">
-            <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
-            <span>{error}</span>
-          </div>
+          <Alert variant="destructive" className="py-2.5 px-3 rounded-xl bg-rose-50 border-rose-200 text-rose-700">
+            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+            <AlertDescription className="text-xs font-semibold">{error}</AlertDescription>
+          </Alert>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 pt-1">
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+            <label htmlFor="course-code" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
               Mã Môn Học (Course Code)
             </label>
-            <input
+            <Input
+              id="course-code"
               type="text"
               placeholder="VD: SWD392, PRN211..."
               value={code}
               onChange={(e) => setCode(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:bg-white focus:border-blue-500 font-mono"
+              className="h-10 bg-slate-50 border-slate-200 rounded-xl text-xs font-bold font-mono focus-visible:ring-indigo-500"
               required
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+            <label htmlFor="course-name" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
               Tên Khóa Học
             </label>
-            <input
+            <Input
+              id="course-name"
               type="text"
               placeholder="VD: Kiến Trúc & Thiết Kế Phần Mềm"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:bg-white focus:border-blue-500"
+              className="h-10 bg-slate-50 border-slate-200 rounded-xl text-xs font-medium focus-visible:ring-indigo-500"
               required
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              <label htmlFor="course-semester" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                 Học Kỳ
               </label>
               <select
+                id="course-semester"
+                aria-label="Chọn học kỳ"
                 value={semester}
                 onChange={(e) => setSemester(e.target.value)}
-                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 outline-none focus:border-blue-500"
+                className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 outline-none focus:border-indigo-500"
               >
                 <option value="Fall 2026">Fall 2026</option>
                 <option value="Summer 2026">Summer 2026</option>
@@ -122,39 +131,42 @@ export const CreateCourseModal: React.FC<CreateCourseModalProps> = ({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              <label htmlFor="course-capacity" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                 Sĩ Số Tối Đa
               </label>
-              <input
+              <Input
+                id="course-capacity"
                 type="number"
                 value={capacity}
                 onChange={(e) => setCapacity(Number(e.target.value))}
                 min={5}
                 max={150}
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:bg-white focus:border-blue-500 font-mono"
+                className="h-10 bg-slate-50 border-slate-200 rounded-xl text-xs font-bold font-mono focus-visible:ring-indigo-500"
               />
             </div>
           </div>
 
           <div className="pt-4 flex gap-3">
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={onClose}
-              className="flex-1 py-2.5 px-4 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition"
+              disabled={submitting}
+              className="flex-1 h-10 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 border-none"
             >
               Hủy
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={submitting}
-              className="flex-1 py-2.5 px-4 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition shadow-xs flex items-center justify-center gap-1.5 disabled:opacity-50"
+              className="flex-1 h-10 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-xs inline-flex items-center justify-center gap-1.5"
             >
               <Plus className="w-4 h-4" />
               <span>{submitting ? 'Đang tạo...' : 'Tạo Khóa Học'}</span>
-            </button>
+            </Button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };

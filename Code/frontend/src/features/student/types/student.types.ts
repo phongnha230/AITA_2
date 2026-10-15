@@ -8,11 +8,23 @@ export interface StudentProfile {
   avatarUrl?: string | null;
   role: StudentRole;
   status: StudentAccountStatus;
+  studentCode?: string | null;
+  phoneNumber?: string | null;
+  major?: string | null;
+  cohort?: string | null;
+  githubUrl?: string | null;
+  bio?: string | null;
 }
 
 export interface StudentProfileUpdate {
   fullName?: string;
   avatarUrl?: string | null;
+  studentCode?: string | null;
+  phoneNumber?: string | null;
+  major?: string | null;
+  cohort?: string | null;
+  githubUrl?: string | null;
+  bio?: string | null;
 }
 
 export interface StudentCourse {
@@ -22,6 +34,9 @@ export interface StudentCourse {
   semester: string;
   lecturerId: string;
   isActive: boolean;
+  isEnrolled?: boolean;
+  enrollmentCount?: number;
+  assignmentCount?: number;
   lecturer?: {
     id: string;
     fullName: string;
@@ -44,6 +59,8 @@ export interface StudentAssignment {
   allowGitSubmission: boolean;
   allowZipSubmission: boolean;
   status: AssignmentStatus;
+  accessCode?: string | null;
+  durationMinutes?: number | null;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -167,5 +184,89 @@ export interface StudentSubmissionDetail {
   gradingJob?: GradingJobInfo | null;
   testResults?: SubmissionTestResult[];
   aiGradingResult?: SubmissionAiGradingResult | null;
+}
+
+export interface RecentSubmissionItem {
+  id: string;
+  assignmentId: string;
+  assignmentTitle: string;
+  courseCode: string;
+  courseName: string;
+  environment: string;
+  paperCode?: string | null;
+  submissionChannel: string;
+  submittedAt: string;
+  status: string;
+  sandboxScore: number;
+  aiScore: number;
+  finalScore: number;
+}
+
+export interface StudentPortfolioData {
+  user: {
+    id: string;
+    email: string;
+    fullName: string;
+    avatarUrl?: string | null;
+    role: string;
+    status: string;
+    createdAt: string;
+    lastLoginAt?: string | null;
+  };
+  academicStats: {
+    totalCourses: number;
+    totalAssignments: number;
+    submittedAssignments: number;
+    completionRate: number;
+    averageScore: number;
+    highestScore: number;
+    passedCount: number;
+    failedCount: number;
+  };
+  enrolledCourses: Array<{
+    id: string;
+    code: string;
+    name: string;
+    semester: string;
+    lecturer: {
+      id: string;
+      fullName: string;
+      email: string;
+    };
+    enrolledAt: string;
+    totalAssignments: number;
+    submittedAssignments: number;
+    averageScore: number;
+  }>;
+  recentSubmissions: RecentSubmissionItem[];
+  skillsBreakdown: Array<{
+    environment: string;
+    submissionCount: number;
+    averageScore: number;
+  }>;
+  aiTutorStats?: {
+    totalConversations: number;
+    totalMessages: number;
+    lastInteractionAt?: string | null;
+  };
+}
+
+export interface AssignmentTestCase {
+  id: string;
+  assignmentId: string;
+  inputData: string;
+  expectedOutput: string;
+  isSample: boolean;
+  scoreWeight: number;
+  timeLimitMs: number;
+  memoryLimitMb: number;
+}
+
+export interface AssignmentRubric {
+  id: string;
+  assignmentId: string;
+  criteriaName: string;
+  description?: string | null;
+  maxPoints: number;
 }
 

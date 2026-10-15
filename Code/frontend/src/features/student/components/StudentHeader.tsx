@@ -33,7 +33,7 @@ export function StudentHeader({ user, isLoading, menuOpen, onMenuClick, menuButt
           aria-label={menuOpen ? 'Đóng menu điều hướng' : 'Mở menu điều hướng'}
           aria-expanded={menuOpen}
           aria-controls="student-mobile-navigation"
-          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 lg:hidden"
+          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 lg:hidden"
         >
           <Menu aria-hidden="true" className="h-5 w-5" />
         </button>
@@ -87,7 +87,7 @@ export function StudentHeader({ user, isLoading, menuOpen, onMenuClick, menuButt
               onClick={() => authService.logout()}
               title="Đăng xuất"
               aria-label="Đăng xuất"
-              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
             >
               <LogOut className="h-4 w-4" />
             </button>

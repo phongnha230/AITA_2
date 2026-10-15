@@ -34,6 +34,7 @@ export interface TestCaseResult {
 export interface SandboxExecutionSummary {
   success: boolean;
   compileError?: string | null;
+  compilerWarnings?: string | null;
   totalTests: number;
   passedTests: number;
   totalScore: number;

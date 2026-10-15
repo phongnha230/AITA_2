@@ -38,7 +38,7 @@ export function ExamFilterToolbar({
             type="button"
             aria-pressed={filter === key}
             onClick={() => onFilterChange(key)}
-            className={`inline-flex min-h-10 items-center gap-2 rounded-xl border px-3.5 text-xs font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
+            className={`inline-flex min-h-10 items-center gap-2 rounded-xl border px-3.5 text-xs font-semibold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
               filter === key
                 ? 'border-blue-600 bg-blue-600 text-white shadow-sm shadow-blue-600/20'
                 : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900'
@@ -57,7 +57,7 @@ export function ExamFilterToolbar({
       </div>
 
       <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_200px]">
-        <label className="flex min-h-11 items-center gap-2.5 rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 shadow-inner transition-all focus-within:border-blue-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-100">
+        <label className="flex min-h-11 items-center gap-2.5 rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 shadow-inner transition-colors focus-within:border-blue-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-100">
           <Search aria-hidden="true" className="h-4 w-4 shrink-0 text-slate-400" />
           <span className="sr-only">Tìm kiếm bài thi</span>
           <input
@@ -68,7 +68,7 @@ export function ExamFilterToolbar({
             className="min-w-0 flex-1 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
           />
         </label>
-        <label className="flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 shadow-inner transition-all focus-within:border-blue-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-100">
+        <label className="flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 shadow-inner transition-colors focus-within:border-blue-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-100">
           <span className="shrink-0 text-xs font-medium text-slate-500">Sắp xếp:</span>
           <select
             value={sort}

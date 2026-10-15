@@ -66,14 +66,22 @@ export class GitIngestionService {
       // 2. Checkout Commit cụ thể nếu sinh viên chỉ định
       let resolvedHash = gitCommitHash || '';
       if (gitCommitHash && gitCommitHash.trim()) {
+        const cleanHash = gitCommitHash.trim();
+        // Chỉ chấp nhận hex hash 7–40 ký tự — chặn argument injection (vd: --orphan)
+        if (!/^[a-f0-9]{7,40}$/i.test(cleanHash)) {
+          throw new ValidationError(
+            'Mã Git Commit Hash không hợp lệ. Chỉ chấp nhận mã hex 7–40 ký tự (ví dụ: a3f1c2d).'
+          );
+        }
         try {
-          await execFileAsync('git', ['checkout', gitCommitHash.trim()], {
+          // Truyền cleanHash sau DETACH HEAD mode để git không hiểu là flag
+          await execFileAsync('git', ['-c', 'advice.detachedHead=false', 'checkout', cleanHash, '--'], {
             cwd: workspacePath,
             timeout: 10000,
           });
-          resolvedHash = gitCommitHash.trim();
+          resolvedHash = cleanHash;
         } catch {
-          throw new ValidationError(`Mã Git Commit Hash '${gitCommitHash}' không tồn tại trong repository.`);
+          throw new ValidationError(`Mã Git Commit Hash '${cleanHash}' không tồn tại trong repository.`);
         }
       } else {
         const { stdout: headHash } = await execFileAsync('git', ['rev-parse', 'HEAD'], {

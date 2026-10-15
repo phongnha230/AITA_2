@@ -63,13 +63,17 @@ export class CDockerRunner implements ISandboxRunner {
       };
     }
 
-    // 2. Biên dịch mã nguồn gcc với các cờ an toàn
+    // 2. Biên dịch mã nguồn gcc với cờ Clean Code Static Analysis (-Wall -Wextra)
     const compileCmd = isDocker
-      ? `docker run --rm --network none --cpus 1.0 --pids-limit 50 --cap-drop ALL --security-opt no-new-privileges -v "${path.resolve(stagedFolderPath)}":/app -w /app gcc:alpine gcc -O2 ${mainFile} -o main.out`
-      : `gcc -O2 "${path.join(stagedFolderPath, mainFile)}" -o "${path.join(stagedFolderPath, 'main.out')}"`;
+      ? `docker run --rm --network none --cpus 1.0 --pids-limit 50 --cap-drop ALL --security-opt no-new-privileges -v "${path.resolve(stagedFolderPath)}":/app -w /app gcc:alpine gcc -O2 -Wall -Wextra ${mainFile} -o main.out`
+      : `gcc -O2 -Wall -Wextra "${path.join(stagedFolderPath, mainFile)}" -o "${path.join(stagedFolderPath, 'main.out')}"`;
 
+    let compilerWarnings: string | null = null;
     try {
-      await execAsync(compileCmd, { timeout: 10000 });
+      const { stderr } = await execAsync(compileCmd, { timeout: 10000 });
+      if (stderr && stderr.trim().length > 0) {
+        compilerWarnings = stderr.trim();
+      }
     } catch (compileErr: any) {
       const errorMsg =
         compileErr.stderr || compileErr.stdout || compileErr.message;
@@ -105,6 +109,7 @@ export class CDockerRunner implements ISandboxRunner {
     return {
       success: true,
       compileError: null,
+      compilerWarnings,
       totalTests: testCases.length,
       passedTests: passedCount,
       totalScore: Number(totalScore.toFixed(2)),

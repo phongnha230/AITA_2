@@ -1,14 +1,19 @@
 import { ISubmissionRepository } from '../../domain/repositories/submission.repository.interface.js';
+import { IAssignmentRepository } from '../../../assignment/domain/repositories/assignment.repository.interface.js';
+import { ICourseRepository } from '../../../course/domain/repositories/course.repository.interface.js';
 import { Submission } from '../../domain/entities/submission.entity.js';
 import { IArtifactExtractor } from '../services/artifact-extractor.interface.js';
 import { IGradingDispatcher } from '../services/grading-dispatcher.interface.js';
 import { SubmitAssignmentInput } from '../dtos/submission.dto.js';
+import fs from 'node:fs/promises';
 import { GitIngestionService, gitIngestionService } from '../../infrastructure/storage/git-ingestion.service.js';
 import { ValidationError, NotFoundError, ForbiddenError } from '../../../../shared/domain/exceptions/app.error.js';
-import prisma from '../../../../infrastructure/database/prisma.client.js';
+import { cloudinaryService } from '../../../../infrastructure/storage/cloudinary.service.js';
 
 export interface SubmitAssignmentDeps {
   submissionRepository: ISubmissionRepository;
+  assignmentRepository: IAssignmentRepository;
+  courseRepository: ICourseRepository;
   artifactExtractor: IArtifactExtractor;
   gradingDispatcher: IGradingDispatcher;
   gitIngestion?: GitIngestionService;
@@ -28,12 +33,16 @@ export class SubmitAssignmentUseCase {
   }
 
   public async execute(request: SubmitAssignmentRequest): Promise<Submission> {
-    const { submissionRepository, artifactExtractor, gradingDispatcher } = this.deps;
+    const {
+      submissionRepository,
+      assignmentRepository,
+      courseRepository,
+      artifactExtractor,
+      gradingDispatcher,
+    } = this.deps;
 
     // 1. Kiểm tra đề thi có tồn tại và đang mở không
-    const assignment = await prisma.assignment.findUnique({
-      where: { id: request.assignmentId },
-    });
+    const assignment = await assignmentRepository.findById(request.assignmentId);
 
     if (!assignment) {
       throw new NotFoundError(`Đề thi với ID: ${request.assignmentId}`);
@@ -62,19 +71,26 @@ export class SubmitAssignmentUseCase {
 
     // 2. Kiểm tra Passcode mở đề nếu có cấu hình
     if (assignment.accessCode) {
-      if (!request.accessCode || request.accessCode.trim() !== assignment.accessCode.trim()) {
+      if (!assignment.verifyAccessCode(request.accessCode)) {
         throw new ForbiddenError('Mã mở đề (Passcode) không chính xác hoặc chưa được cung cấp.');
       }
     }
 
-    // 3. Kiểm tra tần suất nộp bài (Anti-Spam / Cooldown 10 giây giữa 2 lần nộp)
-    const latestSubmission = await prisma.submission.findFirst({
-      where: {
-        assignmentId: request.assignmentId,
-        userId: request.userId,
-      },
-      orderBy: { submittedAt: 'desc' },
-    });
+    // 3. Kiểm tra sinh viên đã ghi danh môn học chứa đề thi chưa
+    const isEnrolled = await courseRepository.isStudentEnrolled(
+      assignment.courseId,
+      request.userId
+    );
+
+    if (!isEnrolled) {
+      throw new ForbiddenError('Bạn chưa được ghi danh vào môn học này, không thể nộp bài.');
+    }
+
+    // 4. Kiểm tra tần suất nộp bài (Anti-Spam / Cooldown 10 giây giữa 2 lần nộp)
+    const latestSubmission = await submissionRepository.findLatestByAssignmentAndUser(
+      request.assignmentId,
+      request.userId
+    );
 
     if (latestSubmission) {
       const timeSinceLastSubmitMs = now.getTime() - new Date(latestSubmission.submittedAt).getTime();
@@ -87,7 +103,7 @@ export class SubmitAssignmentUseCase {
       }
     }
 
-    // 4. Kiểm tra kênh nộp bài
+    // 5. Kiểm tra kênh nộp bài
     if (request.submissionChannel === 'ZIP_UPLOAD' && !request.uploadedZipPath) {
       throw new ValidationError('File .zip bài nộp là bắt buộc cho hình thức nộp ZIP_UPLOAD');
     }
@@ -115,9 +131,31 @@ export class SubmitAssignmentUseCase {
           submission.id
         );
 
+        let finalZipPath = stagingResult.stagedPath;
+
+        // Nếu Cloudinary đã được cấu hình, tự động sao lưu file ZIP lên Cloud
+        if (cloudinaryService.isConfigured()) {
+          try {
+            const cloudResult = await cloudinaryService.uploadZip(request.uploadedZipPath, {
+              folder: 'aita/submissions',
+              publicId: `sub-${submission.id}`,
+            });
+            finalZipPath = cloudResult.secureUrl;
+          } catch (cloudErr: any) {
+            console.warn(`[SubmitAssignment] Sao lưu ZIP lên Cloudinary thất bại, lưu đường dẫn cục bộ:`, cloudErr.message);
+          }
+        }
+
+        // Tự động dọn dẹp file ZIP tạm trong thư mục uploads để tránh đầy dung lượng server
+        try {
+          await fs.unlink(request.uploadedZipPath);
+        } catch {
+          // Bỏ qua nếu file đã được dọn
+        }
+
         const updated = await submissionRepository.updateZipFilePath(
           submission.id,
-          stagingResult.stagedPath
+          finalZipPath
         );
 
         await gradingDispatcher.dispatch(submission.id, stagingResult.stagedPath);
@@ -128,6 +166,7 @@ export class SubmitAssignmentUseCase {
         throw error;
       }
     }
+
 
     if (request.submissionChannel === 'GIT_COMMIT' && request.gitRepoUrl) {
       try {
@@ -144,7 +183,6 @@ export class SubmitAssignmentUseCase {
           contributors: gitResult.contributors,
         });
 
-
         await gradingDispatcher.dispatch(submission.id, gitResult.stagedPath);
 
         return updated;
@@ -154,10 +192,6 @@ export class SubmitAssignmentUseCase {
       }
     }
 
-    // Default fallback dispatch
-    await gradingDispatcher.dispatch(submission.id, '');
-
     return submission;
   }
 }
-

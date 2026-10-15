@@ -1,6 +1,5 @@
 import { createGradingWorker } from './bullmq.worker.js';
-import { SandboxService } from '../../modules/sandbox/application/services/sandbox.service.js';
-import { gradeSubmissionAiUseCase } from '../../modules/ai/presentation/routes/ai.route.js';
+import { container } from '../container/container.js';
 
 let activeWorker: ReturnType<typeof createGradingWorker> | null = null;
 
@@ -19,14 +18,14 @@ export function startGradingWorker() {
     // Giai đoạn 1: Chạy Sandbox (Biên dịch, chạy testcases trên Docker hoặc Local)
     runSandbox: async (jobData) => {
       console.log(`🚀 [GradingWorker] Starting Sandbox execution for submission: ${jobData.submissionId}`);
-      const summary = await SandboxService.gradeSubmission(jobData.submissionId, jobData.language);
+      const summary = await container.sandboxService.gradeSubmission(jobData.submissionId, jobData.language);
       return summary;
     },
 
     // Giai đoạn 2: Chạy AI Grader (Đánh giá Rubric, độ phức tạp thuật toán, feedback)
     runAiGrading: async (jobData) => {
       console.log(`🤖 [GradingWorker] Starting AI Rubric Grading for submission: ${jobData.submissionId}`);
-      const aiResult = await gradeSubmissionAiUseCase.execute(jobData.submissionId);
+      const aiResult = await container.gradeSubmissionAiUseCase.execute(jobData.submissionId);
       return aiResult;
     },
   });

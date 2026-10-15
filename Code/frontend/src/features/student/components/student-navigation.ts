@@ -1,5 +1,6 @@
 import {
   FileCode2,
+  GraduationCap,
   LayoutDashboard,
   Sparkles,
   UserRound,
@@ -17,6 +18,11 @@ export const STUDENT_NAV_ITEMS = [
     href: '/student/dashboard',
     label: 'Tổng quan & Lớp học',
     icon: LayoutDashboard,
+  },
+  {
+    href: '/student/courses',
+    label: 'Khám phá lớp học',
+    icon: GraduationCap,
   },
   {
     href: '/student/exams',

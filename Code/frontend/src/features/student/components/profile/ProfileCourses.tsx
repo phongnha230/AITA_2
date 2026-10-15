@@ -78,7 +78,7 @@ export function ProfileCourses({ state, onRetry, profileFailed }: ProfileCourses
           {state.data.map((course) => (
             <article
               key={course.id}
-              className="flex flex-col justify-between rounded-xl border border-slate-200/90 bg-white p-4 shadow-xs transition-all hover:border-blue-200 hover:shadow-sm"
+              className="flex flex-col justify-between rounded-xl border border-slate-200/90 bg-white p-4 shadow-xs transition-colors hover:border-blue-200 hover:shadow-sm"
             >
               <div>
                 <div className="flex items-start justify-between gap-2">

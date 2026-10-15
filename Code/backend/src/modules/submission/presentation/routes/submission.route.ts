@@ -4,29 +4,46 @@ import { submissionZipUpload } from '../..//infrastructure/storage/multer.config
 import { SubmissionController } from '../controllers/submission.controller.js';
 import { SubmitAssignmentUseCase } from '../../application/use-cases/submit-assignment.use-case.js';
 import { GetSubmissionStatusUseCase } from '../../application/use-cases/get-submission-status.use-case.js';
+import { GetAssignmentSubmissionsUseCase } from '../../application/use-cases/get-assignment-submissions.use-case.js';
+import { GetAllSubmissionsUseCase } from '../../application/use-cases/get-all-submissions.use-case.js';
 import { PrismaSubmissionRepository } from '../../infrastructure/repositories/prisma-submission.repository.js';
 import { zipExtractorService } from '../../infrastructure/storage/zip-extractor.service.js';
 import { bullmqGradingDispatcher } from '../../infrastructure/queue/bullmq-grading-dispatcher.js';
 import prisma from '../../../../infrastructure/database/prisma.client.js';
-import { authenticateJWT } from '../../../auth/presentation/middlewares/auth.middleware.js';
+import { authenticateJWT, authorizeRoles } from '../../../auth/presentation/middlewares/auth.middleware.js';
 import { ValidationError } from '../../../../shared/domain/exceptions/app.error.js';
+import { PrismaAssignmentRepository } from '../../../assignment/infrastructure/repositories/prisma-assignment.repository.js';
+import { PrismaCourseRepository } from '../../../course/infrastructure/repositories/prisma-course.repository.js';
 import { env } from '../../../../infrastructure/config/env.js';
+import {
+  requireAssignmentManage,
+  requireSubmissionAccess,
+} from '../../../assignment/presentation/middlewares/assignment-access.middleware.js';
 
 const router = Router();
 
 // Composition Root
 const submissionRepository = new PrismaSubmissionRepository(prisma);
+const assignmentRepository = new PrismaAssignmentRepository(prisma);
+const courseRepository = new PrismaCourseRepository(prisma);
+
 const submitAssignmentUseCase = new SubmitAssignmentUseCase({
   submissionRepository,
+  assignmentRepository,
+  courseRepository,
   artifactExtractor: zipExtractorService,
   gradingDispatcher: bullmqGradingDispatcher,
 });
 
 const getSubmissionStatusUseCase = new GetSubmissionStatusUseCase(submissionRepository);
+const getAssignmentSubmissionsUseCase = new GetAssignmentSubmissionsUseCase(submissionRepository);
+const getAllSubmissionsUseCase = new GetAllSubmissionsUseCase(submissionRepository);
 
 const submissionController = new SubmissionController(
   submitAssignmentUseCase,
-  getSubmissionStatusUseCase
+  getSubmissionStatusUseCase,
+  getAssignmentSubmissionsUseCase,
+  getAllSubmissionsUseCase
 );
 
 function uploadSingleZip(req: Request, res: Response, next: NextFunction): void {
@@ -46,7 +63,15 @@ function uploadSingleZip(req: Request, res: Response, next: NextFunction): void 
 }
 
 // Routes
+router.get('/', authenticateJWT, authorizeRoles('ADMIN'), submissionController.getAllSubmissions);
 router.post('/', authenticateJWT, uploadSingleZip, submissionController.submitAssignment);
-router.get('/:id', authenticateJWT, submissionController.getSubmissionStatus);
+router.get(
+  '/assignment/:assignmentId',
+  authenticateJWT,
+  authorizeRoles('LECTURER', 'ADMIN'),
+  requireAssignmentManage,
+  submissionController.getSubmissionsByAssignment
+);
+router.get('/:id', authenticateJWT, requireSubmissionAccess, submissionController.getSubmissionStatus);
 
 export default router;

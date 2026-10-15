@@ -12,6 +12,12 @@ export interface UserProps {
   passwordHash?: string | null;
   refreshTokenHash?: string | null;
   lastLoginAt?: Date | null;
+  studentCode?: string | null;
+  phoneNumber?: string | null;
+  major?: string | null;
+  cohort?: string | null;
+  githubUrl?: string | null;
+  bio?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -59,6 +65,30 @@ export class User {
     return this.props.lastLoginAt;
   }
 
+  get studentCode(): string | null | undefined {
+    return this.props.studentCode;
+  }
+
+  get phoneNumber(): string | null | undefined {
+    return this.props.phoneNumber;
+  }
+
+  get major(): string | null | undefined {
+    return this.props.major;
+  }
+
+  get cohort(): string | null | undefined {
+    return this.props.cohort;
+  }
+
+  get githubUrl(): string | null | undefined {
+    return this.props.githubUrl;
+  }
+
+  get bio(): string | null | undefined {
+    return this.props.bio;
+  }
+
   get createdAt(): Date {
     return this.props.createdAt;
   }
@@ -96,6 +126,12 @@ export class User {
       role: this.props.role,
       status: this.props.status,
       lastLoginAt: this.props.lastLoginAt,
+      studentCode: this.props.studentCode,
+      phoneNumber: this.props.phoneNumber,
+      major: this.props.major,
+      cohort: this.props.cohort,
+      githubUrl: this.props.githubUrl,
+      bio: this.props.bio,
       createdAt: this.props.createdAt,
       updatedAt: this.props.updatedAt,
     };

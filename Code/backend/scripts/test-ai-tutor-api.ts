@@ -4,6 +4,7 @@ import { PrismaAiApiKeyRepository } from '../src/modules/ai/infrastructure/repos
 import { PrismaAiTutorRepository } from '../src/modules/ai/infrastructure/repositories/prisma-ai-tutor.repository.js';
 import { ApiKeyRotatorFacade } from '../src/modules/ai/infrastructure/facades/api-key-rotator.facade.js';
 import { RagKnowledgeFacade } from '../src/modules/ai/infrastructure/facades/rag-knowledge.facade.js';
+import { PrismaSubmissionRepository } from '../src/modules/submission/infrastructure/repositories/prisma-submission.repository.js';
 import { GradeSubmissionAiUseCase } from '../src/modules/ai/application/use-cases/grade-submission-ai.use-case.js';
 import { StartTutorConversationUseCase } from '../src/modules/ai/application/use-cases/start-tutor-conversation.use-case.js';
 import { SendTutorMessageUseCase } from '../src/modules/ai/application/use-cases/send-tutor-message.use-case.js';
@@ -15,13 +16,14 @@ async function main() {
   const aiGradingRepo = new PrismaAiGradingRepository(prisma);
   const aiApiKeyRepo = new PrismaAiApiKeyRepository(prisma);
   const aiTutorRepo = new PrismaAiTutorRepository(prisma);
+  const submissionRepo = new PrismaSubmissionRepository(prisma);
 
   const keyRotator = new ApiKeyRotatorFacade(aiApiKeyRepo);
   const ragFacade = new RagKnowledgeFacade();
 
-  const gradeAiUseCase = new GradeSubmissionAiUseCase(aiGradingRepo, keyRotator, ragFacade);
-  const startTutorUseCase = new StartTutorConversationUseCase(aiTutorRepo);
-  const sendTutorUseCase = new SendTutorMessageUseCase(aiTutorRepo, keyRotator);
+  const gradeAiUseCase = new GradeSubmissionAiUseCase(aiGradingRepo, submissionRepo, keyRotator, ragFacade);
+  const startTutorUseCase = new StartTutorConversationUseCase(aiTutorRepo, submissionRepo);
+  const sendTutorUseCase = new SendTutorMessageUseCase(aiTutorRepo, submissionRepo, keyRotator);
   const manageKeysUseCase = new ManageApiKeysUseCase(aiApiKeyRepo);
 
   // 1. Test Admin Create & Encrypt API Key

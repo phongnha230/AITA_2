@@ -7,8 +7,11 @@ import { UpdateAssignmentUseCase } from '../../application/use-cases/update-assi
 import { ManageTestCasesUseCase } from '../../application/use-cases/manage-testcases.use-case.js';
 import { ManageRubricsUseCase } from '../../application/use-cases/manage-rubrics.use-case.js';
 import { ManageSolutionsUseCase } from '../../application/use-cases/manage-solutions.use-case.js';
+import { GetProctoringDataUseCase } from '../../application/use-cases/get-proctoring-data.use-case.js';
+import { ControlSessionUseCase } from '../../application/use-cases/control-session.use-case.js';
 import { PrismaAssignmentRepository } from '../../infrastructure/repositories/prisma-assignment.repository.js';
 import { PrismaCourseRepository } from '../../../course/infrastructure/repositories/prisma-course.repository.js';
+import { PrismaUserRepository } from '../../../user/infrastructure/repositories/prisma-user.repository.js';
 import prisma from '../../../../infrastructure/database/prisma.client.js';
 import { authenticateJWT, authorizeRoles } from '../../../auth/presentation/middlewares/auth.middleware.js';
 import { validateBody } from '../../../../shared/presentation/middlewares/validate.middleware.js';
@@ -18,21 +21,31 @@ import {
   CreateTestCaseSchema,
   SetRubricRulesSchema,
   UpsertSolutionSchema,
+  ControlSessionSchema,
 } from '../../application/dtos/assignment.dto.js';
+import {
+  requireAssignmentManage,
+  requireAssignmentView,
+  requireCourseView,
+  requireTestCaseManage,
+} from '../middlewares/assignment-access.middleware.js';
 
 const router = Router();
 
 // Composition Root for Assignment
 const assignmentRepository = new PrismaAssignmentRepository(prisma);
 const courseRepository = new PrismaCourseRepository(prisma);
+const userRepository = new PrismaUserRepository(prisma);
 
-const createAssignmentUseCase = new CreateAssignmentUseCase(assignmentRepository, courseRepository);
+const createAssignmentUseCase = new CreateAssignmentUseCase(assignmentRepository, courseRepository, userRepository);
 const getAssignmentDetailUseCase = new GetAssignmentDetailUseCase(assignmentRepository);
 const getAssignmentsByCourseUseCase = new GetAssignmentsByCourseUseCase(assignmentRepository);
 const updateAssignmentUseCase = new UpdateAssignmentUseCase(assignmentRepository);
 const manageTestCasesUseCase = new ManageTestCasesUseCase(assignmentRepository);
 const manageRubricsUseCase = new ManageRubricsUseCase(assignmentRepository);
 const manageSolutionsUseCase = new ManageSolutionsUseCase(assignmentRepository);
+const getProctoringDataUseCase = new GetProctoringDataUseCase(assignmentRepository);
+const controlSessionUseCase = new ControlSessionUseCase(assignmentRepository);
 
 const assignmentController = new AssignmentController(
   createAssignmentUseCase,
@@ -41,7 +54,9 @@ const assignmentController = new AssignmentController(
   updateAssignmentUseCase,
   manageTestCasesUseCase,
   manageRubricsUseCase,
-  manageSolutionsUseCase
+  manageSolutionsUseCase,
+  getProctoringDataUseCase,
+  controlSessionUseCase
 );
 
 // Routes
@@ -52,35 +67,64 @@ router.post(
   validateBody(CreateAssignmentSchema),
   assignmentController.createAssignment
 );
-router.get('/:id', authenticateJWT, assignmentController.getAssignmentDetail);
+
+// Proctoring routes (must be placed before /:id)
+router.get(
+  '/proctoring/rooms',
+  authenticateJWT,
+  authorizeRoles('LECTURER', 'ADMIN'),
+  assignmentController.getProctoringRooms
+);
+router.get(
+  '/:id/proctoring',
+  authenticateJWT,
+  authorizeRoles('LECTURER', 'ADMIN'),
+  requireAssignmentManage,
+  assignmentController.getProctoringData
+);
+router.patch(
+  '/:id/session-control',
+  authenticateJWT,
+  authorizeRoles('LECTURER', 'ADMIN'),
+  requireAssignmentManage,
+  validateBody(ControlSessionSchema),
+  assignmentController.controlSession
+);
+
+router.get('/:id', authenticateJWT, requireAssignmentView, assignmentController.getAssignmentDetail);
 router.put(
   '/:id',
   authenticateJWT,
   authorizeRoles('LECTURER', 'ADMIN'),
+  requireAssignmentManage,
   validateBody(UpdateAssignmentSchema),
   assignmentController.updateAssignment
 );
-router.get('/course/:courseId', authenticateJWT, assignmentController.getAssignmentsByCourse);
+router.get('/course/:courseId', authenticateJWT, requireCourseView, assignmentController.getAssignmentsByCourse);
+
 
 // Test Cases
 router.post(
   '/:id/testcases',
   authenticateJWT,
   authorizeRoles('LECTURER', 'ADMIN'),
+  requireAssignmentManage,
   validateBody(CreateTestCaseSchema),
   assignmentController.addTestCase
 );
-router.get('/:id/testcases', authenticateJWT, assignmentController.getTestCases);
+router.get('/:id/testcases', authenticateJWT, requireAssignmentView, assignmentController.getTestCases);
 router.put(
   '/testcases/:testCaseId',
   authenticateJWT,
   authorizeRoles('LECTURER', 'ADMIN'),
+  requireTestCaseManage,
   assignmentController.updateTestCase
 );
 router.delete(
   '/testcases/:testCaseId',
   authenticateJWT,
   authorizeRoles('LECTURER', 'ADMIN'),
+  requireTestCaseManage,
   assignmentController.deleteTestCase
 );
 
@@ -89,16 +133,18 @@ router.post(
   '/:id/rubrics',
   authenticateJWT,
   authorizeRoles('LECTURER', 'ADMIN'),
+  requireAssignmentManage,
   validateBody(SetRubricRulesSchema),
   assignmentController.setRubricRules
 );
-router.get('/:id/rubrics', authenticateJWT, assignmentController.getRubricRules);
+router.get('/:id/rubrics', authenticateJWT, requireAssignmentView, assignmentController.getRubricRules);
 
 // Solutions (RAG)
 router.post(
   '/:id/solutions',
   authenticateJWT,
   authorizeRoles('LECTURER', 'ADMIN'),
+  requireAssignmentManage,
   validateBody(UpsertSolutionSchema),
   assignmentController.upsertSolution
 );
@@ -106,6 +152,7 @@ router.get(
   '/:id/solutions',
   authenticateJWT,
   authorizeRoles('LECTURER', 'ADMIN'),
+  requireAssignmentManage,
   assignmentController.getSolutions
 );
 

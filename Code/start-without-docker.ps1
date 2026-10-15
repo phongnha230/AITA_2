@@ -4,7 +4,7 @@
 Write-Host "==============================================================================" -ForegroundColor Cyan
 Write-Host "[AITA] KHOI DONG HE THONG KHONG DUNG DOCKER (LOCAL NATIVE MODE)" -ForegroundColor Cyan
 Write-Host "==============================================================================" -ForegroundColor Cyan
-Write-Host "[LUU Y] Vui long dam bao da bat MySQL (port 3306) va Redis (port 6379) cuc bo!" -ForegroundColor Yellow
+Write-Host "[LUU Y] Database dung TiDB Cloud; vui long dam bao co Internet va Redis local dang chay!" -ForegroundColor Yellow
 
 # 1. Chuẩn bị Backend
 Write-Host "[1/3] Kiem tra cau hinh Backend..." -ForegroundColor Yellow
@@ -21,9 +21,8 @@ if (-not (Test-Path "node_modules")) {
     npm install
 }
 
-Write-Host "[PRISMA] Dong bo cau truc bang CSDL cuc bo..." -ForegroundColor Yellow
+Write-Host "[PRISMA] Tao Prisma Client (khong thay doi schema TiDB Cloud)..." -ForegroundColor Yellow
 npx prisma generate
-npx prisma db push
 
 Set-Location ..
 

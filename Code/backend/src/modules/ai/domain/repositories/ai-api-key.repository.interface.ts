@@ -19,5 +19,6 @@ export interface IAiApiKeyRepository {
   incrementUsage(id: string): Promise<void>;
   recordFailure(id: string): Promise<void>;
   resetConsecutiveFailures(id: string): Promise<void>;
+  update(id: string, data: Partial<{ isActive: boolean; rpmLimit: number; dailyRequestLimit: number }>): Promise<AiApiKey>;
   delete(id: string): Promise<void>;
 }

@@ -9,15 +9,72 @@ interface PracticeSandboxProps {
   onRetry: () => void;
 }
 
-export function PracticeSandbox({ state, onRetry }: PracticeSandboxProps) {
+function getSandboxStatusInfo(state: ResourceState<SandboxStatus | null>) {
   const isReady = state.status === 'success' && state.data?.status === 'READY';
-  const statusLabel = state.status === 'loading'
-    ? 'Đang kiểm tra kết nối'
-    : state.status === 'error'
-      ? 'Chưa kết nối máy chủ'
-      : isReady
-        ? 'Sẵn sàng (Online)'
-        : 'Chưa kích hoạt';
+
+  if (state.status === 'loading') {
+    return {
+      label: 'Đang kiểm tra kết nối',
+      badgeClass: 'bg-amber-50 text-amber-700 border border-amber-200',
+      dotClass: 'bg-amber-500 animate-pulse',
+      isReady: false,
+    };
+  }
+
+  if (state.status === 'error') {
+    return {
+      label: 'Chưa kết nối máy chủ',
+      badgeClass: 'bg-slate-100 text-slate-600 border border-slate-200',
+      dotClass: 'bg-slate-400',
+      isReady: false,
+    };
+  }
+
+  if (isReady) {
+    return {
+      label: 'Sẵn sàng (Online)',
+      badgeClass: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+      dotClass: 'bg-emerald-500 animate-pulse',
+      isReady: true,
+    };
+  }
+
+  return {
+    label: 'Chưa kích hoạt',
+    badgeClass: 'bg-slate-100 text-slate-600 border border-slate-200',
+    dotClass: 'bg-slate-400',
+    isReady: false,
+  };
+}
+
+const SandboxInfoList: React.FC<{ data: SandboxStatus }> = ({ data }) => {
+  return (
+    <dl className="mt-4 space-y-2.5 rounded-xl border border-slate-100 bg-slate-50/60 p-3.5 text-xs">
+      <div className="flex items-center justify-between text-slate-600">
+        <dt className="text-slate-500">Chế độ thực thi:</dt>
+        <dd className="font-bold text-slate-800">{data.activeMode || 'Docker Isolated'}</dd>
+      </div>
+      <div className="flex items-center justify-between text-slate-600">
+        <dt className="text-slate-500">Docker Daemon:</dt>
+        <dd className="flex items-center gap-1 font-bold text-emerald-700">
+          <CheckCircle2 className="h-3.5 w-3.5" />
+          {data.dockerDaemonRunning ? 'Đang chạy' : 'Chưa bật'}
+        </dd>
+      </div>
+      {data.supportedLanguages && data.supportedLanguages.length > 0 && (
+        <div className="flex items-center justify-between text-slate-600">
+          <dt className="text-slate-500">Trình biên dịch:</dt>
+          <dd className="font-bold text-slate-800 uppercase">
+            {data.supportedLanguages.join(' · ')}
+          </dd>
+        </div>
+      )}
+    </dl>
+  );
+};
+
+export function PracticeSandbox({ state, onRetry }: PracticeSandboxProps) {
+  const { label, badgeClass, dotClass } = getSandboxStatusInfo(state);
 
   return (
     <section
@@ -29,25 +86,9 @@ export function PracticeSandbox({ state, onRetry }: PracticeSandboxProps) {
           <TerminalSquare aria-hidden="true" className="h-5 w-5" />
         </div>
         <div className="flex items-center gap-2">
-          <span
-            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-              isReady
-                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                : state.status === 'loading'
-                  ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                  : 'bg-slate-100 text-slate-600 border border-slate-200'
-            }`}
-          >
-            <span
-              className={`h-2 w-2 rounded-full ${
-                isReady
-                  ? 'bg-emerald-500 animate-pulse'
-                  : state.status === 'loading'
-                    ? 'bg-amber-500 animate-pulse'
-                    : 'bg-slate-400'
-              }`}
-            />
-            {statusLabel}
+          <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${badgeClass}`}>
+            <span className={`h-2 w-2 rounded-full ${dotClass}`} />
+            {label}
           </span>
           {state.status === 'error' && (
             <button
@@ -67,29 +108,7 @@ export function PracticeSandbox({ state, onRetry }: PracticeSandboxProps) {
         Hạ tầng container cô lập an toàn, biên dịch tự động và chấm testcase thời gian thực.
       </p>
 
-      {state.status === 'success' && state.data && (
-        <dl className="mt-4 space-y-2.5 rounded-xl border border-slate-100 bg-slate-50/60 p-3.5 text-xs">
-          <div className="flex items-center justify-between text-slate-600">
-            <dt className="text-slate-500">Chế độ thực thi:</dt>
-            <dd className="font-bold text-slate-800">{state.data.activeMode || 'Docker Isolated'}</dd>
-          </div>
-          <div className="flex items-center justify-between text-slate-600">
-            <dt className="text-slate-500">Docker Daemon:</dt>
-            <dd className="flex items-center gap-1 font-bold text-emerald-700">
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              {state.data.dockerDaemonRunning ? 'Đang chạy' : 'Chưa bật'}
-            </dd>
-          </div>
-          {state.data.supportedLanguages && state.data.supportedLanguages.length > 0 && (
-            <div className="flex items-center justify-between text-slate-600">
-              <dt className="text-slate-500">Trình biên dịch:</dt>
-              <dd className="font-bold text-slate-800 uppercase">
-                {state.data.supportedLanguages.join(' · ')}
-              </dd>
-            </div>
-          )}
-        </dl>
-      )}
+      {state.status === 'success' && state.data && <SandboxInfoList data={state.data} />}
 
       {state.status === 'error' && state.error && (
         <p className="mt-3 text-xs text-rose-600">{state.error}</p>
@@ -98,7 +117,7 @@ export function PracticeSandbox({ state, onRetry }: PracticeSandboxProps) {
       <div className="mt-5 border-t border-slate-100 pt-4">
         <Link
           href="/student/exams"
-          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50/70 px-4 text-xs font-bold text-slate-700 shadow-2xs transition-all duration-150 hover:-translate-y-0.5 hover:bg-slate-100 hover:shadow-elevated-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50/70 px-4 text-xs font-bold text-slate-700 shadow-2xs transition-colors duration-150 hover:-translate-y-0.5 hover:bg-slate-100 hover:shadow-elevated-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
         >
           <Cpu aria-hidden="true" className="h-4 w-4 text-blue-600" />
           <span>Xem bài thi sử dụng Sandbox</span>
@@ -108,4 +127,3 @@ export function PracticeSandbox({ state, onRetry }: PracticeSandboxProps) {
     </section>
   );
 }
-

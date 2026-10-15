@@ -15,6 +15,7 @@ import { BcryptHasherService } from '../../../auth/infrastructure/services/bcryp
 import prisma from '../../../../infrastructure/database/prisma.client.js';
 import { authenticateJWT, authorizeRoles } from '../../../auth/presentation/middlewares/auth.middleware.js';
 import { validateBody, validateQuery } from '../../../../shared/presentation/middlewares/validate.middleware.js';
+import { uploadImageMiddleware } from '../../../../infrastructure/storage/upload.middleware.js';
 import {
   UpdateProfileSchema,
   QueryUsersSchema,
@@ -24,15 +25,20 @@ import {
 } from '../../application/dtos/user.dto.js';
 import { AdminResetPasswordSchema } from '../../../auth/application/dtos/auth.dto.js';
 
+import { PrismaDashboardRepository } from '../../infrastructure/repositories/prisma-dashboard.repository.js';
+import { GetAdminDashboardUseCase } from '../../application/use-cases/get-admin-dashboard.use-case.js';
+
 const router = Router();
 
 // Composition Root for User & Admin Management
 const userRepository = new PrismaUserRepository(prisma);
+const dashboardRepository = new PrismaDashboardRepository(prisma);
 const passwordHasher = new BcryptHasherService();
 
 const getProfileUseCase = new GetProfileUseCase(userRepository);
-const getStudentPortfolioUseCase = new GetStudentPortfolioUseCase(prisma);
-const getLecturerDashboardUseCase = new GetLecturerDashboardUseCase(prisma);
+const getStudentPortfolioUseCase = new GetStudentPortfolioUseCase(dashboardRepository);
+const getLecturerDashboardUseCase = new GetLecturerDashboardUseCase(dashboardRepository);
+const getAdminDashboardUseCase = new GetAdminDashboardUseCase(dashboardRepository);
 const updateProfileUseCase = new UpdateProfileUseCase(userRepository);
 const getUsersUseCase = new GetUsersUseCase(userRepository);
 const getUserByIdUseCase = new GetUserByIdUseCase(userRepository);
@@ -51,14 +57,17 @@ const userController = new UserController(
   adminCreateUserUseCase,
   adminCreateBatchUsersUseCase,
   adminUpdateUserUseCase,
-  adminResetPasswordUseCase
+  adminResetPasswordUseCase,
+  getAdminDashboardUseCase
 );
 
 // --- 1. User & Lecturer Self-Service Endpoints ---
 router.get('/profile', authenticateJWT, userController.getProfile);
 router.get('/portfolio', authenticateJWT, userController.getStudentPortfolio);
 router.get('/lecturer-dashboard', authenticateJWT, authorizeRoles('LECTURER', 'ADMIN'), userController.getLecturerDashboard);
+router.get('/admin-dashboard', authenticateJWT, authorizeRoles('ADMIN'), userController.getAdminDashboard);
 router.patch('/profile', authenticateJWT, validateBody(UpdateProfileSchema), userController.updateProfile);
+router.post('/avatar', authenticateJWT, uploadImageMiddleware.single('avatar'), userController.uploadAvatar);
 
 // --- 2. Admin Management Endpoints (Requires ADMIN Role) ---
 router.get('/', authenticateJWT, authorizeRoles('ADMIN'), validateQuery(QueryUsersSchema), userController.getUsers);

@@ -96,12 +96,12 @@ export function JoinCourseCard({ onJoin }: JoinCourseCardProps) {
               maxLength={20}
               autoComplete="off"
               disabled={isSubmitting}
-              className="h-12 flex-1 rounded-xl border border-slate-200 bg-slate-50/50 px-4 font-mono text-sm tracking-wider text-slate-900 placeholder:text-slate-400 transition-all focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-100/70 disabled:bg-slate-50"
+              className="h-12 flex-1 rounded-xl border border-slate-200 bg-slate-50/50 px-4 font-mono text-sm tracking-wider text-slate-900 placeholder:text-slate-400 transition-colors focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-100/70 disabled:bg-slate-50"
             />
             <button
               type="submit"
               disabled={isSubmitting || !code.trim() || code.trim().length < 4}
-              className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 text-sm font-semibold text-white shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 active:translate-y-0 active:shadow-sm disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-sm"
+              className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 text-sm font-semibold text-white shadow-sm transition-colors duration-150 hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 active:translate-y-0 active:shadow-sm disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-sm"
             >
               {isSubmitting ? (
                 <>
