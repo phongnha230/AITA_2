@@ -1,123 +1,92 @@
-import fs from 'fs';
-import path from 'path';
 import { IAiGradingRepository } from '../../domain/repositories/ai-grading.repository.interface.js';
 import { ISubmissionRepository } from '../../../submission/domain/repositories/submission.repository.interface.js';
 import { ApiKeyRotatorFacade } from '../../infrastructure/facades/api-key-rotator.facade.js';
 import { RagKnowledgeFacade } from '../../infrastructure/facades/rag-knowledge.facade.js';
 import { RubricGradingPrompt } from '../../infrastructure/prompts/rubric-grading.prompt.js';
-import { NotFoundError } from '../../../../shared/domain/exceptions/app.error.js';
+import { AppError, NotFoundError, ValidationError } from '../../../../shared/domain/exceptions/app.error.js';
+import { SourceCollector } from '../services/source-collector.service.js';
+import { AiGradingOutputService, ValidatedGradingOutput } from '../services/ai-grading-output.service.js';
+import { FeedbackLeakageService } from '../services/feedback-leakage.service.js';
 
 export class GradeSubmissionAiUseCase {
   constructor(
     private readonly aiGradingRepository: IAiGradingRepository,
     private readonly submissionRepository: ISubmissionRepository,
     private readonly apiKeyRotatorFacade: ApiKeyRotatorFacade,
-    private readonly ragKnowledgeFacade: RagKnowledgeFacade
+    private readonly ragKnowledgeFacade: RagKnowledgeFacade,
+    private readonly sourceCollector = new SourceCollector(),
+    private readonly gradingOutputService = new AiGradingOutputService(),
+    private readonly leakageService = new FeedbackLeakageService()
   ) {}
 
   public async execute(submissionId: string) {
-    // 1. Lấy thông tin bài nộp
     const submission = await this.submissionRepository.findById(submissionId);
+    if (!submission) throw new NotFoundError(`Bài nộp với ID: ${submissionId}`);
+    if (!submission.zipFilePath) throw new ValidationError('Submission chưa có thư mục source để chấm AI.');
 
-    if (!submission) {
-      throw new NotFoundError(`Bài nộp với ID: ${submissionId}`);
+    const collectedSource = await this.sourceCollector.collect(submission.zipFilePath);
+    if (collectedSource.files.length === 0) {
+      throw new ValidationError('Submission không có source .c, .h hoặc .java hợp lệ.');
     }
 
-    // 2. Đọc mã nguồn từ thư mục workspace của bài nộp
-    let studentCode = '// Không tìm thấy mã nguồn';
-    if (submission.zipFilePath && fs.existsSync(submission.zipFilePath)) {
-      try {
-        const files = this.collectSourceFiles(submission.zipFilePath);
-        if (files.length > 0) {
-          studentCode = files
-            .map((f) => `// File: ${path.relative(submission.zipFilePath!, f)}\n${fs.readFileSync(f, 'utf-8')}`)
-            .join('\n\n');
-        }
-      } catch (err: any) {
-        console.warn('[GradeSubmissionAiUseCase] Failed to read source files ->', err.message);
-      }
+    const ragContext = await this.ragKnowledgeFacade.getGradingContext(
+      submissionId,
+      collectedSource.combinedSource
+    );
+    const prompt = RubricGradingPrompt.buildUserPrompt(collectedSource.combinedSource, ragContext);
+
+    let tokensConsumed = 0;
+    let gradingOutput: ValidatedGradingOutput | null = null;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const llmResponse = await this.apiKeyRotatorFacade.executeWithKeyRotation(prompt, {
+        systemInstruction: RubricGradingPrompt.buildSystemInstruction(attempt === 1),
+        temperature: 0.1,
+        jsonMode: true,
+      });
+      tokensConsumed += llmResponse.tokensConsumed ?? 0;
+      gradingOutput = this.gradingOutputService.validateAndScore(
+        llmResponse.text,
+        ragContext.rubricRules
+      );
+
+      const feedback = [
+        gradingOutput.codeQualityFeedback,
+        ...gradingOutput.rubricBreakdown.map((item) => item.feedback),
+      ].join('\n');
+      if (!this.leakageService.detectsLeakage(feedback, ragContext.referenceSolutionSource)) break;
+      gradingOutput = null;
     }
 
-    // 3. Lấy RAG context (tiêu chí rubric của thầy, lời giải mẫu, testcase fail)
-    const ragContext = await this.ragKnowledgeFacade.getGradingContext(submissionId);
-    if (!ragContext) {
-      throw new NotFoundError(`Ngữ cảnh bài tập cho bài nộp: ${submissionId}`);
+    if (!gradingOutput) {
+      throw new AppError(
+        'AI feedback vẫn chứa nội dung giống lời giải sau lần retry an toàn.',
+        422,
+        'AI_FEEDBACK_LEAKAGE'
+      );
     }
 
-    // 4. Lắp ráp Prompt và gọi AI
-    const systemInstruction = RubricGradingPrompt.buildSystemInstruction();
-    const prompt = RubricGradingPrompt.buildUserPrompt(studentCode, ragContext);
-
-    const llmResponse = await this.apiKeyRotatorFacade.executeWithKeyRotation(prompt, {
-      systemInstruction,
-      temperature: 0.1,
-      jsonMode: true,
-    });
-
-    // 5. Parse kết quả JSON từ LLM
-    let parsed: any = {};
-    try {
-      parsed = JSON.parse(llmResponse.text);
-    } catch {
-      parsed = {
-        detectedTimeComplexity: 'Chưa xác định',
-        detectedSpaceComplexity: 'Chưa xác định',
-        codeQualityFeedback: llmResponse.text,
-        rubricBreakdown: [],
-      };
-    }
-
-    // Định dạng báo cáo lỗi logic & Clean Code chi tiết
-    let enrichedFeedback = parsed.codeQualityFeedback || 'Hoàn tất đánh giá.';
-    if (parsed.rootCauseAnalysis && parsed.rootCauseAnalysis.length > 0) {
-      enrichedFeedback += '\n\n🔍 **PHÂN TÍCH NGUYÊN NHÂN LỖI LOGIC (ROOT CAUSE):**\n' +
-        parsed.rootCauseAnalysis
-          .map((rc: any) => `- **${rc.failedTestLabel}** (Dòng ${rc.errorLine || 'N/A'}): ${rc.reason}`)
-          .join('\n');
-    }
-    if (parsed.cleanCodeAudit && parsed.cleanCodeAudit.length > 0) {
-      enrichedFeedback += '\n\n✨ **KIỂM ĐỊNH CLEAN CODE:**\n' +
-        parsed.cleanCodeAudit
-          .map((cc: any) => `- [${cc.severity || 'NOTE'}] Dòng ${cc.line}: ${cc.issue} 👉 *Gợi ý:* ${cc.suggestion}`)
-          .join('\n');
-    }
-
-    // 6. Tính tổng điểm AI = Tổng các earnedPoints của từng tiêu chí Rubric
-    const rubricBreakdown = (parsed.rubricBreakdown || []).map((r: any) => ({
-      rubricId: r.rubricId || 'custom-rubric',
-      category: r.category || 'GENERAL',
-      title: r.title || 'Tiêu chí',
-      earnedPoints: Number(r.earnedPoints || 0),
-      maxPoints: Number(r.maxPoints || 0),
-      feedback: r.feedback || '',
+    const ragContextUsed = ragContext.relevantSolutionChunks.map((chunk) => ({
+      chunkId: chunk.id,
+      symbol: chunk.symbol,
+      similarity: chunk.similarity,
+      embeddingModel: chunk.embeddingModel,
+      chunkerVersion: chunk.chunkerVersion,
     }));
-
-    // Strict PE: AI Clean Code tối đa 2.0 điểm
-    const rawAiScore = rubricBreakdown.reduce((sum: number, item: any) => sum + item.earnedPoints, 0);
-    const overallAiScore = Number(Math.min(2.0, Math.max(0, rawAiScore)).toFixed(2));
-
-    // 7. Lưu kết quả AI Grading vào CSDL
     const savedResult = await this.aiGradingRepository.save({
       submissionId,
-      overallAiScore,
-      rubricBreakdown,
-      detectedTimeComplexity: parsed.detectedTimeComplexity,
-      detectedSpaceComplexity: parsed.detectedSpaceComplexity,
-      codeQualityFeedback: enrichedFeedback,
-      ragContextUsed: {
-        rubricCount: ragContext.rubricRules.length,
-        failedTestCount: ragContext.failedTestCases.length,
-        hasSolution: !!ragContext.solutionSourceCode,
-      },
-      tokensConsumed: llmResponse.tokensConsumed || 0,
+      overallAiScore: gradingOutput.overallAiScore,
+      rubricBreakdown: gradingOutput.rubricBreakdown,
+      detectedTimeComplexity: gradingOutput.detectedTimeComplexity,
+      detectedSpaceComplexity: gradingOutput.detectedSpaceComplexity,
+      codeQualityFeedback: gradingOutput.codeQualityFeedback,
+      ragContextUsed,
+      tokensConsumed,
     });
 
-    // 8. Cập nhật finalScore cho submission = sandboxScore (max 8.0) + overallAiScore (max 2.0) = max 10.0
-    const sandboxScore = Number(submission.sandboxScore || 0);
-    const finalScore = Number(Math.min(10.0, Math.max(0, sandboxScore + overallAiScore)).toFixed(2));
-
+    const sandboxScore = Number(submission.sandboxScore ?? 0);
+    const finalScore = Number(Math.min(10, Math.max(0, sandboxScore + gradingOutput.overallAiScore)).toFixed(2));
     await this.submissionRepository.updateAiGradingScores(submissionId, {
-      aiScore: overallAiScore,
+      aiScore: gradingOutput.overallAiScore,
       finalScore,
       status: 'GRADED',
       gradedAt: new Date(),
@@ -126,24 +95,9 @@ export class GradeSubmissionAiUseCase {
     return {
       submissionId,
       sandboxScore,
-      overallAiScore,
+      overallAiScore: gradingOutput.overallAiScore,
       finalScore,
       gradingResult: savedResult.toJSON(),
     };
-  }
-
-  private collectSourceFiles(dir: string): string[] {
-    let results: string[] = [];
-    const list = fs.readdirSync(dir);
-    for (const file of list) {
-      const fullPath = path.join(dir, file);
-      const stat = fs.statSync(fullPath);
-      if (stat && stat.isDirectory() && file !== 'bin' && file !== '__MACOSX') {
-        results = results.concat(this.collectSourceFiles(fullPath));
-      } else if (file.endsWith('.c') || file.endsWith('.java') || file.endsWith('.cpp')) {
-        results.push(fullPath);
-      }
-    }
-    return results;
   }
 }

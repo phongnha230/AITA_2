@@ -3,6 +3,7 @@ import {
   IAiTutorRepository,
   CreateConversationData,
   AddMessageData,
+  AddMessagePairData,
 } from '../../domain/repositories/ai-tutor.repository.interface.js';
 import {
   AiTutorConversation,
@@ -107,6 +108,40 @@ export class PrismaAiTutorRepository implements IAiTutorRepository {
     });
 
     return this.toMessageDomain(raw);
+  }
+
+  async addMessagePair(data: AddMessagePairData): Promise<{
+    userMessage: AiTutorMessage;
+    modelMessage: AiTutorMessage;
+  }> {
+    const result = await this.prisma.$transaction(async (transaction) => {
+      const userMessage = await transaction.aiTutorMessage.create({
+        data: {
+          conversationId: data.conversationId,
+          senderRole: 'USER',
+          content: data.userContent,
+        },
+      });
+      const modelMessage = await transaction.aiTutorMessage.create({
+        data: {
+          conversationId: data.conversationId,
+          senderRole: 'MODEL',
+          content: data.modelContent,
+          hasLeakageDetected: data.hasLeakageDetected,
+          tokenCount: data.modelTokenCount,
+        },
+      });
+      await transaction.aiTutorConversation.update({
+        where: { id: data.conversationId },
+        data: { updatedAt: new Date() },
+      });
+      return { userMessage, modelMessage };
+    });
+
+    return {
+      userMessage: this.toMessageDomain(result.userMessage),
+      modelMessage: this.toMessageDomain(result.modelMessage),
+    };
   }
 
   async getMessages(conversationId: string): Promise<AiTutorMessage[]> {

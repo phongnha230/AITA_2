@@ -103,9 +103,9 @@ export const defaultGradingJobOptions:
     JobsOptions = {
 
     /**
-     * Tổng cộng tối đa 3 attempts.
+     * Tổng cộng tối đa 5 attempts cho lỗi AI/RAG tạm thời.
      */
-    attempts: 3,
+    attempts: 5,
 
     /**
      * Exponential backoff:
@@ -636,4 +636,4 @@ closeGradingQueue():
     Promise<void> {
 
     await gradingQueue.close();
-}   
+}

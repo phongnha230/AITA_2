@@ -1,31 +1,26 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
+import { env } from '../../../../infrastructure/config/env.js';
 import { ILlmProvider, LlmGenerateOptions, LlmResponse } from './llm-provider.interface.js';
 
 export class GeminiAdapter implements ILlmProvider {
   async generateContent(prompt: string, options: LlmGenerateOptions): Promise<LlmResponse> {
-    const genAI = new GoogleGenerativeAI(options.apiKey);
-    const modelName = 'gemini-1.5-flash';
-
-    const model = genAI.getGenerativeModel({
-      model: modelName,
-      systemInstruction: options.systemInstruction,
-      generationConfig: {
+    const client = new GoogleGenAI({ apiKey: options.apiKey });
+    const response = await client.models.generateContent({
+      model: env.GEMINI_GENERATION_MODEL,
+      contents: prompt,
+      config: {
+        systemInstruction: options.systemInstruction,
         temperature: options.temperature ?? 0.2,
-        maxOutputTokens: options.maxOutputTokens ?? 2048,
+        maxOutputTokens: options.maxOutputTokens ?? 2_048,
         responseMimeType: options.jsonMode ? 'application/json' : 'text/plain',
       },
     });
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-
-    const usage = response.usageMetadata;
-    const tokensConsumed = usage ? usage.totalTokenCount : 0;
-
+    const text = response.text;
+    if (!text) throw new Error('Gemini returned an empty response.');
     return {
       text,
-      tokensConsumed,
+      tokensConsumed: response.usageMetadata?.totalTokenCount ?? 0,
     };
   }
 }

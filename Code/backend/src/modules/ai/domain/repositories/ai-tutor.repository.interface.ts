@@ -18,6 +18,14 @@ export interface AddMessageData {
   tokenCount?: number;
 }
 
+export interface AddMessagePairData {
+  conversationId: string;
+  userContent: string;
+  modelContent: string;
+  hasLeakageDetected: boolean;
+  modelTokenCount: number;
+}
+
 export interface IAiTutorRepository {
   findConversationById(id: string): Promise<AiTutorConversation | null>;
   findConversationsByStudent(studentId: string): Promise<AiTutorConversation[]>;
@@ -27,5 +35,9 @@ export interface IAiTutorRepository {
   ): Promise<AiTutorConversation | null>;
   createConversation(data: CreateConversationData): Promise<AiTutorConversation>;
   addMessage(data: AddMessageData): Promise<AiTutorMessage>;
+  addMessagePair(data: AddMessagePairData): Promise<{
+    userMessage: AiTutorMessage;
+    modelMessage: AiTutorMessage;
+  }>;
   getMessages(conversationId: string): Promise<AiTutorMessage[]>;
 }

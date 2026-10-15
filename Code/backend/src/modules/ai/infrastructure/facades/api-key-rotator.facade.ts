@@ -4,6 +4,7 @@ import { ILlmProvider } from '../adapters/llm-provider.interface.js';
 import { GeminiAdapter } from '../adapters/gemini.adapter.js';
 import { MockLlmAdapter } from '../adapters/mock-llm.adapter.js';
 import { env } from '../../../../infrastructure/config/env.js';
+import { AppError } from '../../../../shared/domain/exceptions/app.error.js';
 
 const ENCRYPTION_ALGORITHM = 'aes-256-gcm';
 const SECRET_KEY = crypto
@@ -60,7 +61,7 @@ export class ApiKeyRotatorFacade {
     }
   ) {
     // 1. Kiểm tra nếu có GEMINI_API_KEY trong env
-    const envKey = (process.env.GEMINI_API_KEY || '').trim();
+    const envKey = env.GEMINI_API_KEY.trim();
     if (envKey) {
       try {
         return await this.geminiAdapter.generateContent(prompt, {
@@ -95,11 +96,11 @@ export class ApiKeyRotatorFacade {
       }
     }
 
-    // 3. Fallback sang Mock LLM để hệ thống luôn phản hồi ổn định
-    console.warn('[ApiKeyRotatorFacade] Using Mock LLM fallback for local test.');
-    return await this.mockAdapter.generateContent(prompt, {
-      ...options,
-      apiKey: 'mock-key',
-    });
+    if (env.NODE_ENV !== 'production' && env.ALLOW_MOCK_LLM) {
+      console.warn('[ApiKeyRotatorFacade] Using explicitly enabled Mock LLM.');
+      return this.mockAdapter.generateContent(prompt, { ...options, apiKey: 'mock-key' });
+    }
+
+    throw new AppError('Không có Gemini API key khả dụng.', 503, 'AI_PROVIDER_UNAVAILABLE');
   }
 }
