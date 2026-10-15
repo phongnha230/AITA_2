@@ -18,6 +18,8 @@ export interface SandboxTestCaseRecord {
 export interface SandboxSubmissionRecord {
   id: string;
   zipFilePath: string | null;
+  workspacePath: string | null;
+  deployedUrl: string | null;
   paperCode: string | null;
   assignment: {
     environment: string;

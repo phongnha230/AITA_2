@@ -7,6 +7,7 @@ import { AppError, NotFoundError, ValidationError } from '../../../../shared/dom
 import { SourceCollector } from '../services/source-collector.service.js';
 import { AiGradingOutputService, ValidatedGradingOutput } from '../services/ai-grading-output.service.js';
 import { FeedbackLeakageService } from '../services/feedback-leakage.service.js';
+import { logger } from '../../../../infrastructure/logging/logger.js';
 
 export class GradeSubmissionAiUseCase {
   constructor(
@@ -22,12 +23,27 @@ export class GradeSubmissionAiUseCase {
   public async execute(submissionId: string) {
     const submission = await this.submissionRepository.findById(submissionId);
     if (!submission) throw new NotFoundError(`Bài nộp với ID: ${submissionId}`);
-    if (!submission.zipFilePath) throw new ValidationError('Submission chưa có thư mục source để chấm AI.');
+    const sourcePath = submission.workspacePath ?? submission.zipFilePath;
+    if (!sourcePath) throw new ValidationError('Submission chưa có thư mục source để chấm AI.');
 
-    const collectedSource = await this.sourceCollector.collect(submission.zipFilePath);
-    if (collectedSource.files.length === 0) {
-      throw new ValidationError('Submission không có source .c, .h hoặc .java hợp lệ.');
+    const environment = submission.assignment?.environment;
+    if (!environment) {
+      throw new ValidationError('Không xác định được ngôn ngữ của assignment để chấm AI.');
     }
+
+    const collectedSource = await this.sourceCollector.collect(sourcePath, environment);
+    if (collectedSource.files.length === 0) {
+      throw new ValidationError(`Submission không có source hợp lệ cho ${environment}.`);
+    }
+    logger.info('ai_source_selection_completed', {
+      submissionId,
+      stage: 'AI_SOURCE_SELECTION',
+      environment,
+      strategy: collectedSource.selectionStrategy ?? 'ALL_SOURCE',
+      selectedFiles: collectedSource.files.length,
+      omittedFiles: collectedSource.omittedFileCount ?? 0,
+      selectedBytes: collectedSource.totalBytes,
+    });
 
     const ragContext = await this.ragKnowledgeService.getGradingContext(
       submissionId,
@@ -40,7 +56,7 @@ export class GradeSubmissionAiUseCase {
     for (let attempt = 0; attempt < 2; attempt += 1) {
       const llmResponse = await this.aiGenerationService.executeWithKeyRotation(prompt, {
         operation: 'GRADING_GENERATION',
-        systemInstruction: RubricGradingPrompt.buildSystemInstruction(attempt === 1),
+        systemInstruction: RubricGradingPrompt.buildSystemInstruction(environment, attempt === 1, ragContext.courseCode),
         temperature: 0.1,
         jsonMode: true,
       });
@@ -85,22 +101,17 @@ export class GradeSubmissionAiUseCase {
       tokensConsumed,
     });
 
-    const sandboxScore = Number(submission.sandboxScore ?? 0);
-    const finalScore = Number(Math.min(10, Math.max(0, sandboxScore + gradingOutput.overallAiScore)).toFixed(2));
     await this.submissionRepository.updateAiGradingScores(submissionId, {
       aiScore: gradingOutput.overallAiScore,
       algorithmScore: gradingOutput.algorithmScore,
       cleanCodeScore: gradingOutput.cleanCodeScore,
-      finalScore,
-      status: 'GRADED',
-      gradedAt: new Date(),
     });
 
     return {
       submissionId,
-      sandboxScore,
       overallAiScore: gradingOutput.overallAiScore,
-      finalScore,
+      algorithmScore: gradingOutput.algorithmScore,
+      cleanCodeScore: gradingOutput.cleanCodeScore,
       gradingResult: savedResult.toJSON(),
     };
   }

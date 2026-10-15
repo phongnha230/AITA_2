@@ -24,7 +24,7 @@ describe('SourceCollector', () => {
     await fs.writeFile(path.join(directory, 'main.c'), 'int main(void) { return 0; }');
     await fs.writeFile(path.join(directory, 'README.md'), 'ignore me');
 
-    const result = await new SourceCollector().collect(directory);
+    const result = await new SourceCollector().collect(directory, 'C_GCC');
     expect(result.files).toEqual([{ relativePath: 'main.c', bytes: 28 }]);
     expect(result.combinedSource).toContain('int main');
     expect(result.combinedSource).not.toContain('ignore me');
@@ -33,7 +33,7 @@ describe('SourceCollector', () => {
   it('rejects a source file larger than 64 KiB', async () => {
     const directory = await createTemporaryDirectory();
     await fs.writeFile(path.join(directory, 'Main.java'), 'a'.repeat(64 * 1024 + 1));
-    await expect(new SourceCollector().collect(directory)).rejects.toMatchObject({
+    await expect(new SourceCollector().collect(directory, 'JAVA_JDK')).rejects.toMatchObject({
       errorCode: 'INPUT_TOO_LARGE',
     });
   });
@@ -43,7 +43,7 @@ describe('SourceCollector', () => {
     await Promise.all(Array.from({ length: 201 }, (_, index) =>
       fs.writeFile(path.join(directory, `file-${index}.c`), 'int value;')
     ));
-    await expect(new SourceCollector().collect(directory)).rejects.toMatchObject({
+    await expect(new SourceCollector().collect(directory, 'C_GCC')).rejects.toMatchObject({
       errorCode: 'INPUT_TOO_LARGE',
     });
   });
@@ -53,7 +53,7 @@ describe('SourceCollector', () => {
     await Promise.all(Array.from({ length: 17 }, (_, index) =>
       fs.writeFile(path.join(directory, `File${index}.java`), 'a'.repeat(64 * 1024))
     ));
-    await expect(new SourceCollector().collect(directory)).rejects.toMatchObject({
+    await expect(new SourceCollector().collect(directory, 'JAVA_JDK')).rejects.toMatchObject({
       errorCode: 'INPUT_TOO_LARGE',
     });
   });
@@ -64,7 +64,27 @@ describe('SourceCollector', () => {
     await fs.mkdir(path.join(directory, 'node_modules'));
     await fs.writeFile(path.join(directory, 'src', 'defs.h'), '#define VALUE 1');
     await fs.writeFile(path.join(directory, 'node_modules', 'ignored.c'), 'int ignored;');
-    const result = await new SourceCollector().collect(directory);
+    const result = await new SourceCollector().collect(directory, 'C_GCC');
     expect(result.files.map((file) => file.relativePath)).toEqual([path.join('src', 'defs.h')]);
+  });
+
+  it('rejects Java files in a C submission instead of silently mixing languages', async () => {
+    const directory = await createTemporaryDirectory();
+    await fs.writeFile(path.join(directory, 'main.c'), 'int main(void) { return 0; }');
+    await fs.writeFile(path.join(directory, 'Main.java'), 'class Main {}');
+
+    await expect(new SourceCollector().collect(directory, 'C_GCC')).rejects.toMatchObject({
+      errorCode: 'SOURCE_LANGUAGE_MISMATCH',
+    });
+  });
+
+  it('rejects C and header files in a Java submission', async () => {
+    const directory = await createTemporaryDirectory();
+    await fs.writeFile(path.join(directory, 'Main.java'), 'class Main {}');
+    await fs.writeFile(path.join(directory, 'main.c'), 'int main(void) { return 0; }');
+
+    await expect(new SourceCollector().collect(directory, 'JAVA_JDK')).rejects.toMatchObject({
+      errorCode: 'SOURCE_LANGUAGE_MISMATCH',
+    });
   });
 });

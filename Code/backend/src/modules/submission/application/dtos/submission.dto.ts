@@ -10,7 +10,8 @@ export const SubmitAssignmentSchema = z
       errorMap: () => ({ message: "submissionChannel phải là 'ZIP_UPLOAD' hoặc 'GIT_COMMIT'" }),
     }),
     gitRepoUrl: z.string().url('gitRepoUrl phải là một URL hợp lệ').optional(),
-    gitCommitHash: z.string().min(7, 'gitCommitHash không hợp lệ').max(64).optional(),
+    gitCommitHash: z.string().regex(/^[a-f0-9]{7,40}$/i, 'gitCommitHash không hợp lệ').optional(),
+    deployedUrl: z.string().url('deployedUrl phải là một URL hợp lệ').optional(),
   })
   .superRefine((data, ctx) => {
     if (data.submissionChannel === 'GIT_COMMIT') {
@@ -21,17 +22,22 @@ export const SubmitAssignmentSchema = z
           path: ['gitRepoUrl'],
         });
       }
-      if (!data.gitCommitHash) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'gitCommitHash là bắt buộc khi submissionChannel = GIT_COMMIT',
-          path: ['gitCommitHash'],
-        });
-      }
     }
   });
 
+export const SubmitTeamAssignmentSchema = z.object({
+  teamId: z.string().uuid('teamId phải là UUID hợp lệ'),
+  gitCommitHash: z.string().regex(/^[a-f0-9]{7,40}$/i, 'gitCommitHash không hợp lệ').optional(),
+});
+
+export const AdjustParticipantScoreSchema = z.object({
+  adjustedScore: z.number().finite().min(0).max(10).nullable(),
+  reason: z.string().trim().min(5).max(500),
+});
+
 export type SubmitAssignmentInput = z.infer<typeof SubmitAssignmentSchema>;
+export type SubmitTeamAssignmentInput = z.infer<typeof SubmitTeamAssignmentSchema>;
+export type AdjustParticipantScoreInput = z.infer<typeof AdjustParticipantScoreSchema>;
 
 export const GetSubmissionStatusSchema = z.object({
   id: z.string().uuid({ message: 'submissionId phải là UUID hợp lệ' }),

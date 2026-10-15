@@ -1,6 +1,7 @@
 import React from 'react';
 import { Terminal, Upload, Trash2 } from 'lucide-react';
-import { RationaleTag, TestCase } from '../../types/assignment.types';
+import { AssignmentEnv, RationaleTag, TestCase } from '../../types/assignment.types';
+import { WebTestcaseBuilder } from './WebTestcaseBuilder';
 
 interface TestcaseTableProps {
   testCases: TestCase[];
@@ -8,6 +9,7 @@ interface TestcaseTableProps {
   onAddBlankTestCase: () => void;
   onOpenImportModal: () => void;
   onDeleteTestCase: (idx: number) => void;
+  environment: AssignmentEnv;
 }
 
 export const TestcaseTable: React.FC<TestcaseTableProps> = ({
@@ -16,7 +18,19 @@ export const TestcaseTable: React.FC<TestcaseTableProps> = ({
   onAddBlankTestCase,
   onOpenImportModal,
   onDeleteTestCase,
+  environment,
 }) => {
+  if (environment === 'REACT_JS') {
+    return (
+      <WebTestcaseBuilder
+        testCases={testCases}
+        setTestCases={setTestCases}
+        onAddBlankTestCase={onAddBlankTestCase}
+        onDeleteTestCase={onDeleteTestCase}
+      />
+    );
+  }
+
   if (testCases.length === 0) {
     return (
       <div className="p-8 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50">

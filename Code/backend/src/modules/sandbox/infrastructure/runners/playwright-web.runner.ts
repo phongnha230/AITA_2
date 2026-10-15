@@ -4,36 +4,9 @@ import {
   TestCaseResult,
   SandboxExecutionSummary,
 } from '../../domain/interfaces/sandbox-runner.interface.js';
-import path from 'node:path';
-import fs from 'node:fs/promises';
-
-export interface WebActionStep {
-  action:
-    | 'GOTO'
-    | 'FILL'
-    | 'CLICK'
-    | 'SELECT'
-    | 'CHECK'
-    | 'UNCHECK'
-    | 'PRESS_KEY'
-    | 'WAIT_FOR'
-    | 'WAIT_FOR_TIMEOUT'
-    | 'ASSERT_VISIBLE'
-    | 'ASSERT_TEXT'
-    | 'ASSERT_VALUE'
-    | 'ASSERT_URL'
-    | 'SCREENSHOT';
-  target?: string; // CSS selector or relative path or URL
-  value?: string; // Value to fill / select / key to press
-  expected?: string; // Expected text / URL / value
-  timeoutMs?: number; // Step timeout (default 10000ms)
-}
-
-type WebAction = WebActionStep['action'];
-const webActions = new Set<WebAction>([
-  'GOTO', 'FILL', 'CLICK', 'SELECT', 'CHECK', 'UNCHECK', 'PRESS_KEY', 'WAIT_FOR',
-  'WAIT_FOR_TIMEOUT', 'ASSERT_VISIBLE', 'ASSERT_TEXT', 'ASSERT_VALUE', 'ASSERT_URL', 'SCREENSHOT',
-]);
+import { validatePublicDeploymentUrl } from '../../../submission/infrastructure/storage/deployed-url.validator.js';
+import { logger } from '../../../../infrastructure/logging/logger.js';
+import { parseWebTestScript, WebActionStep } from '../../domain/web-test-script.js';
 
 interface PageLike {
   goto(url: string, options: Record<string, unknown>): Promise<unknown>;
@@ -53,18 +26,22 @@ interface PageLike {
 }
 
 interface BrowserLike {
-  newContext(options: Record<string, unknown>): Promise<{ newPage(): Promise<PageLike> }>;
+  newContext(options: Record<string, unknown>): Promise<{
+    newPage(): Promise<PageLike>;
+    route(pattern: string, handler: (route: RouteLike) => Promise<void>): Promise<void>;
+    close(): Promise<void>;
+  }>;
   close(): Promise<void>;
+}
+
+interface RouteLike {
+  request(): { url(): string };
+  continue(): Promise<void>;
+  abort(errorCode?: string): Promise<void>;
 }
 
 interface ChromiumLike {
   launch(options: Record<string, unknown>): Promise<BrowserLike>;
-}
-
-function isWebActionStep(value: unknown): value is WebActionStep {
-  if (!value || typeof value !== 'object') return false;
-  const action = (value as { action?: unknown }).action;
-  return typeof action === 'string' && webActions.has(action as WebAction);
 }
 
 export class PlaywrightWebRunner implements ISandboxRunner {
@@ -74,51 +51,47 @@ export class PlaywrightWebRunner implements ISandboxRunner {
    * @param testCases Danh sách test cases (chứa chuỗi JSON các bước kịch bản)
    */
   public async execute(
-    stagedFolderPath: string,
-    testCases: TestCaseInput[]
+    _stagedFolderPath: string,
+    testCases: TestCaseInput[],
+    context?: { targetBaseUrl?: string }
   ): Promise<SandboxExecutionSummary> {
     const results: TestCaseResult[] = [];
     let totalScore = 0;
     const maxScore = testCases.reduce((sum, tc) => sum + (tc.score || 0), 0);
 
-    // 1. Tìm Target Base URL (từ submission config, vercel.json, hoặc fallback localhost)
-    const targetBaseUrl = await this.resolveTargetBaseUrl(stagedFolderPath);
+    if (!context?.targetBaseUrl) {
+      throw new Error('[PlaywrightWebRunner] Submission không có deployedUrl snapshot.');
+    }
+    const targetBaseUrl = await validatePublicDeploymentUrl(context.targetBaseUrl);
+    await this.assertReachable(targetBaseUrl);
 
     // 2. Thử load thư viện Playwright (nếu đã cài đặt)
-    let playwrightChromium: ChromiumLike | null = null;
+    let playwrightChromium: ChromiumLike;
     try {
-      // Dynamic import to avoid fatal build error if playwright is optional
-      // @ts-ignore
       const playwrightModule = await import('playwright') as unknown as { chromium?: ChromiumLike };
-      playwrightChromium = playwrightModule.chromium ?? null;
-    } catch {
-      playwrightChromium = null;
+      if (!playwrightModule.chromium) throw new Error('Playwright Chromium API không khả dụng.');
+      playwrightChromium = playwrightModule.chromium;
+      const probe = await playwrightChromium.launch({ headless: true });
+      await probe.close();
+    } catch (error) {
+      logger.error('playwright_runtime_unavailable', { stage: 'PLAYWRIGHT_BOOT', error });
+      throw new Error('[PlaywrightWebRunner] Chromium chưa được cài đặt hoặc không thể khởi động.');
     }
 
     for (const tc of testCases) {
       const startTime = Date.now();
-      const steps = this.parseTestCaseSteps(tc.inputData, targetBaseUrl);
+      const steps = this.parseTestCaseSteps(tc.inputData);
 
-      if (playwrightChromium) {
-        // Chạy qua Headless Browser thật
-        const tcResult = await this.runRealBrowserSteps(
-          playwrightChromium,
-          tc,
-          steps,
-          targetBaseUrl,
-          startTime
-        );
-        results.push(tcResult);
-        if (tcResult.passed) {
-          totalScore += tc.score || 0;
-        }
-      } else {
-        // Fallback giả lập thông minh (Smart Mock/Synthetic E2E Evaluator)
-        const tcResult = await this.runSyntheticSteps(tc, steps, targetBaseUrl, startTime);
-        results.push(tcResult);
-        if (tcResult.passed) {
-          totalScore += tc.score || 0;
-        }
+      const tcResult = await this.runRealBrowserSteps(
+        playwrightChromium,
+        tc,
+        steps,
+        targetBaseUrl,
+        startTime
+      );
+      results.push(tcResult);
+      if (tcResult.passed) {
+        totalScore += tc.score || 0;
       }
     }
 
@@ -134,113 +107,35 @@ export class PlaywrightWebRunner implements ISandboxRunner {
     };
   }
 
-  /**
-   * Phân tích Base URL từ workspace / config
-   */
-  private async resolveTargetBaseUrl(stagedFolderPath: string): Promise<string> {
-    try {
-      // Ưu tiên 1: file target_url.txt
-      const metaPath = path.join(stagedFolderPath, 'target_url.txt');
-      try {
-        const urlContent = await fs.readFile(metaPath, 'utf8');
-        if (urlContent.trim().startsWith('http')) {
-          return urlContent.trim();
-        }
-      } catch {
-        // file not found, ignore
+  private async assertReachable(initialUrl: string): Promise<void> {
+    let currentUrl = initialUrl;
+    for (let redirectCount = 0; redirectCount <= 5; redirectCount += 1) {
+      currentUrl = await validatePublicDeploymentUrl(currentUrl);
+      const response = await fetch(currentUrl, {
+        method: 'GET',
+        redirect: 'manual',
+        signal: AbortSignal.timeout(15_000),
+        headers: { 'user-agent': 'AITA-FER201-Grader/1.0' },
+      });
+      if (response.status >= 300 && response.status < 400) {
+        const location = response.headers.get('location');
+        if (!location) throw new Error('Deploy URL redirect nhưng không có Location header.');
+        await response.body?.cancel();
+        currentUrl = new URL(location, currentUrl).toString();
+        continue;
       }
-
-      // Ưu tiên 2: file vercel.json
-      const vercelConfigPath = path.join(stagedFolderPath, 'vercel.json');
-      try {
-        const vercelJson = JSON.parse(await fs.readFile(vercelConfigPath, 'utf8'));
-        if (vercelJson.alias) {
-          return `https://${vercelJson.alias}`;
-        }
-      } catch {
-        // ignore
-      }
-
-      // Ưu tiên 3: package.json homepage
-      const pkgPath = path.join(stagedFolderPath, 'package.json');
-      try {
-        const pkgData = JSON.parse(await fs.readFile(pkgPath, 'utf8'));
-        if (pkgData.homepage && typeof pkgData.homepage === 'string' && pkgData.homepage.startsWith('http')) {
-          return pkgData.homepage.trim();
-        }
-      } catch {
-        // ignore
-      }
-    } catch {
-      // ignore
+      if (!response.ok) throw new Error(`Deploy URL trả về HTTP ${response.status}.`);
+      await response.body?.cancel();
+      return;
     }
-
-    return 'https://example-project.vercel.app';
+    throw new Error('Deploy URL redirect quá 5 lần.');
   }
 
   /**
-   * Parse kịch bản các bước từ inputData JSON hoặc định dạng text
+   * Parse kịch bản JSON do giảng viên cấu hình. Dữ liệu rỗng hoặc sai cấu trúc phải fail-closed.
    */
-  private parseTestCaseSteps(inputData: string, baseUrl: string): WebActionStep[] {
-    try {
-      const parsed: unknown = JSON.parse(inputData);
-      if (Array.isArray(parsed) && parsed.every(isWebActionStep)) {
-        return parsed;
-      }
-      if (parsed && typeof parsed === 'object') {
-        const steps = (parsed as { steps?: unknown }).steps;
-        if (Array.isArray(steps) && steps.every(isWebActionStep)) return steps;
-      }
-    } catch {
-      // Not JSON, convert plain text lines to basic steps
-    }
-
-    const steps: WebActionStep[] = [];
-    const lines = (inputData || '').split('\n').map((l) => l.trim()).filter(Boolean);
-
-    if (lines.length === 0) {
-      steps.push({ action: 'GOTO', target: baseUrl, timeoutMs: 15000 });
-      steps.push({ action: 'ASSERT_VISIBLE', target: 'body' });
-    } else {
-      for (const line of lines) {
-        const parts = line.split('|').map((p) => p.trim());
-        const candidate = parts[0]?.toUpperCase();
-        const action: WebAction | null = candidate && webActions.has(candidate as WebAction)
-          ? candidate as WebAction
-          : null;
-        if (action === 'GOTO') {
-          steps.push({ action: 'GOTO', target: parts[1] || baseUrl, timeoutMs: 15000 });
-        } else if (action === 'FILL') {
-          steps.push({ action: 'FILL', target: parts[1], value: parts[2] || '' });
-        } else if (action === 'CLICK') {
-          steps.push({ action: 'CLICK', target: parts[1] });
-        } else if (action === 'SELECT') {
-          steps.push({ action: 'SELECT', target: parts[1], value: parts[2] || '' });
-        } else if (action === 'CHECK') {
-          steps.push({ action: 'CHECK', target: parts[1] });
-        } else if (action === 'UNCHECK') {
-          steps.push({ action: 'UNCHECK', target: parts[1] });
-        } else if (action === 'PRESS_KEY') {
-          steps.push({ action: 'PRESS_KEY', target: parts[1], value: parts[2] || 'Enter' });
-        } else if (action === 'WAIT_FOR') {
-          steps.push({ action: 'WAIT_FOR', target: parts[1] });
-        } else if (action === 'WAIT_FOR_TIMEOUT') {
-          steps.push({ action: 'WAIT_FOR_TIMEOUT', value: parts[1] || '1000' });
-        } else if (action === 'ASSERT_TEXT') {
-          steps.push({ action: 'ASSERT_TEXT', target: parts[1], expected: parts[2] || '' });
-        } else if (action === 'ASSERT_VALUE') {
-          steps.push({ action: 'ASSERT_VALUE', target: parts[1], expected: parts[2] || '' });
-        } else if (action === 'ASSERT_URL') {
-          steps.push({ action: 'ASSERT_URL', expected: parts[1] || '' });
-        } else if (action === 'ASSERT_VISIBLE') {
-          steps.push({ action: 'ASSERT_VISIBLE', target: parts[1] });
-        } else {
-          steps.push({ action: 'ASSERT_VISIBLE', target: line });
-        }
-      }
-    }
-
-    return steps;
+  private parseTestCaseSteps(inputData: string): WebActionStep[] {
+    return parseWebTestScript(inputData);
   }
 
   /**
@@ -264,6 +159,21 @@ export class PlaywrightWebRunner implements ISandboxRunner {
       const context = await browser.newContext({
         viewport: { width: 1280, height: 720 },
       });
+      const validatedOrigins = new Set<string>();
+      await context.route('**/*', async (route) => {
+        const requestUrl = route.request().url();
+        try {
+          const parsed = new URL(requestUrl);
+          if (!validatedOrigins.has(parsed.origin)) {
+            await validatePublicDeploymentUrl(requestUrl);
+            validatedOrigins.add(parsed.origin);
+          }
+          await route.continue();
+        } catch (error) {
+          logs.push(`[SSRF] Blocked resource ${requestUrl}: ${error instanceof Error ? error.message : String(error)}`);
+          await route.abort('blockedbyclient');
+        }
+      });
       const page = await context.newPage();
 
       for (let i = 0; i < steps.length; i++) {
@@ -274,7 +184,11 @@ export class PlaywrightWebRunner implements ISandboxRunner {
           case 'GOTO': {
             const url = step.target?.startsWith('http')
               ? step.target
-              : `${baseUrl}${step.target || '/'}`;
+              : new URL(step.target || '/', baseUrl).toString();
+            await validatePublicDeploymentUrl(url);
+            if (new URL(url).origin !== new URL(baseUrl).origin) {
+              throw new Error('Bước GOTO chỉ được điều hướng trong cùng origin với URL deploy.');
+            }
             logs.push(`[Step ${i + 1}] Navigate to ${url}`);
             // Cold start resilience: timeout 15000ms
             await page.goto(url, { timeout: Math.max(stepTimeout, 15000), waitUntil: 'domcontentloaded' });
@@ -282,7 +196,7 @@ export class PlaywrightWebRunner implements ISandboxRunner {
           }
 
           case 'FILL': {
-            logs.push(`[Step ${i + 1}] Fill selector "${step.target}" with "${step.value}"`);
+            logs.push(`[Step ${i + 1}] Fill selector "${step.target}" with [REDACTED]`);
             await page.fill(step.target!, step.value || '', { timeout: stepTimeout });
             break;
           }
@@ -373,11 +287,6 @@ export class PlaywrightWebRunner implements ISandboxRunner {
             }
             break;
           }
-
-          case 'SCREENSHOT': {
-            logs.push(`[Step ${i + 1}] Captured screenshot`);
-            break;
-          }
         }
       }
 
@@ -388,7 +297,7 @@ export class PlaywrightWebRunner implements ISandboxRunner {
         questionNo: tc.questionNo,
         passed: true,
         status: 'PASSED',
-        actualOutput: logs.join('\n'),
+        actualOutput: logs.join('\n').slice(0, 16_000),
         expectedOutput: tc.expectedOutput || 'All steps completed successfully',
         executionTimeMs,
         memoryUsedKb: 45000,
@@ -396,14 +305,14 @@ export class PlaywrightWebRunner implements ISandboxRunner {
     } catch (error: unknown) {
       const executionTimeMs = Date.now() - startTime;
       const message = error instanceof Error ? error.message : String(error);
-      logs.push(`❌ Step Failed: ${message}`);
+      logs.push(`Step Failed: ${message}`);
 
       return {
         testCaseId: tc.id,
         questionNo: tc.questionNo,
         passed: false,
         status: 'WRONG_ANSWER',
-        actualOutput: logs.join('\n'),
+        actualOutput: logs.join('\n').slice(0, 16_000),
         expectedOutput: tc.expectedOutput || 'All steps completed successfully',
         executionTimeMs,
         memoryUsedKb: 30000,
@@ -416,34 +325,4 @@ export class PlaywrightWebRunner implements ISandboxRunner {
     }
   }
 
-  /**
-   * Giả lập E2E nhẹ nhàng cho môi trường local chưa cài full Playwright browser engine
-   */
-  private async runSyntheticSteps(
-    tc: TestCaseInput,
-    steps: WebActionStep[],
-    baseUrl: string,
-    startTime: number
-  ): Promise<TestCaseResult> {
-    const logs: string[] = [];
-    logs.push(`[Synthetic Web Engine] Target: ${baseUrl}`);
-
-    for (let i = 0; i < steps.length; i++) {
-      const step = steps[i];
-      logs.push(`[Step ${i + 1}] Executing action ${step.action} on ${step.target || step.value || 'target'}`);
-    }
-
-    const executionTimeMs = Math.max(120, Date.now() - startTime);
-
-    return {
-      testCaseId: tc.id,
-      questionNo: tc.questionNo,
-      passed: true,
-      status: 'PASSED',
-      actualOutput: logs.join('\n') + '\nAll scenario assertions verified successfully.',
-      expectedOutput: tc.expectedOutput || 'All steps completed successfully',
-      executionTimeMs,
-      memoryUsedKb: 15000,
-    };
-  }
 }

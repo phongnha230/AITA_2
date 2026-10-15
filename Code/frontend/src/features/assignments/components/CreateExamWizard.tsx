@@ -20,8 +20,10 @@ export const CreateExamWizard: React.FC = () => {
         editId={wizard.editId}
         loadingEdit={wizard.loadingEdit}
         title={wizard.title}
+        environment={wizard.environment}
         onLoadSamplePrf192={wizard.handleLoadSamplePrf192}
         onLoadSamplePro192={wizard.handleLoadSamplePro192}
+        onLoadSampleCsd201={wizard.handleLoadSampleCsd201}
         submitSuccess={wizard.submitSuccess}
         submitError={wizard.submitError}
       />
@@ -39,6 +41,8 @@ export const CreateExamWizard: React.FC = () => {
           courses={wizard.courses}
           environment={wizard.environment}
           setEnvironment={wizard.setEnvironment}
+          submissionType={wizard.submissionType}
+          setSubmissionType={wizard.setSubmissionType}
           title={wizard.title}
           setTitle={wizard.setTitle}
           description={wizard.description}
@@ -86,6 +90,7 @@ export const CreateExamWizard: React.FC = () => {
       {/* BƯỚC 3: BÀI GIẢI CHUẨN & IMPORT TESTCASES */}
       {wizard.activeStep === 3 && (
         <WizardStep3Solution
+          environment={wizard.environment}
           solutionTitle={wizard.solutionTitle}
           setSolutionTitle={wizard.setSolutionTitle}
           solutionCode={wizard.solutionCode}
@@ -98,6 +103,10 @@ export const CreateExamWizard: React.FC = () => {
           setAcceptedStrategiesText={wizard.setAcceptedStrategiesText}
           algorithmNotes={wizard.algorithmNotes}
           setAlgorithmNotes={wizard.setAlgorithmNotes}
+          reactStructureRequirements={wizard.reactStructureRequirements}
+          setReactStructureRequirements={wizard.setReactStructureRequirements}
+          reactCleanCodeRequirements={wizard.reactCleanCodeRequirements}
+          setReactCleanCodeRequirements={wizard.setReactCleanCodeRequirements}
           handleSolutionFileUpload={wizard.handleSolutionFileUpload}
           testCases={wizard.testCases}
           setTestCases={wizard.setTestCases}
@@ -135,19 +144,21 @@ export const CreateExamWizard: React.FC = () => {
       />
 
       {/* MODAL 2: IMPORT TESTCASE VỚI BẢNG XEM TRƯỚC (PREVIEW TABLE) */}
-      <TestcaseImportModal
-        isOpen={wizard.testcaseImport.importModal}
-        onClose={wizard.testcaseImport.closeModal}
-        importType={wizard.testcaseImport.importType}
-        setImportType={wizard.testcaseImport.setImportType}
-        jsonText={wizard.testcaseImport.jsonText}
-        setJsonText={wizard.testcaseImport.setJsonText}
-        previewTestCases={wizard.testcaseImport.previewTestCases}
-        importError={wizard.testcaseImport.importError}
-        onParseJson={wizard.testcaseImport.handleParseJsonForPreview}
-        onParseCsv={wizard.testcaseImport.handleParseCsvForPreview}
-        onConfirmImport={wizard.testcaseImport.handleConfirmImport}
-      />
+      {wizard.environment !== 'REACT_JS' && (
+        <TestcaseImportModal
+          isOpen={wizard.testcaseImport.importModal}
+          onClose={wizard.testcaseImport.closeModal}
+          importType={wizard.testcaseImport.importType}
+          setImportType={wizard.testcaseImport.setImportType}
+          jsonText={wizard.testcaseImport.jsonText}
+          setJsonText={wizard.testcaseImport.setJsonText}
+          previewTestCases={wizard.testcaseImport.previewTestCases}
+          importError={wizard.testcaseImport.importError}
+          onParseJson={wizard.testcaseImport.handleParseJsonForPreview}
+          onParseCsv={wizard.testcaseImport.handleParseCsvForPreview}
+          onConfirmImport={wizard.testcaseImport.handleConfirmImport}
+        />
+      )}
     </div>
   );
 };

@@ -52,6 +52,7 @@ export interface ISandboxRunner {
    */
   execute(
     stagedFolderPath: string,
-    testCases: TestCaseInput[]
+    testCases: TestCaseInput[],
+    context?: { targetBaseUrl?: string }
   ): Promise<SandboxExecutionSummary>;
 }

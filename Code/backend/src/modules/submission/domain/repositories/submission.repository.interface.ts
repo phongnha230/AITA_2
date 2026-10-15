@@ -10,6 +10,10 @@ export interface CreateSubmissionData {
   zipFileSize?: bigint | number | null;
   gitRepoUrl?: string | null;
   gitCommitHash?: string | null;
+  deployedUrl?: string | null;
+  workspacePath?: string | null;
+  teamId?: string | null;
+  participants?: Array<{ userId: string; teamRole: string }>;
 }
 
 export interface ISubmissionRepository {
@@ -18,19 +22,18 @@ export interface ISubmissionRepository {
   findWithJobStatus(id: string): Promise<any | null>;
   findByAssignmentAndUser(assignmentId: string, userId: string): Promise<Submission[]>;
   findLatestByAssignmentAndUser(assignmentId: string, userId: string): Promise<Submission | null>;
+  findLatestByAssignmentAndTeam(assignmentId: string, teamId: string): Promise<Submission | null>;
   findLatestByUser(userId: string): Promise<Submission | null>;
   findByAssignmentId(assignmentId: string): Promise<any[]>;
   updateStatus(id: string, status: SubmissionStatus): Promise<Submission>;
   updateZipFilePath(id: string, zipFilePath: string): Promise<Submission>;
+  updateWorkspacePath(id: string, workspacePath: string): Promise<Submission>;
   updateAiGradingScores(
     id: string,
     data: {
       aiScore: number;
       algorithmScore?: number | null;
       cleanCodeScore?: number | null;
-      finalScore: number;
-      status: SubmissionStatus;
-      gradedAt: Date;
     }
   ): Promise<Submission>;
   updateGitMetadata(
@@ -46,9 +49,22 @@ export interface ISubmissionRepository {
         linesAdded: number;
         linesDeleted: number;
         contributionPct: number;
+        matchedUserId?: string | null;
+        activeDays: number;
+        firstCommitAt?: Date | null;
+        lastCommitAt?: Date | null;
       }>;
     }
   ): Promise<Submission>;
+  adjustParticipantScore(
+    submissionId: string,
+    userId: string,
+    data: {
+      adjustedScore: number | null;
+      reason: string;
+      adjustedById: string;
+    }
+  ): Promise<unknown>;
   findAll(query?: {
     page?: number;
     limit?: number;

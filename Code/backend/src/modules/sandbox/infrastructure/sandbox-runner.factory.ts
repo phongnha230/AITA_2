@@ -25,6 +25,7 @@ export class SandboxRunnerFactory {
 
       case 'WEB':
       case 'REACT':
+      case 'REACT_JS':
       case 'NEXTJS':
       case 'HTML_CSS_JS':
       case 'PLAYWRIGHT':

@@ -1,9 +1,11 @@
 import { Upload, FileSpreadsheet, Plus } from 'lucide-react';
-import { TestCase } from '../../types/assignment.types';
+import { AssignmentEnv, TestCase } from '../../types/assignment.types';
 import { TestcaseTable } from './TestcaseTable';
 import { WizardNavFooter } from './WizardNavFooter';
+import { ReactGradingStep } from './ReactGradingStep';
 
 interface WizardStep3SolutionProps {
+  environment: AssignmentEnv;
   solutionTitle: string;
   setSolutionTitle: (val: string) => void;
   solutionCode: string;
@@ -16,6 +18,10 @@ interface WizardStep3SolutionProps {
   setAcceptedStrategiesText: (val: string) => void;
   algorithmNotes: string;
   setAlgorithmNotes: (val: string) => void;
+  reactStructureRequirements: string;
+  setReactStructureRequirements: (val: string) => void;
+  reactCleanCodeRequirements: string;
+  setReactCleanCodeRequirements: (val: string) => void;
   handleSolutionFileUpload: (file: File) => void;
   testCases: TestCase[];
   setTestCases: React.Dispatch<React.SetStateAction<TestCase[]>>;
@@ -27,6 +33,7 @@ interface WizardStep3SolutionProps {
 }
 
 export const WizardStep3Solution: React.FC<WizardStep3SolutionProps> = ({
+  environment,
   solutionTitle,
   setSolutionTitle,
   solutionCode,
@@ -39,6 +46,10 @@ export const WizardStep3Solution: React.FC<WizardStep3SolutionProps> = ({
   setAcceptedStrategiesText,
   algorithmNotes,
   setAlgorithmNotes,
+  reactStructureRequirements,
+  setReactStructureRequirements,
+  reactCleanCodeRequirements,
+  setReactCleanCodeRequirements,
   handleSolutionFileUpload,
   testCases,
   setTestCases,
@@ -52,6 +63,23 @@ export const WizardStep3Solution: React.FC<WizardStep3SolutionProps> = ({
   const totalCalculatedPoints = testCases.reduce((acc, cur) => acc + (Number(cur.points) || 0), 0);
   const isExactTarget = Math.abs(totalCalculatedPoints - targetTestcaseMax) < 0.01;
   const uniqueQuestions = Array.from(new Set(testCases.map((tc) => tc.questionNumber || 'Q1')));
+
+  if (environment === 'REACT_JS') {
+    return (
+      <ReactGradingStep
+        testCases={testCases}
+        setTestCases={setTestCases}
+        structureRequirements={reactStructureRequirements}
+        setStructureRequirements={setReactStructureRequirements}
+        cleanCodeRequirements={reactCleanCodeRequirements}
+        setCleanCodeRequirements={setReactCleanCodeRequirements}
+        onAddBlankTestCase={onAddBlankTestCase}
+        onDeleteTestCase={onDeleteTestCase}
+        onBack={onBack}
+        onNext={onNext}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
@@ -262,6 +290,7 @@ export const WizardStep3Solution: React.FC<WizardStep3SolutionProps> = ({
         )}
 
         <TestcaseTable
+          environment={environment}
           testCases={testCases}
           setTestCases={setTestCases}
           onAddBlankTestCase={onAddBlankTestCase}

@@ -1,4 +1,4 @@
-export type AssignmentEnv = 'C_GCC' | 'JAVA_JDK';
+export type AssignmentEnv = 'C_GCC' | 'JAVA_JDK' | 'REACT_JS';
 export type SubmissionType = 'INDIVIDUAL' | 'GROUP';
 export type AssignmentStatus = 'DRAFT' | 'PUBLISHED' | 'CLOSED' | 'ARCHIVED';
 

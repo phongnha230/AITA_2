@@ -41,6 +41,10 @@ const envSchema = z.object({
   UPLOAD_DIR: z.string().default('./uploads'),
   WORKSPACE_DIR: z.string().default('./workspaces'),
   MAX_FILE_SIZE_MB: z.coerce.number().default(50),
+  FER201_GRADING_ENABLED: z.preprocess(
+    (value) => value === true || value === 'true' || value === '1',
+    z.boolean().default(false)
+  ),
 
   // Email SMTP & OTP
   SMTP_HOST: z.string().default('smtp.gmail.com'),
