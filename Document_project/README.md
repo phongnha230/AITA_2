@@ -10,6 +10,7 @@ Toàn bộ tài liệu phân tích, thiết kế và sơ đồ kỹ thuật củ
 - [AITA_Project_Master_Document.md](01_General/AITA_Project_Master_Document.md): Tài liệu tổng quan dự án, mục tiêu, 5 Research Spikes và lộ trình 10 tuần.
 - [AI_PROMPT_LOG.md](01_General/AI_PROMPT_LOG.md): Nhật ký lưu trữ prompt AI phục vụ tiêu chí **Transparency & Explainability** bắt buộc của SWD392.
 - [AI_PROMPT_LOG_MEMBER_4_NGUYEN_VAN_DIEP.md](01_General/AI_PROMPT_LOG_MEMBER_4_NGUYEN_VAN_DIEP.md): **[NHẬT KÝ PROMPT CÁ NHÂN]** Nhật ký sử dụng AI chi tiết của Thành viên 4: Nguyễn Văn Điệp (QE180203 - Module Docker Sandbox).
+- [AI_PROMPT_LOG_TV3_NGUYEN_ANH_TUAN.md](01_General/AI_PROMPT_LOG_TV3_NGUYEN_ANH_TUAN.md): **[NHẬT KÝ PROMPT CÁ NHÂN]** Nhật ký sử dụng AI của Thành viên 3: Nguyễn Anh Tuấn (QE190003 - Admin Dashboard Frontend & Mock Data Layer).
 - [PROJECT_RUN_GUIDE.md](01_General/PROJECT_RUN_GUIDE.md): **[HƯỚNG DẪN CHẠY DỰ ÁN]** Hướng dẫn chi tiết cách chạy dự án cho 2 trường hợp: Có dùng Docker và KHÔNG dùng Docker.
 
 ---
