@@ -1,7 +1,7 @@
 import { IAiGradingRepository } from '../../domain/repositories/ai-grading.repository.interface.js';
 import { ISubmissionRepository } from '../../../submission/domain/repositories/submission.repository.interface.js';
-import { ApiKeyRotatorFacade } from '../../infrastructure/facades/api-key-rotator.facade.js';
-import { RagKnowledgeFacade } from '../../infrastructure/facades/rag-knowledge.facade.js';
+import { IAiGenerationService } from '../services/ai-generation.service.interface.js';
+import { IRagKnowledgeService } from '../services/rag-knowledge.service.interface.js';
 import { RubricGradingPrompt } from '../../infrastructure/prompts/rubric-grading.prompt.js';
 import { AppError, NotFoundError, ValidationError } from '../../../../shared/domain/exceptions/app.error.js';
 import { SourceCollector } from '../services/source-collector.service.js';
@@ -12,8 +12,8 @@ export class GradeSubmissionAiUseCase {
   constructor(
     private readonly aiGradingRepository: IAiGradingRepository,
     private readonly submissionRepository: ISubmissionRepository,
-    private readonly apiKeyRotatorFacade: ApiKeyRotatorFacade,
-    private readonly ragKnowledgeFacade: RagKnowledgeFacade,
+    private readonly aiGenerationService: IAiGenerationService,
+    private readonly ragKnowledgeService: IRagKnowledgeService,
     private readonly sourceCollector = new SourceCollector(),
     private readonly gradingOutputService = new AiGradingOutputService(),
     private readonly leakageService = new FeedbackLeakageService()
@@ -29,7 +29,7 @@ export class GradeSubmissionAiUseCase {
       throw new ValidationError('Submission không có source .c, .h hoặc .java hợp lệ.');
     }
 
-    const ragContext = await this.ragKnowledgeFacade.getGradingContext(
+    const ragContext = await this.ragKnowledgeService.getGradingContext(
       submissionId,
       collectedSource.combinedSource
     );
@@ -38,7 +38,8 @@ export class GradeSubmissionAiUseCase {
     let tokensConsumed = 0;
     let gradingOutput: ValidatedGradingOutput | null = null;
     for (let attempt = 0; attempt < 2; attempt += 1) {
-      const llmResponse = await this.apiKeyRotatorFacade.executeWithKeyRotation(prompt, {
+      const llmResponse = await this.aiGenerationService.executeWithKeyRotation(prompt, {
+        operation: 'GRADING_GENERATION',
         systemInstruction: RubricGradingPrompt.buildSystemInstruction(attempt === 1),
         temperature: 0.1,
         jsonMode: true,

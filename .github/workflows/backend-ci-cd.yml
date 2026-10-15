@@ -1,15 +1,16 @@
-name: Backend CI/CD
+name: Backend and frontend CI/CD
 
 on:
   push:
     branches: [main, develop]
     paths:
       - "Code/backend/**"
+      - "Code/frontend/**"
       - ".github/workflows/backend-ci-cd.yml"
   pull_request:
-    branches: [main, develop]
     paths:
       - "Code/backend/**"
+      - "Code/frontend/**"
       - ".github/workflows/backend-ci-cd.yml"
   workflow_dispatch:
 
@@ -27,6 +28,35 @@ env:
   IMAGE_NAME: ${{ github.repository }}-backend
 
 jobs:
+  frontend-contracts:
+    name: Frontend contracts and build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Code/frontend
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: Code/frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check frontend contracts
+        run: npm test
+
+      - name: Check frontend TypeScript
+        run: npm run typecheck
+
+      - name: Build frontend
+        run: npm run build
+
   typecheck:
     name: TypeScript strict check
     runs-on: ubuntu-latest
@@ -84,12 +114,39 @@ jobs:
   integration-tests:
     name: Integration tests
     runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: aita_test
+          MYSQL_USER: aita
+          MYSQL_PASSWORD: aita_password
+          MYSQL_ROOT_PASSWORD: root_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot_password"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=15
+      redis:
+        image: redis:7.0-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
     defaults:
       run:
         working-directory: Code/backend
     env:
       NODE_ENV: test
-      DATABASE_URL: mysql://unused:unused@127.0.0.1:3306/unused
+      DATABASE_URL: mysql://aita:aita_password@127.0.0.1:3306/aita_test
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: 6379
+      RUN_INFRA_INTEGRATION: "true"
       JWT_SECRET: ci-test-secret-at-least-32-characters
       JWT_REFRESH_SECRET: ci-test-refresh-secret-at-least-32-characters
     steps:
@@ -106,8 +163,59 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Generate Prisma client
+        run: npm run prisma:generate
+
+      - name: Create disposable integration schema
+        run: npx prisma db push --skip-generate
+
       - name: Run integration tests
         run: npm run test:integration
+
+  coverage:
+    name: Coverage gates
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Code/backend
+    env:
+      NODE_ENV: test
+      DATABASE_URL: mysql://unused:unused@127.0.0.1:3306/unused
+      JWT_SECRET: ci-test-secret-at-least-32-characters
+      JWT_REFRESH_SECRET: ci-test-refresh-secret-at-least-32-characters
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: Code/backend/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Run coverage and critical-path threshold checks
+        run: npm run test:coverage
+
+  dependency-audit:
+    name: Production dependency audit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Code/backend
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: Code/backend/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Audit production dependencies
+        run: npm audit --omit=dev
 
   e2e-tests:
     name: End-to-end tests
@@ -157,7 +265,7 @@ jobs:
   build:
     name: Compile backend
     runs-on: ubuntu-latest
-    needs: [typecheck, unit-tests, integration-tests, e2e-tests]
+    needs: [typecheck, unit-tests, integration-tests, e2e-tests, coverage, dependency-audit]
     defaults:
       run:
         working-directory: Code/backend
@@ -192,7 +300,7 @@ jobs:
   container:
     name: Build, scan, and publish image
     runs-on: ubuntu-latest
-    needs: build
+    needs: [build, frontend-contracts]
     steps:
       - name: Check out repository
         uses: actions/checkout@v4

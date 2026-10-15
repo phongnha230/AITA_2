@@ -94,4 +94,70 @@ describe('PrismaAssignmentAccessPolicy', () => {
       policy.assertCanAccessSubmission({ userId: 'admin-1', role: 'ADMIN' }, 'submission-1')
     ).resolves.toBeUndefined();
   });
+
+  it('enforces lecturer ownership for assignment view and submission access', async () => {
+    const { policy } = makePolicy({
+      assignment: { findUnique: vi.fn(async () => ({ course: { lecturerId: 'lecturer-1', enrollments: [] } })) },
+      submission: { findUnique: vi.fn(async () => ({
+        userId: 'student-1',
+        assignment: { course: { lecturerId: 'lecturer-1' } },
+        team: null,
+      })) },
+    });
+    await expect(policy.assertCanViewAssignment(
+      { userId: 'lecturer-1', role: 'LECTURER' }, 'assignment-1'
+    )).resolves.toBeUndefined();
+    await expect(policy.assertCanViewAssignment(
+      { userId: 'lecturer-2', role: 'LECTURER' }, 'assignment-1'
+    )).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(policy.assertCanAccessSubmission(
+      { userId: 'lecturer-1', role: 'LECTURER' }, 'submission-1'
+    )).resolves.toBeUndefined();
+    await expect(policy.assertCanAccessSubmission(
+      { userId: 'lecturer-2', role: 'LECTURER' }, 'submission-1'
+    )).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it('enforces course access for admin, owner, enrolled student and outsiders', async () => {
+    const { policy, fake } = makePolicy();
+    fake.course.findUnique.mockImplementation(async (args: { select: unknown }) => ({
+      lecturerId: 'lecturer-1',
+      enrollments: JSON.stringify(args).includes('student-1') ? [{ id: 'enrollment-1' }] : [],
+    }));
+    await expect(policy.assertCanViewCourse({ userId: 'admin', role: 'ADMIN' }, 'course-1'))
+      .resolves.toBeUndefined();
+    await expect(policy.assertCanViewCourse({ userId: 'lecturer-1', role: 'LECTURER' }, 'course-1'))
+      .resolves.toBeUndefined();
+    await expect(policy.assertCanViewCourse({ userId: 'student-1', role: 'STUDENT' }, 'course-1'))
+      .resolves.toBeUndefined();
+    await expect(policy.assertCanViewCourse({ userId: 'student-2', role: 'STUDENT' }, 'course-1'))
+      .rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it('delegates test-case management to assignment ownership', async () => {
+    const { policy } = makePolicy({
+      testCase: { findUnique: vi.fn(async () => ({ assignmentId: 'assignment-1' })) },
+      assignment: { findUnique: vi.fn(async () => ({ course: { lecturerId: 'lecturer-1' } })) },
+    });
+    await expect(policy.assertCanManageTestCase(
+      { userId: 'lecturer-1', role: 'LECTURER' }, 'test-1'
+    )).resolves.toBeUndefined();
+    await expect(policy.assertCanManageTestCase(
+      { userId: 'student-1', role: 'STUDENT' }, 'test-1'
+    )).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it('returns not found for missing protected resources', async () => {
+    const { policy } = makePolicy({
+      assignment: { findUnique: vi.fn(async () => null) },
+      course: { findUnique: vi.fn(async () => null) },
+      testCase: { findUnique: vi.fn(async () => null) },
+      submission: { findUnique: vi.fn(async () => null) },
+    });
+    await expect(policy.assertCanViewAssignment({ userId: 'u', role: 'ADMIN' }, 'missing')).rejects.toThrow();
+    await expect(policy.assertCanManageAssignment({ userId: 'u', role: 'ADMIN' }, 'missing')).rejects.toThrow();
+    await expect(policy.assertCanViewCourse({ userId: 'u', role: 'ADMIN' }, 'missing')).rejects.toThrow();
+    await expect(policy.assertCanManageTestCase({ userId: 'u', role: 'ADMIN' }, 'missing')).rejects.toThrow();
+    await expect(policy.assertCanAccessSubmission({ userId: 'u', role: 'ADMIN' }, 'missing')).rejects.toThrow();
+  });
 });

@@ -7,6 +7,14 @@ export interface RubricEvaluationItem {
   feedback: string;
 }
 
+export interface RagContextReference {
+  chunkId: string;
+  symbol: string;
+  similarity: number;
+  embeddingModel: string;
+  chunkerVersion: string;
+}
+
 export interface AiGradingResultProps {
   id: string;
   submissionId: string;
@@ -15,7 +23,7 @@ export interface AiGradingResultProps {
   detectedTimeComplexity?: string | null;
   detectedSpaceComplexity?: string | null;
   codeQualityFeedback: string;
-  ragContextUsed?: any;
+  ragContextUsed?: RagContextReference[];
   tokensConsumed?: number;
   evaluatedAt: Date;
 }
@@ -51,7 +59,7 @@ export class AiGradingResult {
     return this.props.codeQualityFeedback;
   }
 
-  get ragContextUsed(): any {
+  get ragContextUsed(): RagContextReference[] | undefined {
     return this.props.ragContextUsed;
   }
 

@@ -42,4 +42,12 @@ describe('AiGradingOutputService', () => {
     expect(() => service.validateAndScore(JSON.stringify({ ...validOutput, finalScore: 10 }), rubricRules))
       .toThrow();
   });
+
+  it('rejects malformed JSON and missing rubric rows', () => {
+    expect(() => service.validateAndScore('{not-json', rubricRules)).toThrow();
+    expect(() => service.validateAndScore(JSON.stringify({
+      ...validOutput,
+      rubricBreakdown: [],
+    }), rubricRules)).toThrow();
+  });
 });

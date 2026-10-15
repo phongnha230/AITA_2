@@ -1,5 +1,6 @@
 import { createGradingWorker } from './bullmq.worker.js';
 import { container } from '../container/container.js';
+import { logger } from '../logging/logger.js';
 
 let activeWorker: ReturnType<typeof createGradingWorker> | null = null;
 
@@ -8,7 +9,7 @@ let activeWorker: ReturnType<typeof createGradingWorker> | null = null;
  */
 export function startGradingWorker() {
   if (activeWorker) {
-    console.log('⚡ [GradingWorker] Worker is already running.');
+    logger.info('grading_worker_already_running');
     return activeWorker;
   }
 
@@ -17,20 +18,26 @@ export function startGradingWorker() {
 
     // Giai đoạn 1: Chạy Sandbox (Biên dịch, chạy testcases trên Docker hoặc Local)
     runSandbox: async (jobData) => {
-      console.log(`🚀 [GradingWorker] Starting Sandbox execution for submission: ${jobData.submissionId}`);
+      logger.info('grading_sandbox_started', {
+        submissionId: jobData.submissionId,
+        stage: 'RUNNING_SANDBOX',
+      });
       const summary = await container.sandboxService.gradeSubmission(jobData.submissionId, jobData.language);
       return summary;
     },
 
     // Giai đoạn 2: Chạy AI Grader (Đánh giá Rubric, độ phức tạp thuật toán, feedback)
     runAiGrading: async (jobData) => {
-      console.log(`🤖 [GradingWorker] Starting AI Rubric Grading for submission: ${jobData.submissionId}`);
+      logger.info('grading_ai_started', {
+        submissionId: jobData.submissionId,
+        stage: 'RUNNING_AI',
+      });
       const aiResult = await container.gradeSubmissionAiUseCase.execute(jobData.submissionId);
       return aiResult;
     },
   });
 
-  console.log('✅ [GradingWorker] BullMQ Grading Worker initialized and listening for jobs.');
+  logger.info('grading_worker_started');
   return activeWorker;
 }
 
@@ -39,7 +46,7 @@ export function startGradingWorker() {
  */
 export async function stopGradingWorker() {
   if (activeWorker) {
-    console.log('🛑 [GradingWorker] Closing worker...');
+    logger.info('grading_worker_stopping');
     await activeWorker.close();
     activeWorker = null;
   }

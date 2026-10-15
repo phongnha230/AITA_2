@@ -17,4 +17,12 @@ describe('FeedbackLeakageService', () => {
   it('allows short conceptual feedback', () => {
     expect(service.detectsLeakage('Kiểm tra lại điều kiện dừng của vòng lặp.', reference)).toBe(false);
   });
+
+  it('allows short code blocks and unrelated long feedback', () => {
+    expect(service.detectsLeakage('```c\nint x;\n```', reference)).toBe(false);
+    expect(service.detectsLeakage(
+      'alpha beta gamma delta epsilon zeta eta theta iota kappa lambda omega',
+      reference
+    )).toBe(false);
+  });
 });

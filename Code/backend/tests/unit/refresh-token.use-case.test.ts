@@ -4,7 +4,7 @@ import { hashRefreshToken } from '../../src/modules/auth/infrastructure/services
 import { ITokenService, JwtPayload } from '../../src/modules/auth/domain/services/token.service.interface.js';
 import { IUserRepository } from '../../src/modules/user/domain/repositories/user.repository.interface.js';
 import { User } from '../../src/modules/user/domain/entities/user.entity.js';
-import { UnauthorizedError } from '../../src/shared/domain/exceptions/app.error.js';
+import { ForbiddenError, UnauthorizedError } from '../../src/shared/domain/exceptions/app.error.js';
 
 const payload: JwtPayload = {
   userId: 'user-1',
@@ -89,5 +89,28 @@ describe('RefreshTokenUseCase', () => {
     await expect(useCase.execute({ refreshToken: oldRefreshToken })).rejects.toBeInstanceOf(
       UnauthorizedError
     );
+  });
+
+  it('rejects an empty token, missing user, suspended user, and missing persisted hash', async () => {
+    const useCase = new RefreshTokenUseCase(userRepository, tokenService);
+    await expect(useCase.execute({ refreshToken: '' })).rejects.toBeInstanceOf(UnauthorizedError);
+
+    userRepository.findById = vi.fn(async () => null);
+    await expect(useCase.execute({ refreshToken: oldRefreshToken })).rejects.toBeInstanceOf(UnauthorizedError);
+
+    userRepository.findById = vi.fn(async () => new User({
+      id: payload.userId,
+      email: payload.email,
+      fullName: payload.fullName,
+      role: 'STUDENT',
+      status: 'SUSPENDED',
+      refreshTokenHash: storedHash,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }));
+    await expect(useCase.execute({ refreshToken: oldRefreshToken })).rejects.toBeInstanceOf(ForbiddenError);
+
+    userRepository.findById = vi.fn(async () => makeUser(null));
+    await expect(useCase.execute({ refreshToken: oldRefreshToken })).rejects.toBeInstanceOf(UnauthorizedError);
   });
 });

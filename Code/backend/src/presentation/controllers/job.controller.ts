@@ -1,367 +1,133 @@
 import { Request, Response } from 'express';
-import prisma from '../../infrastructure/database/prisma.client.js';
-import {
-  getGradingJobStatus,
-  gradingQueue,
-  enqueueSubmission,
-} from '../../infrastructure/queue/bullmq.queue.js';
+import { IJobAdminService } from '../../application/services/job-admin.service.interface.js';
+import { logger } from '../../infrastructure/logging/logger.js';
 
-
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'Unknown error';
+}
 
 export class JobController {
+  constructor(private readonly jobService: IJobAdminService) {}
 
-  /**
-   * GET /jobs/:submissionId
-   *
-   * Trả về trạng thái hiện tại của Grading Job
-   * dựa trên submissionId.
-   */
-  public static async getJobStatus(
-    req: Request,
-    res: Response
-  ): Promise<void> {
-
+  public getJobStatus = async (req: Request, res: Response): Promise<void> => {
     try {
-
       const { submissionId } = req.params;
-
-      // ======================================================
-      // VALIDATE INPUT
-      // ======================================================
-
       if (!submissionId) {
-        res.status(400).json({
-          success: false,
-          message: 'submissionId is required.',
-        });
-
+        res.status(400).json({ success: false, message: 'submissionId is required.' });
         return;
       }
-
-      // ======================================================
-      // GET JOB STATUS
-      // ======================================================
-
-      const jobStatus =
-        await getGradingJobStatus(submissionId);
-
-      // ======================================================
-      // NOT FOUND
-      // ======================================================
-
-      if (!jobStatus) {
-        res.status(404).json({
-          success: false,
-          message:
-            'Grading job not found for this submission.',
-        });
-
+      const status = await this.jobService.getStatus(submissionId);
+      if (!status) {
+        res.status(404).json({ success: false, message: 'Grading job not found for this submission.' });
         return;
       }
-
-      // ======================================================
-      // SUCCESS
-      // ======================================================
-
-      res.status(200).json({
-        success: true,
-        data: jobStatus,
-      });
-
-    } catch (error: unknown) {
-
-      const message =
-        error instanceof Error
-          ? error.message
-          : 'Unknown error';
-
-      console.error(
-        '[JobController] Failed to get job status:',
-        error
-      );
-
-      res.status(500).json({
-        success: false,
-        message:
-          'Failed to get grading job status.',
-        error:
-          process.env.NODE_ENV === 'development'
-            ? message
-            : undefined,
-      });
+      res.status(200).json({ success: true, data: status });
+    } catch (error) {
+      this.handleError(req, res, error, 'job_status_failed');
     }
-  }
+  };
 
-  /**
-   * GET /jobs/:submissionId/events
-   *
-   * Server-Sent Events (SSE) để Frontend nhận trạng thái chấm bài theo thời gian thực (Realtime stream)
-   */
-  public static async streamJobEvents(
-    req: Request,
-    res: Response
-  ): Promise<void> {
+  public streamJobEvents = async (req: Request, res: Response): Promise<void> => {
     const { submissionId } = req.params;
-
     if (!submissionId) {
       res.status(400).json({ success: false, message: 'submissionId is required.' });
       return;
     }
-
-    // Thiết lập SSE Headers
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     res.flushHeaders?.();
 
-    let isClientConnected = true;
-
-    req.on('close', () => {
-      isClientConnected = false;
-    });
-
+    let connected = true;
+    req.on('close', () => { connected = false; });
     const interval = setInterval(async () => {
-      if (!isClientConnected) {
+      if (!connected) {
         clearInterval(interval);
         return;
       }
-
       try {
-        const jobStatus = await getGradingJobStatus(submissionId);
-        if (jobStatus) {
-          res.write(`data: ${JSON.stringify(jobStatus)}\n\n`);
-
-          // Nếu job đã hoàn tất (COMPLETED hoặc FAILED), đóng stream an toàn
-          if (jobStatus.status === 'COMPLETED' || jobStatus.status === 'FAILED') {
-            clearInterval(interval);
-            res.write(`event: end\ndata: ${JSON.stringify({ finished: true, status: jobStatus.status })}\n\n`);
-            res.end();
-          }
+        const status = await this.jobService.getStatus(submissionId) as { status?: string } | null;
+        if (!status) return;
+        res.write(`data: ${JSON.stringify(status)}\n\n`);
+        if (status.status === 'COMPLETED' || status.status === 'FAILED') {
+          clearInterval(interval);
+          res.write(`event: end\ndata: ${JSON.stringify({ finished: true, status: status.status })}\n\n`);
+          res.end();
         }
-      } catch (err: any) {
-        console.error('[JobController SSE] Error polling job status:', err.message);
-      }
-    }, 1000);
-  }
-
-  /**
-   * GET /jobs/metrics/overview
-   * Lấy số liệu thống kê tổng thể hàng đợi BullMQ & CSDL
-   */
-  public static async getQueueMetrics(_req: Request, res: Response): Promise<void> {
-    try {
-      let bullmq: Record<string, number> = { waiting: 0, active: 0, completed: 0, failed: 0, delayed: 0, paused: 0 };
-      try {
-        bullmq = (await gradingQueue.getJobCounts('waiting', 'active', 'completed', 'failed', 'delayed', 'paused')) as Record<string, number>;
-      } catch {
-        // Redis offline / fallback
-      }
-
-      const dbCounts = await prisma.gradingJob.groupBy({
-        by: ['status'],
-        _count: { _all: true },
-      });
-
-      const dbStatuses: Record<string, number> = {};
-      let total = 0;
-      for (const item of dbCounts) {
-        dbStatuses[item.status] = item._count._all;
-        total += item._count._all;
-      }
-
-      res.status(200).json({
-        success: true,
-        data: {
-          bullmq,
-          database: {
-            total,
-            statuses: dbStatuses,
-          },
-        },
-      });
-    } catch (error: any) {
-      res.status(500).json({ success: false, message: error.message || 'Lỗi lấy metrics hàng đợi' });
-    }
-  }
-
-  /**
-   * GET /jobs/queue/jobs
-   * Lấy danh sách jobs gần đây trong hệ thống với đầy đủ thông tin sinh viên & đề thi
-   */
-  public static async listQueueJobs(_req: Request, res: Response): Promise<void> {
-    try {
-      const jobs = await prisma.gradingJob.findMany({
-        take: 50,
-        orderBy: { queuedAt: 'desc' },
-        include: {
-          submission: {
-            select: {
-              id: true,
-              userId: true,
-              assignmentId: true,
-              status: true,
-              paperCode: true,
-              user: {
-                select: {
-                  id: true,
-                  fullName: true,
-                  studentCode: true,
-                  email: true,
-                },
-              },
-              assignment: {
-                select: {
-                  id: true,
-                  title: true,
-                  environment: true,
-                  course: {
-                    select: {
-                      id: true,
-                      code: true,
-                      name: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-          assignedApiKey: {
-            select: {
-              id: true,
-              keyAlias: true,
-              provider: true,
-            },
-          },
-        },
-      });
-
-      res.status(200).json({
-        success: true,
-        data: jobs,
-      });
-    } catch (error: any) {
-      res.status(500).json({ success: false, message: error.message || 'Lỗi lấy danh sách jobs' });
-    }
-  }
-
-  /**
-   * POST /jobs/queue/retry-all
-   * Thử lại toàn bộ các job bị lỗi
-   */
-  public static async retryAllFailed(_req: Request, res: Response): Promise<void> {
-    try {
-      const failedJobs = await prisma.gradingJob.findMany({
-        where: { status: 'FAILED' },
-        include: { submission: true },
-      });
-
-      for (const job of failedJobs) {
-        await prisma.gradingJob.update({
-          where: { submissionId: job.submissionId },
-          data: {
-            status: 'QUEUED',
-            retryCount: { increment: 1 },
-            errorStage: null,
-          },
+      } catch (error) {
+        logger.error('job_sse_poll_failed', {
+          requestId: req.header('x-request-id'), submissionId, stage: 'SSE_POLL', error,
         });
-        if (job.submission?.zipFilePath) {
-          await enqueueSubmission({
-            submissionId: job.submissionId,
-            stagedFolderPath: job.submission.zipFilePath,
-            assignmentId: job.submission.assignmentId,
-          }).catch(() => {});
-        }
       }
+    }, 1_000);
+  };
 
-      res.status(200).json({
-        success: true,
-        data: { retriedCount: failedJobs.length },
-        message: `Đã thử lại toàn bộ ${failedJobs.length} jobs bị lỗi.`,
-      });
-    } catch (error: any) {
-      res.status(500).json({ success: false, message: error.message || 'Lỗi retry jobs' });
-    }
-  }
-
-  /**
-   * POST /jobs/queue/clear-completed
-   * Dọn dẹp các job đã chấm hoàn tất
-   */
-  public static async clearCompleted(_req: Request, res: Response): Promise<void> {
+  public getQueueMetrics = async (req: Request, res: Response): Promise<void> => {
     try {
-      const result = await prisma.gradingJob.deleteMany({
-        where: { status: 'COMPLETED' },
-      });
-      res.status(200).json({
-        success: true,
-        data: { clearedCount: result.count },
-        message: `Đã dọn dẹp ${result.count} jobs hoàn tất.`,
-      });
-    } catch (error: any) {
-      res.status(500).json({ success: false, message: error.message || 'Lỗi clear completed jobs' });
+      res.status(200).json({ success: true, data: await this.jobService.getMetrics() });
+    } catch (error) {
+      this.handleError(req, res, error, 'queue_metrics_failed');
     }
-  }
+  };
 
-  /**
-   * POST /jobs/queue/flush-dead-letter
-   * Xóa toàn bộ jobs trong Dead Letter Queue
-   */
-  public static async flushDeadLetter(_req: Request, res: Response): Promise<void> {
+  public listQueueJobs = async (req: Request, res: Response): Promise<void> => {
     try {
-      const result = await prisma.gradingJob.deleteMany({
-        where: { status: 'FAILED' },
-      });
-      res.status(200).json({
-        success: true,
-        data: { deletedCount: result.count },
-        message: `Đã xóa ${result.count} jobs khỏi DLQ.`,
-      });
-    } catch (error: any) {
-      res.status(500).json({ success: false, message: error.message || 'Lỗi flush dead letter' });
+      res.status(200).json({ success: true, data: await this.jobService.listJobs() });
+    } catch (error) {
+      this.handleError(req, res, error, 'queue_list_failed');
     }
-  }
+  };
 
-  /**
-   * POST /jobs/:submissionId/retry
-   * Thử lại tiến trình chấm bài bị lỗi
-   */
-  public static async retryJob(req: Request, res: Response): Promise<void> {
+  public retryAllFailed = async (req: Request, res: Response): Promise<void> => {
     try {
-      const { submissionId } = req.params;
-      const job = await prisma.gradingJob.findUnique({
-        where: { submissionId },
-        include: { submission: true },
-      });
+      const retriedCount = await this.jobService.retryAllFailed();
+      res.status(200).json({ success: true, data: { retriedCount }, message: `Đã thử lại ${retriedCount} jobs.` });
+    } catch (error) {
+      this.handleError(req, res, error, 'queue_retry_all_failed');
+    }
+  };
 
-      if (!job) {
+  public clearCompleted = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const clearedCount = await this.jobService.clearCompleted();
+      res.status(200).json({ success: true, data: { clearedCount } });
+    } catch (error) {
+      this.handleError(req, res, error, 'queue_clear_completed_failed');
+    }
+  };
+
+  public flushDeadLetter = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const deletedCount = await this.jobService.flushDeadLetter();
+      res.status(200).json({ success: true, data: { deletedCount } });
+    } catch (error) {
+      this.handleError(req, res, error, 'queue_flush_dlq_failed');
+    }
+  };
+
+  public retryJob = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const retried = await this.jobService.retryJob(req.params.submissionId);
+      if (!retried) {
         res.status(404).json({ success: false, message: 'Không tìm thấy job cần retry.' });
         return;
       }
-
-      await prisma.gradingJob.update({
-        where: { submissionId },
-        data: {
-          status: 'QUEUED',
-          retryCount: { increment: 1 },
-          errorStage: null,
-        },
-      });
-
-      if (job.submission?.zipFilePath) {
-        await enqueueSubmission({
-          submissionId,
-          stagedFolderPath: job.submission.zipFilePath,
-          assignmentId: job.submission.assignmentId,
-        });
-      }
-
-      res.status(200).json({
-        success: true,
-        message: `Đã đưa job ${submissionId} trở lại hàng đợi để chấm lại.`,
-      });
-    } catch (error: any) {
-      res.status(500).json({ success: false, message: error.message || 'Lỗi retry job' });
+      res.status(200).json({ success: true, message: `Đã đưa job ${req.params.submissionId} trở lại hàng đợi.` });
+    } catch (error) {
+      this.handleError(req, res, error, 'queue_retry_failed');
     }
-  }
+  };
 
-}
+  private handleError(req: Request, res: Response, error: unknown, event: string): void {
+    logger.error(event, {
+      requestId: req.header('x-request-id'),
+      submissionId: req.params.submissionId,
+      stage: 'JOB_ADMIN',
+      error,
+    });
+    res.status(500).json({
+      success: false,
+      message: process.env.NODE_ENV === 'development' ? errorMessage(error) : 'Thao tác hàng đợi thất bại.',
+    });
+  }
+}

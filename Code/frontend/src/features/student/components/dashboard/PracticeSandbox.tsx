@@ -2,15 +2,15 @@
 
 import Link from 'next/link';
 import { ArrowRight, CheckCircle2, Cpu, RefreshCw, TerminalSquare } from 'lucide-react';
-import type { ResourceState, SandboxStatus } from '../../types/student.types';
+import type { PublicSandboxHealth, ResourceState } from '../../types/student.types';
 
 interface PracticeSandboxProps {
-  state: ResourceState<SandboxStatus | null>;
+  state: ResourceState<PublicSandboxHealth | null>;
   onRetry: () => void;
 }
 
-function getSandboxStatusInfo(state: ResourceState<SandboxStatus | null>) {
-  const isReady = state.status === 'success' && state.data?.status === 'READY';
+function getSandboxStatusInfo(state: ResourceState<PublicSandboxHealth | null>) {
+  const isReady = state.status === 'success' && state.data?.status === 'ready';
 
   if (state.status === 'loading') {
     return {
@@ -47,28 +47,20 @@ function getSandboxStatusInfo(state: ResourceState<SandboxStatus | null>) {
   };
 }
 
-const SandboxInfoList: React.FC<{ data: SandboxStatus }> = ({ data }) => {
+const SandboxInfoList: React.FC = () => {
   return (
     <dl className="mt-4 space-y-2.5 rounded-xl border border-slate-100 bg-slate-50/60 p-3.5 text-xs">
       <div className="flex items-center justify-between text-slate-600">
         <dt className="text-slate-500">Chế độ thực thi:</dt>
-        <dd className="font-bold text-slate-800">{data.activeMode || 'Docker Isolated'}</dd>
+        <dd className="font-bold text-slate-800">Isolated grading worker</dd>
       </div>
       <div className="flex items-center justify-between text-slate-600">
         <dt className="text-slate-500">Docker Daemon:</dt>
         <dd className="flex items-center gap-1 font-bold text-emerald-700">
           <CheckCircle2 className="h-3.5 w-3.5" />
-          {data.dockerDaemonRunning ? 'Đang chạy' : 'Chưa bật'}
+          Sẵn sàng
         </dd>
       </div>
-      {data.supportedLanguages && data.supportedLanguages.length > 0 && (
-        <div className="flex items-center justify-between text-slate-600">
-          <dt className="text-slate-500">Trình biên dịch:</dt>
-          <dd className="font-bold text-slate-800 uppercase">
-            {data.supportedLanguages.join(' · ')}
-          </dd>
-        </div>
-      )}
     </dl>
   );
 };
@@ -108,7 +100,7 @@ export function PracticeSandbox({ state, onRetry }: PracticeSandboxProps) {
         Hạ tầng container cô lập an toàn, biên dịch tự động và chấm testcase thời gian thực.
       </p>
 
-      {state.status === 'success' && state.data && <SandboxInfoList data={state.data} />}
+      {state.status === 'success' && state.data && <SandboxInfoList />}
 
       {state.status === 'error' && state.error && (
         <p className="mt-3 text-xs text-rose-600">{state.error}</p>

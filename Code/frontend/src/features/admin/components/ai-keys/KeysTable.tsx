@@ -46,7 +46,7 @@ export const KeysTable: React.FC<KeysTableProps> = ({ keys, total, allCount, pag
           <Table className="min-w-[980px]">
             <TableHeader className="bg-slate-50/80">
               <TableRow>
-                {['Khóa & Provider', 'Mục đích sử dụng', 'Rate limit (RPM/TPM)', 'Hạn mức sử dụng (Quota)', 'Độ trễ', 'Trạng thái'].map((h) => (
+                {['Khóa & Provider', 'Mục đích sử dụng', 'Rate limit (RPM/TPM)', 'Hạn mức sử dụng (Quota)', 'Nguồn / sức khỏe', 'Trạng thái'].map((h) => (
                   <TableHead key={h}>{h}</TableHead>
                 ))}
                 <TableHead className="text-right">Xóa</TableHead>
@@ -89,13 +89,23 @@ export const KeysTable: React.FC<KeysTableProps> = ({ keys, total, allCount, pag
                       <ProgressBar value={pct} color={quotaColor(pct)} />
                     </TableCell>
                     <TableCell className="py-4">
-                      {k.isActive ? (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
-                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" /> {k.latencyMs ?? '—'}ms
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500">Standby ({k.latencyMs ?? '—'}ms)</span>
+                      <p className="text-[11px] font-semibold text-slate-600">Dashboard pool</p>
+                      {k.provider !== 'GEMINI' && (
+                        <p className="mt-1 text-[10px] text-slate-500">Không tham gia Gemini pool</p>
                       )}
+                      <span className={cn(
+                        'mt-1 inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold',
+                        k.availabilityStatus === 'AVAILABLE' && 'bg-emerald-50 text-emerald-700',
+                        k.availabilityStatus === 'COOLDOWN' && 'bg-amber-50 text-amber-700',
+                        k.availabilityStatus === 'QUOTA_EXHAUSTED' && 'bg-rose-50 text-rose-700',
+                        k.availabilityStatus === 'DISABLED' && 'bg-slate-100 text-slate-500',
+                      )}>{k.availabilityStatus}</span>
+                      {k.cooldownUntil && (
+                        <p className="mt-1 text-[10px] text-amber-700">
+                          Cooldown đến {new Date(k.cooldownUntil).toLocaleString('vi-VN')}
+                        </p>
+                      )}
+                      {k.lastErrorCode && <p className="mt-1 text-[10px] text-rose-600">{k.lastErrorCode}</p>}
                     </TableCell>
                     <TableCell className="py-4">
                       <Toggle

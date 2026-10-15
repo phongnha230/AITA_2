@@ -1,18 +1,5 @@
 import { Router } from 'express';
-import { AssignmentController } from '../controllers/assignment.controller.js';
-import { CreateAssignmentUseCase } from '../../application/use-cases/create-assignment.use-case.js';
-import { GetAssignmentDetailUseCase } from '../../application/use-cases/get-assignment-detail.use-case.js';
-import { GetAssignmentsByCourseUseCase } from '../../application/use-cases/get-assignments-by-course.use-case.js';
-import { UpdateAssignmentUseCase } from '../../application/use-cases/update-assignment.use-case.js';
-import { ManageTestCasesUseCase } from '../../application/use-cases/manage-testcases.use-case.js';
-import { ManageRubricsUseCase } from '../../application/use-cases/manage-rubrics.use-case.js';
-import { ManageSolutionsUseCase } from '../../application/use-cases/manage-solutions.use-case.js';
-import { GetProctoringDataUseCase } from '../../application/use-cases/get-proctoring-data.use-case.js';
-import { ControlSessionUseCase } from '../../application/use-cases/control-session.use-case.js';
-import { PrismaAssignmentRepository } from '../../infrastructure/repositories/prisma-assignment.repository.js';
-import { PrismaCourseRepository } from '../../../course/infrastructure/repositories/prisma-course.repository.js';
-import { PrismaUserRepository } from '../../../user/infrastructure/repositories/prisma-user.repository.js';
-import prisma from '../../../../infrastructure/database/prisma.client.js';
+import { container } from '../../../../infrastructure/container/container.js';
 import { authenticateJWT, authorizeRoles } from '../../../auth/presentation/middlewares/auth.middleware.js';
 import { validateBody } from '../../../../shared/presentation/middlewares/validate.middleware.js';
 import {
@@ -32,32 +19,7 @@ import {
 
 const router = Router();
 
-// Composition Root for Assignment
-const assignmentRepository = new PrismaAssignmentRepository(prisma);
-const courseRepository = new PrismaCourseRepository(prisma);
-const userRepository = new PrismaUserRepository(prisma);
-
-const createAssignmentUseCase = new CreateAssignmentUseCase(assignmentRepository, courseRepository, userRepository);
-const getAssignmentDetailUseCase = new GetAssignmentDetailUseCase(assignmentRepository);
-const getAssignmentsByCourseUseCase = new GetAssignmentsByCourseUseCase(assignmentRepository);
-const updateAssignmentUseCase = new UpdateAssignmentUseCase(assignmentRepository);
-const manageTestCasesUseCase = new ManageTestCasesUseCase(assignmentRepository);
-const manageRubricsUseCase = new ManageRubricsUseCase(assignmentRepository);
-const manageSolutionsUseCase = new ManageSolutionsUseCase(assignmentRepository);
-const getProctoringDataUseCase = new GetProctoringDataUseCase(assignmentRepository);
-const controlSessionUseCase = new ControlSessionUseCase(assignmentRepository);
-
-const assignmentController = new AssignmentController(
-  createAssignmentUseCase,
-  getAssignmentDetailUseCase,
-  getAssignmentsByCourseUseCase,
-  updateAssignmentUseCase,
-  manageTestCasesUseCase,
-  manageRubricsUseCase,
-  manageSolutionsUseCase,
-  getProctoringDataUseCase,
-  controlSessionUseCase
-);
+const assignmentController = container.assignmentController;
 
 // Routes
 router.post(
@@ -99,6 +61,13 @@ router.put(
   requireAssignmentManage,
   validateBody(UpdateAssignmentSchema),
   assignmentController.updateAssignment
+);
+router.delete(
+  '/:id',
+  authenticateJWT,
+  authorizeRoles('LECTURER', 'ADMIN'),
+  requireAssignmentManage,
+  assignmentController.deleteAssignment
 );
 router.get('/course/:courseId', authenticateJWT, requireCourseView, assignmentController.getAssignmentsByCourse);
 

@@ -1,11 +1,12 @@
-import prisma from '../../../../infrastructure/database/prisma.client.js';
 import { env } from '../../../../infrastructure/config/env.js';
 import { AppError } from '../../../../shared/domain/exceptions/app.error.js';
 import { CHUNKER_VERSION } from '../chunking/code-chunker.js';
+import { ISolutionVectorStore } from '../vector/chroma-vector.service.js';
+import { IRagContextRepository } from '../../domain/repositories/rag-context.repository.interface.js';
 import {
-  ChromaVectorService,
-  RetrievedSolutionChunk,
-} from '../vector/chroma-vector.service.js';
+  IRagKnowledgeService,
+  RagContext,
+} from '../../application/services/rag-knowledge.service.interface.js';
 
 export class RagUnavailableError extends AppError {
   constructor(message = 'RAG chưa sẵn sàng cho bài tập này.') {
@@ -13,48 +14,23 @@ export class RagUnavailableError extends AppError {
   }
 }
 
-export interface RagContext {
-  assignmentTitle: string;
-  assignmentDescription: string | null;
-  environment: string;
-  referenceSolutionSource: string;
-  relevantSolutionChunks: RetrievedSolutionChunk[];
-  rubricRules: Array<{
-    id: string;
-    criterionName: string;
-    description: string;
-    maxPoints: number;
-    weight: number;
-  }>;
-  failedTestCases: Array<{
-    label: string;
-    rationaleTag: string;
-    verdict: string;
-    actualStdout: string | null;
-    diffLog: string | null;
-  }>;
-}
-
-export class RagKnowledgeFacade {
-  constructor(private readonly chromaVectorService = new ChromaVectorService()) {}
+export class RagKnowledgeFacade implements IRagKnowledgeService {
+  constructor(
+    private readonly ragContextRepository: IRagContextRepository,
+    private readonly vectorStore: ISolutionVectorStore
+  ) {}
 
   async getGradingContext(submissionId: string, studentCode: string): Promise<RagContext> {
-    const submission = await prisma.submission.findUnique({
-      where: { id: submissionId },
-      include: {
-        assignment: {
-          include: {
-            rubricRules: { orderBy: { orderIndex: 'asc' } },
-            solutions: { where: { isActive: true }, take: 1 },
-          },
-        },
-        testResults: { include: { testCase: true } },
-      },
-    });
+    if (!env.AI_GRADING_REQUIRE_READY_RAG) {
+      throw new RagUnavailableError(
+        'AI grading đang tắt cho tới khi backfill RAG hoàn tất và AI_GRADING_REQUIRE_READY_RAG=true.'
+      );
+    }
+    const submission = await this.ragContextRepository.findSubmissionContext(submissionId);
     if (!submission) throw new RagUnavailableError('Không tìm thấy submission để dựng RAG context.');
 
     const assignment = submission.assignment;
-    const solution = assignment.solutions[0];
+    const solution = assignment.activeSolution;
     if (
       !solution ||
       solution.activeKey !== assignment.id ||
@@ -86,9 +62,9 @@ export class RagKnowledgeFacade {
       `Student source excerpt: ${studentCode.slice(0, 4_096)}`,
     ].join('\n').slice(0, 8_192);
 
-    let relevantSolutionChunks: RetrievedSolutionChunk[];
+    let relevantSolutionChunks;
     try {
-      relevantSolutionChunks = await this.chromaVectorService.queryRelevantChunks({
+      relevantSolutionChunks = await this.vectorStore.queryRelevantChunks({
         assignmentId: assignment.id,
         solutionId: solution.id,
         contentHash: solution.contentHash,

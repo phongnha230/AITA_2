@@ -1,4 +1,8 @@
-import { PrismaClient } from '@prisma/client';
+import {
+  AiTutorConversation as PrismaAiTutorConversation,
+  AiTutorMessage as PrismaAiTutorMessage,
+  PrismaClient,
+} from '@prisma/client';
 import {
   IAiTutorRepository,
   CreateConversationData,
@@ -14,7 +18,7 @@ import {
 export class PrismaAiTutorRepository implements IAiTutorRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
-  private toMessageDomain(raw: any): AiTutorMessage {
+  private toMessageDomain(raw: PrismaAiTutorMessage): AiTutorMessage {
     return new AiTutorMessage({
       id: raw.id,
       conversationId: raw.conversationId,
@@ -26,7 +30,9 @@ export class PrismaAiTutorRepository implements IAiTutorRepository {
     });
   }
 
-  private toConversationDomain(raw: any): AiTutorConversation {
+  private toConversationDomain(
+    raw: PrismaAiTutorConversation & { messages?: PrismaAiTutorMessage[] }
+  ): AiTutorConversation {
     return new AiTutorConversation({
       id: raw.id,
       submissionId: raw.submissionId,
@@ -35,7 +41,7 @@ export class PrismaAiTutorRepository implements IAiTutorRepository {
       status: raw.status,
       createdAt: raw.createdAt,
       updatedAt: raw.updatedAt,
-      messages: raw.messages?.map((m: any) => this.toMessageDomain(m)),
+      messages: raw.messages?.map((message) => this.toMessageDomain(message)),
     });
   }
 
@@ -60,7 +66,7 @@ export class PrismaAiTutorRepository implements IAiTutorRepository {
       },
       orderBy: { updatedAt: 'desc' },
     });
-    return list.map((r: any) => this.toConversationDomain(r));
+    return list.map((conversation) => this.toConversationDomain(conversation));
   }
 
   async findConversationBySubmissionAndStudent(
@@ -149,6 +155,6 @@ export class PrismaAiTutorRepository implements IAiTutorRepository {
       where: { conversationId },
       orderBy: { createdAt: 'asc' },
     });
-    return list.map((m: any) => this.toMessageDomain(m));
+    return list.map((message) => this.toMessageDomain(message));
   }
 }

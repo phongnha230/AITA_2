@@ -1,4 +1,4 @@
-import { exec, spawn } from 'child_process';
+import { ChildProcess, exec, spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import { promisify } from 'util';
@@ -10,12 +10,13 @@ import {
   TestCaseInput,
   TestCaseResult,
 } from '../../domain/interfaces/sandbox-runner.interface.js';
+import { logger } from '../../../../infrastructure/logging/logger.js';
 
 const execAsync = promisify(exec);
 const MAX_OUTPUT_BYTES = 5 * 1024 * 1024; // 5MB max output buffer
 const MAX_GENERATED_FILE_BYTES = 10 * 1024 * 1024; // 10MB max generated file size
 
-function killProcessTree(childProcess: any): void {
+function killProcessTree(childProcess: ChildProcess): void {
   if (!childProcess || !childProcess.pid) return;
   try {
     if (process.platform === 'win32') {
@@ -23,9 +24,19 @@ function killProcessTree(childProcess: any): void {
     } else {
       childProcess.kill('SIGKILL');
     }
-  } catch {
-    // Process already exited
+  } catch (error) {
+    logger.warn('sandbox_process_kill_failed', { stage: 'SANDBOX_EXECUTION', error });
   }
+}
+
+function getProcessError(error: unknown): string {
+  if (error && typeof error === 'object') {
+    const record = error as Record<string, unknown>;
+    for (const key of ['stderr', 'stdout', 'message']) {
+      if (typeof record[key] === 'string' && record[key]) return record[key];
+    }
+  }
+  return String(error);
 }
 
 export class JavaDockerRunner implements ISandboxRunner {
@@ -72,10 +83,10 @@ export class JavaDockerRunner implements ISandboxRunner {
       if (stderr && stderr.trim().length > 0) {
         compilerWarnings = stderr.trim();
       }
-    } catch (err: any) {
+    } catch (error: unknown) {
       return {
         success: false,
-        compileError: err.stderr || err.stdout || err.message,
+        compileError: getProcessError(error),
         totalTests: testCases.length,
         passedTests: 0,
         totalScore: 0,
@@ -132,7 +143,7 @@ export class JavaDockerRunner implements ISandboxRunner {
       let isTimedOut = false;
       let isOutputLimitExceeded = false;
 
-      let childProcess: any;
+      let childProcess: ChildProcess;
       if (isDocker) {
         childProcess = spawn('docker', [
           'run',
@@ -195,7 +206,7 @@ export class JavaDockerRunner implements ISandboxRunner {
         childProcess.stdin?.end();
       }
 
-      childProcess.on('close', (code: number) => {
+      childProcess.on('close', (code: number | null) => {
         clearTimeout(timer);
         const duration = Date.now() - startTime;
 

@@ -1,18 +1,26 @@
-import { PrismaClient } from '@prisma/client';
-import { IAssignmentRepository, CreateAssignmentData } from '../../domain/repositories/assignment.repository.interface.js';
-import { Assignment } from '../../domain/entities/assignment.entity.js';
+import { Assignment as PrismaAssignmentModel, AssignmentSolution, PrismaClient, RubricRule, TestCase } from '@prisma/client';
+import {
+  AssignmentDetailRecord,
+  AssignmentListRecord,
+  IAssignmentRepository,
+  CreateAssignmentData,
+  ProctoringAssignmentRecord,
+  ProctoringRoomRecord,
+} from '../../domain/repositories/assignment.repository.interface.js';
+import { Assignment, AssignmentEnv } from '../../domain/entities/assignment.entity.js';
 import { createHash } from 'node:crypto';
+import { CreateTestCaseDto, SetRubricRulesDto, UpsertSolutionDto } from '../../application/dtos/assignment.dto.js';
 
 export class PrismaAssignmentRepository implements IAssignmentRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
-  private toDomain(raw: any): Assignment {
+  private toDomain(raw: PrismaAssignmentModel): Assignment {
     return new Assignment({
       id: raw.id,
       courseId: raw.courseId,
       title: raw.title,
       description: raw.description,
-      environment: raw.environment,
+      environment: raw.environment as AssignmentEnv,
       submissionType: raw.submissionType,
       startTime: raw.startTime,
       deadline: raw.deadline,
@@ -35,7 +43,7 @@ export class PrismaAssignmentRepository implements IAssignmentRepository {
     return raw ? this.toDomain(raw) : null;
   }
 
-  async findDetailedById(id: string, includeHiddenTests: boolean = false): Promise<any | null> {
+  async findDetailedById(id: string, includeHiddenTests: boolean = false): Promise<AssignmentDetailRecord | null> {
     const assignment = await this.prisma.assignment.findUnique({
       where: { id },
       include: {
@@ -74,7 +82,7 @@ export class PrismaAssignmentRepository implements IAssignmentRepository {
     return assignment;
   }
 
-  async findByCourseId(courseId: string): Promise<any[]> {
+  async findByCourseId(courseId: string): Promise<AssignmentListRecord[]> {
     return this.prisma.assignment.findMany({
       where: { courseId },
       include: {
@@ -132,14 +140,29 @@ export class PrismaAssignmentRepository implements IAssignmentRepository {
     return this.toDomain(raw);
   }
 
-  async delete(id: string): Promise<void> {
-    await this.prisma.assignment.delete({
-      where: { id },
+  async deleteIfNoSubmissions(
+    id: string
+  ): Promise<'DELETED' | 'NOT_FOUND' | 'HAS_SUBMISSIONS'> {
+    return this.prisma.$transaction(async (transaction) => {
+      const assignment = await transaction.assignment.findUnique({
+        where: { id },
+        select: { _count: { select: { submissions: true } } },
+      });
+      if (!assignment) return 'NOT_FOUND';
+      if (assignment._count.submissions > 0) return 'HAS_SUBMISSIONS';
+
+      const deleted = await transaction.assignment.deleteMany({
+        where: {
+          id,
+          submissions: { none: {} },
+        },
+      });
+      return deleted.count === 1 ? 'DELETED' : 'HAS_SUBMISSIONS';
     });
   }
 
   // --- Test Cases ---
-  async addTestCase(assignmentId: string, data: any): Promise<any> {
+  async addTestCase(assignmentId: string, data: CreateTestCaseDto): Promise<TestCase> {
     return this.prisma.testCase.create({
       data: {
         assignmentId,
@@ -162,7 +185,7 @@ export class PrismaAssignmentRepository implements IAssignmentRepository {
     });
   }
 
-  async updateTestCase(testCaseId: string, data: any): Promise<any> {
+  async updateTestCase(testCaseId: string, data: Partial<CreateTestCaseDto>): Promise<TestCase> {
     const updateData = { ...data };
     if (updateData.paperCode !== undefined) {
       updateData.paperCode = updateData.paperCode
@@ -181,7 +204,7 @@ export class PrismaAssignmentRepository implements IAssignmentRepository {
     });
   }
 
-  async getTestCases(assignmentId: string, includeHidden: boolean = false): Promise<any[]> {
+  async getTestCases(assignmentId: string, includeHidden: boolean = false): Promise<TestCase[]> {
     return this.prisma.testCase.findMany({
       where: {
         assignmentId,
@@ -192,7 +215,7 @@ export class PrismaAssignmentRepository implements IAssignmentRepository {
   }
 
   // --- Rubrics ---
-  async setRubricRules(assignmentId: string, rules: any[]): Promise<any[]> {
+  async setRubricRules(assignmentId: string, rules: SetRubricRulesDto['rules']): Promise<RubricRule[]> {
     // Delete old rules and insert new ones transactionally
     await this.prisma.$transaction([
       this.prisma.rubricRule.deleteMany({ where: { assignmentId } }),
@@ -211,7 +234,7 @@ export class PrismaAssignmentRepository implements IAssignmentRepository {
     return this.getRubricRules(assignmentId);
   }
 
-  async getRubricRules(assignmentId: string): Promise<any[]> {
+  async getRubricRules(assignmentId: string): Promise<RubricRule[]> {
     return this.prisma.rubricRule.findMany({
       where: { assignmentId },
       orderBy: { orderIndex: 'asc' },
@@ -219,7 +242,7 @@ export class PrismaAssignmentRepository implements IAssignmentRepository {
   }
 
   // --- Solutions (RAG) ---
-  async upsertSolution(assignmentId: string, data: any): Promise<any> {
+  async upsertSolution(assignmentId: string, data: UpsertSolutionDto): Promise<AssignmentSolution> {
     const contentHash = createHash('sha256').update(data.sourceCode, 'utf8').digest('hex');
     return this.prisma.$transaction(async (transaction) => {
       await transaction.assignmentSolution.updateMany({
@@ -241,7 +264,7 @@ export class PrismaAssignmentRepository implements IAssignmentRepository {
     });
   }
 
-  async getSolutions(assignmentId: string): Promise<any[]> {
+  async getSolutions(assignmentId: string): Promise<AssignmentSolution[]> {
     return this.prisma.assignmentSolution.findMany({
       where: { assignmentId },
       orderBy: { createdAt: 'desc' },
@@ -249,7 +272,7 @@ export class PrismaAssignmentRepository implements IAssignmentRepository {
   }
 
   // --- Proctoring & Live Sessions ---
-  async getProctoringAssignment(assignmentId: string): Promise<any | null> {
+  async getProctoringAssignment(assignmentId: string): Promise<ProctoringAssignmentRecord | null> {
     return this.prisma.assignment.findUnique({
       where: { id: assignmentId },
       include: {
@@ -314,7 +337,7 @@ export class PrismaAssignmentRepository implements IAssignmentRepository {
     });
   }
 
-  async getAllAssignmentsForProctoring(lecturerId?: string): Promise<any[]> {
+  async getAllAssignmentsForProctoring(lecturerId?: string): Promise<ProctoringRoomRecord[]> {
     return this.prisma.assignment.findMany({
       where: lecturerId ? { course: { lecturerId } } : undefined,
       include: {

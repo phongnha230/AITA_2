@@ -1,6 +1,6 @@
 import { IAiTutorRepository } from '../../domain/repositories/ai-tutor.repository.interface.js';
 import { ISubmissionRepository } from '../../../submission/domain/repositories/submission.repository.interface.js';
-import { ApiKeyRotatorFacade } from '../../infrastructure/facades/api-key-rotator.facade.js';
+import { IAiGenerationService } from '../services/ai-generation.service.interface.js';
 import { SocraticTutorPrompt } from '../../infrastructure/prompts/socratic-tutor.prompt.js';
 import { NotFoundError, ForbiddenError, ValidationError } from '../../../../shared/domain/exceptions/app.error.js';
 import { SourceCollector } from '../services/source-collector.service.js';
@@ -36,7 +36,7 @@ export class SendTutorMessageUseCase {
   constructor(
     private readonly aiTutorRepository: IAiTutorRepository,
     private readonly submissionRepository: ISubmissionRepository,
-    private readonly apiKeyRotatorFacade: ApiKeyRotatorFacade,
+    private readonly aiGenerationService: IAiGenerationService,
     private readonly sourceCollector = new SourceCollector()
   ) {}
 
@@ -69,7 +69,7 @@ export class SendTutorMessageUseCase {
 
     const allMessages = await this.aiTutorRepository.getMessages(conversationId);
     const history = selectBoundedHistory(allMessages);
-    const llmResponse = await this.apiKeyRotatorFacade.executeWithKeyRotation(
+    const llmResponse = await this.aiGenerationService.executeWithKeyRotation(
       SocraticTutorPrompt.buildConversationPrompt(
         studentCode,
         failedTestsText,
@@ -77,6 +77,7 @@ export class SendTutorMessageUseCase {
         userMessageContent
       ),
       {
+        operation: 'CHAT_GENERATION',
         systemInstruction: SocraticTutorPrompt.buildSystemInstruction(),
         temperature: 0.7,
         jsonMode: false,

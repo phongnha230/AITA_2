@@ -2,11 +2,19 @@ import { Job, Queue, Worker } from 'bullmq';
 import prisma from '../../../../infrastructure/database/prisma.client.js';
 import { redisConnection } from '../../../../infrastructure/redis/redis.client.js';
 import { CHUNKER_VERSION, CodeChunker } from '../chunking/code-chunker.js';
-import { ChromaVectorService } from '../vector/chroma-vector.service.js';
+import { ISolutionVectorStore } from '../vector/chroma-vector.service.js';
 import { env } from '../../../../infrastructure/config/env.js';
+import {
+  IRagIndexingQueue,
+  RagIndexingRequest,
+} from '../../application/services/rag-indexing-queue.interface.js';
+import { logger } from '../../../../infrastructure/logging/logger.js';
+import {
+  getRagIndexRetryDelay,
+  RAG_INDEX_MAX_ATTEMPTS,
+} from '../../../../infrastructure/queue/retry-policy.js';
 
 export const RAG_INDEXING_QUEUE_NAME = 'rag-indexing';
-const retryDelaysMs = [10_000, 30_000, 120_000, 300_000, 900_000];
 
 export interface RagIndexingJobData {
   solutionId: string;
@@ -20,16 +28,25 @@ export const ragIndexingQueue = new Queue<RagIndexingJobData>(RAG_INDEXING_QUEUE
 export const enqueueRagIndexing = async (data: RagIndexingJobData): Promise<void> => {
   await ragIndexingQueue.add('index-solution', data, {
     jobId: `rag-index:${data.solutionId}:${data.contentHash}`,
-    attempts: 6,
+    attempts: RAG_INDEX_MAX_ATTEMPTS,
     backoff: { type: 'rag-indexing' },
     removeOnComplete: { count: 500 },
     removeOnFail: { count: 500 },
   });
 };
 
+export class BullMqRagIndexingQueue implements IRagIndexingQueue {
+  enqueue(data: RagIndexingRequest): Promise<void> {
+    return enqueueRagIndexing(data);
+  }
+}
+
 let activeWorker: Worker<RagIndexingJobData> | null = null;
 
-const processIndexingJob = async (job: Job<RagIndexingJobData>): Promise<{ stale: boolean }> => {
+const processIndexingJob = async (
+  job: Job<RagIndexingJobData>,
+  vectorService: ISolutionVectorStore
+): Promise<{ stale: boolean }> => {
   const solution = await prisma.assignmentSolution.findUnique({
     where: { id: job.data.solutionId },
     include: { assignment: true },
@@ -43,7 +60,6 @@ const processIndexingJob = async (job: Job<RagIndexingJobData>): Promise<{ stale
     return { stale: true };
   }
 
-  const vectorService = new ChromaVectorService();
   try {
     const fileName = solution.assignment.environment === 'JAVA_JDK' ? 'Solution.java' : 'solution.c';
     const chunks = CodeChunker.chunkSourceCode(
@@ -94,23 +110,31 @@ const processIndexingJob = async (job: Job<RagIndexingJobData>): Promise<{ stale
   }
 };
 
-export const startRagIndexingWorker = (): Worker<RagIndexingJobData> => {
+export const startRagIndexingWorker = (
+  vectorService: ISolutionVectorStore
+): Worker<RagIndexingJobData> => {
   if (activeWorker) return activeWorker;
-  activeWorker = new Worker<RagIndexingJobData>(RAG_INDEXING_QUEUE_NAME, processIndexingJob, {
+  activeWorker = new Worker<RagIndexingJobData>(
+    RAG_INDEXING_QUEUE_NAME,
+    (job) => processIndexingJob(job, vectorService),
+    {
     connection: redisConnection,
     concurrency: 2,
     settings: {
       backoffStrategy: (attemptsMade, type) => {
         if (type !== 'rag-indexing') return -1;
-        return retryDelaysMs[Math.min(attemptsMade - 1, retryDelaysMs.length - 1)];
+        return getRagIndexRetryDelay(attemptsMade);
       },
     },
-  });
+    }
+  );
   activeWorker.on('failed', (job, error) => {
-    console.error('[RagIndexingWorker] Indexing failed', {
+    logger.error('rag_indexing_failed', {
+      jobId: job?.id,
       solutionId: job?.data.solutionId,
       attempt: job?.attemptsMade,
-      error: error.message,
+      stage: 'RAG_INDEXING',
+      error,
     });
   });
   return activeWorker;

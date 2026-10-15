@@ -8,6 +8,7 @@ import {
 } from "../redis/redis.client.js";
 
 import prisma from "../database/prisma.client.js";
+import { GRADING_MAX_ATTEMPTS } from "./retry-policy.js";
 
 
 // ============================================================
@@ -105,7 +106,7 @@ export const defaultGradingJobOptions:
     /**
      * Tổng cộng tối đa 5 attempts cho lỗi AI/RAG tạm thời.
      */
-    attempts: 5,
+    attempts: GRADING_MAX_ATTEMPTS,
 
     /**
      * Exponential backoff:

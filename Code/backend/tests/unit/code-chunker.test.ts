@@ -20,4 +20,13 @@ describe('CodeChunker', () => {
     );
     expect(chunks.some((chunk) => chunk.name === 'solve')).toBe(true);
   });
+
+  it('returns no chunks for empty source and falls back to overlapping line blocks', () => {
+    expect(CodeChunker.chunkSourceCode('   ', 'C_GCC')).toEqual([]);
+    const source = Array.from({ length: 75 }, (_, index) => `// line ${index + 1}`).join('\n');
+    const chunks = CodeChunker.chunkSourceCode(source, 'C_GCC', 'comments.c');
+    expect(chunks).toHaveLength(2);
+    expect(chunks[0]).toMatchObject({ type: 'BLOCK', startLine: 1, endLine: 50 });
+    expect(chunks[1]).toMatchObject({ type: 'BLOCK', startLine: 41, endLine: 75 });
+  });
 });

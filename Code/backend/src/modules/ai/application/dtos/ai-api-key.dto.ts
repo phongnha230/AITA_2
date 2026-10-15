@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
 export const CreateAiApiKeySchema = z.object({
-  provider: z.enum(['GEMINI', 'OPENAI'], {
-    errorMap: () => ({ message: "provider phải là 'GEMINI' hoặc 'OPENAI'" }),
+  provider: z.literal('GEMINI', {
+    errorMap: () => ({ message: "Gemini credential pool chỉ chấp nhận provider 'GEMINI'" }),
   }),
   keyAlias: z.string().min(1, 'keyAlias không được để trống').max(100),
   rawApiKey: z.string().min(10, 'rawApiKey không hợp lệ'),

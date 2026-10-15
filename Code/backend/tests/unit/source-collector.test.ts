@@ -37,4 +37,34 @@ describe('SourceCollector', () => {
       errorCode: 'INPUT_TOO_LARGE',
     });
   });
+
+  it('rejects more than two hundred source files', async () => {
+    const directory = await createTemporaryDirectory();
+    await Promise.all(Array.from({ length: 201 }, (_, index) =>
+      fs.writeFile(path.join(directory, `file-${index}.c`), 'int value;')
+    ));
+    await expect(new SourceCollector().collect(directory)).rejects.toMatchObject({
+      errorCode: 'INPUT_TOO_LARGE',
+    });
+  });
+
+  it('rejects a total source size larger than one MiB', async () => {
+    const directory = await createTemporaryDirectory();
+    await Promise.all(Array.from({ length: 17 }, (_, index) =>
+      fs.writeFile(path.join(directory, `File${index}.java`), 'a'.repeat(64 * 1024))
+    ));
+    await expect(new SourceCollector().collect(directory)).rejects.toMatchObject({
+      errorCode: 'INPUT_TOO_LARGE',
+    });
+  });
+
+  it('walks nested folders and ignores configured build directories', async () => {
+    const directory = await createTemporaryDirectory();
+    await fs.mkdir(path.join(directory, 'src'));
+    await fs.mkdir(path.join(directory, 'node_modules'));
+    await fs.writeFile(path.join(directory, 'src', 'defs.h'), '#define VALUE 1');
+    await fs.writeFile(path.join(directory, 'node_modules', 'ignored.c'), 'int ignored;');
+    const result = await new SourceCollector().collect(directory);
+    expect(result.files.map((file) => file.relativePath)).toEqual([path.join('src', 'defs.h')]);
+  });
 });
