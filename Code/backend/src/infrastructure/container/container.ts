@@ -54,6 +54,7 @@ import { ManageRubricsUseCase } from '../../modules/assignment/application/use-c
 import { ManageSolutionsUseCase } from '../../modules/assignment/application/use-cases/manage-solutions.use-case.js';
 import { GetProctoringDataUseCase } from '../../modules/assignment/application/use-cases/get-proctoring-data.use-case.js';
 import { ControlSessionUseCase } from '../../modules/assignment/application/use-cases/control-session.use-case.js';
+import { DeleteAssignmentUseCase } from '../../modules/assignment/application/use-cases/delete-assignment.use-case.js';
 
 import { CreateCourseUseCase } from '../../modules/course/application/use-cases/create-course.use-case.js';
 import { GetCoursesUseCase } from '../../modules/course/application/use-cases/get-courses.use-case.js';
@@ -195,6 +196,10 @@ class ServiceContainer {
   public readonly getAssignmentDetailUseCase = new GetAssignmentDetailUseCase(this.assignmentRepository);
   public readonly getAssignmentsByCourseUseCase = new GetAssignmentsByCourseUseCase(this.assignmentRepository);
   public readonly updateAssignmentUseCase = new UpdateAssignmentUseCase(this.assignmentRepository);
+  public readonly deleteAssignmentUseCase = new DeleteAssignmentUseCase(
+    this.assignmentRepository,
+    this.solutionVectorStore
+  );
   public readonly manageTestCasesUseCase = new ManageTestCasesUseCase(this.assignmentRepository);
   public readonly manageRubricsUseCase = new ManageRubricsUseCase(this.assignmentRepository);
   public readonly manageSolutionsUseCase = new ManageSolutionsUseCase(
@@ -297,6 +302,7 @@ class ServiceContainer {
     this.getAssignmentDetailUseCase,
     this.getAssignmentsByCourseUseCase,
     this.updateAssignmentUseCase,
+    this.deleteAssignmentUseCase,
     this.manageTestCasesUseCase,
     this.manageRubricsUseCase,
     this.manageSolutionsUseCase,

@@ -7,6 +7,8 @@ import {
   AssignmentSolution,
   Course,
   LecturerSubmission,
+  RubricRule,
+  RubricRuleInput,
 } from '../types/assignment.types';
 import type { ExamRoom, StudentExamStation } from '../../proctoring/types/proctoring.types';
 
@@ -142,16 +144,16 @@ export const assignmentService = {
   /**
    * Thiết lập Rubric chấm điểm AI cho đề thi
    */
-  async setRubricRules(assignmentId: string, rules: any[]): Promise<any[]> {
+  async setRubricRules(assignmentId: string, rules: RubricRuleInput[]): Promise<RubricRule[]> {
     await this.ensureLecturerAuth();
-    const res = await api.put(`/assignments/${assignmentId}/rubrics`, { rules });
+    const res = await api.post(`/assignments/${assignmentId}/rubrics`, { rules });
     return res.data?.data || [];
   },
 
   /**
    * Lấy danh sách Rubric của đề thi
    */
-  async getRubricRules(assignmentId: string): Promise<any[]> {
+  async getRubricRules(assignmentId: string): Promise<RubricRule[]> {
     await this.ensureLecturerAuth();
     const res = await api.get(`/assignments/${assignmentId}/rubrics`);
     return res.data?.data || [];
