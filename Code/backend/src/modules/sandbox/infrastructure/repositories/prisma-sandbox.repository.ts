@@ -15,6 +15,8 @@ export class PrismaSandboxRepository implements ISandboxRepository {
       select: {
         id: true,
         zipFilePath: true,
+        workspacePath: true,
+        deployedUrl: true,
         paperCode: true,
         assignment: {
           select: {
@@ -59,7 +61,7 @@ export class PrismaSandboxRepository implements ISandboxRepository {
   async updateWorkspacePath(submissionId: string, workspacePath: string): Promise<void> {
     await this.prisma.submission.update({
       where: { id: submissionId },
-      data: { zipFilePath: workspacePath },
+      data: { workspacePath },
     });
   }
 

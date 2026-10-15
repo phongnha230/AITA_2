@@ -54,7 +54,11 @@ export class SendTutorMessageUseCase {
     const submission = await this.submissionRepository.findWithJobStatus(conversation.submissionId);
     let studentCode = '// Không tìm thấy mã nguồn';
     if (submission?.zipFilePath) {
-      const collectedSource = await this.sourceCollector.collect(submission.zipFilePath);
+      const environment = submission.assignment?.environment;
+      if (environment !== 'C_GCC' && environment !== 'JAVA_JDK') {
+        throw new ValidationError('Không xác định được ngôn ngữ của assignment để đọc source.');
+      }
+      const collectedSource = await this.sourceCollector.collect(submission.zipFilePath, environment);
       if (collectedSource.files.length > 0) studentCode = collectedSource.combinedSource;
     }
 

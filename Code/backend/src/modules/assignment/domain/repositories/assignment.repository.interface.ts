@@ -57,7 +57,7 @@ export interface CreateAssignmentData {
   courseId: string;
   title: string;
   description?: string;
-  environment: 'C_GCC' | 'JAVA_JDK';
+  environment: 'C_GCC' | 'JAVA_JDK' | 'REACT_JS';
   submissionType?: 'INDIVIDUAL' | 'GROUP';
   startTime?: Date;
   deadline: Date;

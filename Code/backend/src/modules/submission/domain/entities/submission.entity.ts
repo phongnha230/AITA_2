@@ -19,6 +19,10 @@ export interface SubmissionProps {
   zipFileSize?: bigint | number | null;
   gitRepoUrl?: string | null;
   gitCommitHash?: string | null;
+  deployedUrl?: string | null;
+  workspacePath?: string | null;
+  teamId?: string | null;
+  attemptNo?: number;
   status: SubmissionStatus;
   sandboxScore?: number | null;
   aiScore?: number | null;
@@ -40,11 +44,38 @@ export interface SubmissionProps {
     id: string;
     title: string;
     courseId: string;
+    environment?: 'C_GCC' | 'JAVA_JDK' | 'REACT_JS';
     gradingVersion?: number;
     functionalMaxScore?: number;
     algorithmMaxScore?: number;
     cleanCodeMaxScore?: number;
   };
+  team?: {
+    id: string;
+    name: string;
+    projectTitle?: string | null;
+  } | null;
+  participants?: Array<{
+    userId: string;
+    teamRole: string;
+    adjustedScore?: number | null;
+    adjustmentReason?: string | null;
+    adjustedAt?: Date | null;
+    user?: { id: string; fullName: string; email: string };
+  }>;
+  gitContributors?: Array<{
+    id: string;
+    authorName: string;
+    authorEmail: string;
+    commitCount: number;
+    linesAdded: number;
+    linesDeleted: number;
+    contributionPct: number;
+    matchedUserId?: string | null;
+    activeDays: number;
+    firstCommitAt?: Date | null;
+    lastCommitAt?: Date | null;
+  }>;
 }
 
 export class Submission {
@@ -88,6 +119,26 @@ export class Submission {
 
   get gitCommitHash(): string | null | undefined {
     return this.props.gitCommitHash;
+  }
+
+  get deployedUrl(): string | null | undefined {
+    return this.props.deployedUrl;
+  }
+
+  get workspacePath(): string | null | undefined {
+    return this.props.workspacePath;
+  }
+
+  get teamId(): string | null | undefined {
+    return this.props.teamId;
+  }
+
+  get participants(): SubmissionProps['participants'] {
+    return this.props.participants;
+  }
+
+  get attemptNo(): number {
+    return this.props.attemptNo ?? 1;
   }
 
   get status(): SubmissionStatus {
@@ -158,6 +209,10 @@ export class Submission {
       zipFileSize: this.props.zipFileSize ? Number(this.props.zipFileSize) : null,
       gitRepoUrl: this.props.gitRepoUrl,
       gitCommitHash: this.props.gitCommitHash,
+      deployedUrl: this.props.deployedUrl,
+      workspacePath: this.props.workspacePath,
+      teamId: this.props.teamId,
+      attemptNo: this.props.attemptNo ?? 1,
       status: this.props.status,
       sandboxScore:
         this.props.sandboxScore !== null && this.props.sandboxScore !== undefined
@@ -187,6 +242,15 @@ export class Submission {
       commitCount: this.props.commitCount,
       user: this.props.user,
       assignment: this.props.assignment,
+      team: this.props.team,
+      participants: this.props.participants?.map((participant) => ({
+        ...participant,
+        adjustedScore: participant.adjustedScore == null ? null : Number(participant.adjustedScore),
+        effectiveScore: participant.adjustedScore == null
+          ? (this.props.finalScore == null ? null : Number(this.props.finalScore))
+          : Number(participant.adjustedScore),
+      })),
+      gitContributors: this.props.gitContributors,
     };
   }
 }

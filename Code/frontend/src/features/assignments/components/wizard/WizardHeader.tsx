@@ -10,13 +10,16 @@ import {
 import { Button as UIButton } from '@/components/ui/button';
 import { Badge as UIBadge } from '@/components/ui/badge';
 import { Card as UICard } from '@/components/ui/card';
+import type { AssignmentEnv } from '../../types/assignment.types';
 
 interface WizardHeaderProps {
   editId: string | null;
   loadingEdit: boolean;
   title: string;
+  environment: AssignmentEnv;
   onLoadSamplePrf192: () => void;
   onLoadSamplePro192: () => void;
+  onLoadSampleCsd201: () => void;
   submitSuccess: boolean;
   submitError: string | null;
 }
@@ -25,8 +28,10 @@ export const WizardHeader: React.FC<WizardHeaderProps> = ({
   editId,
   loadingEdit,
   title,
+  environment,
   onLoadSamplePrf192,
   onLoadSamplePro192,
+  onLoadSampleCsd201,
   submitSuccess,
   submitError,
 }) => {
@@ -64,7 +69,9 @@ export const WizardHeader: React.FC<WizardHeaderProps> = ({
           <p className="mt-1 text-xs sm:text-sm text-slate-500">
             {editId
               ? 'Dữ liệu đề bài, bộ testcase và bài giải mẫu đã được nạp tự động. Bạn có thể cập nhật các thông tin cần thiết.'
-              : 'Quy trình 4 bước chuẩn hoá: tải đề thi PDF, nạp khung mã nguồn mẫu cho sinh viên, nạp bài giải code sẵn và import bộ testcase tự động.'}
+              : environment === 'REACT_JS'
+                ? 'FER201 dùng kịch bản Playwright do giảng viên thiết kế trên URL deploy, sau đó chấm cấu trúc React và Clean Code bằng source chọn lọc.'
+                : 'Quy trình 4 bước chuẩn hoá: tải đề thi PDF, nạp khung mã nguồn mẫu cho sinh viên, nạp bài giải code sẵn và import bộ testcase tự động.'}
           </p>
         </div>
         {!editId && (
@@ -87,7 +94,17 @@ export const WizardHeader: React.FC<WizardHeaderProps> = ({
               className="h-9 px-3.5 rounded-xl text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border-indigo-300 flex items-center gap-1.5 shadow-2xs transition"
             >
               <Code2 className="w-3.5 h-3.5 text-indigo-600" />
-              <span>☕ Mẫu Java (PRO192 / CSD201)</span>
+              <span>☕ Mẫu Java PRO192</span>
+            </UIButton>
+            <UIButton
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onLoadSampleCsd201}
+              className="h-9 px-3.5 rounded-xl text-xs font-bold bg-sky-50 hover:bg-sky-100 text-sky-900 border-sky-300 flex items-center gap-1.5 shadow-2xs transition"
+            >
+              <Code2 className="w-3.5 h-3.5 text-sky-600" />
+              <span>☕ Mẫu Java CSD201</span>
             </UIButton>
           </div>
         )}

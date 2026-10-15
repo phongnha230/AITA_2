@@ -4,8 +4,8 @@ export const CreateAssignmentSchema = z.object({
   courseId: z.string().uuid('ID khóa học phải là UUID hợp lệ'),
   title: z.string().min(2, 'Tiêu đề đề thi tối thiểu 2 ký tự').max(255),
   description: z.string().optional(),
-  environment: z.enum(['C_GCC', 'JAVA_JDK'], {
-    required_error: 'Vui lòng chọn môi trường biên dịch: C_GCC hoặc JAVA_JDK',
+  environment: z.enum(['C_GCC', 'JAVA_JDK', 'REACT_JS'], {
+    required_error: 'Vui lòng chọn môi trường: C_GCC, JAVA_JDK hoặc REACT_JS',
   }),
   submissionType: z.enum(['INDIVIDUAL', 'GROUP']).default('INDIVIDUAL'),
   startTime: z.coerce.date().default(() => new Date()),
@@ -15,10 +15,19 @@ export const CreateAssignmentSchema = z.object({
   allowGitSubmission: z.boolean().default(true),
   allowZipSubmission: z.boolean().default(true),
   status: z.enum(['DRAFT', 'PUBLISHED', 'CLOSED', 'ARCHIVED']).default('DRAFT'),
-  gradingVersion: z.number().int().min(1).max(2).default(1),
-  functionalMaxScore: z.number().finite().positive().default(8),
-  algorithmMaxScore: z.number().finite().min(0).default(2),
-  cleanCodeMaxScore: z.number().finite().min(0).default(0),
+  gradingVersion: z.number().int().min(1).max(2).optional(),
+  functionalMaxScore: z.number().finite().positive().optional(),
+  algorithmMaxScore: z.number().finite().min(0).optional(),
+  cleanCodeMaxScore: z.number().finite().min(0).optional(),
+}).transform((assignment) => {
+  const isReact = assignment.environment === 'REACT_JS';
+  return {
+    ...assignment,
+    gradingVersion: assignment.gradingVersion ?? (isReact ? 2 : 1),
+    functionalMaxScore: assignment.functionalMaxScore ?? (isReact ? 7 : 8),
+    algorithmMaxScore: assignment.algorithmMaxScore ?? 2,
+    cleanCodeMaxScore: assignment.cleanCodeMaxScore ?? (isReact ? 1 : 0),
+  };
 }).refine(
   (assignment) => Math.abs(
     assignment.functionalMaxScore + assignment.algorithmMaxScore + assignment.cleanCodeMaxScore - 10
@@ -38,7 +47,7 @@ export type CreateAssignmentDto = z.infer<typeof CreateAssignmentSchema>;
 export const UpdateAssignmentSchema = z.object({
   title: z.string().min(2).max(255).optional(),
   description: z.string().optional(),
-  environment: z.enum(['C_GCC', 'JAVA_JDK']).optional(),
+  environment: z.enum(['C_GCC', 'JAVA_JDK', 'REACT_JS']).optional(),
   submissionType: z.enum(['INDIVIDUAL', 'GROUP']).optional(),
   startTime: z.coerce.date().optional(),
   deadline: z.coerce.date().optional(),

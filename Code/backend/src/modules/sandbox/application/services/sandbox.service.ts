@@ -30,16 +30,17 @@ export class SandboxService implements ISandboxService {
     languageOverride?: string
   ): Promise<SandboxExecutionSummary> {
     const submission = await this.sandboxRepository.findSubmissionForGrading(submissionId);
-    if (!submission?.zipFilePath) {
-      throw new Error(`Không tìm thấy Submission hoặc đường dẫn zipFilePath rỗng: ${submissionId}`);
+    const sourcePath = submission?.workspacePath ?? submission?.zipFilePath;
+    if (!submission || !sourcePath) {
+      throw new Error(`Không tìm thấy Submission hoặc workspace source rỗng: ${submissionId}`);
     }
 
-    let executionFolderPath = submission.zipFilePath;
+    let executionFolderPath = sourcePath;
     try {
-      const stat = await fs.stat(submission.zipFilePath);
-      if (stat.isFile() && submission.zipFilePath.toLowerCase().endsWith('.zip')) {
+      const stat = await fs.stat(sourcePath);
+      if (stat.isFile() && sourcePath.toLowerCase().endsWith('.zip')) {
         const stagingResult = await this.artifactExtractor.extractAndStage(
-          submission.zipFilePath,
+          sourcePath,
           submission.id,
           submission.assignment.maxFileSizeBytes
         );
@@ -74,7 +75,9 @@ export class SandboxService implements ISandboxService {
     const runner = SandboxRunnerFactory.createRunner(
       languageOverride || submission.assignment.environment || 'C_GCC'
     );
-    const summary = await runner.execute(executionFolderPath, testCases);
+    const summary = await runner.execute(executionFolderPath, testCases, {
+      targetBaseUrl: submission.deployedUrl ?? undefined,
+    });
     const algorithmPerformanceScore = calculatePerformanceScore(testCasesToRun, summary.results);
     const normalizedSandboxScore = Number(
       (((summary.totalScore / (summary.maxScore || 1)) * submission.assignment.functionalMaxScore) || 0).toFixed(2)

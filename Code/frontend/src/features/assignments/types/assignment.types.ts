@@ -1,7 +1,35 @@
-export type AssignmentEnv = 'C_GCC' | 'JAVA_JDK';
+export type AssignmentEnv = 'C_GCC' | 'JAVA_JDK' | 'REACT_JS';
 export type AssignmentStatus = 'DRAFT' | 'PUBLISHED' | 'CLOSED' | 'ARCHIVED';
 export type RationaleTag = 'FUNCTIONAL' | 'BOUNDARY' | 'EDGE' | 'PERFORMANCE' | 'SECURITY';
 export type ComparisonMode = 'STDIO' | 'FILE_TO_FILE';
+
+export type WebTestAction =
+  | 'GOTO'
+  | 'FILL'
+  | 'CLICK'
+  | 'SELECT'
+  | 'CHECK'
+  | 'UNCHECK'
+  | 'PRESS_KEY'
+  | 'WAIT_FOR'
+  | 'WAIT_FOR_TIMEOUT'
+  | 'ASSERT_VISIBLE'
+  | 'ASSERT_TEXT'
+  | 'ASSERT_VALUE'
+  | 'ASSERT_URL';
+
+export interface WebTestStep {
+  action: WebTestAction;
+  target?: string;
+  value?: string;
+  expected?: string;
+  timeoutMs?: number;
+}
+
+export interface WebTestScript {
+  version: 1;
+  steps: WebTestStep[];
+}
 
 export interface TestCase {
   id?: string;
@@ -90,6 +118,7 @@ export interface Assignment {
   course?: Course;
   testCases?: TestCase[];
   solutions?: AssignmentSolution[];
+  rubricRules?: RubricRule[];
   _count?: {
     submissions: number;
     testCases: number;
@@ -130,6 +159,9 @@ export interface LecturerSubmission {
   zipFileSize?: number | null;
   gitRepoUrl?: string | null;
   gitCommitHash?: string | null;
+  deployedUrl?: string | null;
+  teamId?: string | null;
+  attemptNo?: number;
   status: 'PENDING' | 'QUEUED' | 'RUNNING_SANDBOX' | 'RUNNING_AI' | 'GRADED' | 'FAILED';
   sandboxScore?: number | null;
   aiScore?: number | null;
@@ -150,11 +182,31 @@ export interface LecturerSubmission {
     id: string;
     title: string;
     courseId: string;
+    environment?: AssignmentEnv;
     gradingVersion?: number;
     functionalMaxScore?: number;
     algorithmMaxScore?: number;
     cleanCodeMaxScore?: number;
   };
+  participants?: Array<{
+    userId: string;
+    teamRole: string;
+    adjustedScore?: number | null;
+    adjustmentReason?: string | null;
+    effectiveScore?: number | null;
+    user?: { id: string; fullName: string; email: string };
+  }>;
+  gitContributors?: Array<{
+    id: string;
+    authorName: string;
+    authorEmail: string;
+    commitCount: number;
+    linesAdded: number;
+    linesDeleted: number;
+    contributionPct: number;
+    matchedUserId?: string | null;
+    activeDays: number;
+  }>;
   gradingJob?: {
     id: string;
     status: string;

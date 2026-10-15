@@ -39,6 +39,13 @@ export const WizardStep4Review: React.FC<WizardStep4ReviewProps> = ({
   onSaveToDatabase,
   onBack,
 }) => {
+  const isReact = environment === 'REACT_JS';
+  const environmentLabel = environment === 'C_GCC'
+    ? 'C GCC 11'
+    : environment === 'JAVA_JDK'
+      ? 'Java JDK 21'
+      : 'React + Playwright';
+
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
@@ -64,17 +71,17 @@ export const WizardStep4Review: React.FC<WizardStep4ReviewProps> = ({
           </div>
 
           <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100">
-            <div className="text-[11px] text-slate-400 font-semibold">Môi trường Compiler</div>
+            <div className="text-[11px] text-slate-400 font-semibold">Môi trường chấm</div>
             <div className="text-sm font-black text-blue-700 mt-0.5">
-              {environment === 'C_GCC' ? 'C GCC 11' : 'Java JDK 21'}
+              {environmentLabel}
             </div>
-            <div className="text-[10px] text-slate-500">Docker Sandbox</div>
+            <div className="text-[10px] text-slate-500">{isReact ? 'URL deploy công khai' : 'Docker Sandbox'}</div>
           </div>
 
           <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100">
-            <div className="text-[11px] text-slate-400 font-semibold">Số bộ Testcase</div>
+            <div className="text-[11px] text-slate-400 font-semibold">{isReact ? 'Luồng Playwright' : 'Số bộ Testcase'}</div>
             <div className="text-sm font-black text-slate-900 mt-0.5">
-              {testCases.length} cases
+              {testCases.length} {isReact ? 'luồng' : 'cases'}
             </div>
             <div className="text-[10px] text-emerald-600 font-bold">Tổng {totalPoints} điểm</div>
           </div>
@@ -92,7 +99,9 @@ export const WizardStep4Review: React.FC<WizardStep4ReviewProps> = ({
           <div className="flex items-center justify-between">
             <div className="font-extrabold text-blue-900">{title || '(Chưa nhập tiêu đề đề thi)'}</div>
             <span className="px-2.5 py-0.5 rounded-lg bg-indigo-100 text-indigo-800 font-bold text-[11px] border border-indigo-200">
-              7.0đ Chức năng + 2.0đ Thuật toán + 1.0đ Clean Code = 10.0đ
+              {isReact
+                ? '7.0đ Playwright + 2.0đ Cấu trúc React + 1.0đ Clean Code = 10.0đ'
+                : '7.0đ Chức năng + 2.0đ Thuật toán + 1.0đ Clean Code = 10.0đ'}
             </span>
           </div>
           <p className="text-slate-600 leading-relaxed text-[11px]">
@@ -100,7 +109,9 @@ export const WizardStep4Review: React.FC<WizardStep4ReviewProps> = ({
           </p>
           <div className="text-[11px] text-indigo-700 bg-white/70 p-2.5 rounded-lg border border-indigo-100 flex items-center gap-2 font-medium">
             <span className="font-bold">Chuẩn Khảo Thí:</span>
-            Sandbox chấm tối đa 7 điểm chức năng; AI đánh giá tối đa 2 điểm thuật toán và 1 điểm Clean Code.
+            {isReact
+              ? 'Playwright chấm tối đa 7 điểm trên URL deploy; AI chỉ đọc source chọn lọc để chấm 2 điểm cấu trúc React và 1 điểm Clean Code.'
+              : 'Sandbox chấm tối đa 7 điểm chức năng; AI đánh giá tối đa 2 điểm thuật toán và 1 điểm Clean Code.'}
           </div>
         </div>
       </div>
@@ -110,29 +121,42 @@ export const WizardStep4Review: React.FC<WizardStep4ReviewProps> = ({
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
             <h2 className="font-extrabold text-sm text-slate-900">
-              2. Kiểm Thử Sandbox Đối Sánh (Dry Run)
+              {isReact ? '2. Xác nhận kịch bản chấm FER201' : '2. Kiểm Thử Sandbox Đối Sánh (Dry Run)'}
             </h2>
           </div>
-          <span className="text-[11px] text-slate-400 font-medium">Chạy mã giải với các testcase</span>
+          <span className="text-[11px] text-slate-400 font-medium">
+            {isReact ? 'Không chạy giả khi chưa có URL deploy của bài nộp' : 'Chạy mã giải với các testcase'}
+          </span>
         </div>
 
-        <p className="text-xs text-slate-500">
-          Hệ thống sẽ chạy thử nghiệm mã giải tham chiếu đã nạp với toàn bộ {testCases.length} testcase để đảm bảo đề thi đạt chuẩn 100% trước khi lưu trữ vào CSDL.
-        </p>
+        {isReact ? (
+          <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4 text-xs text-indigo-900">
+            <p className="font-bold">Đã cấu hình {testCases.length} luồng, tổng {totalPoints.toFixed(1)} điểm chức năng.</p>
+            <p className="mt-1 leading-5 text-indigo-700">
+              Kịch bản thật sẽ chạy khi sinh viên nộp URL deploy. Hệ thống không mô phỏng pass và không tự suy đoán thao tác giao diện.
+            </p>
+          </div>
+        ) : (
+          <>
+            <p className="text-xs text-slate-500">
+              Hệ thống sẽ chạy thử nghiệm mã giải tham chiếu đã nạp với toàn bộ {testCases.length} testcase để đảm bảo đề thi đạt chuẩn 100% trước khi lưu trữ vào CSDL.
+            </p>
 
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onDryRun}
-            disabled={dryRunRunning || testCases.length === 0}
-            className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-2 shadow-sm shadow-emerald-500/20 transition disabled:opacity-50"
-          >
-            <Play className={`w-3.5 h-3.5 ${dryRunRunning ? 'animate-spin' : ''}`} />
-            <span>{dryRunRunning ? 'Đang chạy mô phỏng Sandbox...' : 'Bắt đầu Dry Run Kiểm thử'}</span>
-          </button>
-        </div>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={onDryRun}
+                disabled={dryRunRunning || testCases.length === 0}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-2 shadow-sm shadow-emerald-500/20 transition disabled:opacity-50"
+              >
+                <Play className={`w-3.5 h-3.5 ${dryRunRunning ? 'animate-spin' : ''}`} />
+                <span>{dryRunRunning ? 'Đang chạy mô phỏng Sandbox...' : 'Bắt đầu Dry Run Kiểm thử'}</span>
+              </button>
+            </div>
+          </>
+        )}
 
-        {dryRunResult && (
+        {!isReact && dryRunResult && (
           <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center justify-between animate-in fade-in">
             <div className="flex items-center gap-2 font-bold">
               <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />

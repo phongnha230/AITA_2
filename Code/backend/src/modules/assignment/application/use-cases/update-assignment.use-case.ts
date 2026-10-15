@@ -1,6 +1,7 @@
 import { IAssignmentRepository } from '../../domain/repositories/assignment.repository.interface.js';
 import { UpdateAssignmentDto } from '../dtos/assignment.dto.js';
 import { NotFoundError, ForbiddenError, ValidationError } from '../../../../shared/domain/exceptions/app.error.js';
+import { parseWebTestScript } from '../../../sandbox/domain/web-test-script.js';
 
 export class UpdateAssignmentUseCase {
   constructor(private readonly assignmentRepository: IAssignmentRepository) {}
@@ -37,12 +38,27 @@ export class UpdateAssignmentUseCase {
       if (Math.abs(testcasePoints - 7) >= 0.01) {
         throw new ValidationError('Không thể công bố đề: tổng điểm test case phải bằng 7.');
       }
-      if (Math.abs(algorithmPoints - 2) >= 0.001 || Math.abs(cleanCodePoints - 1) >= 0.001 || hasLegacyCriteria) {
-        throw new ValidationError('Không thể công bố đề: rubric cần 2 điểm thuật toán và 1 điểm Clean Code.');
+      if (existing.environment === 'REACT_JS') {
+        try {
+          testCases.forEach((testCase) => parseWebTestScript(testCase.stdinInput ?? ''));
+        } catch (error) {
+          throw new ValidationError(
+            `Không thể công bố đề: ${error instanceof Error ? error.message : 'kịch bản Playwright không hợp lệ.'}`
+          );
+        }
       }
-      const activeSolution = solutions.find((solution) => solution.isActive);
-      if (!activeSolution?.expectedTimeComplexity?.trim()) {
-        throw new ValidationError('Không thể công bố đề: cần lời giải tham chiếu và Big-O thời gian kỳ vọng.');
+      if (Math.abs(algorithmPoints - 2) >= 0.001 || Math.abs(cleanCodePoints - 1) >= 0.001 || hasLegacyCriteria) {
+        throw new ValidationError(
+          existing.environment === 'REACT_JS'
+            ? 'Không thể công bố đề: rubric React cần 2 điểm cấu trúc và 1 điểm Clean Code.'
+            : 'Không thể công bố đề: rubric cần 2 điểm thuật toán và 1 điểm Clean Code.'
+        );
+      }
+      if (existing.environment !== 'REACT_JS') {
+        const activeSolution = solutions.find((solution) => solution.isActive);
+        if (!activeSolution?.expectedTimeComplexity?.trim()) {
+          throw new ValidationError('Không thể công bố đề: cần lời giải tham chiếu và Big-O thời gian kỳ vọng.');
+        }
       }
     }
 

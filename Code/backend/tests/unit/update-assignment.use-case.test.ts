@@ -64,4 +64,48 @@ describe('UpdateAssignmentUseCase grading-v2 publishing gate', () => {
     await expect(useCase.execute('assignment-1', { status: 'PUBLISHED' })).resolves.toBeDefined();
     expect(update).toHaveBeenCalledOnce();
   });
+
+  it('publishes a React assignment without reference solution or Big-O when Playwright and React rubrics are valid', async () => {
+    const reactAssignment = new Assignment({
+      id: 'assignment-react',
+      courseId: 'course-1',
+      environment: 'REACT_JS',
+      title: 'FER201 project',
+      submissionType: 'GROUP',
+      startTime: new Date('2026-10-15T00:00:00.000Z'),
+      deadline: new Date('2026-10-16T00:00:00.000Z'),
+      maxFileSizeBytes: 1_000_000n,
+      allowGitSubmission: true,
+      allowZipSubmission: false,
+      status: 'DRAFT',
+      createdBy: 'lecturer-1',
+      createdAt: new Date('2026-10-14T00:00:00.000Z'),
+      updatedAt: new Date('2026-10-14T00:00:00.000Z'),
+      gradingVersion: 2,
+      functionalMaxScore: 7,
+      algorithmMaxScore: 2,
+      cleanCodeMaxScore: 1,
+    });
+    const repository = {
+      findById: vi.fn().mockResolvedValue(reactAssignment),
+      getTestCases: vi.fn().mockResolvedValue([{
+        points: 7,
+        stdinInput: JSON.stringify({
+          version: 1,
+          steps: [{ action: 'GOTO', target: '/' }, { action: 'ASSERT_VISIBLE', target: 'main' }],
+        }),
+      }]),
+      getRubricRules: vi.fn().mockResolvedValue([
+        { criterionType: 'ALGORITHM', maxPoints: 2 },
+        { criterionType: 'CLEAN_CODE', maxPoints: 1 },
+      ]),
+      getSolutions: vi.fn().mockResolvedValue([]),
+      update: vi.fn().mockResolvedValue(reactAssignment),
+    } as unknown as IAssignmentRepository;
+
+    await expect(new UpdateAssignmentUseCase(repository).execute(
+      'assignment-1',
+      { status: 'PUBLISHED' }
+    )).resolves.toBeDefined();
+  });
 });

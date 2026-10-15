@@ -8,6 +8,8 @@ interface WizardStep1GeneralProps {
   courses: Course[];
   environment: AssignmentEnv;
   setEnvironment: (val: AssignmentEnv) => void;
+  submissionType: 'INDIVIDUAL' | 'GROUP';
+  setSubmissionType: (value: 'INDIVIDUAL' | 'GROUP') => void;
   title: string;
   setTitle: (val: string) => void;
   description: string;
@@ -27,6 +29,8 @@ export const WizardStep1General: React.FC<WizardStep1GeneralProps> = ({
   courses,
   environment,
   setEnvironment,
+  submissionType,
+  setSubmissionType,
   title,
   setTitle,
   description,
@@ -84,6 +88,22 @@ export const WizardStep1General: React.FC<WizardStep1GeneralProps> = ({
           >
             <option value="C_GCC">C/C++ GCC 11 Compiler (Mặc định cho PRF192)</option>
             <option value="JAVA_JDK">Java OpenJDK 21 LTS (Maven &amp; JUnit cho PRO192/CSD201)</option>
+            <option value="REACT_JS">React / TypeScript + Playwright (FER201)</option>
+          </select>
+        </div>
+
+        <div>
+          <label htmlFor="wizard-submission-type" className="block font-bold text-slate-700 mb-1">
+            Hình thức nộp
+          </label>
+          <select
+            id="wizard-submission-type"
+            value={submissionType}
+            onChange={(event) => setSubmissionType(event.target.value as 'INDIVIDUAL' | 'GROUP')}
+            className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 font-medium"
+          >
+            <option value="INDIVIDUAL">Cá nhân</option>
+            <option value="GROUP">Nhóm / Final Project</option>
           </select>
         </div>
 

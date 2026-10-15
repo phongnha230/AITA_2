@@ -5,10 +5,26 @@ import { assignmentService } from '../services/assignment.service';
 import {
   AssignmentEnv,
   Course,
+  RubricRuleInput,
   TestCase,
+  WebTestScript,
 } from '../types/assignment.types';
-import { samplePrf192Template, samplePro192Template } from '../components/wizard/sampleExamTemplates';
+import { sampleCsd201Template, samplePrf192Template, samplePro192Template, SampleExamTemplate } from '../components/wizard/sampleExamTemplates';
+import { buildJavaGradingRubric } from '../components/wizard/java-grading-rubric';
+import { buildReactGradingRubric } from '../components/wizard/react-grading-rubric';
 import { useTestcaseImport } from './useTestcaseImport';
+
+const defaultReactStructureRequirements = 'Đánh giá cách tổ chức component, sử dụng props/state, hooks và dependency của effect; routing/context/store phải phù hợp phạm vi bài, có xử lý loading, error và empty state khi cần.';
+const defaultReactCleanCodeRequirements = 'Đánh giá naming, khả năng đọc hiểu, component không ôm quá nhiều trách nhiệm, tránh lặp logic, tránh hardcode không cần thiết và bảo đảm accessibility cơ bản.';
+
+const hasWebTestSteps = (testCase: TestCase): boolean => {
+  try {
+    const parsed = JSON.parse(testCase.stdinInput ?? '') as Partial<WebTestScript>;
+    return Array.isArray(parsed.steps) && parsed.steps.length > 0;
+  } catch {
+    return false;
+  }
+};
 
 export function useCreateExamWizard() {
   const router = useRouter();
@@ -25,6 +41,7 @@ export function useCreateExamWizard() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [environment, setEnvironment] = useState<AssignmentEnv>('C_GCC');
+  const [submissionType, setSubmissionType] = useState<'INDIVIDUAL' | 'GROUP'>('INDIVIDUAL');
   const [durationMinutes, setDurationMinutes] = useState(60);
   const [startTime, setStartTime] = useState(() => {
     const d = new Date();
@@ -53,6 +70,8 @@ export function useCreateExamWizard() {
   const [expectedSpaceComplexity, setExpectedSpaceComplexity] = useState('');
   const [acceptedStrategiesText, setAcceptedStrategiesText] = useState('');
   const [algorithmNotes, setAlgorithmNotes] = useState('');
+  const [reactStructureRequirements, setReactStructureRequirements] = useState(defaultReactStructureRequirements);
+  const [reactCleanCodeRequirements, setReactCleanCodeRequirements] = useState(defaultReactCleanCodeRequirements);
   const [macJunkDetected, setMacJunkDetected] = useState(false);
 
   // 5. Test Cases State
@@ -69,6 +88,14 @@ export function useCreateExamWizard() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+
+  const handleEnvironmentChange = (nextEnvironment: AssignmentEnv) => {
+    if (nextEnvironment !== environment) {
+      setTestCases([]);
+      setDryRunResult(null);
+    }
+    setEnvironment(nextEnvironment);
+  };
 
   // Fetch courses from DB (Prioritize PRF192)
   useEffect(() => {
@@ -94,6 +121,7 @@ export function useCreateExamWizard() {
         setDescription(data.description || '');
         if (data.courseId) setCourseId(data.courseId);
         if (data.environment) setEnvironment(data.environment);
+        if (data.submissionType) setSubmissionType(data.submissionType);
         if (data.testCases && data.testCases.length > 0) {
           setTestCases(data.testCases);
         }
@@ -104,6 +132,12 @@ export function useCreateExamWizard() {
           setExpectedSpaceComplexity(data.solutions[0].expectedSpaceComplexity || '');
           setAcceptedStrategiesText((data.solutions[0].acceptedStrategies || []).join(', '));
           setAlgorithmNotes(data.solutions[0].algorithmNotes || '');
+        }
+        const structureRubric = data.rubricRules?.find((rule) => rule.criterionType === 'ALGORITHM');
+        const cleanCodeRubric = data.rubricRules?.find((rule) => rule.criterionType === 'CLEAN_CODE');
+        if (data.environment === 'REACT_JS') {
+          setReactStructureRequirements(structureRubric?.description || defaultReactStructureRequirements);
+          setReactCleanCodeRequirements(cleanCodeRubric?.description || defaultReactCleanCodeRequirements);
         }
       })
       .catch((err) => {
@@ -191,34 +225,51 @@ export function useCreateExamWizard() {
     setZipFilesContent(samplePrf192Template.zipFilesContent);
     setSolutionTitle(samplePrf192Template.solutionTitle);
     setSolutionCode(samplePrf192Template.solutionCode);
+    setExpectedComplexity(samplePrf192Template.expectedComplexity || '');
+    setExpectedSpaceComplexity(samplePrf192Template.expectedSpaceComplexity || '');
+    setAcceptedStrategiesText((samplePrf192Template.acceptedStrategies || []).join(', '));
+    setAlgorithmNotes(samplePrf192Template.algorithmNotes || '');
     setTestCases(samplePrf192Template.testCases);
   };
 
-  // Handler: Load 1-Click Sample PE PRO192 / CSD201
-  const handleLoadSamplePro192 = () => {
-    const javaCourse =
-      courses.find((c) => c.code.toLowerCase().includes('pro') || c.code.toLowerCase().includes('csd')) || courses[0];
-    if (javaCourse) setCourseId(javaCourse.id);
-
-    setTitle(samplePro192Template.title);
-    setDescription(samplePro192Template.description);
-    setEnvironment(samplePro192Template.environment);
-    setDurationMinutes(samplePro192Template.durationMinutes);
-    setPdfFile(samplePro192Template.pdfFile);
-    setStarterZipFile(samplePro192Template.starterZipFile);
-    setZipEntries(samplePro192Template.zipEntries);
-    setZipFilesContent(samplePro192Template.zipFilesContent);
-    setSolutionTitle(samplePro192Template.solutionTitle);
-    if (samplePro192Template.expectedComplexity) {
-      setExpectedComplexity(samplePro192Template.expectedComplexity);
+  const applyJavaTemplate = (template: SampleExamTemplate, requiredCourseCode: 'PRO192' | 'CSD201') => {
+    const course = courses.find((candidate) => candidate.code.trim().toUpperCase() === requiredCourseCode);
+    if (!course) {
+      window.alert(`Không tìm thấy khóa học ${requiredCourseCode}. Hãy tạo/chọn khóa học đúng mã trước khi áp dụng template.`);
+      return;
     }
-    setSolutionCode(samplePro192Template.solutionCode);
-    setTestCases(samplePro192Template.testCases);
+
+    setCourseId(course.id);
+    setTitle(template.title);
+    setDescription(template.description);
+    setEnvironment(template.environment);
+    setDurationMinutes(template.durationMinutes);
+    setPdfFile(template.pdfFile);
+    setStarterZipFile(template.starterZipFile);
+    setZipEntries(template.zipEntries);
+    setZipFilesContent(template.zipFilesContent);
+    setSolutionTitle(template.solutionTitle);
+    setSolutionCode(template.solutionCode);
+    setExpectedComplexity(template.expectedComplexity || '');
+    setExpectedSpaceComplexity(template.expectedSpaceComplexity || '');
+    setAcceptedStrategiesText((template.acceptedStrategies || []).join(', '));
+    setAlgorithmNotes(template.algorithmNotes || '');
+    setTestCases(template.testCases);
   };
+
+  const handleLoadSamplePro192 = () => applyJavaTemplate(samplePro192Template, 'PRO192');
+  const handleLoadSampleCsd201 = () => applyJavaTemplate(sampleCsd201Template, 'CSD201');
 
   // Handler: Add individual testcase
   const handleAddBlankTestCase = () => {
     const newIdx = testCases.length + 1;
+    const reactSteps = JSON.stringify({
+      version: 1,
+      steps: [
+        { action: 'GOTO', target: '/', timeoutMs: 15_000 },
+        { action: 'ASSERT_VISIBLE', target: 'body', timeoutMs: 10_000 },
+      ],
+    });
     setTestCases([
       ...testCases,
       {
@@ -230,8 +281,8 @@ export function useCreateExamWizard() {
         memoryLimitKb: 262144,
         points: 1.0,
         comparisonMode: 'STDIO',
-        stdinInput: 'INPUT_DATA',
-        expectedStdout: 'EXPECTED_OUTPUT',
+        stdinInput: environment === 'REACT_JS' ? reactSteps : 'INPUT_DATA',
+        expectedStdout: environment === 'REACT_JS' ? 'Tất cả bước Playwright hoàn tất' : 'EXPECTED_OUTPUT',
       },
     ]);
   };
@@ -254,6 +305,8 @@ export function useCreateExamWizard() {
     }, 1600);
   };
 
+  const selectedCourse = courses.find((course) => course.id === courseId);
+
   // Handler: Save Exam, Testcases & Solution to Database
   const handleSaveToDatabase = async () => {
     if (!title.trim()) {
@@ -272,6 +325,19 @@ export function useCreateExamWizard() {
       setActiveStep(3);
       return;
     }
+    if (environment === 'REACT_JS' && testCases.some((testCase) => !hasWebTestSteps(testCase))) {
+      alert('Mỗi testcase React phải có ít nhất một bước Playwright hợp lệ.');
+      setActiveStep(3);
+      return;
+    }
+    if (
+      environment === 'REACT_JS'
+      && (reactStructureRequirements.trim().length < 20 || reactCleanCodeRequirements.trim().length < 20)
+    ) {
+      alert('Vui lòng mô tả rõ tiêu chí cấu trúc React và Clean Code trước khi công bố.');
+      setActiveStep(3);
+      return;
+    }
 
     setIsSubmitting(true);
     setSubmitError(null);
@@ -285,6 +351,7 @@ export function useCreateExamWizard() {
         title,
         description,
         environment,
+        submissionType,
         startTime: start.toISOString(),
         deadline: deadline.toISOString(),
         durationMinutes,
@@ -320,7 +387,7 @@ export function useCreateExamWizard() {
         )
       );
 
-      if (solutionCode.trim()) {
+      if (environment !== 'REACT_JS' && solutionCode.trim()) {
         await assignmentService.upsertSolution(assignmentId, {
           title: solutionTitle || 'Mã nguồn bài giải mẫu',
           sourceCode: solutionCode,
@@ -335,7 +402,11 @@ export function useCreateExamWizard() {
         });
       }
 
-      await assignmentService.setRubricRules(assignmentId, [
+      const rubricRules: RubricRuleInput[] = environment === 'REACT_JS'
+        ? buildReactGradingRubric(reactStructureRequirements, reactCleanCodeRequirements)
+        : environment === 'JAVA_JDK'
+          ? buildJavaGradingRubric(selectedCourse?.code, expectedComplexity, expectedSpaceComplexity)
+          : [
           {
             criterionName: 'Độ phức tạp thuật toán kỳ vọng',
             description: `Đánh giá chiến lược thuật toán theo độ phức tạp thời gian ${expectedComplexity || 'chưa cấu hình'} và bộ nhớ ${expectedSpaceComplexity || 'chưa cấu hình'}, có xét các cách giải hợp lệ khác đáp án tham chiếu.`,
@@ -352,7 +423,8 @@ export function useCreateExamWizard() {
             orderIndex: 2,
             criterionType: 'CLEAN_CODE',
           },
-      ]);
+        ];
+      await assignmentService.setRubricRules(assignmentId, rubricRules);
 
       await assignmentService.updateAssignment(assignmentId, { status: 'PUBLISHED' });
 
@@ -368,7 +440,6 @@ export function useCreateExamWizard() {
     }
   };
 
-  const selectedCourse = courses.find((c) => c.id === courseId);
   const totalPoints = testCases.reduce((sum, c) => sum + (Number(c.points) || 0), 0);
 
   return {
@@ -386,7 +457,9 @@ export function useCreateExamWizard() {
     description,
     setDescription,
     environment,
-    setEnvironment,
+    setEnvironment: handleEnvironmentChange,
+    submissionType,
+    setSubmissionType,
     durationMinutes,
     setDurationMinutes,
     startTime,
@@ -422,6 +495,10 @@ export function useCreateExamWizard() {
     setAcceptedStrategiesText,
     algorithmNotes,
     setAlgorithmNotes,
+    reactStructureRequirements,
+    setReactStructureRequirements,
+    reactCleanCodeRequirements,
+    setReactCleanCodeRequirements,
     testCases,
     setTestCases,
     totalPoints,
@@ -435,6 +512,7 @@ export function useCreateExamWizard() {
     handleSolutionFileUpload,
     handleLoadSamplePrf192,
     handleLoadSamplePro192,
+    handleLoadSampleCsd201,
     handleAddBlankTestCase,
     handleDeleteTestCase,
     handleDryRun,

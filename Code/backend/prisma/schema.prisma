@@ -8,31 +8,35 @@ datasource db {
 }
 
 model User {
-  id                 String                @id @default(uuid()) @db.Char(36)
-  email              String                @unique
-  passwordHash       String?               @map("password_hash") @db.VarChar(255)
-  fullName           String                @map("full_name") @db.VarChar(100)
-  role               Role                  @default(STUDENT)
-  avatarUrl          String?               @map("avatar_url") @db.VarChar(500)
-  createdAt          DateTime              @default(now()) @map("created_at")
-  updatedAt          DateTime              @updatedAt @map("updated_at")
-  googleId           String?               @unique @map("google_id") @db.VarChar(100)
-  lastLoginAt        DateTime?             @map("last_login_at")
-  refreshTokenHash   String?               @map("refresh_token_hash") @db.VarChar(255)
-  status             UserStatus            @default(ACTIVE)
-  studentCode        String?               @map("student_code") @db.VarChar(20)
-  phoneNumber        String?               @map("phone_number") @db.VarChar(20)
-  major              String?               @map("major") @db.VarChar(100)
-  cohort             String?               @map("cohort") @db.VarChar(50)
-  githubUrl          String?               @map("github_url") @db.VarChar(255)
-  bio                String?               @map("bio") @db.VarChar(255)
-  conversations      AiTutorConversation[]
-  assignmentsCreated Assignment[]          @relation("AssignmentCreator")
-  enrollments        CourseEnrollment[]
-  coursesTaught      Course[]              @relation("LecturerCourses")
-  submissions        Submission[]
-  teamMemberships    TeamMember[]
-  teamsLed           Team[]                @relation("TeamLeader")
+  id                             String                       @id @default(uuid()) @db.Char(36)
+  email                          String                       @unique
+  passwordHash                   String?                      @map("password_hash") @db.VarChar(255)
+  fullName                       String                       @map("full_name") @db.VarChar(100)
+  role                           Role                         @default(STUDENT)
+  avatarUrl                      String?                      @map("avatar_url") @db.VarChar(500)
+  createdAt                      DateTime                     @default(now()) @map("created_at")
+  updatedAt                      DateTime                     @updatedAt @map("updated_at")
+  googleId                       String?                      @unique @map("google_id") @db.VarChar(100)
+  lastLoginAt                    DateTime?                    @map("last_login_at")
+  refreshTokenHash               String?                      @map("refresh_token_hash") @db.VarChar(255)
+  status                         UserStatus                   @default(ACTIVE)
+  studentCode                    String?                      @map("student_code") @db.VarChar(20)
+  phoneNumber                    String?                      @map("phone_number") @db.VarChar(20)
+  major                          String?                      @map("major") @db.VarChar(100)
+  cohort                         String?                      @map("cohort") @db.VarChar(50)
+  githubUrl                      String?                      @map("github_url") @db.VarChar(255)
+  bio                            String?                      @map("bio") @db.VarChar(255)
+  conversations                  AiTutorConversation[]
+  assignmentsCreated             Assignment[]                 @relation("AssignmentCreator")
+  enrollments                    CourseEnrollment[]
+  coursesTaught                  Course[]                     @relation("LecturerCourses")
+  submissions                    Submission[]
+  teamMemberships                TeamMember[]
+  teamsLed                       Team[]                       @relation("TeamLeader")
+  submissionParticipants         SubmissionParticipant[]      @relation("SubmissionParticipantUser")
+  adjustedSubmissionParticipants SubmissionParticipant[]      @relation("SubmissionParticipantAdjuster")
+  matchedGitContributions        GitContributor[]             @relation("GitContributorMatchedUser")
+  participantScoreAdjustments    ParticipantScoreAdjustment[] @relation("ParticipantScoreAdjustmentActor")
 
   @@index([role, status], map: "idx_users_role_status")
   @@map("users")
@@ -138,83 +142,89 @@ model TestCase {
 }
 
 model RubricRule {
-  id            String     @id @default(uuid()) @db.Char(36)
-  assignmentId  String     @map("assignment_id") @db.Char(36)
-  description   String     @db.Text
-  orderIndex    Int        @default(1) @map("order_index")
-  createdAt     DateTime   @default(now()) @map("created_at")
-  criterionName String     @map("criterion_name") @db.VarChar(150)
-  maxPoints     Decimal    @map("max_points") @db.Decimal(4, 2)
-  updatedAt     DateTime   @updatedAt @map("updated_at")
-  weight        Decimal    @default(1.00) @db.Decimal(5, 2)
+  id            String               @id @default(uuid()) @db.Char(36)
+  assignmentId  String               @map("assignment_id") @db.Char(36)
+  description   String               @db.Text
+  orderIndex    Int                  @default(1) @map("order_index")
+  createdAt     DateTime             @default(now()) @map("created_at")
+  criterionName String               @map("criterion_name") @db.VarChar(150)
+  maxPoints     Decimal              @map("max_points") @db.Decimal(4, 2)
+  updatedAt     DateTime             @updatedAt @map("updated_at")
+  weight        Decimal              @default(1.00) @db.Decimal(5, 2)
   criterionType GradingCriterionType @default(GENERAL) @map("criterion_type")
-  assignment    Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  assignment    Assignment           @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
 
   @@index([assignmentId], map: "idx_rubric_assignment")
   @@map("rubric_rules")
 }
 
 model AssignmentSolution {
-  id             String              @id @default(uuid()) @db.Char(36)
-  assignmentId   String              @map("assignment_id") @db.Char(36)
-  activeKey      String?             @unique @map("active_key") @db.Char(36)
-  contentHash    String              @map("content_hash") @db.Char(64)
-  indexStatus    SolutionIndexStatus @default(PENDING) @map("index_status")
-  indexedAt      DateTime?           @map("indexed_at")
-  indexError     String?             @map("index_error") @db.LongText
-  embeddingModel String?             @map("embedding_model") @db.VarChar(100)
-  chunkerVersion String?             @map("chunker_version") @db.VarChar(50)
-  createdAt      DateTime            @default(now()) @map("created_at")
-  chromaDocId    String?             @map("chroma_doc_id") @db.VarChar(128)
-  explanation    String?             @db.LongText
-  isActive       Boolean             @default(true) @map("is_active")
-  sourceCode     String              @map("source_code") @db.LongText
-  title          String              @db.VarChar(200)
-  expectedTimeComplexity  String?     @map("expected_time_complexity") @db.VarChar(100)
-  expectedSpaceComplexity String?    @map("expected_space_complexity") @db.VarChar(100)
-  acceptedStrategies     Json?       @map("accepted_strategies")
-  algorithmNotes         String?     @map("algorithm_notes") @db.LongText
-  updatedAt      DateTime            @updatedAt @map("updated_at")
-  assignment     Assignment          @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  id                      String              @id @default(uuid()) @db.Char(36)
+  assignmentId            String              @map("assignment_id") @db.Char(36)
+  activeKey               String?             @unique @map("active_key") @db.Char(36)
+  contentHash             String              @map("content_hash") @db.Char(64)
+  indexStatus             SolutionIndexStatus @default(PENDING) @map("index_status")
+  indexedAt               DateTime?           @map("indexed_at")
+  indexError              String?             @map("index_error") @db.LongText
+  embeddingModel          String?             @map("embedding_model") @db.VarChar(100)
+  chunkerVersion          String?             @map("chunker_version") @db.VarChar(50)
+  createdAt               DateTime            @default(now()) @map("created_at")
+  chromaDocId             String?             @map("chroma_doc_id") @db.VarChar(128)
+  explanation             String?             @db.LongText
+  isActive                Boolean             @default(true) @map("is_active")
+  sourceCode              String              @map("source_code") @db.LongText
+  title                   String              @db.VarChar(200)
+  expectedTimeComplexity  String?             @map("expected_time_complexity") @db.VarChar(100)
+  expectedSpaceComplexity String?             @map("expected_space_complexity") @db.VarChar(100)
+  acceptedStrategies      Json?               @map("accepted_strategies")
+  algorithmNotes          String?             @map("algorithm_notes") @db.LongText
+  updatedAt               DateTime            @updatedAt @map("updated_at")
+  assignment              Assignment          @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
 
   @@index([assignmentId], map: "idx_solutions_assignment")
   @@map("assignment_solutions")
 }
 
 model Submission {
-  id                String                 @id @default(uuid()) @db.Char(36)
-  assignmentId      String                 @map("assignment_id") @db.Char(36)
-  gitCommitHash     String?                @map("git_commit_hash") @db.VarChar(64)
-  sandboxScore      Decimal?               @default(0.00) @map("sandbox_score") @db.Decimal(4, 2)
-  aiScore           Decimal?               @default(0.00) @map("ai_score") @db.Decimal(4, 2)
-  algorithmScore    Decimal?               @map("algorithm_score") @db.Decimal(4, 2)
-  algorithmPerformanceScore Decimal?         @map("algorithm_performance_score") @db.Decimal(4, 2)
-  cleanCodeScore    Decimal?               @map("clean_code_score") @db.Decimal(4, 2)
-  status            SubmissionStatus       @default(PENDING)
-  submittedAt       DateTime               @default(now()) @map("submitted_at")
-  commitCount       Int?                   @default(0) @map("commit_count")
-  compileOutput     String?                @map("compile_output") @db.LongText
-  compileSuccess    Boolean?               @map("compile_success")
-  finalScore        Decimal?               @default(0.00) @map("final_score") @db.Decimal(4, 2)
-  gitRepoUrl        String?                @map("git_repo_url") @db.VarChar(500)
-  gradedAt          DateTime?              @map("graded_at")
-  groupLabel        String?                @map("group_label") @db.VarChar(50)
-  locChurn          Int?                   @default(0) @map("loc_churn")
-  submissionChannel SubmissionChannel      @map("submission_channel")
-  userId            String                 @map("user_id") @db.Char(36)
-  zipFilePath       String?                @map("zip_file_path") @db.VarChar(500)
-  zipFileSize       BigInt?                @map("zip_file_size")
-  teamId            String?                @map("team_id") @db.Char(36)
-  paperCode         String?                @map("paper_code") @db.VarChar(50)
-  aiGradingResult   AiGradingResult?
-  conversations     AiTutorConversation[]
-  gitContributors   GitContributor[]
-  gradingJob        GradingJob?
-  testResults       SubmissionTestResult[]
-  assignment        Assignment             @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  team              Team?                  @relation(fields: [teamId], references: [id])
-  user              User                   @relation(fields: [userId], references: [id])
+  id                        String                  @id @default(uuid()) @db.Char(36)
+  assignmentId              String                  @map("assignment_id") @db.Char(36)
+  gitCommitHash             String?                 @map("git_commit_hash") @db.VarChar(64)
+  sandboxScore              Decimal?                @default(0.00) @map("sandbox_score") @db.Decimal(4, 2)
+  aiScore                   Decimal?                @default(0.00) @map("ai_score") @db.Decimal(4, 2)
+  algorithmScore            Decimal?                @map("algorithm_score") @db.Decimal(4, 2)
+  algorithmPerformanceScore Decimal?                @map("algorithm_performance_score") @db.Decimal(4, 2)
+  cleanCodeScore            Decimal?                @map("clean_code_score") @db.Decimal(4, 2)
+  status                    SubmissionStatus        @default(PENDING)
+  submittedAt               DateTime                @default(now()) @map("submitted_at")
+  commitCount               Int?                    @default(0) @map("commit_count")
+  compileOutput             String?                 @map("compile_output") @db.LongText
+  compileSuccess            Boolean?                @map("compile_success")
+  finalScore                Decimal?                @default(0.00) @map("final_score") @db.Decimal(4, 2)
+  gitRepoUrl                String?                 @map("git_repo_url") @db.VarChar(500)
+  gradedAt                  DateTime?               @map("graded_at")
+  groupLabel                String?                 @map("group_label") @db.VarChar(50)
+  locChurn                  Int?                    @default(0) @map("loc_churn")
+  submissionChannel         SubmissionChannel       @map("submission_channel")
+  userId                    String                  @map("user_id") @db.Char(36)
+  zipFilePath               String?                 @map("zip_file_path") @db.VarChar(500)
+  zipFileSize               BigInt?                 @map("zip_file_size")
+  teamId                    String?                 @map("team_id") @db.Char(36)
+  deployedUrl               String?                 @map("deployed_url") @db.VarChar(500)
+  workspacePath             String?                 @map("workspace_path") @db.VarChar(500)
+  attemptNo                 Int                     @default(1) @map("attempt_no")
+  paperCode                 String?                 @map("paper_code") @db.VarChar(50)
+  aiGradingResult           AiGradingResult?
+  conversations             AiTutorConversation[]
+  gitContributors           GitContributor[]
+  gradingJob                GradingJob?
+  testResults               SubmissionTestResult[]
+  participants              SubmissionParticipant[]
+  assignment                Assignment              @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  team                      Team?                   @relation(fields: [teamId], references: [id])
+  user                      User                    @relation(fields: [userId], references: [id])
 
+  @@unique([assignmentId, teamId, attemptNo], name: "uk_sub_assignment_team_attempt")
+  @@unique([assignmentId, userId, attemptNo], name: "uk_sub_assignment_user_attempt")
   @@index([assignmentId, userId, submittedAt], map: "idx_sub_assignment_user")
   @@index([teamId], map: "idx_sub_team")
   @@index([status, submittedAt], map: "idx_sub_status_queue")
@@ -364,17 +374,58 @@ model Team {
 }
 
 model TeamMember {
-  id       String   @id @default(uuid()) @db.Char(36)
-  teamId   String   @map("team_id") @db.Char(36)
-  userId   String   @map("user_id") @db.Char(36)
-  role     String   @default("MEMBER") @db.VarChar(50)
-  joinedAt DateTime @default(now()) @map("joined_at")
-  team     Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             String   @id @default(uuid()) @db.Char(36)
+  teamId         String   @map("team_id") @db.Char(36)
+  userId         String   @map("user_id") @db.Char(36)
+  role           String   @default("MEMBER") @db.VarChar(50)
+  joinedAt       DateTime @default(now()) @map("joined_at")
+  gitAuthorEmail String?  @map("git_author_email") @db.VarChar(255)
+  githubUsername String?  @map("github_username") @db.VarChar(100)
+  team           Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([teamId, userId], name: "uk_team_member")
+  @@unique([teamId, gitAuthorEmail], name: "uk_team_member_git_email")
+  @@unique([teamId, githubUsername], name: "uk_team_member_github_username")
   @@index([userId], map: "idx_team_members_user")
   @@map("team_members")
+}
+
+model SubmissionParticipant {
+  id                String                       @id @default(uuid()) @db.Char(36)
+  submissionId      String                       @map("submission_id") @db.Char(36)
+  userId            String                       @map("user_id") @db.Char(36)
+  teamRole          String                       @map("team_role") @db.VarChar(50)
+  adjustedScore     Decimal?                     @map("adjusted_score") @db.Decimal(4, 2)
+  adjustmentReason  String?                      @map("adjustment_reason") @db.VarChar(500)
+  adjustedById      String?                      @map("adjusted_by_id") @db.Char(36)
+  adjustedAt        DateTime?                    @map("adjusted_at")
+  createdAt         DateTime                     @default(now()) @map("created_at")
+  submission        Submission                   @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  user              User                         @relation("SubmissionParticipantUser", fields: [userId], references: [id], onDelete: Cascade)
+  adjustedBy        User?                        @relation("SubmissionParticipantAdjuster", fields: [adjustedById], references: [id], onDelete: SetNull)
+  adjustmentHistory ParticipantScoreAdjustment[]
+
+  @@unique([submissionId, userId], name: "uk_submission_participant")
+  @@index([userId], map: "idx_submission_participant_user")
+  @@index([adjustedById], map: "idx_submission_participant_adjuster")
+  @@map("submission_participants")
+}
+
+model ParticipantScoreAdjustment {
+  id                      String                @id @default(uuid()) @db.Char(36)
+  submissionParticipantId String                @map("submission_participant_id") @db.Char(36)
+  previousScore           Decimal?              @map("previous_score") @db.Decimal(4, 2)
+  adjustedScore           Decimal?              @map("adjusted_score") @db.Decimal(4, 2)
+  reason                  String                @db.VarChar(500)
+  adjustedById            String                @map("adjusted_by_id") @db.Char(36)
+  createdAt               DateTime              @default(now()) @map("created_at")
+  participant             SubmissionParticipant @relation(fields: [submissionParticipantId], references: [id], onDelete: Cascade)
+  adjustedBy              User                  @relation("ParticipantScoreAdjustmentActor", fields: [adjustedById], references: [id])
+
+  @@index([submissionParticipantId], map: "idx_score_adjustment_participant")
+  @@index([adjustedById], map: "idx_score_adjustment_actor")
+  @@map("participant_score_adjustments")
 }
 
 model GitContributor {
@@ -386,10 +437,16 @@ model GitContributor {
   linesAdded      Int        @default(0) @map("lines_added")
   linesDeleted    Int        @default(0) @map("lines_deleted")
   contributionPct Decimal    @default(0.00) @map("contribution_pct") @db.Decimal(5, 2)
+  matchedUserId   String?    @map("matched_user_id") @db.Char(36)
+  activeDays      Int        @default(0) @map("active_days")
+  firstCommitAt   DateTime?  @map("first_commit_at")
+  lastCommitAt    DateTime?  @map("last_commit_at")
   createdAt       DateTime   @default(now()) @map("created_at")
   submission      Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  matchedUser     User?      @relation("GitContributorMatchedUser", fields: [matchedUserId], references: [id], onDelete: SetNull)
 
   @@index([submissionId], map: "idx_contributors_submission")
+  @@index([matchedUserId], map: "idx_contributors_matched_user")
   @@map("git_contributors")
 }
 

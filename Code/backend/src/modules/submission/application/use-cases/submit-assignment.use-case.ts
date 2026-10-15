@@ -9,6 +9,9 @@ import fs from 'node:fs/promises';
 import { GitIngestionService, gitIngestionService } from '../../infrastructure/storage/git-ingestion.service.js';
 import { ValidationError, NotFoundError, ForbiddenError } from '../../../../shared/domain/exceptions/app.error.js';
 import { cloudinaryService } from '../../../../infrastructure/storage/cloudinary.service.js';
+import { validatePublicDeploymentUrl } from '../../infrastructure/storage/deployed-url.validator.js';
+import { env } from '../../../../infrastructure/config/env.js';
+import { logger } from '../../../../infrastructure/logging/logger.js';
 
 export interface SubmitAssignmentDeps {
   submissionRepository: ISubmissionRepository;
@@ -46,6 +49,14 @@ export class SubmitAssignmentUseCase {
 
     if (!assignment) {
       throw new NotFoundError(`Đề thi với ID: ${request.assignmentId}`);
+    }
+
+    if (assignment.submissionType === 'GROUP') {
+      throw new ValidationError('Bài nhóm phải được Leader nộp qua chức năng Nộp bài nhóm.');
+    }
+
+    if (assignment.environment === 'REACT_JS' && !env.FER201_GRADING_ENABLED) {
+      throw new ForbiddenError('Chức năng chấm FER201 hiện chưa được bật.');
     }
 
     if (assignment.status === 'DRAFT') {
@@ -112,6 +123,10 @@ export class SubmitAssignmentUseCase {
       throw new ValidationError('Đường dẫn GitHub repository là bắt buộc cho hình thức nộp GIT_COMMIT');
     }
 
+    const deployedUrl = assignment.environment === 'REACT_JS'
+      ? await validatePublicDeploymentUrl(request.deployedUrl ?? '')
+      : null;
+
     const submission = await submissionRepository.create({
       assignmentId: request.assignmentId,
       userId: request.userId,
@@ -122,6 +137,8 @@ export class SubmitAssignmentUseCase {
       zipFileSize: request.uploadedZipSize ?? null,
       gitRepoUrl: request.gitRepoUrl ?? null,
       gitCommitHash: request.gitCommitHash ?? null,
+      deployedUrl,
+      teamId: null,
     });
 
     if (request.submissionChannel === 'ZIP_UPLOAD' && request.uploadedZipPath) {
@@ -132,7 +149,7 @@ export class SubmitAssignmentUseCase {
           assignment.maxFileSizeBytes
         );
 
-        let finalZipPath = stagingResult.stagedPath;
+        let finalZipPath = request.uploadedZipPath;
 
         // Nếu Cloudinary đã được cấu hình, tự động sao lưu file ZIP lên Cloud
         if (cloudinaryService.isConfigured()) {
@@ -143,7 +160,11 @@ export class SubmitAssignmentUseCase {
             });
             finalZipPath = cloudResult.secureUrl;
           } catch (cloudErr: any) {
-            console.warn(`[SubmitAssignment] Sao lưu ZIP lên Cloudinary thất bại, lưu đường dẫn cục bộ:`, cloudErr.message);
+            logger.error('submission_cloud_backup_failed', {
+              submissionId: submission.id,
+              stage: 'CLOUD_BACKUP',
+              error: cloudErr,
+            });
           }
         }
 
@@ -158,6 +179,7 @@ export class SubmitAssignmentUseCase {
           submission.id,
           finalZipPath
         );
+        await submissionRepository.updateWorkspacePath(submission.id, stagingResult.stagedPath);
 
         await gradingDispatcher.dispatch(submission.id, stagingResult.stagedPath);
 
@@ -175,8 +197,11 @@ export class SubmitAssignmentUseCase {
           request.gitRepoUrl,
           request.gitCommitHash,
           submission.id,
-          assignment.maxFileSizeBytes
+          assignment.maxFileSizeBytes,
+          { since: assignment.startTime, until: submission.submittedAt }
         );
+
+        await submissionRepository.updateWorkspacePath(submission.id, gitResult.stagedPath);
 
         const updated = await submissionRepository.updateGitMetadata(submission.id, {
           commitCount: gitResult.commitCount,
