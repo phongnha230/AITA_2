@@ -16,6 +16,7 @@ import type { TestCase, RationaleTag } from '../../types/assignment.types';
 
 interface ExamDetailTestcasesTabProps {
   testCases: TestCase[];
+  functionalMaxScore: number;
   selectedTagFilter: string;
   onSelectTagFilter: (tag: string) => void;
   copiedKey: string | null;
@@ -24,6 +25,7 @@ interface ExamDetailTestcasesTabProps {
 
 export const ExamDetailTestcasesTab: React.FC<ExamDetailTestcasesTabProps> = ({
   testCases,
+  functionalMaxScore,
   selectedTagFilter,
   onSelectTagFilter,
   copiedKey,
@@ -94,7 +96,7 @@ export const ExamDetailTestcasesTab: React.FC<ExamDetailTestcasesTabProps> = ({
           </div>
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
-            <span>Tổng thang điểm: <strong>{totalPoints.toFixed(1)} / 10.0 pts</strong></span>
+            <span>Tổng thang điểm: <strong>{totalPoints.toFixed(1)} / {Number(functionalMaxScore).toFixed(1)} pts</strong></span>
           </div>
         </div>
 

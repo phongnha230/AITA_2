@@ -176,6 +176,8 @@ export interface StudentSubmissionDetail {
   status: string;
   sandboxScore?: number | null;
   aiScore?: number | null;
+  algorithmScore?: number | null;
+  cleanCodeScore?: number | null;
   finalScore?: number | null;
   compileSuccess?: boolean | null;
   compileOutput?: string | null;
@@ -192,6 +194,10 @@ export interface StudentSubmissionDetail {
     id: string;
     title: string;
     courseId: string;
+    gradingVersion?: number;
+    functionalMaxScore?: number;
+    algorithmMaxScore?: number;
+    cleanCodeMaxScore?: number;
   };
   gradingJob?: GradingJobInfo | null;
   testResults?: SubmissionTestResult[];

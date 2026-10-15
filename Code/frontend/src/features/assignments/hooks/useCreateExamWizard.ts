@@ -50,6 +50,9 @@ export function useCreateExamWizard() {
   const [solutionTitle, setSolutionTitle] = useState('');
   const [solutionCode, setSolutionCode] = useState('');
   const [expectedComplexity, setExpectedComplexity] = useState('O(n log n)');
+  const [expectedSpaceComplexity, setExpectedSpaceComplexity] = useState('');
+  const [acceptedStrategiesText, setAcceptedStrategiesText] = useState('');
+  const [algorithmNotes, setAlgorithmNotes] = useState('');
   const [macJunkDetected, setMacJunkDetected] = useState(false);
 
   // 5. Test Cases State
@@ -97,6 +100,10 @@ export function useCreateExamWizard() {
         if (data.solutions && data.solutions.length > 0) {
           setSolutionTitle(data.solutions[0].title || '');
           setSolutionCode(data.solutions[0].sourceCode || '');
+          setExpectedComplexity(data.solutions[0].expectedTimeComplexity || '');
+          setExpectedSpaceComplexity(data.solutions[0].expectedSpaceComplexity || '');
+          setAcceptedStrategiesText((data.solutions[0].acceptedStrategies || []).join(', '));
+          setAlgorithmNotes(data.solutions[0].algorithmNotes || '');
         }
       })
       .catch((err) => {
@@ -221,7 +228,7 @@ export function useCreateExamWizard() {
         isHidden: false,
         timeLimitMs: 1500,
         memoryLimitKb: 262144,
-        points: 2.0,
+        points: 1.0,
         comparisonMode: 'STDIO',
         stdinInput: 'INPUT_DATA',
         expectedStdout: 'EXPECTED_OUTPUT',
@@ -259,6 +266,12 @@ export function useCreateExamWizard() {
       setActiveStep(1);
       return;
     }
+    const functionalPoints = testCases.reduce((sum, testCase) => sum + (Number(testCase.points) || 0), 0);
+    if (Math.abs(functionalPoints - 7) >= 0.01) {
+      alert(`Tổng điểm test case phải bằng 7.0; hiện tại là ${functionalPoints.toFixed(2)}.`);
+      setActiveStep(3);
+      return;
+    }
 
     setIsSubmitting(true);
     setSubmitError(null);
@@ -276,7 +289,11 @@ export function useCreateExamWizard() {
         deadline: deadline.toISOString(),
         durationMinutes,
         accessCode: accessCode.trim() || undefined,
-        status: 'PUBLISHED',
+        status: 'DRAFT',
+        gradingVersion: 2,
+        functionalMaxScore: 7,
+        algorithmMaxScore: 2,
+        cleanCodeMaxScore: 1,
       });
 
       const assignmentId = createdAssign.id;
@@ -308,17 +325,24 @@ export function useCreateExamWizard() {
           title: solutionTitle || 'Mã nguồn bài giải mẫu',
           sourceCode: solutionCode,
           explanation: `Mã giải mẫu tham chiếu chuẩn. Độ phức tạp thuật toán kỳ vọng: ${expectedComplexity}.`,
+          expectedTimeComplexity: expectedComplexity.trim() || undefined,
+          expectedSpaceComplexity: expectedSpaceComplexity.trim() || undefined,
+          acceptedStrategies: acceptedStrategiesText
+            .split(/[\n,]/)
+            .map((strategy) => strategy.trim())
+            .filter(Boolean),
+          algorithmNotes: algorithmNotes.trim() || undefined,
         });
       }
 
-      try {
-        await assignmentService.setRubricRules(assignmentId, [
+      await assignmentService.setRubricRules(assignmentId, [
           {
             criterionName: 'Độ phức tạp thuật toán kỳ vọng',
-            description: `Thuật toán đạt độ phức tạp mục tiêu ${expectedComplexity}, tối ưu tài nguyên thực thi và không gây rò rỉ bộ nhớ.`,
-            maxPoints: 1.0,
+            description: `Đánh giá chiến lược thuật toán theo độ phức tạp thời gian ${expectedComplexity || 'chưa cấu hình'} và bộ nhớ ${expectedSpaceComplexity || 'chưa cấu hình'}, có xét các cách giải hợp lệ khác đáp án tham chiếu.`,
+            maxPoints: 2.0,
             weight: 1.0,
             orderIndex: 1,
+            criterionType: 'ALGORITHM',
           },
           {
             criterionName: 'Clean Code & Chống Hardcode mã nguồn',
@@ -326,11 +350,11 @@ export function useCreateExamWizard() {
             maxPoints: 1.0,
             weight: 1.0,
             orderIndex: 2,
+            criterionType: 'CLEAN_CODE',
           },
-        ]);
-      } catch (rubricErr) {
-        console.warn('Không thể khởi tạo rubric AI tự động, tiếp tục xuất bản:', rubricErr);
-      }
+      ]);
+
+      await assignmentService.updateAssignment(assignmentId, { status: 'PUBLISHED' });
 
       setSubmitSuccess(true);
       setTimeout(() => {
@@ -392,6 +416,12 @@ export function useCreateExamWizard() {
     setSolutionCode,
     expectedComplexity,
     setExpectedComplexity,
+    expectedSpaceComplexity,
+    setExpectedSpaceComplexity,
+    acceptedStrategiesText,
+    setAcceptedStrategiesText,
+    algorithmNotes,
+    setAlgorithmNotes,
     testCases,
     setTestCases,
     totalPoints,

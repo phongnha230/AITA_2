@@ -92,6 +92,12 @@ export const CreateExamWizard: React.FC = () => {
           setSolutionCode={wizard.setSolutionCode}
           expectedComplexity={wizard.expectedComplexity}
           setExpectedComplexity={wizard.setExpectedComplexity}
+          expectedSpaceComplexity={wizard.expectedSpaceComplexity}
+          setExpectedSpaceComplexity={wizard.setExpectedSpaceComplexity}
+          acceptedStrategiesText={wizard.acceptedStrategiesText}
+          setAcceptedStrategiesText={wizard.setAcceptedStrategiesText}
+          algorithmNotes={wizard.algorithmNotes}
+          setAlgorithmNotes={wizard.setAlgorithmNotes}
           handleSolutionFileUpload={wizard.handleSolutionFileUpload}
           testCases={wizard.testCases}
           setTestCases={wizard.setTestCases}
