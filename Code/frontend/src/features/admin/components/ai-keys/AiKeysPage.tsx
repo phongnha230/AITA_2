@@ -73,7 +73,7 @@ export const AiKeysPage: React.FC = () => {
 
   const tabs: { id: Filter; label: string }[] = [
     { id: 'ALL', label: `Tất cả (${keys.length})` },
-    ...(['OPENAI', 'GEMINI', 'ANTHROPIC', 'DEEPSEEK'] as AiProvider[]).map((p) => ({
+    ...(['GEMINI', 'OPENAI'] as AiProvider[]).map((p) => ({
       id: p,
       label: `${PROVIDER_LABEL[p]} (${keys.filter((k) => k.provider === p).length})`,
     })),

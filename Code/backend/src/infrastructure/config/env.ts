@@ -58,6 +58,12 @@ const envSchema = z.object({
   CHROMA_DB_URL: z.string().optional().default('http://localhost:8000'),
   GEMINI_API_KEY: z.string().optional().default(''),
   GEMINI_API_KEYS: z.string().optional().default(''),
+  GEMINI_KEY_SOURCE: z.literal('dashboard-first').default('dashboard-first'),
+  GEMINI_ENV_KEY_FALLBACK: z.preprocess(
+    (value) => value === undefined ? true : value === 'true' || value === true,
+    z.boolean()
+  ),
+  AI_KEY_ENCRYPTION_KEY: z.string().optional().default(''),
   GEMINI_GENERATION_MODEL: z.string().default('gemini-3.8-flash'),
   GEMINI_EMBEDDING_MODEL: z.string().default('gemini-embedding-001'),
   AI_GRADING_REQUIRE_READY_RAG: z.preprocess(
@@ -83,6 +89,24 @@ const envSchema = z.object({
       code: z.ZodIssueCode.custom,
       path: ['FRONTEND_URL'],
       message: 'SameSite=None requires an HTTPS frontend URL',
+    });
+  }
+  if (config.AI_KEY_ENCRYPTION_KEY) {
+    const decoded = Buffer.from(config.AI_KEY_ENCRYPTION_KEY, 'base64');
+    const canonical = decoded.toString('base64').replace(/=+$/, '');
+    const supplied = config.AI_KEY_ENCRYPTION_KEY.replace(/=+$/, '');
+    if (decoded.length !== 32 || canonical !== supplied) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['AI_KEY_ENCRYPTION_KEY'],
+        message: 'AI_KEY_ENCRYPTION_KEY must be valid base64 encoding exactly 32 bytes',
+      });
+    }
+  } else if (config.NODE_ENV === 'production') {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['AI_KEY_ENCRYPTION_KEY'],
+      message: 'AI_KEY_ENCRYPTION_KEY is required in production',
     });
   }
 });

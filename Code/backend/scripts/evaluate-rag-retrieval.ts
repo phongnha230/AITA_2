@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import { z } from 'zod';
-import { ChromaVectorService } from '../src/modules/ai/infrastructure/vector/chroma-vector.service.js';
+import { container } from '../src/infrastructure/container/container.js';
 
 const caseSchema = z.object({
   name: z.string().min(1),
@@ -20,7 +20,7 @@ async function main(): Promise<void> {
   const datasetPath = process.env.RAG_GOLDEN_DATASET;
   if (!datasetPath) throw new Error('RAG_GOLDEN_DATASET must point to a reviewed golden JSON dataset.');
   const cases = z.array(caseSchema).min(1).parse(JSON.parse(await fs.readFile(datasetPath, 'utf8')));
-  const vectorStore = new ChromaVectorService();
+  const vectorStore = container.solutionVectorStore;
   let recalled = 0;
   let expected = 0;
   for (const testCase of cases) {

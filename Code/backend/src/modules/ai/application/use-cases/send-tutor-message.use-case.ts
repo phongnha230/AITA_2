@@ -77,6 +77,7 @@ export class SendTutorMessageUseCase {
         userMessageContent
       ),
       {
+        operation: 'CHAT_GENERATION',
         systemInstruction: SocraticTutorPrompt.buildSystemInstruction(),
         temperature: 0.7,
         jsonMode: false,

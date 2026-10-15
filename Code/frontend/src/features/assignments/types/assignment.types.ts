@@ -35,6 +35,21 @@ export interface AssignmentSolution {
   isActive?: boolean;
 }
 
+export interface RubricRuleInput {
+  criterionName: string;
+  description: string;
+  maxPoints: number;
+  weight: number;
+  orderIndex: number;
+}
+
+export interface RubricRule extends RubricRuleInput {
+  id: string;
+  assignmentId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Course {
   id: string;
   code: string;

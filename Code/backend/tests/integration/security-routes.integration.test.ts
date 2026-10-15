@@ -52,6 +52,11 @@ describe('hardened upload and sandbox routes', () => {
     expect(health.body).toEqual({ status: 'ready' });
 
     await request(app)
+      .get('/api/v1/sandbox/status')
+      .set('Cookie', cookieFor('STUDENT'))
+      .expect(403);
+
+    await request(app)
       .post('/api/v1/sandbox/execute')
       .set('Cookie', cookieFor('STUDENT'))
       .send({})

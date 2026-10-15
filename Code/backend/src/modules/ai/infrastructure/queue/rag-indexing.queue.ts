@@ -2,7 +2,7 @@ import { Job, Queue, Worker } from 'bullmq';
 import prisma from '../../../../infrastructure/database/prisma.client.js';
 import { redisConnection } from '../../../../infrastructure/redis/redis.client.js';
 import { CHUNKER_VERSION, CodeChunker } from '../chunking/code-chunker.js';
-import { ChromaVectorService } from '../vector/chroma-vector.service.js';
+import { ISolutionVectorStore } from '../vector/chroma-vector.service.js';
 import { env } from '../../../../infrastructure/config/env.js';
 import {
   IRagIndexingQueue,
@@ -43,7 +43,10 @@ export class BullMqRagIndexingQueue implements IRagIndexingQueue {
 
 let activeWorker: Worker<RagIndexingJobData> | null = null;
 
-const processIndexingJob = async (job: Job<RagIndexingJobData>): Promise<{ stale: boolean }> => {
+const processIndexingJob = async (
+  job: Job<RagIndexingJobData>,
+  vectorService: ISolutionVectorStore
+): Promise<{ stale: boolean }> => {
   const solution = await prisma.assignmentSolution.findUnique({
     where: { id: job.data.solutionId },
     include: { assignment: true },
@@ -57,7 +60,6 @@ const processIndexingJob = async (job: Job<RagIndexingJobData>): Promise<{ stale
     return { stale: true };
   }
 
-  const vectorService = new ChromaVectorService();
   try {
     const fileName = solution.assignment.environment === 'JAVA_JDK' ? 'Solution.java' : 'solution.c';
     const chunks = CodeChunker.chunkSourceCode(
@@ -108,9 +110,14 @@ const processIndexingJob = async (job: Job<RagIndexingJobData>): Promise<{ stale
   }
 };
 
-export const startRagIndexingWorker = (): Worker<RagIndexingJobData> => {
+export const startRagIndexingWorker = (
+  vectorService: ISolutionVectorStore
+): Worker<RagIndexingJobData> => {
   if (activeWorker) return activeWorker;
-  activeWorker = new Worker<RagIndexingJobData>(RAG_INDEXING_QUEUE_NAME, processIndexingJob, {
+  activeWorker = new Worker<RagIndexingJobData>(
+    RAG_INDEXING_QUEUE_NAME,
+    (job) => processIndexingJob(job, vectorService),
+    {
     connection: redisConnection,
     concurrency: 2,
     settings: {
@@ -119,7 +126,8 @@ export const startRagIndexingWorker = (): Worker<RagIndexingJobData> => {
         return getRagIndexRetryDelay(attemptsMade);
       },
     },
-  });
+    }
+  );
   activeWorker.on('failed', (job, error) => {
     logger.error('rag_indexing_failed', {
       jobId: job?.id,

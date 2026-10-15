@@ -7,13 +7,14 @@ import {
   stopRagIndexingWorker,
 } from './modules/ai/infrastructure/queue/rag-indexing.queue.js';
 import { logger } from './infrastructure/logging/logger.js';
+import { container } from './infrastructure/container/container.js';
 
 const PORT = env.PORT;
 
 // Khởi động BullMQ Grading Worker (Sandbox + AI Grader)
 try {
   startGradingWorker();
-  startRagIndexingWorker();
+  startRagIndexingWorker(container.solutionVectorStore);
 } catch (err) {
   logger.warn('worker_start_failed', { stage: 'SERVER_STARTUP', error: err });
 }

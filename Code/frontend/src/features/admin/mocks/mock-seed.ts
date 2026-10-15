@@ -122,6 +122,7 @@ const key = (
 ): AiApiKey => ({
   id: `key-${String(n).padStart(2, '0')}`,
   provider,
+  source: 'DASHBOARD',
   keyAlias: alias,
   keyHint: preview.slice(-4),
   keyPreview: preview,
@@ -134,6 +135,7 @@ const key = (
   latencyMs: latency,
   consecutiveFailures: 0,
   isActive: active,
+  availabilityStatus: active ? 'AVAILABLE' : 'DISABLED',
   lastUsedAt: iso(0, 10),
   createdAt: stamp,
   updatedAt: stamp,

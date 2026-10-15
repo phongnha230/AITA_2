@@ -54,6 +54,7 @@ import { ManageRubricsUseCase } from '../../modules/assignment/application/use-c
 import { ManageSolutionsUseCase } from '../../modules/assignment/application/use-cases/manage-solutions.use-case.js';
 import { GetProctoringDataUseCase } from '../../modules/assignment/application/use-cases/get-proctoring-data.use-case.js';
 import { ControlSessionUseCase } from '../../modules/assignment/application/use-cases/control-session.use-case.js';
+import { DeleteAssignmentUseCase } from '../../modules/assignment/application/use-cases/delete-assignment.use-case.js';
 
 import { CreateCourseUseCase } from '../../modules/course/application/use-cases/create-course.use-case.js';
 import { GetCoursesUseCase } from '../../modules/course/application/use-cases/get-courses.use-case.js';
@@ -94,6 +95,10 @@ import { HealthService } from '../health/health.service.js';
 import { HealthController } from '../../presentation/controllers/health.controller.js';
 import { redisConnection } from '../redis/redis.client.js';
 import { BullMqRagIndexingQueue } from '../../modules/ai/infrastructure/queue/rag-indexing.queue.js';
+import { ApiKeyCipherService } from '../../modules/ai/infrastructure/security/api-key-cipher.service.js';
+import { RedisRpmLimiter } from '../../modules/ai/infrastructure/credentials/redis-rpm-limiter.js';
+import { GeminiCredentialPoolService } from '../../modules/ai/infrastructure/credentials/gemini-credential-pool.service.js';
+import { GeminiEmbeddingProvider } from '../../modules/ai/infrastructure/embedding/gemini-embedding.provider.js';
 
 class ServiceContainer {
   // Repositories
@@ -116,8 +121,16 @@ class ServiceContainer {
   public readonly passwordHasher = new BcryptHasherService();
   public readonly tokenService = new JwtTokenService();
   public readonly googleOAuthService = new GoogleOAuthService();
-  public readonly apiKeyRotatorFacade = new ApiKeyRotatorFacade(this.aiApiKeyRepository);
-  public readonly solutionVectorStore = new ChromaVectorService();
+  public readonly apiKeyCipher = new ApiKeyCipherService();
+  public readonly aiRpmLimiter = new RedisRpmLimiter(redisConnection);
+  public readonly geminiCredentialPool = new GeminiCredentialPoolService(
+    this.aiApiKeyRepository,
+    this.aiRpmLimiter,
+    this.apiKeyCipher
+  );
+  public readonly apiKeyRotatorFacade = new ApiKeyRotatorFacade(this.geminiCredentialPool);
+  public readonly embeddingProvider = new GeminiEmbeddingProvider(this.geminiCredentialPool);
+  public readonly solutionVectorStore = new ChromaVectorService(this.embeddingProvider);
   public readonly ragKnowledgeFacade = new RagKnowledgeFacade(
     this.ragContextRepository,
     this.solutionVectorStore
@@ -183,6 +196,10 @@ class ServiceContainer {
   public readonly getAssignmentDetailUseCase = new GetAssignmentDetailUseCase(this.assignmentRepository);
   public readonly getAssignmentsByCourseUseCase = new GetAssignmentsByCourseUseCase(this.assignmentRepository);
   public readonly updateAssignmentUseCase = new UpdateAssignmentUseCase(this.assignmentRepository);
+  public readonly deleteAssignmentUseCase = new DeleteAssignmentUseCase(
+    this.assignmentRepository,
+    this.solutionVectorStore
+  );
   public readonly manageTestCasesUseCase = new ManageTestCasesUseCase(this.assignmentRepository);
   public readonly manageRubricsUseCase = new ManageRubricsUseCase(this.assignmentRepository);
   public readonly manageSolutionsUseCase = new ManageSolutionsUseCase(
@@ -241,7 +258,10 @@ class ServiceContainer {
     this.apiKeyRotatorFacade
   );
   public readonly getTutorConversationUseCase = new GetTutorConversationUseCase(this.aiTutorRepository);
-  public readonly manageApiKeysUseCase = new ManageApiKeysUseCase(this.aiApiKeyRepository);
+  public readonly manageApiKeysUseCase = new ManageApiKeysUseCase(
+    this.aiApiKeyRepository,
+    this.apiKeyCipher
+  );
 
   // Controllers - constructed only in this composition root
   public readonly authController = new AuthController(
@@ -282,6 +302,7 @@ class ServiceContainer {
     this.getAssignmentDetailUseCase,
     this.getAssignmentsByCourseUseCase,
     this.updateAssignmentUseCase,
+    this.deleteAssignmentUseCase,
     this.manageTestCasesUseCase,
     this.manageRubricsUseCase,
     this.manageSolutionsUseCase,

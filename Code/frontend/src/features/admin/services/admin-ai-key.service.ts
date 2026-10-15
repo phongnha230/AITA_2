@@ -1,25 +1,64 @@
 import api from '../../../lib/api';
 import type { AiApiKey, CreateAiKeyPayload } from '../types/admin.types';
 
-function normalizeAiKey(raw: any): AiApiKey {
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+const requiredString = (value: unknown, field: string): string => {
+  if (typeof value !== 'string' || !value.trim()) throw new Error(`AI key response thiếu ${field}.`);
+  return value;
+};
+
+const requiredNumber = (value: unknown, field: string): number => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new Error(`AI key response có ${field} không hợp lệ.`);
+  }
+  return value;
+};
+
+const optionalDate = (value: unknown): string | null =>
+  typeof value === 'string' && !Number.isNaN(Date.parse(value))
+    ? new Date(value).toISOString()
+    : null;
+
+function normalizeAiKey(value: unknown): AiApiKey {
+  if (!isRecord(value)) throw new Error('AI key response không hợp lệ.');
+  const raw = value;
+  const provider = requiredString(raw.provider, 'provider');
+  if (!['GEMINI', 'OPENAI'].includes(provider)) {
+    throw new Error('AI key response có provider không được hỗ trợ.');
+  }
+  const availabilityStatus = requiredString(raw.availabilityStatus, 'availabilityStatus');
+  if (!['AVAILABLE', 'COOLDOWN', 'QUOTA_EXHAUSTED', 'DISABLED'].includes(availabilityStatus)) {
+    throw new Error('AI key response có trạng thái không hợp lệ.');
+  }
   return {
-    id: raw.id,
-    provider: raw.provider,
-    keyAlias: raw.keyAlias,
-    keyHint: raw.keyHint || '...',
-    keyPreview: raw.keyHint ? `Key ${raw.keyHint}` : 'sk-***',
-    purposeTitle: raw.purposeTitle || (raw.provider === 'GEMINI' ? 'Trợ lý AI & Chấm thi Rubric' : 'Dự phòng LLM Pool'),
-    purposeNote: raw.purposeNote || 'Định tuyến tự động Multi-key Pool',
-    dailyRequestLimit: raw.dailyRequestLimit ?? 1500,
-    currentRequestsToday: raw.currentRequestsToday ?? 0,
-    rpmLimit: raw.rpmLimit ?? 15,
-    tpmLimit: raw.tpmLimit ?? (raw.rpmLimit ? raw.rpmLimit * 600 : 10000),
-    latencyMs: raw.latencyMs ?? 280,
-    consecutiveFailures: raw.consecutiveFailures ?? 0,
-    isActive: raw.isActive ?? true,
-    lastUsedAt: raw.lastUsedAt ? new Date(raw.lastUsedAt).toISOString() : null,
-    createdAt: raw.createdAt ? new Date(raw.createdAt).toISOString() : new Date().toISOString(),
-    updatedAt: raw.updatedAt ? new Date(raw.updatedAt).toISOString() : new Date().toISOString(),
+    id: requiredString(raw.id, 'id'),
+    provider: provider as AiApiKey['provider'],
+    source: 'DASHBOARD',
+    keyAlias: requiredString(raw.keyAlias, 'keyAlias'),
+    keyHint: requiredString(raw.keyHint, 'keyHint'),
+    keyPreview: `Key ${requiredString(raw.keyHint, 'keyHint')}`,
+    purposeTitle: typeof raw.purposeTitle === 'string'
+      ? raw.purposeTitle
+      : provider === 'GEMINI' ? 'Trợ lý AI & Chấm thi Rubric' : 'Dự phòng LLM Pool',
+    purposeNote: typeof raw.purposeNote === 'string'
+      ? raw.purposeNote
+      : 'Định tuyến tự động Multi-key Pool',
+    dailyRequestLimit: requiredNumber(raw.dailyRequestLimit, 'dailyRequestLimit'),
+    currentRequestsToday: requiredNumber(raw.currentRequestsToday, 'currentRequestsToday'),
+    usageDate: optionalDate(raw.usageDate),
+    rpmLimit: requiredNumber(raw.rpmLimit, 'rpmLimit'),
+    tpmLimit: typeof raw.tpmLimit === 'number' ? raw.tpmLimit : undefined,
+    latencyMs: typeof raw.latencyMs === 'number' ? raw.latencyMs : null,
+    consecutiveFailures: requiredNumber(raw.consecutiveFailures, 'consecutiveFailures'),
+    isActive: raw.isActive === true,
+    cooldownUntil: optionalDate(raw.cooldownUntil),
+    lastErrorCode: typeof raw.lastErrorCode === 'string' ? raw.lastErrorCode : null,
+    availabilityStatus: availabilityStatus as AiApiKey['availabilityStatus'],
+    lastUsedAt: optionalDate(raw.lastUsedAt),
+    createdAt: optionalDate(raw.createdAt) ?? new Date(0).toISOString(),
+    updatedAt: optionalDate(raw.updatedAt) ?? new Date(0).toISOString(),
   };
 }
 
@@ -30,6 +69,7 @@ export const adminAiKeyService = {
   async list(): Promise<AiApiKey[]> {
     const res = await api.get('/ai/api-keys');
     const rawList = res.data?.data || [];
+    if (!Array.isArray(rawList)) throw new Error('Danh sách AI key không hợp lệ.');
     return rawList.map(normalizeAiKey);
   },
 
@@ -44,8 +84,9 @@ export const adminAiKeyService = {
   /**
    * Bật / Tắt trạng thái khóa API trên Backend
    */
-  async setActive(id: string, isActive: boolean): Promise<void> {
-    await api.patch(`/ai/api-keys/${id}/toggle`, { isActive });
+  async setActive(id: string, isActive: boolean): Promise<AiApiKey> {
+    const res = await api.patch(`/ai/api-keys/${id}/toggle`, { isActive });
+    return normalizeAiKey(res.data.data);
   },
 
   /**
@@ -54,7 +95,7 @@ export const adminAiKeyService = {
   async healthCheck(): Promise<{ healthy: number; total: number }> {
     const keys = await this.list();
     return {
-      healthy: keys.filter((k) => k.isActive && k.consecutiveFailures < 3).length,
+      healthy: keys.filter((k) => k.availabilityStatus === 'AVAILABLE').length,
       total: keys.length,
     };
   },

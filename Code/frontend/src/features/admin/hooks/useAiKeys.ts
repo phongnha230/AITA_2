@@ -32,8 +32,8 @@ export const useAiKeys = () => {
   };
 
   const setActive = async (id: string, isActive: boolean) => {
-    await adminAiKeyService.setActive(id, isActive);
-    setKeys((list) => list.map((k) => (k.id === id ? { ...k, isActive } : k)));
+    const updated = await adminAiKeyService.setActive(id, isActive);
+    setKeys((list) => list.map((key) => (key.id === id ? updated : key)));
   };
 
   return { keys, loading, error, reload: load, remove, setActive };
