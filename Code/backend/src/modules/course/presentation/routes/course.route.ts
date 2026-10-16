@@ -16,7 +16,13 @@ const router = Router();
 const courseController = container.courseController;
 
 // Routes
-router.get('/', authenticateJWT, validateQuery(QueryCoursesSchema), courseController.getCourses);
+router.get(
+  '/',
+  authenticateJWT,
+  authorizeRoles('ADMIN', 'LECTURER', 'STUDENT'),
+  validateQuery(QueryCoursesSchema),
+  courseController.getCourses
+);
 
 // Sinh viên tham gia lớp học bằng mã (đặt trước /:id)
 router.post(

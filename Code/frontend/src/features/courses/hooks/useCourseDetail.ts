@@ -7,20 +7,27 @@ interface UseCourseDetailOptions {
   initialCourse?: Course;
 }
 
+const secondsUntil = (expiresAt?: string | null): number => {
+  if (!expiresAt) return 0;
+  const expirationTime = new Date(expiresAt).getTime();
+  return Number.isFinite(expirationTime) ? Math.max(0, Math.ceil((expirationTime - Date.now()) / 1000)) : 0;
+};
+
 export function useCourseDetail({ courseId, initialCourse }: UseCourseDetailOptions) {
   const [course, setCourse] = useState<Course | null>(initialCourse || null);
-  const [loading, setLoading] = useState<boolean>(!initialCourse);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   // Dynamic Join Code states
-  const [joinCode, setJoinCode] = useState<string>(initialCourse?.enrollmentCode || 'AITA-8924');
-  const [secondsLeft, setSecondsLeft] = useState<number>(275); // 4m 35s default
-  const [isEnrollOpen, setIsEnrollOpen] = useState<boolean>(true);
+  const [joinCode, setJoinCode] = useState<string>(initialCourse?.enrollmentCode || '');
+  const [secondsLeft, setSecondsLeft] = useState<number>(secondsUntil(initialCourse?.codeExpiresAt));
+  const [isEnrollOpen, setIsEnrollOpen] = useState<boolean>(
+    Boolean(initialCourse?.enrollmentCode && secondsUntil(initialCourse.codeExpiresAt) > 0)
+  );
 
   // Students filter state
   const [studentSearch, setStudentSearch] = useState<string>('');
   const [studentStatusFilter, setStudentStatusFilter] = useState<'ALL' | 'VERIFIED' | 'PENDING'>('ALL');
-  const [isShowingEmptyStateDemo, setIsShowingEmptyStateDemo] = useState<boolean>(false);
 
   // QR Modal state
   const [isQrModalOpen, setIsQrModalOpen] = useState<boolean>(false);
@@ -44,10 +51,10 @@ export function useCourseDetail({ courseId, initialCourse }: UseCourseDetailOpti
     try {
       const data = await courseService.getCourseById(courseId);
       setCourse(data);
-      if (data.enrollmentCode) {
-        setJoinCode(data.enrollmentCode);
-      }
-      setIsEnrollOpen(data.isActive ?? true);
+      const activeCodeSeconds = secondsUntil(data.codeExpiresAt);
+      setJoinCode(activeCodeSeconds > 0 ? data.enrollmentCode || '' : '');
+      setSecondsLeft(activeCodeSeconds);
+      setIsEnrollOpen(Boolean(data.enrollmentCode && activeCodeSeconds > 0));
     } catch (err: any) {
       setError(err?.message || 'Không thể tải chi tiết lớp học');
     } finally {
@@ -56,30 +63,20 @@ export function useCourseDetail({ courseId, initialCourse }: UseCourseDetailOpti
   }, [courseId]);
 
   useEffect(() => {
-    if (!initialCourse) {
-      fetchDetail();
-    } else {
-      setCourse(initialCourse);
-      if (initialCourse.enrollmentCode) {
-        setJoinCode(initialCourse.enrollmentCode);
-      }
-      setIsEnrollOpen(initialCourse.isActive ?? true);
-    }
+    if (initialCourse) setCourse(initialCourse);
+    void fetchDetail();
   }, [courseId, initialCourse, fetchDetail]);
 
   // Dynamic Countdown Timer
   useEffect(() => {
-    if (!isEnrollOpen) return;
-
-    if (secondsLeft <= 0) {
-      const randomCode = `AITA-${Math.floor(1000 + Math.random() * 9000)}`;
-      setJoinCode(randomCode);
-      setSecondsLeft(300);
-      return;
-    }
+    if (!isEnrollOpen || secondsLeft <= 0) return;
 
     const timer = setTimeout(() => {
       setSecondsLeft((prev) => prev - 1);
+      if (secondsLeft <= 1) {
+        setIsEnrollOpen(false);
+        setJoinCode('');
+      }
     }, 1000);
 
     return () => clearTimeout(timer);
@@ -89,7 +86,7 @@ export function useCourseDetail({ courseId, initialCourse }: UseCourseDetailOpti
   const formattedCountdown = useMemo(() => {
     const m = Math.floor(secondsLeft / 60);
     const s = secondsLeft % 60;
-    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    return secondsLeft > 0 ? `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : 'Đã hết hạn';
   }, [secondsLeft]);
 
   // Regenerate Join Code
@@ -98,19 +95,23 @@ export function useCourseDetail({ courseId, initialCourse }: UseCourseDetailOpti
       if (course) {
         const res = await courseService.generateJoinCode(course.id, 5);
         setJoinCode(res.enrollmentCode);
+        setSecondsLeft(secondsUntil(res.expiresAt));
+        setIsEnrollOpen(true);
+        showToast(`Đã tạo mã tham gia ${res.enrollmentCode}.`);
       } else {
-        const randomCode = `AITA-${Math.floor(1000 + Math.random() * 9000)}`;
-        setJoinCode(randomCode);
+        showToast('Không tìm thấy khóa học để tạo mã tham gia.');
       }
-      setSecondsLeft(300);
-      showToast(`Đã sinh mã tham gia mới: ${joinCode}`);
-    } catch (err: any) {
-      showToast('Đã sinh mã mới thành công!');
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Không thể tạo mã tham gia.');
     }
   };
 
   // Copy Code to Clipboard
   const copyCodeToClipboard = async () => {
+    if (!joinCode) {
+      showToast('Khóa học chưa có mã tham gia hoạt động.');
+      return;
+    }
     try {
       if (typeof navigator !== 'undefined' && navigator.clipboard) {
         await navigator.clipboard.writeText(joinCode);
@@ -123,22 +124,27 @@ export function useCourseDetail({ courseId, initialCourse }: UseCourseDetailOpti
 
   // Toggle Enrollment Switch
   const toggleEnrollmentStatus = async () => {
-    const nextState = !isEnrollOpen;
-    setIsEnrollOpen(nextState);
-    if (!nextState) {
-      if (course) {
-        try {
-          await courseService.revokeJoinCode(course.id);
-        } catch {}
+    if (!course) return;
+    if (isEnrollOpen) {
+      try {
+        await courseService.revokeJoinCode(course.id);
+        setJoinCode('');
+        setSecondsLeft(0);
+        setIsEnrollOpen(false);
+        showToast('Đã khóa ghi danh và thu hồi mã tham gia.');
+      } catch (err: unknown) {
+        showToast(err instanceof Error ? err.message : 'Không thể khóa ghi danh.');
       }
-      showToast('Đã KHÓA cổng tiếp nhận sinh viên mới');
     } else {
-      if (course) {
-        try {
-          await courseService.generateJoinCode(course.id, 30);
-        } catch {}
+      try {
+        const response = await courseService.generateJoinCode(course.id, 30);
+        setJoinCode(response.enrollmentCode);
+        setSecondsLeft(secondsUntil(response.expiresAt));
+        setIsEnrollOpen(true);
+        showToast(`Đã mở ghi danh bằng mã ${response.enrollmentCode}.`);
+      } catch (err: unknown) {
+        showToast(err instanceof Error ? err.message : 'Không thể mở ghi danh.');
       }
-      showToast('Đã MỞ tiếp nhận sinh viên mới');
     }
   };
 
@@ -155,7 +161,6 @@ export function useCourseDetail({ courseId, initialCourse }: UseCourseDetailOpti
         return {
           ...prev,
           enrollments: updated,
-          enrolledStudentsCount: updated.length,
           _count: {
             ...prev._count,
             enrollments: updated.length,
@@ -171,7 +176,6 @@ export function useCourseDetail({ courseId, initialCourse }: UseCourseDetailOpti
 
   // Filtered Students list
   const filteredEnrollments: CourseEnrollment[] = useMemo(() => {
-    if (isShowingEmptyStateDemo) return [];
     if (!course || !course.enrollments) return [];
 
     return course.enrollments.filter((enrollment) => {
@@ -189,13 +193,7 @@ export function useCourseDetail({ courseId, initialCourse }: UseCourseDetailOpti
 
       return matchesSearch && matchesStatus;
     });
-  }, [course, studentSearch, studentStatusFilter, isShowingEmptyStateDemo]);
-
-  // Toggle Empty State demo view
-  const toggleEmptyStateDemo = () => {
-    setIsShowingEmptyStateDemo((prev) => !prev);
-    showToast(!isShowingEmptyStateDemo ? 'Đang xem demo Empty State (Lớp mới tạo)' : 'Đang xem danh sách sinh viên thực tế');
-  };
+  }, [course, studentSearch, studentStatusFilter]);
 
   return {
     course,
@@ -211,7 +209,6 @@ export function useCourseDetail({ courseId, initialCourse }: UseCourseDetailOpti
     setStudentSearch,
     studentStatusFilter,
     setStudentStatusFilter,
-    isShowingEmptyStateDemo,
     filteredEnrollments,
     toastMessage,
     showToast,
@@ -220,7 +217,6 @@ export function useCourseDetail({ courseId, initialCourse }: UseCourseDetailOpti
     copyCodeToClipboard,
     toggleEnrollmentStatus,
     removeStudent,
-    toggleEmptyStateDemo,
     refreshDetail: fetchDetail,
   };
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Users, BookOpen, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { Users, BookOpen, ChevronRight, CheckCircle2, Pencil, Trash2 } from 'lucide-react';
 import { Course } from '../types/course.types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,9 +11,11 @@ import { Progress } from '@/components/ui/progress';
 interface CourseCardProps {
   course: Course;
   onSelectCourse: (course: Course) => void;
+  onEditCourse: (course: Course) => void;
+  onDeleteCourse: (course: Course) => void;
 }
 
-export const CourseCard: React.FC<CourseCardProps> = ({ course, onSelectCourse }) => {
+export const CourseCard: React.FC<CourseCardProps> = ({ course, onSelectCourse, onEditCourse, onDeleteCourse }) => {
   // Determine gradient header style by course code
   const getBannerGradient = (code: string) => {
     if (code.startsWith('SWD')) return 'from-indigo-600 to-indigo-800';
@@ -22,10 +24,10 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, onSelectCourse }
     return 'from-slate-800 to-slate-900';
   };
 
-  const enrolled = course._count?.enrollments ?? course.enrolledStudentsCount ?? 0;
-  const capacity = course.capacity || 40;
-  const progress = course.syllabusProgress || 0;
-  const gpa = course.currentGpaAvg || 8.0;
+  const enrolled = course.enrollmentCount ?? course._count?.enrollments ?? 0;
+  const capacity = course.capacity;
+  const progress = course.syllabusProgress;
+  const gpa = course.currentGpaAvg;
 
   return (
     <Card className="rounded-2xl border-slate-200/90 shadow-xs hover:shadow-md transition flex flex-col justify-between overflow-hidden group bg-white">
@@ -58,7 +60,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, onSelectCourse }
           {course.name}
         </h3>
         <p className="text-xs text-white/80 mt-1 font-medium">
-          Học kỳ: <strong>{course.semester}</strong> • Phòng: <strong>{course.room || 'AL-L402'}</strong>
+          Học kỳ: <strong>{course.semester}</strong> • Phòng: <strong>{course.room || 'Chưa cập nhật'}</strong>
         </p>
       </div>
 
@@ -69,9 +71,9 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, onSelectCourse }
           <div>
             <div className="flex justify-between text-xs font-semibold text-slate-500 mb-1.5">
               <span>Tiến độ chương trình</span>
-              <span className="font-bold text-slate-800">{progress}%</span>
+              <span className="font-bold text-slate-800">{progress == null ? 'Chưa có dữ liệu' : `${progress}%`}</span>
             </div>
-            <Progress value={progress} className="h-2 bg-slate-100 [&>div]:bg-indigo-600" />
+            {progress != null && <Progress value={progress} className="h-2 bg-slate-100 [&>div]:bg-indigo-600" />}
           </div>
 
           {/* Sĩ số & Điểm TB */}
@@ -79,14 +81,12 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, onSelectCourse }
             <div className="flex items-center gap-2 text-slate-600">
               <Users className="w-4 h-4 text-slate-400 shrink-0" />
               <span>
-                Sĩ số: <strong className="text-slate-900">{enrolled}/{capacity}</strong>
+                Sĩ số: <strong className="text-slate-900">{capacity === undefined ? enrolled : `${enrolled}/${capacity}`}</strong>
               </span>
             </div>
             <div className="flex items-center gap-2 text-slate-600 justify-end">
               <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-              <span>
-                GPA TB: <strong className="text-slate-900">{gpa}</strong>
-              </span>
+              <span>GPA TB: <strong className="text-slate-900">{gpa === undefined ? 'Chưa có' : gpa}</strong></span>
             </div>
           </div>
         </div>
@@ -101,6 +101,14 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, onSelectCourse }
           <span>Quản Lý Lớp Học</span>
           <ChevronRight className="w-3.5 h-3.5 group-hover/btn:translate-x-0.5 transition" />
         </Button>
+        <div className="grid grid-cols-2 gap-2 mt-2">
+          <Button type="button" variant="outline" onClick={() => onEditCourse(course)} className="h-9 rounded-xl text-xs font-semibold">
+            <Pencil className="mr-1.5 h-3.5 w-3.5" /> Sửa khóa học
+          </Button>
+          <Button type="button" variant="outline" onClick={() => onDeleteCourse(course)} className="h-9 rounded-xl border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-800 text-xs font-semibold">
+            <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Xóa khóa học
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

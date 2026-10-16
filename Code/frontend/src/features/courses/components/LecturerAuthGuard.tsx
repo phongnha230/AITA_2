@@ -23,13 +23,8 @@ export function LecturerAuthGuard({ children }: LecturerAuthGuardProps) {
     const checkAuth = async () => {
       if (typeof window === 'undefined') return;
 
-      // Check stored user first for fast hydration
-      let currentUser = authService.getStoredUser();
-
-      // If no stored user or need verification with API
-      if (!currentUser) {
-        currentUser = await authService.getCurrentUser();
-      }
+      // The backend is the source of truth for role and account status.
+      const currentUser = await authService.getCurrentUser();
 
       if (!active) return;
 
@@ -39,9 +34,13 @@ export function LecturerAuthGuard({ children }: LecturerAuthGuardProps) {
         return;
       }
 
-      // Check Role: Only LECTURER and ADMIN are permitted
-      if (currentUser.role !== 'LECTURER' && currentUser.role !== 'ADMIN') {
-        setUnauthorizedMessage('Tài khoản của bạn là Sinh viên. Trang này chỉ dành riêng cho Giảng viên và Quản trị viên.');
+      if (currentUser.role === 'ADMIN') {
+        window.location.replace('/admin/dashboard');
+        return;
+      }
+
+      if (currentUser.role !== 'LECTURER') {
+        setUnauthorizedMessage('Tài khoản của bạn là Sinh viên. Trang này chỉ dành riêng cho Giảng viên.');
         setIsChecking(false);
         redirectTimer = setTimeout(() => {
           if (active) {

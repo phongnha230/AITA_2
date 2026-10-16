@@ -38,12 +38,13 @@ export const DynamicJoinCodeCard: React.FC<DynamicJoinCodeCardProps> = ({
             </span>
             <div className="flex items-center gap-2 mt-1">
               <span className="text-xl sm:text-2xl font-black font-mono tracking-widest text-indigo-950 bg-white px-3 py-1.5 rounded-xl border border-indigo-200 shadow-xs whitespace-nowrap">
-                {joinCode}
+                {joinCode || 'Chưa tạo mã'}
               </span>
               <Button
                 variant="outline"
                 size="icon"
                 onClick={onCopyCode}
+                disabled={!joinCode}
                 className="h-10 w-10 text-indigo-600 hover:text-indigo-800 bg-white hover:bg-indigo-50 rounded-xl border-indigo-200 shadow-2xs shrink-0"
                 title="Sao chép mã"
               >
@@ -54,14 +55,14 @@ export const DynamicJoinCodeCard: React.FC<DynamicJoinCodeCardProps> = ({
 
           {/* Countdown Timer */}
           <div className="sm:border-l sm:border-indigo-200 sm:pl-5 min-w-0">
-            <span className="text-[11px] font-semibold text-slate-500 block">Thời hạn mã:</span>
+            <span className="text-[11px] font-semibold text-slate-500 block">Hiệu lực mã:</span>
             <div className="flex items-center gap-2 mt-1">
-              <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping shrink-0" />
+              <span className={`w-2 h-2 rounded-full shrink-0 ${isEnrollOpen ? 'bg-emerald-500' : 'bg-slate-300'}`} />
               <Badge
                 variant="outline"
                 className="text-xs font-bold text-rose-700 bg-rose-50 px-2.5 py-1.5 rounded-xl border-rose-200 font-mono whitespace-nowrap"
               >
-                Mã đổi sau <strong className="ml-1">{formattedCountdown}</strong>
+                {joinCode && isEnrollOpen ? <>Hết hạn sau <strong className="ml-1">{formattedCountdown}</strong></> : 'Không có mã hoạt động'}
               </Badge>
             </div>
           </div>
@@ -74,21 +75,22 @@ export const DynamicJoinCodeCard: React.FC<DynamicJoinCodeCardProps> = ({
             variant="outline"
             onClick={onRegenerateCode}
             className="h-9 px-3 rounded-xl bg-white hover:bg-indigo-50 text-indigo-700 text-xs font-bold border-indigo-200 shadow-2xs inline-flex items-center gap-1.5 whitespace-nowrap"
-            title="Đổi mã mới"
+            title={joinCode ? 'Tạo mã tham gia mới' : 'Tạo mã tham gia'}
           >
             <RefreshCw className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-            <span>Regenerate Code</span>
+            <span>{joinCode ? 'Tạo mã mới' : 'Tạo mã tham gia'}</span>
           </Button>
 
           {/* Popover QR button */}
           <Button
             variant="outline"
             onClick={onOpenQrModal}
+            disabled={!joinCode || !isEnrollOpen}
             className="h-9 px-3 rounded-xl bg-white hover:bg-indigo-50 text-indigo-700 text-xs font-bold border-indigo-200 shadow-2xs inline-flex items-center gap-1.5 whitespace-nowrap"
             title="Xem mã QR"
           >
             <QrCode className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-            <span>Chiếu Mã QR</span>
+            <span>Xem mã tham gia</span>
           </Button>
 
           {/* Nút Bật/Tắt tiếp nhận sinh viên using shadcn Switch */}

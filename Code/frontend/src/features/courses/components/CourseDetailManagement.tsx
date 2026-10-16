@@ -32,6 +32,8 @@ export const CourseDetailManagement: React.FC<CourseDetailManagementProps> = ({
   const router = useRouter();
   const {
     course,
+    loading: courseLoading,
+    error: courseError,
     joinCode,
     formattedCountdown,
     isEnrollOpen,
@@ -41,13 +43,11 @@ export const CourseDetailManagement: React.FC<CourseDetailManagementProps> = ({
     setStudentSearch,
     studentStatusFilter,
     setStudentStatusFilter,
-    isShowingEmptyStateDemo,
     filteredEnrollments,
     regenerateCode,
     copyCodeToClipboard,
     toggleEnrollmentStatus,
     removeStudent,
-    toggleEmptyStateDemo,
   } = useCourseDetail({
     courseId: initialCourse.id,
     initialCourse,
@@ -63,10 +63,10 @@ export const CourseDetailManagement: React.FC<CourseDetailManagementProps> = ({
   const handleTriggerHandoff = (type: 'ASSIGNMENT' | 'PE_EXAM') => {
     if (type === 'ASSIGNMENT') {
       onShowToast("Đang chuyển tiếp sang Module 'Tạo Assignment'...");
-      router.push(`/exam-bank/create?courseId=${activeCourse.id}&type=ASSIGNMENT`);
+      router.push(`/exam-bank/create?courseId=${encodeURIComponent(activeCourse.id)}&type=ASSIGNMENT`);
     } else {
       onShowToast("Đang chuyển tiếp sang Module 'Tạo Đề Thi PE'...");
-      router.push(`/exam-bank/create?courseId=${activeCourse.id}&courseCode=${activeCourse.code}`);
+      router.push(`/exam-bank/create?courseId=${encodeURIComponent(activeCourse.id)}&type=PE_EXAM`);
     }
   };
 
@@ -93,7 +93,7 @@ export const CourseDetailManagement: React.FC<CourseDetailManagementProps> = ({
               variant="outline"
               className="px-2.5 py-0.5 rounded-lg text-xs font-extrabold font-mono bg-indigo-50 text-indigo-700 border-indigo-200 shrink-0"
             >
-              {activeCourse.code} • SE19C
+              {activeCourse.code}
             </Badge>
             <Badge
               variant={activeCourse.isActive ? 'default' : 'secondary'}
@@ -108,7 +108,7 @@ export const CourseDetailManagement: React.FC<CourseDetailManagementProps> = ({
           </div>
 
           <p className="text-xs text-slate-500 break-words leading-relaxed">
-            Giảng viên: <strong>{activeCourse.lecturer?.fullName || 'TS. Nguyễn Văn Điệp'}</strong> • Học kỳ: <strong>{activeCourse.semester}</strong> • Phòng: <strong>{activeCourse.room || 'AL-L402'}</strong>
+            Giảng viên: <strong>{activeCourse.lecturer?.fullName || 'Chưa phân công'}</strong> • Học kỳ: <strong>{activeCourse.semester}</strong> • Phòng: <strong>{activeCourse.room || 'Chưa cập nhật'}</strong>
           </p>
         </div>
 
@@ -160,6 +160,13 @@ export const CourseDetailManagement: React.FC<CourseDetailManagementProps> = ({
         </div>
       </Card>
 
+      {courseLoading && (
+        <p role="status" className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">Đang tải thông tin và danh sách sinh viên…</p>
+      )}
+      {courseError && (
+        <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">Không thể tải dữ liệu mới nhất của khóa học: {courseError}</p>
+      )}
+
 
       {/* CỤM TAB: Phân đoạn Roster và Teams */}
       <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
@@ -205,20 +212,18 @@ export const CourseDetailManagement: React.FC<CourseDetailManagementProps> = ({
 
           {/* CỤM 3: Thông số khóa học (Spacious Vertical Layout) */}
           <CourseTelemetryStats
-            enrolledCount={activeCourse.enrolledStudentsCount || activeCourse._count?.enrollments || 38}
-            capacity={activeCourse.capacity || 40}
-            attendanceRate={94.5}
+            enrolledCount={course?.enrollments?.length ?? activeCourse.enrollmentCount ?? activeCourse._count?.enrollments ?? 0}
+            capacity={activeCourse.capacity}
           />
 
           {/* CỤM 4: Danh sách sinh viên tham gia */}
           <EnrolledStudentsTable
             enrollments={filteredEnrollments}
+            courseCode={activeCourse.code}
             studentSearch={studentSearch}
             onSearchChange={setStudentSearch}
             statusFilter={studentStatusFilter}
             onStatusFilterChange={setStudentStatusFilter}
-            isShowingEmptyStateDemo={isShowingEmptyStateDemo}
-            onToggleEmptyStateDemo={toggleEmptyStateDemo}
             joinCode={joinCode}
             onRemoveStudent={removeStudent}
             onShowToast={onShowToast}
