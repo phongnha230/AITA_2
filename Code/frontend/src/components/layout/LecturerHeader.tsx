@@ -23,7 +23,7 @@ export const LecturerHeader: React.FC<LecturerHeaderProps> = ({
   const getBreadcrumbTitle = () => {
     if (isOverviewActive) return 'Tổng quan khóa học';
     if (isExamBankActive) return 'Ngân hàng đề & Testcase PE';
-    if (isLiveProctoringActive) return 'Phòng thi trực tiếp';
+    if (isLiveProctoringActive) return 'Quản lý ca thi';
     return 'Bàn làm việc Giảng viên';
   };
 

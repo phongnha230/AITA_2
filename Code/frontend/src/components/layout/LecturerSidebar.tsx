@@ -82,7 +82,7 @@ export const LecturerSidebar: React.FC<LecturerSidebarProps> = ({
                 <span className="font-extrabold text-base tracking-tight text-white block group-hover:text-indigo-200 transition">
                   AITA System
                 </span>
-                <span className="text-[11px] text-slate-400 font-medium">SWD392 FPT • SE19C</span>
+                <span className="text-[11px] text-slate-400 font-medium">Cổng giảng viên</span>
               </div>
             </Link>
             <button
@@ -147,15 +147,11 @@ export const LecturerSidebar: React.FC<LecturerSidebarProps> = ({
               <div className="flex items-center gap-3">
                 <Radio
                   className={`w-4 h-4 shrink-0 ${
-                    isLiveProctoringActive ? 'text-white' : 'text-emerald-400 group-hover:text-emerald-300'
+                  isLiveProctoringActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'
                   }`}
                 />
-                <span>Phòng thi trực tiếp</span>
+                <span>Quản lý ca thi</span>
               </div>
-              <span className="flex h-2 w-2 relative">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500" />
-              </span>
             </Link>
 
             <button
@@ -177,18 +173,12 @@ export const LecturerSidebar: React.FC<LecturerSidebarProps> = ({
                 <Cpu className="w-3.5 h-3.5 text-emerald-400" />
                 <span>Docker Sandbox</span>
               </div>
-              <span className="text-[10px] font-bold text-emerald-300 bg-emerald-950/80 px-1.5 py-0.5 rounded border border-emerald-800/60">
-                99.9% Ready
+              <span className="text-[10px] font-bold text-slate-300 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-700/60">
+                Chưa kiểm tra
               </span>
-            </div>
-            <div className="w-full bg-slate-700/60 rounded-full h-1.5 mb-1.5 overflow-hidden">
-              <div className="bg-emerald-400 h-1.5 rounded-full w-[99.9%]" />
             </div>
             <div className="flex items-center justify-between text-[10px] text-slate-400">
-              <span>Hạ tầng: Sẵn sàng</span>
-              <span className="text-indigo-400 flex items-center gap-0.5 font-medium">
-                Kiosk On
-              </span>
+              <span>Chưa có trạng thái Docker trực tiếp</span>
             </div>
           </div>
 
@@ -205,7 +195,7 @@ export const LecturerSidebar: React.FC<LecturerSidebarProps> = ({
                   {currentUser?.fullName || 'Giảng viên AITA'}
                 </p>
                 <p className="text-[11px] text-slate-400 font-mono truncate">
-                  {currentUser?.email || 'lecturer@fpt.edu.vn'}
+                  {currentUser?.email || 'Chưa cập nhật email'}
                 </p>
               </div>
             </div>

@@ -1,42 +1,38 @@
-export type RoomStatus = 'LIVE' | 'UPCOMING' | 'COMPLETED';
+export type ExamSessionStatus = 'LIVE' | 'UPCOMING' | 'PAUSED' | 'COMPLETED';
 
-export type StationStatus = 'working' | 'submitted' | 'compiling' | 'warning';
-
-export interface StudentExamStation {
+export interface ExamSession {
   id: string;
-  pcNumber: string;
-  studentName: string;
-  studentCode: string;
-  initials: string;
-  status: StationStatus;
-  startTime: string;
-  submittedAt?: string;
-  score?: number;
-  passedCases: number;
-  totalCases: number;
-  testAttempts: number;
-  maxAttempts: number;
-  currentProblem: string;
-  warningNote?: string;
-}
-
-export interface ExamRoom {
-  id: string;
-  name: string;
-  building: string;
-  capacity: number;
+  assignmentId: string;
+  title: string;
+  courseId: string;
   courseCode: string;
   courseName: string;
-  examTitle: string;
-  assignmentId?: string;
-  sessionTime: string;
-  proctorName: string;
-  status: RoomStatus;
-  durationSeconds: number;
-  secondsLeft: number;
-  totalStudents: number;
+  semester: string;
+  status: ExamSessionStatus;
+  assignmentStatus: 'DRAFT' | 'PUBLISHED' | 'PAUSED' | 'CLOSED' | 'ARCHIVED';
+  startTime: string;
+  deadline: string;
+  durationMinutes: number | null;
+  pausedAt: string | null;
+  secondsLeft: number | null;
+  enrolledStudents: number;
+  unlockedStudents: number;
   submittedStudents: number;
-  workingStudents: number;
-  averageScore?: number;
-  kioskLockEnabled: boolean;
+}
+
+export interface ExamSessionSubmission {
+  id: string;
+  studentId: string;
+  studentName: string;
+  studentCode: string | null;
+  status: string;
+  submittedAt: string;
+  score: number | null;
+}
+
+export interface ExamSessionStudentAccess {
+  studentId: string;
+  studentName: string;
+  studentCode: string | null;
+  unlockedAt: string;
 }

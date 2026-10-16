@@ -1,112 +1,96 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Radio } from 'lucide-react';
-import { MOCK_EXAM_ROOMS } from '../services/proctoring.data';
-import type { ExamRoom, RoomStatus } from '../types/proctoring.types';
+import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { CalendarClock, CheckCircle2, Clock3, Search, Users } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { assignmentService } from '@/features/assignments/services/assignment.service';
-import { RoomCardItem } from './RoomCardItem';
-import { RoomListKpiSection } from './RoomListKpiSection';
-import { RoomListFilterSection } from './RoomListFilterSection';
+import type { ExamSession } from '../types/proctoring.types';
+
+const formatDate = (value: string) => new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+const statusLabel: Record<ExamSession['status'], string> = { LIVE: 'Đang diễn ra', UPCOMING: 'Sắp diễn ra', PAUSED: 'Đang tạm dừng', COMPLETED: 'Đã kết thúc' };
 
 export function RoomListDashboard() {
-  const [rooms, setRooms] = useState<ExamRoom[]>(MOCK_EXAM_ROOMS);
-  const [filterStatus, setFilterStatus] = useState<'ALL' | RoomStatus>('ALL');
+  const [sessions, setSessions] = useState<ExamSession[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load real proctoring sessions from database
   useEffect(() => {
-    let isMounted = true;
-    const loadData = async () => {
-      try {
-        const roomList = await assignmentService.getProctoringRooms();
-        if (isMounted && roomList && roomList.length > 0) {
-          setRooms(roomList);
-        }
-      } catch (err) {
-        console.error('Lỗi khi nạp danh sách ca thi từ CSDL:', err);
-      }
-    };
-    loadData();
-    return () => {
-      isMounted = false;
-    };
+    let active = true;
+    const loadSessions = () => assignmentService.getProctoringRooms()
+      .then((data) => active && setSessions(data))
+      .catch((cause: unknown) => {
+        console.error('Không tải được danh sách ca thi:', cause);
+        if (active) setError('Không tải được ca thi. Hãy thử tải lại trang.');
+      })
+      .finally(() => active && setLoading(false));
+    void loadSessions();
+    const refreshTimer = window.setInterval(() => { void loadSessions(); }, 30_000);
+    return () => { active = false; window.clearInterval(refreshTimer); };
   }, []);
 
-  const filteredRooms = rooms.filter((room) => {
-    const matchesFilter = filterStatus === 'ALL' || room.status === filterStatus;
-    const matchesSearch =
-      room.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      room.building.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      room.courseCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      room.examTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      room.proctorName.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesFilter && matchesSearch;
-  });
-
-  const totalLiveRooms = rooms.filter((r) => r.status === 'LIVE').length;
-  const totalStudents = rooms
-    .filter((r) => r.status === 'LIVE')
-    .reduce((acc, cur) => acc + cur.totalStudents, 0);
-  const totalSubmitted = rooms
-    .filter((r) => r.status === 'LIVE')
-    .reduce((acc, cur) => acc + cur.submittedStudents, 0);
-  const submissionRate =
-    totalStudents > 0 ? Math.round((totalSubmitted / totalStudents) * 100) : 0;
+  const filteredSessions = useMemo(() => {
+    const query = searchTerm.trim().toLocaleLowerCase('vi');
+    if (!query) return sessions;
+    return sessions.filter((session) => `${session.title} ${session.courseCode} ${session.courseName}`.toLocaleLowerCase('vi').includes(query));
+  }, [sessions, searchTerm]);
+  const liveCount = sessions.filter((session) => session.status === 'LIVE').length;
+  const submitted = sessions.reduce((sum, session) => sum + session.submittedStudents, 0);
+  const unlocked = sessions.reduce((sum, session) => sum + session.unlockedStudents, 0);
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto font-sans pb-24">
-      {/* 1. Header & Title Banner */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-indigo-200/80 bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
-            <Radio className="h-3.5 w-3.5 text-indigo-600 animate-pulse" />
-            <span>Trung tâm Khảo thí Trực tuyến AITA</span>
-          </div>
-          <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
-            Giám sát Ca thi Trực tiếp (Live Exam Monitor)
-          </h1>
-          <p className="mt-1 text-sm text-slate-600">
-            Theo dõi tất cả các Ca thi PE của các môn học đang diễn ra. Bấm vào ca thi để vào màn hình quan sát máy thi của sinh viên theo thời gian thực.
-          </p>
-        </div>
+    <main className="mx-auto max-w-7xl space-y-6 p-4 pb-24 sm:p-6 lg:p-8">
+      <header>
+        <p className="text-xs font-bold uppercase tracking-wider text-indigo-600">Khóa học · Ca thi</p>
+        <h1 className="mt-1 text-2xl font-extrabold text-slate-900 sm:text-3xl">Quản lý ca thi</h1>
+        <p className="mt-2 text-sm text-slate-600">Mỗi đề thi là một ca riêng. Lịch, lượt mở đề và bài nộp tự làm mới mỗi 30 giây.</p>
+      </header>
+
+      <section className="grid gap-4 sm:grid-cols-3" aria-label="Tổng quan ca thi">
+        <Metric icon={<CalendarClock />} label="Ca đang diễn ra" value={liveCount} />
+        <Metric icon={<Users />} label="Lượt mở đề" value={unlocked} />
+        <Metric icon={<CheckCircle2 />} label="Bài đã nộp" value={submitted} />
+      </section>
+
+      <div className="relative max-w-lg">
+        <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+        <Input value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="Tìm theo đề thi hoặc khóa học" className="h-10 bg-white pl-9" />
       </div>
 
-      {/* 2. KPI Metrics Bar */}
-      <RoomListKpiSection
-        totalLiveRooms={totalLiveRooms}
-        totalStudents={totalStudents}
-        submissionRate={submissionRate}
-        totalSubmitted={totalSubmitted}
-      />
-
-      {/* 3. Filters & Search Controls */}
-      <RoomListFilterSection
-        filterStatus={filterStatus}
-        setFilterStatus={setFilterStatus}
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        rooms={rooms}
-      />
-
-      {/* 4. Rooms Grid */}
-      {filteredRooms.length === 0 ? (
-        <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-white p-12 text-center shadow-xs">
-          <Radio className="mx-auto h-12 w-12 text-slate-300" />
-          <h3 className="mt-4 text-sm font-bold text-slate-900">Không tìm thấy ca thi nào</h3>
-          <p className="mt-1 text-xs text-slate-500">
-            {searchTerm
-              ? `Không có kết quả nào phù hợp với "${searchTerm}"`
-              : 'Thử thay đổi từ khóa tìm kiếm hoặc bấm tab "Tất cả ca thi" để kiểm tra.'}
-          </p>
+      {loading ? <p className="rounded-xl border bg-white p-8 text-center text-sm text-slate-500">Đang tải ca thi…</p> : null}
+      {error ? <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{error}</p> : null}
+      {!loading && !error && filteredSessions.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center">
+          <CalendarClock className="mx-auto h-9 w-9 text-slate-400" />
+          <h2 className="mt-3 font-semibold text-slate-800">Chưa có ca thi phù hợp</h2>
+          <p className="mt-1 text-sm text-slate-500">Các đề thi đã tạo trong khóa học sẽ xuất hiện tại đây.</p>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {filteredRooms.map((room) => (
-            <RoomCardItem key={room.id} room={room} />
-          ))}
-        </div>
-      )}
-    </div>
+      ) : null}
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {filteredSessions.map((session) => (
+          <Link key={session.id} href={`/live-proctoring/${session.assignmentId}`} className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-md">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-indigo-700">{session.courseCode} · {session.semester}</p>
+                <h2 className="mt-1 line-clamp-2 font-bold text-slate-900 group-hover:text-indigo-700">{session.title}</h2>
+                <p className="mt-1 text-sm text-slate-500">{session.courseName}</p>
+              </div>
+              <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${session.status === 'LIVE' ? 'bg-emerald-50 text-emerald-700' : session.status === 'PAUSED' ? 'bg-amber-50 text-amber-700' : session.status === 'UPCOMING' ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>{statusLabel[session.status]}</span>
+            </div>
+            <div className="mt-5 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4 text-xs">
+              <p className="flex items-center gap-1.5 text-slate-600"><Clock3 className="h-3.5 w-3.5" />{formatDate(session.startTime)}</p>
+              <p className="text-right text-slate-600">{session.durationMinutes ?? '—'} phút</p>
+              <p className="text-slate-500">Mở đề: <strong className="text-slate-800">{session.unlockedStudents}/{session.enrolledStudents}</strong></p>
+              <p className="text-right text-slate-500">Đã nộp: <strong className="text-slate-800">{session.submittedStudents}</strong></p>
+            </div>
+          </Link>
+        ))}
+      </section>
+    </main>
   );
+}
+
+function Metric({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
+  return <div className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5"><span className="rounded-xl bg-indigo-50 p-3 text-indigo-600">{icon}</span><div><p className="text-xs text-slate-500">{label}</p><p className="text-2xl font-extrabold text-slate-900">{value}</p></div></div>;
 }
