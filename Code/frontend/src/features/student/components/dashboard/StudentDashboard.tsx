@@ -22,6 +22,10 @@ export function StudentDashboard() {
   const completedExamCount = dashboard.assignments.status === 'success'
     ? dashboard.completedAssignments.length
     : null;
+  const portfolioData = dashboard.portfolio.status === 'success' ? dashboard.portfolio.data : null;
+  const gradedSubmissionCount = portfolioData
+    ? portfolioData.academicStats.passedCount + portfolioData.academicStats.failedCount
+    : null;
 
   return (
     <div className="space-y-6">
@@ -33,7 +37,7 @@ export function StudentDashboard() {
             {dashboard.profile?.fullName ? `Xin chào, ${dashboard.profile.fullName}! 👋` : 'Tổng quan &amp; Lớp học'}
           </h1>
           <p className="mt-1 text-xs text-slate-500 sm:text-sm">
-            Theo dõi tiến độ các lớp học, lịch thi thực hành PE và trạng thái bài nộp tự động.
+            Theo dõi lớp học, lịch bài tập và thi, cùng trạng thái bài nộp tự động.
           </p>
         </div>
       </section>
@@ -57,8 +61,11 @@ export function StudentDashboard() {
         courseCount={courseCount}
         upcomingExamCount={upcomingExamCount}
         completedExamCount={completedExamCount}
+        averageScore={portfolioData?.academicStats.averageScore ?? null}
+        gradedSubmissionCount={gradedSubmissionCount}
         coursesLoading={dashboard.courses.status === 'loading'}
         examsLoading={dashboard.assignments.status === 'loading'}
+        portfolioLoading={dashboard.portfolio.status === 'loading'}
       />
 
       {/* Main Grid */}
@@ -81,10 +88,7 @@ export function StudentDashboard() {
         {/* Right Column (1 col) */}
         <aside aria-label="Thông tin học tập bổ sung" className="space-y-6">
           <PracticeSandbox state={dashboard.sandbox} onRetry={dashboard.retrySandbox} />
-          <RecentActivity
-            courses={dashboard.courses.data}
-            upcomingAssignments={dashboard.upcomingAssignments}
-          />
+          <RecentActivity state={dashboard.portfolio} onRetry={dashboard.retryPortfolio} />
         </aside>
       </div>
 

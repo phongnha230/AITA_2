@@ -1,70 +1,82 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, BookOpen, CalendarClock, History } from 'lucide-react';
-import type { StudentAssignment, StudentCourse } from '../../types/student.types';
+import { ArrowRight, Clock3, FileText, RefreshCw } from 'lucide-react';
+import { formatDateTime } from '@/lib/formatDate';
+import type { ResourceState, StudentPortfolioData } from '../../types/student.types';
 
 interface RecentActivityProps {
-  courses?: StudentCourse[];
-  upcomingAssignments?: StudentAssignment[];
+  state: ResourceState<StudentPortfolioData | null>;
+  onRetry: () => void;
 }
 
-export function RecentActivity({ courses = [], upcomingAssignments = [] }: RecentActivityProps) {
-  const hasCourses = courses.length > 0;
-  const hasExams = upcomingAssignments.length > 0;
-  const hasAnyActivity = hasCourses || hasExams;
+function getSubmissionStatusLabel(status: string): string {
+  if (status === 'GRADED') return 'Đã chấm';
+  if (status === 'FAILED') return 'Chấm thất bại';
+  if (status === 'PROCESSING' || status === 'RUNNING') return 'Đang chấm';
+  return 'Đang chờ chấm';
+}
+
+export function RecentActivity({ state, onRetry }: RecentActivityProps) {
+  const submissions = state.data?.recentSubmissions ?? [];
 
   return (
     <section
-      aria-label="Hoạt động học tập"
+      aria-label="Bài nộp gần đây"
       className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-elevated"
     >
       <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 ring-1 ring-slate-200/80">
-          <History aria-hidden="true" className="h-5 w-5" />
+          <Clock3 aria-hidden="true" className="h-5 w-5" />
         </span>
         <div>
-          <h2 className="text-base font-bold text-slate-900">Hoạt động học tập</h2>
-          <p className="mt-0.5 text-xs text-slate-500">Cập nhật gần nhất từ hệ thống đào tạo</p>
+          <h2 className="text-base font-bold text-slate-900">Bài nộp gần đây</h2>
+          <p className="mt-0.5 text-xs text-slate-500">Trạng thái và kết quả từ hệ thống chấm bài</p>
         </div>
       </div>
 
       <div className="mt-4">
-        {!hasAnyActivity ? (
+        {state.status === 'loading' ? (
+          <div className="space-y-2" role="status" aria-label="Đang tải bài nộp">
+            {[0, 1].map((item) => <div key={item} className="h-16 animate-pulse rounded-xl bg-slate-100" />)}
+          </div>
+        ) : state.status === 'error' ? (
+          <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+            <p>{state.error || 'Không thể tải bài nộp gần đây.'}</p>
+            <button type="button" onClick={onRetry} className="mt-2 inline-flex items-center gap-1 font-semibold hover:underline">
+              <RefreshCw aria-hidden="true" className="h-3 w-3" /> Thử lại
+            </button>
+          </div>
+        ) : submissions.length === 0 ? (
           <div className="rounded-xl border border-dashed border-slate-200/90 bg-slate-50/60 px-4 py-6 text-center">
-            <p className="text-xs font-bold text-slate-700">Chưa có hoạt động bài nộp gần đây.</p>
+            <p className="text-xs font-bold text-slate-700">Chưa có bài nộp.</p>
             <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
-              Lịch sử nộp bài và kết quả đánh giá sẽ xuất hiện tại đây khi bạn hoàn thành bài thi.
+              Bài nộp và trạng thái chấm sẽ xuất hiện tại đây.
             </p>
           </div>
         ) : (
           <ul className="space-y-2.5">
-            {courses.slice(0, 2).map((course) => (
-              <li
-                key={course.id}
-                className="flex items-start gap-2.5 rounded-xl border border-slate-100 bg-slate-50/50 p-3 text-xs transition-colors hover:bg-slate-50"
-              >
-                <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
-                  <BookOpen className="h-3.5 w-3.5" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="font-bold text-slate-800 truncate">{course.name}</p>
-                  <p className="text-[11px] text-slate-500">Mã lớp: {course.code} · {course.semester}</p>
-                </div>
-              </li>
-            ))}
-            {upcomingAssignments.slice(0, 1).map((exam) => (
-              <li
-                key={exam.id}
-                className="flex items-start gap-2.5 rounded-xl border border-slate-100 bg-slate-50/50 p-3 text-xs transition-colors hover:bg-slate-50"
-              >
-                <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
-                  <CalendarClock className="h-3.5 w-3.5" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="font-bold text-slate-800 truncate">{exam.title}</p>
-                  <p className="text-[11px] text-slate-500">Kỳ thi PE sắp diễn ra</p>
-                </div>
+            {submissions.slice(0, 3).map((submission) => (
+              <li key={submission.id}>
+                <Link
+                  href={`/student/results?submissionId=${encodeURIComponent(submission.id)}`}
+                  className="flex min-h-16 items-start gap-2.5 rounded-xl border border-slate-100 bg-slate-50/50 p-3 text-xs transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                >
+                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
+                    <FileText aria-hidden="true" className="h-3.5 w-3.5" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-bold text-slate-800">{submission.assignmentTitle}</span>
+                    <span className="mt-1 block text-[11px] text-slate-500">
+                      {submission.courseCode} · {formatDateTime(submission.submittedAt)}
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-right text-[11px] font-semibold text-slate-600">
+                    {submission.status === 'GRADED' && Number.isFinite(Number(submission.finalScore))
+                      ? `${Number(submission.finalScore).toFixed(1)} điểm`
+                      : getSubmissionStatusLabel(submission.status)}
+                  </span>
+                </Link>
               </li>
             ))}
           </ul>
@@ -76,7 +88,7 @@ export function RecentActivity({ courses = [], upcomingAssignments = [] }: Recen
           href="/student/results"
           className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 transition-colors hover:text-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
         >
-          <span>Xem chi tiết kết quả &amp; bài nộp</span>
+          <span>Xem tất cả bài nộp</span>
           <ArrowRight aria-hidden="true" className="h-3.5 w-3.5" />
         </Link>
       </div>

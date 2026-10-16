@@ -62,17 +62,9 @@ export class PrismaDashboardRepository implements IDashboardRepository {
       color: envLabelMap[env.environment]?.color || '#64748b',
     }));
 
-    if (languageDistribution.length === 0) {
-      languageDistribution.push(
-        { name: 'Java (JDK 21 - OOP/DSA)', value: 195, color: '#2563eb' },
-        { name: 'C / C++ (GCC 13 - PRF192)', value: 148, color: '#06b6d4' },
-        { name: 'Node.js (Backend)', value: 85, color: '#10b981' }
-      );
-    }
-
     const submissionOutcomes = [
       {
-        name: 'Passed (Hoàn tất)',
+        name: 'Đã chấm',
         value: completedSubmissions,
         color: '#10b981',
       },
@@ -116,155 +108,6 @@ export class PrismaDashboardRepository implements IDashboardRepository {
       finalScore: Number(sub.finalScore),
     }));
 
-    // Real liveSessions from active courses
-    const activeCourses = await this.prisma.course.findMany({
-      where: { isActive: true },
-      take: 6,
-      include: {
-        lecturer: { select: { fullName: true } },
-        enrollments: { select: { id: true } },
-        assignments: {
-          select: {
-            id: true,
-            title: true,
-            deadline: true,
-            submissions: { select: { id: true, status: true } },
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    const liveSessions = activeCourses.map((c, i) => {
-      const totalStudents = c.enrollments.length;
-      let totalSubs = 0;
-      for (const a of c.assignments) {
-        totalSubs += a.submissions.length;
-      }
-      const pct = totalStudents > 0 ? Math.min(100, Math.round((totalSubs / totalStudents) * 100)) : (totalSubs > 0 ? 100 : 0);
-      const roomNum = 301 + (i % 6);
-      return {
-        code: c.code,
-        subject: c.name,
-        room: `LAB ${roomNum}`,
-        proctor: c.lecturer?.fullName || 'Giảng viên phụ trách',
-        badge: pct > 0 ? 'Đang làm bài' : 'Chờ mở đề',
-        badgeTone: pct > 0 ? ('student' as const) : ('neutral' as const),
-        progressLabel: `${totalStudents} thí sinh / sinh viên`,
-        progressValue: `Nộp bài: ${totalSubs}/${totalStudents || (totalSubs || 1)} (${pct}%)`,
-        percent: pct,
-        barColor: pct > 75 ? 'bg-emerald-600' : 'bg-blue-600',
-      };
-    });
-
-    // Real opsEvents from recent jobs and submissions
-    const recentJobs = await this.prisma.gradingJob.findMany({
-      take: 5,
-      orderBy: { queuedAt: 'desc' },
-      include: {
-        submission: {
-          select: {
-            user: { select: { fullName: true, studentCode: true } },
-            assignment: { select: { title: true, course: { select: { code: true } } } },
-          },
-        },
-      },
-    });
-
-    const opsEvents: any[] = [];
-    for (const job of recentJobs) {
-      const timeStr = job.queuedAt.toLocaleTimeString('vi-VN');
-      const studentName = job.submission?.user?.fullName || 'Sinh viên';
-      const courseCode = job.submission?.assignment?.course?.code || 'PE';
-      if (job.status === 'COMPLETED') {
-        opsEvents.push({
-          time: timeStr,
-          level: 'Success',
-          subsystem: 'Sandbox Worker',
-          message: `Chấm điểm hoàn tất bài thi ${courseCode} cho sinh viên ${studentName}.`,
-          status: 'Hoàn tất',
-          action: 'Xem kết quả',
-        });
-      } else if (job.status === 'FAILED') {
-        opsEvents.push({
-          time: timeStr,
-          level: 'Warning',
-          subsystem: 'Sandbox Worker',
-          message: `Bài thi ${courseCode} của sinh viên ${studentName} gặp lỗi ${job.errorStage || 'thực thi'}.`,
-          status: 'Cần kiểm tra',
-          action: 'Xem Terminal',
-        });
-      } else {
-        opsEvents.push({
-          time: timeStr,
-          level: 'Info',
-          subsystem: 'BullMQ Queue',
-          message: `Job bài thi ${courseCode} của ${studentName} đang trong hàng đợi xử lý.`,
-          status: 'Đang chấm',
-          action: 'Xem Queue',
-        });
-      }
-    }
-
-    if (opsEvents.length < 4) {
-      opsEvents.push({
-        time: new Date().toLocaleTimeString('vi-VN'),
-        level: 'Info',
-        subsystem: 'AI Router Engine',
-        message: `Hệ thống AI Key Pool phân tải tự động với ${activeAiKeys}/${totalAiKeys} khóa hoạt động.`,
-        status: 'Online',
-        action: 'Xem AI Keys',
-      });
-      opsEvents.push({
-        time: new Date().toLocaleTimeString('vi-VN'),
-        level: 'Success',
-        subsystem: 'Hạ tầng Sandbox',
-        message: `Cụm máy chủ Docker Sandbox cách ly Seccomp sẵn sàng tiếp nhận bài thi.`,
-        status: 'Active',
-        action: 'Xem Nodes',
-      });
-      opsEvents.push({
-        time: new Date().toLocaleTimeString('vi-VN'),
-        level: 'Success',
-        subsystem: 'Đồng bộ FAP',
-        message: `Đã kết nối cơ sở dữ liệu người dùng: ${totalUsers} tài khoản (${totalStudents} sinh viên).`,
-        status: 'Đồng bộ',
-        action: 'Danh sách SV',
-      });
-    }
-
-    const roomClusterLoad = activeCourses.slice(0, 4).map((c, i) => {
-      const roomNum = 301 + (i % 6);
-      let subCount = 0;
-      for (const a of c.assignments) subCount += a.submissions.length;
-      return {
-        label: `LAB ${roomNum}`,
-        value: subCount || (c.enrollments.length > 0 ? c.enrollments.length : 15),
-        secondaryValue: Math.min(100, Math.round(((c.enrollments.length || 20) / 40) * 100)),
-        subLabel: `${c.code} (${c.name})`,
-      };
-    });
-
-    const hourlyThroughput = {
-      labels: ['07:00', '09:00 (Ca 1)', '11:00', '13:30 (Ca 2)', '15:00', 'Hiện tại'],
-      submissions: [
-        Math.max(1, Math.round(totalSubmissions * 0.1)),
-        Math.max(2, Math.round(totalSubmissions * 0.25)),
-        Math.max(3, Math.round(totalSubmissions * 0.45)),
-        Math.max(4, Math.round(totalSubmissions * 0.7)),
-        Math.max(5, Math.round(totalSubmissions * 0.9)),
-        totalSubmissions,
-      ],
-      aiCalls: [
-        Math.max(1, Math.round(completedSubmissions * 0.1)),
-        Math.max(2, Math.round(completedSubmissions * 0.25)),
-        Math.max(2, Math.round(completedSubmissions * 0.4)),
-        Math.max(3, Math.round(completedSubmissions * 0.65)),
-        Math.max(4, Math.round(completedSubmissions * 0.85)),
-        completedSubmissions,
-      ],
-    };
-
     return {
       kpis: {
         totalUsers,
@@ -283,10 +126,6 @@ export class PrismaDashboardRepository implements IDashboardRepository {
       submissionOutcomes,
       languageDistribution,
       recentSubmissions,
-      liveSessions,
-      opsEvents,
-      roomClusterLoad,
-      hourlyThroughput,
     };
   }
 
