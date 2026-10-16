@@ -4,7 +4,7 @@ import { NotFoundError, ForbiddenError } from '../../../../shared/domain/excepti
 export class GetAssignmentDetailUseCase {
   constructor(private readonly assignmentRepository: IAssignmentRepository) {}
 
-  async execute(assignmentId: string, userRole?: string, accessCode?: string) {
+  async execute(assignmentId: string, userRole?: string, _accessCode?: string) {
     const isLecturerOrAdmin = userRole === 'LECTURER' || userRole === 'ADMIN';
     const assignment = await this.assignmentRepository.findDetailedById(assignmentId, isLecturerOrAdmin);
 
@@ -18,36 +18,19 @@ export class GetAssignmentDetailUseCase {
         throw new ForbiddenError('Đề thi này chưa được công bố (DRAFT).');
       }
 
-      // 2. Kiểm tra Passcode mở đề
-      if (assignment.accessCode) {
-        const isUnlocked = accessCode && accessCode.trim() === assignment.accessCode.trim();
-        if (!isUnlocked) {
-          return {
-            id: assignment.id,
-            courseId: assignment.courseId,
-            title: assignment.title,
-            environment: assignment.environment,
-            startTime: assignment.startTime,
-            deadline: assignment.deadline,
-            durationMinutes: assignment.durationMinutes,
-            status: assignment.status,
-            hasAccessCode: true,
-            isLocked: true,
-            message: 'Đề thi yêu cầu mã mở đề (Passcode). Vui lòng nhập mã để xem nội dung đề thi.',
-            course: assignment.course,
-          };
-        }
-      }
     }
 
+    const { accessCode, pdfFilePath, starterCodePath, ...safeAssignment } = assignment;
     return {
-      ...assignment,
+      ...safeAssignment,
       functionalMaxScore: Number(assignment.functionalMaxScore),
       algorithmMaxScore: Number(assignment.algorithmMaxScore),
       cleanCodeMaxScore: Number(assignment.cleanCodeMaxScore),
       hasAccessCode: Boolean(assignment.accessCode),
+      hasPdf: Boolean(pdfFilePath),
+      hasStarterCode: Boolean(starterCodePath),
       isLocked: false,
-      accessCode: isLecturerOrAdmin ? assignment.accessCode : undefined,
+      ...(isLecturerOrAdmin ? { accessCode, pdfFilePath, starterCodePath } : {}),
     };
   }
 }

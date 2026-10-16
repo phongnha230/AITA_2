@@ -161,6 +161,35 @@ export const studentService = {
     return response.data.data;
   },
 
+  async unlockExam(id: string, accessCode: string): Promise<{
+    assignmentId: string; status: 'UPCOMING' | 'OPEN' | 'PAUSED' | 'ENDED' | 'CLOSED';
+    assignmentStatus: string; startTime: string; deadline: string; durationMinutes: number | null;
+  }> {
+    const response = await api.post<ApiResponse<{
+      assignmentId: string; status: 'UPCOMING' | 'OPEN' | 'PAUSED' | 'ENDED' | 'CLOSED';
+      assignmentStatus: string; startTime: string; deadline: string; durationMinutes: number | null;
+    }>>(`/assignments/${encodeURIComponent(id)}/unlock`, { accessCode });
+    if (!response.data.data) throw new Error('Không nhận được trạng thái ca thi.');
+    return response.data.data;
+  },
+
+  async getExamSession(id: string): Promise<{
+    assignmentId: string; status: 'UPCOMING' | 'OPEN' | 'PAUSED' | 'ENDED' | 'CLOSED';
+    assignmentStatus: string; startTime: string; deadline: string; durationMinutes: number | null;
+  }> {
+    const response = await api.get<ApiResponse<{
+      assignmentId: string; status: 'UPCOMING' | 'OPEN' | 'PAUSED' | 'ENDED' | 'CLOSED';
+      assignmentStatus: string; startTime: string; deadline: string; durationMinutes: number | null;
+    }>>(`/assignments/${encodeURIComponent(id)}/session`);
+    if (!response.data.data) throw new Error('Không nhận được trạng thái ca thi.');
+    return response.data.data;
+  },
+
+  async downloadExamPdf(id: string): Promise<Blob> {
+    const response = await api.get<Blob>(`/assignments/${encodeURIComponent(id)}/files/pdf`, { responseType: 'blob' });
+    return response.data;
+  },
+
   async getAssignmentTestCases(id: string): Promise<import('../types/student.types').AssignmentTestCase[]> {
     const response = await api.get<ApiResponse<import('../types/student.types').AssignmentTestCase[]>>(`/assignments/${encodeURIComponent(id)}/testcases`);
     return response.data.data ?? [];

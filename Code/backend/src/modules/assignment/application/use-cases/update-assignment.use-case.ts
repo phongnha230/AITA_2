@@ -16,6 +16,10 @@ export class UpdateAssignmentUseCase {
       throw new NotFoundError(`Đề thi với ID: ${assignmentId}`);
     }
 
+    if (dto.status === 'PUBLISHED' && !(dto.accessCode ?? existing.accessCode)?.trim()) {
+      throw new ValidationError('Phải đặt mã đề trước khi công bố ca thi.');
+    }
+
     if (requester && requester.role !== 'ADMIN' && existing.createdBy !== requester.userId) {
       throw new ForbiddenError('Bạn không có quyền chỉnh sửa đề thi của giảng viên khác.');
     }

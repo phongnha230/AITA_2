@@ -9,7 +9,8 @@ import {
 
 interface WizardZipSectionProps {
   starterZipFile: { name: string; size: string } | null;
-  setStarterZipFile: (f: { name: string; size: string } | null) => void;
+  onRemoveStarter: () => void;
+  existingStarterDownloadUrl: string | null;
   zipEntries: string[];
   setZipEntries: (entries: string[]) => void;
   zipFilesContent: Record<string, string>;
@@ -22,7 +23,8 @@ interface WizardZipSectionProps {
 
 export const WizardZipSection: React.FC<WizardZipSectionProps> = ({
   starterZipFile,
-  setStarterZipFile,
+  onRemoveStarter,
+  existingStarterDownloadUrl,
   zipEntries,
   setZipEntries,
   zipFilesContent,
@@ -57,13 +59,16 @@ export const WizardZipSection: React.FC<WizardZipSectionProps> = ({
                   <div className="text-[11px] text-slate-400">{starterZipFile.size} • Bộ khung code mẫu đã nạp</div>
                 </div>
               </div>
+              {existingStarterDownloadUrl && (
+                <a href={existingStarterDownloadUrl} className="text-xs font-semibold text-indigo-700 hover:underline" download>
+                  Tải ZIP đã lưu
+                </a>
+              )}
               <button
                 type="button"
                 aria-label="Xóa bộ khung starter ZIP"
                 onClick={() => {
-                  setStarterZipFile(null);
-                  setZipEntries([]);
-                  setZipFilesContent({});
+                  onRemoveStarter();
                 }}
                 className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 transition"
               >

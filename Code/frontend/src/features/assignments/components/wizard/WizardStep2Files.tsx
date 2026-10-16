@@ -5,13 +5,16 @@ import { WizardNavFooter } from './WizardNavFooter';
 
 interface WizardStep2FilesProps {
   pdfFile: { name: string; size: string } | null;
-  setPdfFile: (f: { name: string; size: string } | null) => void;
+  onSelectPdf: (file: File) => void;
+  onRemovePdf: () => void;
+  existingPdfDownloadUrl: string | null;
   pdfBlobUrl: string | null;
   setPdfBlobUrl: (url: string | null) => void;
   showPdfPreview: boolean;
   setShowPdfPreview: (show: boolean) => void;
   starterZipFile: { name: string; size: string } | null;
-  setStarterZipFile: (f: { name: string; size: string } | null) => void;
+  onRemoveStarter: () => void;
+  existingStarterDownloadUrl: string | null;
   zipEntries: string[];
   setZipEntries: (entries: string[]) => void;
   zipFilesContent: Record<string, string>;
@@ -26,13 +29,16 @@ interface WizardStep2FilesProps {
 
 export const WizardStep2Files: React.FC<WizardStep2FilesProps> = ({
   pdfFile,
-  setPdfFile,
+  onSelectPdf,
+  onRemovePdf,
+  existingPdfDownloadUrl,
   pdfBlobUrl,
   setPdfBlobUrl,
   showPdfPreview,
   setShowPdfPreview,
   starterZipFile,
-  setStarterZipFile,
+  onRemoveStarter,
+  existingStarterDownloadUrl,
   zipEntries,
   setZipEntries,
   zipFilesContent,
@@ -48,7 +54,9 @@ export const WizardStep2Files: React.FC<WizardStep2FilesProps> = ({
     <div className="space-y-6 animate-in fade-in duration-200">
       <WizardPdfSection
         pdfFile={pdfFile}
-        setPdfFile={setPdfFile}
+        onSelectPdf={onSelectPdf}
+        onRemovePdf={onRemovePdf}
+        existingPdfDownloadUrl={existingPdfDownloadUrl}
         pdfBlobUrl={pdfBlobUrl}
         setPdfBlobUrl={setPdfBlobUrl}
         showPdfPreview={showPdfPreview}
@@ -57,7 +65,8 @@ export const WizardStep2Files: React.FC<WizardStep2FilesProps> = ({
 
       <WizardZipSection
         starterZipFile={starterZipFile}
-        setStarterZipFile={setStarterZipFile}
+        onRemoveStarter={onRemoveStarter}
+        existingStarterDownloadUrl={existingStarterDownloadUrl}
         zipEntries={zipEntries}
         setZipEntries={setZipEntries}
         zipFilesContent={zipFilesContent}

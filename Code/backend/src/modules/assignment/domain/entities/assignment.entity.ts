@@ -1,6 +1,6 @@
 export type AssignmentEnv = 'C_GCC' | 'JAVA_JDK' | 'REACT_JS';
 export type SubmissionType = 'INDIVIDUAL' | 'GROUP';
-export type AssignmentStatus = 'DRAFT' | 'PUBLISHED' | 'CLOSED' | 'ARCHIVED';
+export type AssignmentStatus = 'DRAFT' | 'PUBLISHED' | 'PAUSED' | 'CLOSED' | 'ARCHIVED';
 
 export interface AssignmentProps {
   id: string;
@@ -24,6 +24,9 @@ export interface AssignmentProps {
   functionalMaxScore?: number;
   algorithmMaxScore?: number;
   cleanCodeMaxScore?: number;
+  pdfFilePath?: string | null;
+  starterCodePath?: string | null;
+  pausedAt?: Date | null;
 }
 
 export class Assignment {
@@ -73,8 +76,28 @@ export class Assignment {
     return this.props.maxFileSizeBytes;
   }
 
+  get allowGitSubmission(): boolean {
+    return this.props.allowGitSubmission;
+  }
+
+  get allowZipSubmission(): boolean {
+    return this.props.allowZipSubmission;
+  }
+
   get status(): AssignmentStatus {
     return this.props.status;
+  }
+
+  get pdfFilePath(): string | null | undefined {
+    return this.props.pdfFilePath;
+  }
+
+  get starterCodePath(): string | null | undefined {
+    return this.props.starterCodePath;
+  }
+
+  get pausedAt(): Date | null | undefined {
+    return this.props.pausedAt;
   }
 
   get createdBy(): string {
@@ -126,6 +149,9 @@ export class Assignment {
       allowGitSubmission: this.props.allowGitSubmission,
       allowZipSubmission: this.props.allowZipSubmission,
       status: this.props.status,
+      pdfFilePath: this.props.pdfFilePath,
+      starterCodePath: this.props.starterCodePath,
+      pausedAt: this.props.pausedAt,
       createdBy: this.props.createdBy,
       createdAt: this.props.createdAt,
       updatedAt: this.props.updatedAt,

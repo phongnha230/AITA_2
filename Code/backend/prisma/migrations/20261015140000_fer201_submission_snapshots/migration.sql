@@ -47,7 +47,12 @@ CREATE TABLE IF NOT EXISTS `participant_score_adjustments` (
   PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-CREATE TEMPORARY TABLE `submission_attempt_backfill` AS
+CREATE TEMPORARY TABLE `submission_attempt_backfill` (
+  `id` CHAR(36) NOT NULL PRIMARY KEY,
+  `attempt_no` BIGINT NOT NULL
+);
+
+INSERT INTO `submission_attempt_backfill` (`id`, `attempt_no`)
 SELECT
   `id`,
   ROW_NUMBER() OVER (

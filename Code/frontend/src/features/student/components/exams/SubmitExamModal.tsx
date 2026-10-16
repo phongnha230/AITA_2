@@ -48,11 +48,11 @@ export function SubmitExamModal({ exam, isOpen, onClose }: SubmitExamModalProps)
             <DialogTitle className="text-lg font-bold text-slate-900">
               {form.assignment.submissionType === 'GROUP'
                 ? 'Nộp Final Project nhóm'
-                : 'Nộp bài thi thực hành PE'}
+                : 'Nộp bài'}
             </DialogTitle>
           </div>
           <DialogDescription className="text-xs text-slate-500">
-            {form.course ? `${form.course.code} • ${form.course.name}` : 'Môn học khảo thí'}
+            {form.course ? `${form.course.code} • ${form.course.name}` : 'Bài tập và bài thi'}
           </DialogDescription>
         </DialogHeader>
 
@@ -108,14 +108,19 @@ export function SubmitExamModal({ exam, isOpen, onClose }: SubmitExamModalProps)
               <CheckCircle2 size={28} />
             </div>
             <div>
-              <p className="text-base font-bold text-slate-900">Nộp bài thành công!</p>
-              <p className="text-xs text-slate-500 mt-1">Đang chuyển sang màn hình theo dõi máy chủ Sandbox chấm bài...</p>
+              <p className="text-base font-bold text-slate-900">Bài đã được xếp hàng chấm</p>
+              <p className="text-xs text-slate-500 mt-1">Đang chuyển sang màn hình theo dõi tiến trình chấm bài...</p>
             </div>
           </div>
         ) : (
           <form onSubmit={form.handleSubmit} className="space-y-4">
             {form.assignment.submissionType === 'GROUP' ? (
               <div className="space-y-3">
+                {!form.canSubmit && (
+                  <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                    Đề này chưa cho phép nộp bằng GitHub. Hãy liên hệ giảng viên.
+                  </p>
+                )}
                 {form.loadingGroupTeam ? (
                   <div className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 p-5 text-xs text-slate-500">
                     <LoaderCircle className="h-4 w-4 animate-spin" />
@@ -164,6 +169,11 @@ export function SubmitExamModal({ exam, isOpen, onClose }: SubmitExamModalProps)
               </div>
             ) : (
               <>
+                {!form.canSubmit && (
+                  <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                    Đề này chưa cấu hình cách nộp bài. Hãy liên hệ giảng viên.
+                  </p>
+                )}
                 <div className="space-y-1.5">
                   <label htmlFor="paper-code" className="text-xs font-semibold text-slate-700">
                     Mã đề thi (Paper Code)

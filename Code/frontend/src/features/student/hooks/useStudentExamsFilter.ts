@@ -12,6 +12,7 @@ interface UseStudentExamsFilterInput {
   openCount: number | null;
   upcomingCount: number | null;
   endedCount: number | null;
+  pausedCount: number | null;
 }
 
 export function useStudentExamsFilter(input: UseStudentExamsFilterInput) {
@@ -24,6 +25,7 @@ export function useStudentExamsFilter(input: UseStudentExamsFilterInput) {
     openCount,
     upcomingCount,
     endedCount,
+    pausedCount,
   } = input;
 
   const filterCounts = useMemo(() => ({
@@ -31,7 +33,8 @@ export function useStudentExamsFilter(input: UseStudentExamsFilterInput) {
     open: openCount,
     upcoming: upcomingCount,
     ended: endedCount,
-  }), [status, exams.length, openCount, upcomingCount, endedCount]);
+    paused: pausedCount,
+  }), [status, exams.length, openCount, upcomingCount, endedCount, pausedCount]);
 
   const canShowLists = status === 'success';
 
@@ -53,6 +56,11 @@ export function useStudentExamsFilter(input: UseStudentExamsFilterInput) {
     return filteredExams.filter((exam) => exam.temporalStatus === 'ENDED');
   }, [filter, filteredExams]);
 
+  const visiblePaused = useMemo(() => {
+    if (filter !== 'ALL' && filter !== 'PAUSED') return [];
+    return filteredExams.filter((exam) => exam.temporalStatus === 'PAUSED');
+  }, [filter, filteredExams]);
+
   const unknownExams = useMemo(() => {
     return filteredExams.filter((exam) => exam.temporalStatus === 'UNKNOWN');
   }, [filteredExams]);
@@ -67,6 +75,7 @@ export function useStudentExamsFilter(input: UseStudentExamsFilterInput) {
     featuredExam,
     visibleUpcoming,
     visibleEnded,
+    visiblePaused,
     unknownExams,
     noExamsAtAll,
     showNoMatches,

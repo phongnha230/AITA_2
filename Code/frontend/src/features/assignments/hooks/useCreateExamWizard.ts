@@ -3,11 +3,13 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import JSZip from 'jszip';
 import { assignmentService } from '../services/assignment.service';
 import {
+  AssignmentFlowType,
   AssignmentEnv,
   Course,
   RubricRuleInput,
   TestCase,
   WebTestScript,
+  DryRunExecutionSummary,
 } from '../types/assignment.types';
 import { sampleCsd201Template, samplePrf192Template, samplePro192Template, SampleExamTemplate } from '../components/wizard/sampleExamTemplates';
 import { buildJavaGradingRubric } from '../components/wizard/java-grading-rubric';
@@ -16,6 +18,11 @@ import { useTestcaseImport } from './useTestcaseImport';
 
 const defaultReactStructureRequirements = 'Đánh giá cách tổ chức component, sử dụng props/state, hooks và dependency của effect; routing/context/store phải phù hợp phạm vi bài, có xử lý loading, error và empty state khi cần.';
 const defaultReactCleanCodeRequirements = 'Đánh giá naming, khả năng đọc hiểu, component không ôm quá nhiều trách nhiệm, tránh lặp logic, tránh hardcode không cần thiết và bảo đảm accessibility cơ bản.';
+const toLocalDateTimeInput = (value: string): string => {
+  const date = new Date(value);
+  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+  return date.toISOString().slice(0, 16);
+};
 
 const hasWebTestSteps = (testCase: TestCase): boolean => {
   try {
@@ -30,6 +37,8 @@ export function useCreateExamWizard() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams?.get('editId') || null;
+  const requestedCourseId = searchParams?.get('courseId') || '';
+  const flowType: AssignmentFlowType = searchParams?.get('type') === 'PE_EXAM' ? 'PE_EXAM' : 'ASSIGNMENT';
   const [loadingEdit, setLoadingEdit] = useState(false);
 
   // Active Step (1 to 4)
@@ -37,27 +46,35 @@ export function useCreateExamWizard() {
 
   // 1. General Info State
   const [courses, setCourses] = useState<Course[]>([]);
-  const [courseId, setCourseId] = useState('');
+  const [courseId, setCourseId] = useState(requestedCourseId);
+  const [courseLoadError, setCourseLoadError] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [environment, setEnvironment] = useState<AssignmentEnv>('C_GCC');
   const [submissionType, setSubmissionType] = useState<'INDIVIDUAL' | 'GROUP'>('INDIVIDUAL');
-  const [durationMinutes, setDurationMinutes] = useState(60);
+  const [durationMinutes, setDurationMinutes] = useState(flowType === 'PE_EXAM' ? 90 : 120);
   const [startTime, setStartTime] = useState(() => {
     const d = new Date();
     d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
     return d.toISOString().slice(0, 16);
   });
   const [accessCode, setAccessCode] = useState('');
+  const [assignmentStatus, setAssignmentStatus] = useState<'DRAFT' | 'PUBLISHED' | 'PAUSED' | 'CLOSED' | 'ARCHIVED'>('PUBLISHED');
 
 
   // 2. PDF Exam File State
   const [pdfFile, setPdfFile] = useState<{ name: string; size: string } | null>(null);
+  const [pdfUploadFile, setPdfUploadFile] = useState<File | null>(null);
+  const [existingPdfPath, setExistingPdfPath] = useState<string | null>(null);
+  const [removeExistingPdf, setRemoveExistingPdf] = useState(false);
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const [showPdfPreview, setShowPdfPreview] = useState(false);
 
   // 3. Starter Code Template State
   const [starterZipFile, setStarterZipFile] = useState<{ name: string; size: string } | null>(null);
+  const [starterUploadFile, setStarterUploadFile] = useState<File | null>(null);
+  const [existingStarterPath, setExistingStarterPath] = useState<string | null>(null);
+  const [removeExistingStarter, setRemoveExistingStarter] = useState(false);
   const [zipEntries, setZipEntries] = useState<string[]>([]);
   const [zipFilesContent, setZipFilesContent] = useState<Record<string, string>>({});
   const [isReadingZip, setIsReadingZip] = useState(false);
@@ -82,7 +99,8 @@ export function useCreateExamWizard() {
 
   // Dry Run Sandbox State
   const [dryRunRunning, setDryRunRunning] = useState(false);
-  const [dryRunResult, setDryRunResult] = useState<{ passed: number; total: number; latency: string } | null>(null);
+  const [dryRunResult, setDryRunResult] = useState<DryRunExecutionSummary | null>(null);
+  const [dryRunError, setDryRunError] = useState<string | null>(null);
 
   // Submitting state
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -97,16 +115,53 @@ export function useCreateExamWizard() {
     setEnvironment(nextEnvironment);
   };
 
-  // Fetch courses from DB (Prioritize PRF192)
+  const handlePdfUpload = (file: File) => {
+    setPdfUploadFile(file);
+    setPdfFile({ name: file.name, size: `${(file.size / 1024).toFixed(1)} KB` });
+    setRemoveExistingPdf(false);
+    setShowPdfPreview(false);
+  };
+
+  const handleRemovePdf = () => {
+    setPdfUploadFile(null);
+    setPdfFile(null);
+    setRemoveExistingPdf(Boolean(existingPdfPath));
+    setShowPdfPreview(false);
+    if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
+    setPdfBlobUrl(null);
+  };
+
+  const handleRemoveStarter = () => {
+    setStarterZipFile(null);
+    setStarterUploadFile(null);
+    setZipEntries([]);
+    setZipFilesContent({});
+    setRemoveExistingStarter(Boolean(existingStarterPath));
+  };
+
+  // Fetch courses; context deep-links must never silently fall back to another course.
   useEffect(() => {
-    assignmentService.getCourses().then((cList) => {
-      setCourses(cList);
-      if (cList.length > 0 && !editId) {
-        const prf = cList.find((c) => c.code.toLowerCase().includes('prf'));
-        setCourseId(prf ? prf.id : cList[0].id);
-      }
-    });
-  }, [editId]);
+    let cancelled = false;
+    assignmentService.getCourses()
+      .then((courseList) => {
+        if (cancelled) return;
+        setCourses(courseList);
+        if (requestedCourseId && !editId) {
+          const requestedCourse = courseList.find((course) => course.id === requestedCourseId);
+          if (requestedCourse) setCourseId(requestedCourse.id);
+          else {
+            setCourseId('');
+            setCourseLoadError('Khóa học được yêu cầu không tồn tại hoặc bạn không có quyền tạo đề trong khóa học đó.');
+          }
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setCourseLoadError(error instanceof Error ? error.message : 'Không thể tải danh sách khóa học.');
+        }
+      });
+    return () => { cancelled = true; };
+  }, [editId, requestedCourseId]);
 
   // Load existing assignment if editId is present (Edit Mode)
   useEffect(() => {
@@ -120,8 +175,20 @@ export function useCreateExamWizard() {
         setTitle(data.title || '');
         setDescription(data.description || '');
         if (data.courseId) setCourseId(data.courseId);
+        setAssignmentStatus(data.status || 'PUBLISHED');
+        if (data.startTime) setStartTime(toLocalDateTimeInput(data.startTime));
+        if (data.durationMinutes) setDurationMinutes(data.durationMinutes);
+        if (data.accessCode) setAccessCode(data.accessCode);
         if (data.environment) setEnvironment(data.environment);
         if (data.submissionType) setSubmissionType(data.submissionType);
+        if (data.pdfFilePath) {
+          setExistingPdfPath(data.pdfFilePath);
+          setPdfFile({ name: 'PDF đề thi đã lưu', size: 'Đang lưu trên máy chủ' });
+        }
+        if (data.starterCodePath) {
+          setExistingStarterPath(data.starterCodePath);
+          setStarterZipFile({ name: 'Starter ZIP đã lưu', size: 'Đang lưu trên máy chủ' });
+        }
         if (data.testCases && data.testCases.length > 0) {
           setTestCases(data.testCases);
         }
@@ -161,6 +228,8 @@ export function useCreateExamWizard() {
 
   // Handler: Real ZIP Extraction via JSZip
   const handleZipUpload = async (file: File) => {
+    setStarterUploadFile(file);
+    setRemoveExistingStarter(false);
     setStarterZipFile({ name: file.name, size: `${(file.size / 1024).toFixed(1)} KB` });
     setIsReadingZip(true);
     try {
@@ -219,8 +288,14 @@ export function useCreateExamWizard() {
     setDescription(samplePrf192Template.description);
     setEnvironment(samplePrf192Template.environment);
     setDurationMinutes(samplePrf192Template.durationMinutes);
-    setPdfFile(samplePrf192Template.pdfFile);
+    setPdfFile(null);
+    setPdfUploadFile(null);
+    setExistingPdfPath(null);
+    setRemoveExistingPdf(false);
     setStarterZipFile(samplePrf192Template.starterZipFile);
+    setStarterUploadFile(null);
+    setExistingStarterPath(null);
+    setRemoveExistingStarter(false);
     setZipEntries(samplePrf192Template.zipEntries);
     setZipFilesContent(samplePrf192Template.zipFilesContent);
     setSolutionTitle(samplePrf192Template.solutionTitle);
@@ -244,8 +319,14 @@ export function useCreateExamWizard() {
     setDescription(template.description);
     setEnvironment(template.environment);
     setDurationMinutes(template.durationMinutes);
-    setPdfFile(template.pdfFile);
+    setPdfFile(null);
+    setPdfUploadFile(null);
+    setExistingPdfPath(null);
+    setRemoveExistingPdf(false);
     setStarterZipFile(template.starterZipFile);
+    setStarterUploadFile(null);
+    setExistingStarterPath(null);
+    setRemoveExistingStarter(false);
     setZipEntries(template.zipEntries);
     setZipFilesContent(template.zipFilesContent);
     setSolutionTitle(template.solutionTitle);
@@ -291,21 +372,46 @@ export function useCreateExamWizard() {
     setTestCases(testCases.filter((_, i) => i !== idx));
   };
 
-  // Handler: Dry Run simulation
-  const handleDryRun = () => {
+  const selectedCourse = courses.find((course) => course.id === courseId);
+
+  const handleDryRun = async () => {
     setDryRunRunning(true);
     setDryRunResult(null);
-    setTimeout(() => {
-      setDryRunRunning(false);
-      setDryRunResult({
-        passed: testCases.length,
-        total: testCases.length,
-        latency: '0.84s',
+    setDryRunError(null);
+    try {
+      if (environment === 'REACT_JS') {
+        setDryRunError('Chạy thử React/Web cần preview URL; hiện tại chỉ chạy thật cho C/Java.');
+        return;
+      }
+      if (!courseId || !solutionCode.trim()) {
+        setDryRunError('Hãy chọn khóa học và nhập mã nguồn bài giải chuẩn trước khi chạy thử.');
+        return;
+      }
+      const result = await assignmentService.runDryRun({
+        courseId,
+        language: environment,
+        sourceCode: solutionCode,
+        testCases: testCases.map((testCase, index) => ({
+          id: testCase.id,
+          questionNo: String(testCase.questionNumber ?? 'Q1'),
+          stdinInput: testCase.stdinInput,
+          expectedStdout: testCase.expectedStdout,
+          inputFileContent: testCase.inputFileContent,
+          expectedFileName: testCase.expectedFileName,
+          expectedFileContent: testCase.expectedFileContent,
+          comparisonMode: testCase.comparisonMode,
+          timeLimitMs: Number(testCase.timeLimitMs) || 1500,
+          memoryLimitKb: Number(testCase.memoryLimitKb) || 262144,
+          points: Number(testCase.points) || 0,
+        })),
       });
-    }, 1600);
+      setDryRunResult(result);
+    } catch (error: unknown) {
+      setDryRunError(error instanceof Error ? error.message : 'Không thể chạy thử Sandbox.');
+    } finally {
+      setDryRunRunning(false);
+    }
   };
-
-  const selectedCourse = courses.find((course) => course.id === courseId);
 
   // Handler: Save Exam, Testcases & Solution to Database
   const handleSaveToDatabase = async () => {
@@ -316,6 +422,11 @@ export function useCreateExamWizard() {
     }
     if (!courseId) {
       alert('Vui lòng chọn môn học tại Bước 1!');
+      setActiveStep(1);
+      return;
+    }
+    if (accessCode.trim().length < 4) {
+      alert('Vui lòng đặt mã đề có ít nhất 4 ký tự.');
       setActiveStep(1);
       return;
     }
@@ -346,49 +457,15 @@ export function useCreateExamWizard() {
       const start = startTime ? new Date(startTime) : new Date();
       const deadline = new Date(start.getTime() + durationMinutes * 60 * 1000);
 
-      const createdAssign = await assignmentService.createAssignment({
-        courseId,
-        title,
-        description,
-        environment,
-        submissionType,
-        startTime: start.toISOString(),
-        deadline: deadline.toISOString(),
-        durationMinutes,
-        accessCode: accessCode.trim() || undefined,
-        status: 'DRAFT',
-        gradingVersion: 2,
-        functionalMaxScore: 7,
-        algorithmMaxScore: 2,
-        cleanCodeMaxScore: 1,
-      });
+      let starterFile = starterUploadFile;
+      if (!starterFile && starterZipFile && !existingStarterPath && Object.keys(zipFilesContent).length > 0) {
+        const zip = new JSZip();
+        Object.entries(zipFilesContent).forEach(([filePath, content]) => zip.file(filePath, content));
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        starterFile = new File([zipBlob], starterZipFile.name, { type: 'application/zip' });
+      }
 
-      const assignmentId = createdAssign.id;
-
-
-      await Promise.all(
-        testCases.map((tc, i) =>
-          assignmentService.addTestCase(assignmentId, {
-            orderIndex: i + 1,
-            label: tc.label || `TC_${i + 1}`,
-            rationaleTag: tc.rationaleTag || 'FUNCTIONAL',
-            isHidden: Boolean(tc.isHidden),
-            timeLimitMs: Number(tc.timeLimitMs) || 1500,
-            memoryLimitKb: Number(tc.memoryLimitKb) || 262144,
-            points: Number(tc.points) || 1.0,
-            comparisonMode: tc.comparisonMode || 'STDIO',
-            stdinInput: tc.stdinInput || '',
-            expectedStdout: tc.expectedStdout || '',
-            inputFileName: tc.inputFileName || null,
-            inputFileContent: tc.inputFileContent || null,
-            expectedFileName: tc.expectedFileName || null,
-            expectedFileContent: tc.expectedFileContent || null,
-          })
-        )
-      );
-
-      if (environment !== 'REACT_JS' && solutionCode.trim()) {
-        await assignmentService.upsertSolution(assignmentId, {
+      const solution = solutionCode.trim() ? {
           title: solutionTitle || 'Mã nguồn bài giải mẫu',
           sourceCode: solutionCode,
           explanation: `Mã giải mẫu tham chiếu chuẩn. Độ phức tạp thuật toán kỳ vọng: ${expectedComplexity}.`,
@@ -399,8 +476,7 @@ export function useCreateExamWizard() {
             .map((strategy) => strategy.trim())
             .filter(Boolean),
           algorithmNotes: algorithmNotes.trim() || undefined,
-        });
-      }
+        } : undefined;
 
       const rubricRules: RubricRuleInput[] = environment === 'REACT_JS'
         ? buildReactGradingRubric(reactStructureRequirements, reactCleanCodeRequirements)
@@ -424,17 +500,44 @@ export function useCreateExamWizard() {
             criterionType: 'CLEAN_CODE',
           },
         ];
-      await assignmentService.setRubricRules(assignmentId, rubricRules);
-
-      await assignmentService.updateAssignment(assignmentId, { status: 'PUBLISHED' });
+      await assignmentService.saveAssignmentPackage(editId, {
+        assignment: {
+          courseId,
+          title: title.trim(),
+          description,
+          environment,
+          submissionType,
+          startTime: start.toISOString(),
+          deadline: deadline.toISOString(),
+          durationMinutes,
+          accessCode: accessCode.trim(),
+          status: editId ? assignmentStatus : 'PUBLISHED',
+          gradingVersion: 2,
+          functionalMaxScore: 7,
+          algorithmMaxScore: 2,
+          cleanCodeMaxScore: 1,
+        },
+        testCases: testCases.map((testCase, index) => ({
+          ...testCase,
+          orderIndex: index + 1,
+          points: Number(testCase.points) || 1,
+          timeLimitMs: Number(testCase.timeLimitMs) || 1500,
+          memoryLimitKb: Number(testCase.memoryLimitKb) || 262144,
+        })),
+        solution,
+        removeSolution: Boolean(editId && !solution),
+        rubricRules,
+        removePdf: removeExistingPdf,
+        removeStarter: removeExistingStarter,
+      }, { pdf: pdfUploadFile ?? undefined, starter: starterFile ?? undefined });
 
       setSubmitSuccess(true);
       setTimeout(() => {
         router.push('/exam-bank');
       }, 1500);
-    } catch (err: any) {
-      console.error(err);
-      setSubmitError(err.response?.data?.message || err.message || 'Lỗi khi lưu đề thi vào CSDL');
+    } catch (error: unknown) {
+      console.error('[CreateExamWizard] Failed to save assignment package', error);
+      setSubmitError(error instanceof Error ? error.message : 'Lỗi khi lưu đề thi vào CSDL');
     } finally {
       setIsSubmitting(false);
     }
@@ -445,11 +548,13 @@ export function useCreateExamWizard() {
   return {
     router,
     editId,
+    flowType,
     loadingEdit,
     activeStep,
     setActiveStep,
     courses,
     courseId,
+    courseLoadError,
     setCourseId,
     selectedCourse,
     title,
@@ -467,14 +572,18 @@ export function useCreateExamWizard() {
     accessCode,
     setAccessCode,
     pdfFile,
-
-    setPdfFile,
+    existingPdfPath,
+    pdfDownloadUrl: editId ? assignmentService.getAssignmentFileUrl(editId, 'pdf') : null,
+    handlePdfUpload,
+    handleRemovePdf,
     pdfBlobUrl,
     setPdfBlobUrl,
     showPdfPreview,
     setShowPdfPreview,
     starterZipFile,
-    setStarterZipFile,
+    existingStarterPath,
+    starterDownloadUrl: editId ? assignmentService.getAssignmentFileUrl(editId, 'starter') : null,
+    handleRemoveStarter,
     zipEntries,
     setZipEntries,
     zipFilesContent,
@@ -505,6 +614,7 @@ export function useCreateExamWizard() {
     testcaseImport,
     dryRunRunning,
     dryRunResult,
+    dryRunError,
     isSubmitting,
     submitError,
     submitSuccess,

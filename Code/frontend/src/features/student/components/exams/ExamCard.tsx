@@ -36,7 +36,9 @@ function formatDateBadge(value: string): { dayOfWeek: string; dateNum: string; m
 }
 
 function getEnvironmentLabel(environment: StudentExamViewModel['assignment']['environment']): string {
-  return environment === 'C_GCC' ? 'C / GCC (Docker)' : 'Java / JDK (Docker)';
+  if (environment === 'C_GCC') return 'C / GCC (Docker)';
+  if (environment === 'JAVA_JDK') return 'Java / JDK (Docker)';
+  return 'React / Web Preview';
 }
 
 export function ExamCard({ exam, featured = false }: ExamCardProps) {
@@ -125,11 +127,11 @@ export function ExamCard({ exam, featured = false }: ExamCardProps) {
           </button>
           <button
             type="button"
-            onClick={() => setIsSubmitOpen(true)}
+            onClick={() => setIsDetailOpen(true)}
             className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 text-xs font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-indigo-700 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
           >
             <HardDriveUpload className="h-4 w-4" />
-            <span>Nộp bài PE (.zip)</span>
+            <span>Mở bài nộp</span>
           </button>
           <Link
             href="/student/results"
@@ -218,7 +220,7 @@ export function ExamCard({ exam, featured = false }: ExamCardProps) {
         </button>
         <button
           type="button"
-          onClick={() => setIsSubmitOpen(true)}
+          onClick={() => setIsDetailOpen(true)}
           className="inline-flex min-h-8 items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 py-1 text-xs font-semibold text-white shadow-2xs transition-colors hover:bg-indigo-700 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
         >
           <HardDriveUpload className="h-3.5 w-3.5" />

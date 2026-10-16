@@ -17,6 +17,7 @@ export const CreateExamWizard: React.FC = () => {
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-16 font-sans">
       <WizardHeader
+        flowType={wizard.flowType}
         editId={wizard.editId}
         loadingEdit={wizard.loadingEdit}
         title={wizard.title}
@@ -37,6 +38,8 @@ export const CreateExamWizard: React.FC = () => {
       {wizard.activeStep === 1 && (
         <WizardStep1General
           courseId={wizard.courseId}
+          flowType={wizard.flowType}
+          courseLoadError={wizard.courseLoadError}
           setCourseId={wizard.setCourseId}
           courses={wizard.courses}
           environment={wizard.environment}
@@ -62,13 +65,16 @@ export const CreateExamWizard: React.FC = () => {
       {wizard.activeStep === 2 && (
         <WizardStep2Files
           pdfFile={wizard.pdfFile}
-          setPdfFile={wizard.setPdfFile}
+          onSelectPdf={wizard.handlePdfUpload}
+          onRemovePdf={wizard.handleRemovePdf}
+          existingPdfDownloadUrl={wizard.editId && wizard.existingPdfPath ? wizard.pdfDownloadUrl : null}
           pdfBlobUrl={wizard.pdfBlobUrl}
           setPdfBlobUrl={wizard.setPdfBlobUrl}
           showPdfPreview={wizard.showPdfPreview}
           setShowPdfPreview={wizard.setShowPdfPreview}
           starterZipFile={wizard.starterZipFile}
-          setStarterZipFile={wizard.setStarterZipFile}
+          onRemoveStarter={wizard.handleRemoveStarter}
+          existingStarterDownloadUrl={wizard.editId && wizard.existingStarterPath ? wizard.starterDownloadUrl : null}
           zipEntries={wizard.zipEntries}
           setZipEntries={wizard.setZipEntries}
           zipFilesContent={wizard.zipFilesContent}
@@ -130,6 +136,7 @@ export const CreateExamWizard: React.FC = () => {
           description={wizard.description}
           dryRunRunning={wizard.dryRunRunning}
           dryRunResult={wizard.dryRunResult}
+          dryRunError={wizard.dryRunError}
           onDryRun={wizard.handleDryRun}
           isSubmitting={wizard.isSubmitting}
           onSaveToDatabase={wizard.handleSaveToDatabase}

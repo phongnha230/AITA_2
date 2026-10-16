@@ -52,6 +52,44 @@ describe('PrismaAssignmentAccessPolicy', () => {
     ).rejects.toBeInstanceOf(ForbiddenError);
   });
 
+  it('requires an enrolled student to unlock the exam before accessing content', async () => {
+    const { policy, fake } = makePolicy();
+    fake.assignment.findUnique.mockResolvedValue({
+      status: 'PUBLISHED',
+      startTime: new Date(Date.now() - 60_000),
+      deadline: new Date(Date.now() + 60_000),
+      course: { enrollments: [{ id: 'enrollment-1' }] },
+      examAccessGrants: [{ id: 'grant-1' }],
+    });
+
+    await expect(policy.assertCanAccessExamContent({ userId: 'student-1', role: 'STUDENT' }, 'assignment-1'))
+      .resolves.toBeUndefined();
+    fake.assignment.findUnique.mockResolvedValueOnce({
+      status: 'PUBLISHED',
+      startTime: new Date(Date.now() - 60_000),
+      deadline: new Date(Date.now() + 60_000),
+      course: { enrollments: [{ id: 'enrollment-1' }] },
+      examAccessGrants: [],
+    });
+    await expect(policy.assertCanAccessExamContent({ userId: 'student-1', role: 'STUDENT' }, 'assignment-1'))
+      .rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it('blocks exam content while the session is paused and allows granted students to check their waiting state', async () => {
+    const { policy, fake } = makePolicy();
+    fake.assignment.findUnique.mockResolvedValue({
+      status: 'PAUSED',
+      startTime: new Date(Date.now() - 60_000),
+      deadline: new Date(Date.now() + 60_000),
+      course: { enrollments: [{ id: 'enrollment-1' }] },
+      examAccessGrants: [{ id: 'grant-1' }],
+    });
+    await expect(policy.assertCanAccessExamContent({ userId: 'student-1', role: 'STUDENT' }, 'assignment-1'))
+      .rejects.toThrow(/tạm dừng/i);
+    await expect(policy.assertCanViewUnlockedExam({ userId: 'student-1', role: 'STUDENT' }, 'assignment-1'))
+      .resolves.toBeUndefined();
+  });
+
   it('allows a student to access their own or team submission only', async () => {
     const { policy, fake } = makePolicy();
     fake.submission.findUnique.mockImplementation(async (args: { select: unknown }) => {

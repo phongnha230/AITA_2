@@ -15,6 +15,7 @@ interface StudentExamsSectionsProps {
   otherOpenExams: StudentExamViewModel[];
   visibleUpcoming: StudentExamViewModel[];
   visibleEnded: StudentExamViewModel[];
+  visiblePaused: StudentExamViewModel[];
   unknownExams: StudentExamViewModel[];
 }
 
@@ -26,14 +27,14 @@ const UpcomingExamsBlock: React.FC<{
   if (!show) return null;
   return (
     <ExamListSection
-      title="Bài thi sắp tới"
-      description="Các bài thi đã xuất bản và chưa đến thời gian bắt đầu."
+      title="Bài sắp tới"
+      description="Các bài đã xuất bản và chưa đến thời gian bắt đầu."
       exams={exams}
-      emptyTitle={search ? 'Không tìm thấy bài thi phù hợp.' : 'Không có kỳ thi PE sắp tới.'}
+      emptyTitle={search ? 'Không tìm thấy bài phù hợp.' : 'Không có bài sắp tới.'}
       emptyDescription={
         search
           ? 'Thử từ khóa khác hoặc đổi bộ lọc trạng thái.'
-          : 'Các bài thi sắp tới sẽ xuất hiện tại đây khi được giảng viên công bố.'
+          : 'Các bài sắp tới sẽ xuất hiện tại đây khi được giảng viên công bố.'
       }
     />
   );
@@ -47,9 +48,9 @@ const EndedExamsBlock: React.FC<{
   return (
     <ExamListSection
       title="Đã kết thúc theo thời gian"
-      description="Các bài thi có trạng thái đóng hoặc đã qua hạn nộp."
+      description="Các bài đã đóng hoặc đã qua hạn nộp."
       exams={exams}
-      emptyTitle="Không có bài thi đã kết thúc."
+      emptyTitle="Không có bài đã kết thúc."
       emptyDescription=""
     />
   );
@@ -63,9 +64,9 @@ const UnknownExamsBlock: React.FC<{
   return (
     <ExamListSection
       title="Chưa xác định thời gian"
-      description="Các bài thi chưa thiết lập khung thời gian cụ thể."
+      description="Các bài chưa thiết lập khung thời gian cụ thể."
       exams={exams}
-      emptyTitle="Không có bài thi thiếu thời gian."
+      emptyTitle="Không có bài thiếu thời gian."
       emptyDescription=""
     />
   );
@@ -81,6 +82,7 @@ export const StudentExamsSections: React.FC<StudentExamsSectionsProps> = ({
   otherOpenExams,
   visibleUpcoming,
   visibleEnded,
+  visiblePaused,
   unknownExams,
 }) => {
   if (!canShowLists || noExamsAtAll) return null;
@@ -91,10 +93,10 @@ export const StudentExamsSections: React.FC<StudentExamsSectionsProps> = ({
 
       {otherOpenExams.length > 0 && (
         <ExamListSection
-          title="Các bài thi đang mở"
-          description="Bài thi nằm trong khung thời gian thực hiện."
+          title="Các bài đang mở"
+          description="Các bài nằm trong khung thời gian thực hiện."
           exams={otherOpenExams}
-          emptyTitle="Không có bài thi đang mở."
+          emptyTitle="Không có bài đang mở."
           emptyDescription=""
         />
       )}
@@ -109,6 +111,16 @@ export const StudentExamsSections: React.FC<StudentExamsSectionsProps> = ({
         show={!showNoMatches && (filter === 'ALL' || filter === 'ENDED')}
         exams={visibleEnded}
       />
+
+      {(filter === 'ALL' || filter === 'PAUSED') && visiblePaused.length > 0 && (
+        <ExamListSection
+          title="Đang tạm dừng"
+          description="Giảng viên đã tạm khóa nội dung và nộp bài cho ca này."
+          exams={visiblePaused}
+          emptyTitle="Không có bài đang tạm dừng."
+          emptyDescription=""
+        />
+      )}
 
       <UnknownExamsBlock
         show={!showNoMatches && filter === 'ALL' && unknownExams.length > 0}

@@ -5,7 +5,7 @@ import { useStudentAcademicData } from './useStudentAcademicData';
 import { mapStudentExams } from '../utils/student-exam.utils';
 import type { StudentExamTemporalStatus, StudentExamViewModel } from '../types/student.types';
 
-export type ExamFilter = 'ALL' | 'OPEN' | 'UPCOMING' | 'ENDED';
+export type ExamFilter = 'ALL' | 'OPEN' | 'UPCOMING' | 'PAUSED' | 'ENDED';
 export type ExamSort = 'NEAREST' | 'NEWEST';
 
 function normalizeSearch(value: string): string {
@@ -52,6 +52,7 @@ export function useStudentExams() {
   const openCount = available ? exams.filter((exam) => exam.temporalStatus === 'OPEN').length : null;
   const upcomingCount = available ? exams.filter((exam) => exam.temporalStatus === 'UPCOMING').length : null;
   const endedCount = available ? exams.filter((exam) => exam.temporalStatus === 'ENDED').length : null;
+  const pausedCount = available ? exams.filter((exam) => exam.temporalStatus === 'PAUSED').length : null;
   const environmentCount = available
     ? new Set(exams.map(({ assignment }) => assignment.environment)).size
     : null;
@@ -69,6 +70,7 @@ export function useStudentExams() {
     openCount,
     upcomingCount,
     endedCount,
+    pausedCount,
     environmentCount,
     refresh: academic.retryCourses,
   };

@@ -63,9 +63,10 @@ export class SubmitAssignmentUseCase {
       throw new ForbiddenError('Đề thi này chưa được mở (trạng thái DRAFT).');
     }
 
-    if (assignment.status === 'CLOSED') {
+    if (assignment.status === 'CLOSED' || assignment.status === 'ARCHIVED') {
       throw new ForbiddenError('Đề thi này đã đóng nộp bài (trạng thái CLOSED).');
     }
+    if (assignment.status === 'PAUSED') throw new ForbiddenError('Ca thi đang tạm dừng, hiện không thể nộp bài.');
 
     const now = new Date();
     if (now < assignment.startTime) {
@@ -80,14 +81,7 @@ export class SubmitAssignmentUseCase {
       );
     }
 
-    // 2. Kiểm tra Passcode mở đề nếu có cấu hình
-    if (assignment.accessCode) {
-      if (!assignment.verifyAccessCode(request.accessCode)) {
-        throw new ForbiddenError('Mã mở đề (Passcode) không chính xác hoặc chưa được cung cấp.');
-      }
-    }
-
-    // 3. Kiểm tra sinh viên đã ghi danh môn học chứa đề thi chưa
+    // 2. Kiểm tra sinh viên đã ghi danh và mở ca bằng mã đề.
     const isEnrolled = await courseRepository.isStudentEnrolled(
       assignment.courseId,
       request.userId
@@ -95,6 +89,9 @@ export class SubmitAssignmentUseCase {
 
     if (!isEnrolled) {
       throw new ForbiddenError('Bạn chưa được ghi danh vào môn học này, không thể nộp bài.');
+    }
+    if (!(await assignmentRepository.hasStudentExamAccess(request.assignmentId, request.userId))) {
+      throw new ForbiddenError('Hãy nhập mã đề để mở ca trước khi nộp bài.');
     }
 
     // 4. Kiểm tra tần suất nộp bài (Anti-Spam / Cooldown 10 giây giữa 2 lần nộp)
@@ -115,6 +112,14 @@ export class SubmitAssignmentUseCase {
     }
 
     // 5. Kiểm tra kênh nộp bài
+    if (request.submissionChannel === 'ZIP_UPLOAD' && !assignment.allowZipSubmission) {
+      throw new ForbiddenError('Đề thi này không cho phép nộp bài bằng file ZIP.');
+    }
+
+    if (request.submissionChannel === 'GIT_COMMIT' && !assignment.allowGitSubmission) {
+      throw new ForbiddenError('Đề thi này không cho phép nộp bài bằng GitHub.');
+    }
+
     if (request.submissionChannel === 'ZIP_UPLOAD' && !request.uploadedZipPath) {
       throw new ValidationError('File .zip bài nộp là bắt buộc cho hình thức nộp ZIP_UPLOAD');
     }

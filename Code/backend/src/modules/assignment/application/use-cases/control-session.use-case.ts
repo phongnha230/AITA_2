@@ -1,6 +1,6 @@
 import { IAssignmentRepository } from '../../domain/repositories/assignment.repository.interface.js';
 import { ControlSessionDto } from '../dtos/assignment.dto.js';
-import { NotFoundError } from '../../../../shared/domain/exceptions/app.error.js';
+import { ConflictError, ForbiddenError, NotFoundError } from '../../../../shared/domain/exceptions/app.error.js';
 
 export class ControlSessionUseCase {
   constructor(private readonly assignmentRepository: IAssignmentRepository) {}
@@ -16,16 +16,17 @@ export class ControlSessionUseCase {
     }
 
     const { action, extraMinutes = 5 } = dto;
+    const now = new Date();
 
     if (action === 'EXTEND') {
-      const now = Date.now();
-      const currentDeadlineMs = new Date(existing.deadline).getTime();
-      const baseMs = Math.max(now, currentDeadlineMs);
-      const newDeadline = new Date(baseMs + extraMinutes * 60 * 1000);
+      if (existing.status === 'CLOSED' || existing.status === 'ARCHIVED') {
+        throw new ConflictError('Ca thi đã đóng hoặc lưu trữ.');
+      }
+      const newDeadline = new Date(existing.deadline.getTime() + extraMinutes * 60 * 1000);
 
       const updated = await this.assignmentRepository.update(assignmentId, {
         deadline: newDeadline,
-        status: existing.status === 'CLOSED' ? 'PUBLISHED' : existing.status,
+        status: existing.status,
       });
 
       const secondsLeft = Math.max(0, Math.round((newDeadline.getTime() - Date.now()) / 1000));
@@ -40,7 +41,6 @@ export class ControlSessionUseCase {
     }
 
     if (action === 'CLOSE') {
-      const now = new Date();
       const updated = await this.assignmentRepository.update(assignmentId, {
         status: 'CLOSED',
         deadline: now,
@@ -56,7 +56,9 @@ export class ControlSessionUseCase {
     }
 
     if (action === 'START') {
-      const now = new Date();
+      if (existing.status !== 'PUBLISHED' || now >= existing.startTime) {
+        throw new ConflictError('Chỉ có thể bắt đầu sớm một ca thi đã công bố và chưa bắt đầu.');
+      }
       const duration = existing.durationMinutes || 90;
       const newDeadline = new Date(now.getTime() + duration * 60 * 1000);
 
@@ -64,6 +66,7 @@ export class ControlSessionUseCase {
         status: 'PUBLISHED',
         startTime: now,
         deadline: newDeadline,
+        pausedAt: null,
       });
 
       const secondsLeft = Math.max(0, Math.round((newDeadline.getTime() - Date.now()) / 1000));
@@ -79,20 +82,43 @@ export class ControlSessionUseCase {
     }
 
     if (action === 'PAUSE') {
+      if (existing.status !== 'PUBLISHED' || now < existing.startTime || now >= existing.deadline) {
+        throw new ConflictError('Chỉ có thể tạm dừng ca thi đang mở.');
+      }
       const updated = await this.assignmentRepository.update(assignmentId, {
-        status: 'DRAFT',
+        status: 'PAUSED',
+        pausedAt: now,
       });
 
       return {
         message: 'Đã tạm dừng ca thi.',
         action: 'PAUSE',
         status: updated.status,
+        pausedAt: updated.pausedAt,
+        deadline: updated.deadline,
+        secondsLeft: Math.max(0, Math.round((updated.deadline.getTime() - now.getTime()) / 1000)),
       };
     }
 
-    return {
-      message: 'Thao tác hoàn tất.',
-      action,
-    };
+    if (action === 'RESUME') {
+      if (existing.status !== 'PAUSED' || !existing.pausedAt) {
+        throw new ConflictError('Ca thi hiện không ở trạng thái tạm dừng.');
+      }
+      const pauseDuration = Math.max(0, now.getTime() - existing.pausedAt.getTime());
+      const updated = await this.assignmentRepository.update(assignmentId, {
+        status: 'PUBLISHED',
+        deadline: new Date(existing.deadline.getTime() + pauseDuration),
+        pausedAt: null,
+      });
+      return {
+        message: 'Đã tiếp tục ca thi, thời gian tạm dừng được cộng bù vào hạn nộp.',
+        action: 'RESUME',
+        status: updated.status,
+        deadline: updated.deadline,
+        secondsLeft: Math.max(0, Math.round((updated.deadline.getTime() - now.getTime()) / 1000)),
+      };
+    }
+
+    throw new ForbiddenError('Thao tác điều khiển ca thi không được hỗ trợ.');
   }
 }

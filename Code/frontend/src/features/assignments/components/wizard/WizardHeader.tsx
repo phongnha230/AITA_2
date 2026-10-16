@@ -10,9 +10,10 @@ import {
 import { Button as UIButton } from '@/components/ui/button';
 import { Badge as UIBadge } from '@/components/ui/badge';
 import { Card as UICard } from '@/components/ui/card';
-import type { AssignmentEnv } from '../../types/assignment.types';
+import type { AssignmentEnv, AssignmentFlowType } from '../../types/assignment.types';
 
 interface WizardHeaderProps {
+  flowType: AssignmentFlowType;
   editId: string | null;
   loadingEdit: boolean;
   title: string;
@@ -25,6 +26,7 @@ interface WizardHeaderProps {
 }
 
 export const WizardHeader: React.FC<WizardHeaderProps> = ({
+  flowType,
   editId,
   loadingEdit,
   title,
@@ -46,7 +48,7 @@ export const WizardHeader: React.FC<WizardHeaderProps> = ({
           </Link>
         </UIButton>
         <UIBadge variant="outline" className="text-xs font-bold px-2.5 py-1 bg-indigo-50 text-indigo-700 border-indigo-200">
-          Khảo thí PE • Chấm tự động
+          {flowType === 'PE_EXAM' ? 'Khảo thí PE • Chấm tự động' : 'Assignment • Chấm theo cấu hình'}
         </UIBadge>
       </div>
 
@@ -64,14 +66,16 @@ export const WizardHeader: React.FC<WizardHeaderProps> = ({
             )}
           </div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-            {editId ? (loadingEdit ? 'Đang tải dữ liệu đề thi...' : `Chỉnh Sửa Đề Thi: ${title || 'Chi tiết'}`) : 'Tạo Mới & Import Đề Thi PE'}
+            {editId ? (loadingEdit ? 'Đang tải dữ liệu đề...' : `Chỉnh sửa ${flowType === 'PE_EXAM' ? 'đề PE' : 'Assignment'}: ${title || 'Chi tiết'}`) : flowType === 'PE_EXAM' ? 'Tạo mới đề thi PE' : 'Tạo Assignment mới'}
           </h1>
           <p className="mt-1 text-xs sm:text-sm text-slate-500">
             {editId
               ? 'Dữ liệu đề bài, bộ testcase và bài giải mẫu đã được nạp tự động. Bạn có thể cập nhật các thông tin cần thiết.'
               : environment === 'REACT_JS'
                 ? 'FER201 dùng kịch bản Playwright do giảng viên thiết kế trên URL deploy, sau đó chấm cấu trúc React và Clean Code bằng source chọn lọc.'
-                : 'Quy trình 4 bước chuẩn hoá: tải đề thi PDF, nạp khung mã nguồn mẫu cho sinh viên, nạp bài giải code sẵn và import bộ testcase tự động.'}
+                : flowType === 'PE_EXAM'
+                  ? 'Quy trình 4 bước: cấu hình ca thi, tải đề PDF, thêm starter code, bài giải tham chiếu và testcase.'
+                  : 'Quy trình 4 bước: cấu hình Assignment, đính kèm tài liệu và starter code, sau đó thiết lập bài giải cùng testcase.'}
           </p>
         </div>
         {!editId && (

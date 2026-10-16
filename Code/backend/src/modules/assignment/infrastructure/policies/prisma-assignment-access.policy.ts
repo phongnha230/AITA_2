@@ -28,6 +28,49 @@ export class PrismaAssignmentAccessPolicy {
     throw new ForbiddenError('Bạn không có quyền truy cập đề thi này.');
   }
 
+  async assertCanAccessExamContent(actor: AccessActor, assignmentId: string): Promise<void> {
+    if (actor.role !== 'STUDENT') {
+      await this.assertCanViewAssignment(actor, assignmentId);
+      return;
+    }
+    const assignment = await this.prisma.assignment.findUnique({
+      where: { id: assignmentId },
+      select: {
+        status: true,
+        startTime: true,
+        deadline: true,
+        course: { select: { enrollments: { where: { studentId: actor.userId }, select: { id: true }, take: 1 } } },
+        examAccessGrants: { where: { studentId: actor.userId }, select: { id: true }, take: 1 },
+      },
+    });
+    if (!assignment) throw new NotFoundError('Đề thi');
+    if (assignment.course.enrollments.length === 0) throw new ForbiddenError('Bạn chưa ghi danh môn học này.');
+    if (assignment.examAccessGrants.length === 0) throw new ForbiddenError('Hãy nhập mã đề để mở ca thi.');
+    if (assignment.status === 'PAUSED') throw new ForbiddenError('Ca thi đang tạm dừng.');
+    if (assignment.status !== 'PUBLISHED') throw new ForbiddenError('Ca thi chưa mở hoặc đã đóng.');
+    const now = Date.now();
+    if (now < assignment.startTime.getTime()) throw new ForbiddenError('Ca thi chưa đến giờ mở.');
+    if (now > assignment.deadline.getTime()) throw new ForbiddenError('Ca thi đã hết giờ.');
+  }
+
+  async assertCanViewUnlockedExam(actor: AccessActor, assignmentId: string): Promise<void> {
+    if (actor.role !== 'STUDENT') {
+      await this.assertCanViewAssignment(actor, assignmentId);
+      return;
+    }
+    const assignment = await this.prisma.assignment.findUnique({
+      where: { id: assignmentId },
+      select: {
+        course: { select: { enrollments: { where: { studentId: actor.userId }, select: { id: true }, take: 1 } } },
+        examAccessGrants: { where: { studentId: actor.userId }, select: { id: true }, take: 1 },
+      },
+    });
+    if (!assignment) throw new NotFoundError('Đề thi');
+    if (!assignment.course.enrollments.length || !assignment.examAccessGrants.length) {
+      throw new ForbiddenError('Hãy ghi danh môn học và nhập đúng mã đề trước.');
+    }
+  }
+
   async assertCanManageAssignment(actor: AccessActor, assignmentId: string): Promise<void> {
     const assignment = await this.prisma.assignment.findUnique({
       where: { id: assignmentId },

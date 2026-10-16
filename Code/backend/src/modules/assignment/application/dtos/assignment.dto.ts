@@ -11,10 +11,10 @@ export const CreateAssignmentSchema = z.object({
   startTime: z.coerce.date().default(() => new Date()),
   deadline: z.coerce.date(),
   durationMinutes: z.coerce.number().int().positive().default(90),
-  accessCode: z.string().max(50).optional().nullable(),
+  accessCode: z.string().trim().min(4, 'Mã đề tối thiểu 4 ký tự').max(50),
   allowGitSubmission: z.boolean().default(true),
   allowZipSubmission: z.boolean().default(true),
-  status: z.enum(['DRAFT', 'PUBLISHED', 'CLOSED', 'ARCHIVED']).default('DRAFT'),
+  status: z.enum(['DRAFT', 'PUBLISHED', 'PAUSED', 'CLOSED', 'ARCHIVED']).default('DRAFT'),
   gradingVersion: z.number().int().min(1).max(2).optional(),
   functionalMaxScore: z.number().finite().positive().optional(),
   algorithmMaxScore: z.number().finite().min(0).optional(),
@@ -52,7 +52,7 @@ export const UpdateAssignmentSchema = z.object({
   startTime: z.coerce.date().optional(),
   deadline: z.coerce.date().optional(),
   durationMinutes: z.coerce.number().int().positive().optional(),
-  accessCode: z.string().max(50).optional().nullable(),
+  accessCode: z.string().trim().min(4, 'Mã đề tối thiểu 4 ký tự').optional(),
   allowGitSubmission: z.boolean().optional(),
   allowZipSubmission: z.boolean().optional(),
   status: z.enum(['DRAFT', 'PUBLISHED', 'CLOSED', 'ARCHIVED']).optional(),
@@ -107,12 +107,29 @@ export const UpsertSolutionSchema = z.object({
 
 export type UpsertSolutionDto = z.infer<typeof UpsertSolutionSchema>;
 
+export const SaveAssignmentPackageSchema = z.object({
+  assignment: CreateAssignmentSchema,
+  testCases: z.array(CreateTestCaseSchema).min(1).max(100),
+  rubricRules: SetRubricRulesSchema.shape.rules,
+  solution: UpsertSolutionSchema.optional(),
+  removeSolution: z.boolean().default(false),
+  removePdf: z.boolean().default(false),
+  removeStarter: z.boolean().default(false),
+});
+
+export type SaveAssignmentPackageDto = z.infer<typeof SaveAssignmentPackageSchema>;
+
 export const ControlSessionSchema = z.object({
-  action: z.enum(['EXTEND', 'CLOSE', 'START', 'PAUSE'], {
-    required_error: 'Hành động điều khiển phiên thi không hợp lệ (EXTEND, CLOSE, START, PAUSE)',
+  action: z.enum(['EXTEND', 'CLOSE', 'START', 'PAUSE', 'RESUME'], {
+    required_error: 'Hành động điều khiển ca thi không hợp lệ.',
   }),
   extraMinutes: z.coerce.number().int().positive().optional(),
 });
 
 export type ControlSessionDto = z.infer<typeof ControlSessionSchema>;
+
+export const UnlockExamSchema = z.object({
+  accessCode: z.string().trim().min(1, 'Vui lòng nhập mã đề').max(50),
+});
+export type UnlockExamDto = z.infer<typeof UnlockExamSchema>;
 
