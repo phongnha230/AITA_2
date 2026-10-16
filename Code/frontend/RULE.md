@@ -39,7 +39,7 @@
      - Dùng Browser APIs: `localStorage`, `window`, `document`...
 2. **Quản lý Bất đồng bộ & Data Fetching:**
    - Mọi request HTTP phải gọi qua instance Axios tập trung tại `src/services/http.client.ts` hoặc `src/lib/api.ts` (đã cấu hình sẵn `baseURL` và tự động đính kèm Bearer Token).
-   - Tuyệt đối không hardcode URL (`http://localhost:5000/...`) rải rác trong component.
+   - Tuyệt đối không hardcode URL (`http://localhost:5003/...`) rải rác trong component.
 3. **Trải nghiệm tải trang (Loading & Error States):**
    - Mọi thao tác tải dữ liệu phải có trạng thái `loading` (Spinner hoặc Skeleton) và xử lý lỗi `error` thân thiện.
    - Sử dụng các component trong `src/components/feedback/` (`LoadingSpinner`, `AlertBox`, `EmptyState`).
