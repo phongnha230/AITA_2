@@ -41,9 +41,16 @@ export class SubmitTeamAssignmentUseCase {
     if (assignment.environment !== 'REACT_JS' || assignment.submissionType !== 'GROUP') {
       throw new ValidationError('Endpoint này chỉ dùng cho assignment REACT_JS + GROUP.');
     }
+    if (!assignment.allowGitSubmission) {
+      throw new ForbiddenError('Đề thi này không cho phép nộp bài bằng GitHub.');
+    }
     const now = new Date();
+    if (assignment.status === 'PAUSED') throw new ForbiddenError('Ca thi đang tạm dừng, hiện không thể nộp bài.');
     if (assignment.status !== 'PUBLISHED' || now < assignment.startTime || now > assignment.deadline) {
       throw new ForbiddenError('Assignment chưa mở hoặc đã hết hạn nộp bài.');
+    }
+    if (!(await this.deps.assignmentRepository.hasStudentExamAccess(assignment.id, request.userId))) {
+      throw new ForbiddenError('Hãy nhập mã đề để mở ca trước khi nộp bài.');
     }
 
     const team = await this.deps.teamRepository.findById(request.teamId);

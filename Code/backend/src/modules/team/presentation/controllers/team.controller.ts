@@ -35,7 +35,12 @@ export class TeamController {
 
   getTeamDetails = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const team = await this.manageTeamUseCase.getTeamDetails(req.params.id);
+      const actor = req.user;
+      if (!actor) throw new UnauthorizedError('Cần đăng nhập để thực hiện');
+      const team = await this.manageTeamUseCase.getTeamDetails(req.params.id, {
+        userId: actor.userId,
+        role: actor.role,
+      });
       sendSuccess(res, team.toJSON(), 'Lấy thông tin nhóm thành công');
     } catch (error) {
       next(error);
@@ -44,7 +49,12 @@ export class TeamController {
 
   getCourseTeams = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const teams = await this.manageTeamUseCase.getCourseTeams(req.params.courseId);
+      const actor = req.user;
+      if (!actor) throw new UnauthorizedError('Cần đăng nhập để thực hiện');
+      const teams = await this.manageTeamUseCase.getCourseTeams(req.params.courseId, {
+        userId: actor.userId,
+        role: actor.role,
+      });
       sendSuccess(res, teams.map((t) => t.toJSON()), 'Lấy danh sách nhóm trong môn học thành công');
     } catch (error) {
       next(error);

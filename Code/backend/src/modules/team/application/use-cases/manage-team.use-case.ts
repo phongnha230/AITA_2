@@ -11,6 +11,11 @@ import {
   ConflictError,
 } from '../../../../shared/domain/exceptions/app.error.js';
 
+export interface TeamAccessActor {
+  userId: string;
+  role: string;
+}
+
 export class ManageTeamUseCase {
   constructor(
     private readonly teamRepository: ITeamRepository,
@@ -18,16 +23,27 @@ export class ManageTeamUseCase {
     private readonly courseRepository: ICourseRepository
   ) {}
 
-  async getTeamDetails(teamId: string): Promise<Team> {
+  async getTeamDetails(teamId: string, actor: TeamAccessActor): Promise<Team> {
     const team = await this.teamRepository.findById(teamId);
     if (!team) {
       throw new NotFoundError(`Không tìm thấy nhóm với ID: ${teamId}`);
     }
+    await this.assertCanViewCourse(team.courseId, actor);
     return team;
   }
 
-  async getCourseTeams(courseId: string): Promise<Team[]> {
+  async getCourseTeams(courseId: string, actor: TeamAccessActor): Promise<Team[]> {
+    await this.assertCanViewCourse(courseId, actor);
     return this.teamRepository.findByCourse(courseId);
+  }
+
+  private async assertCanViewCourse(courseId: string, actor: TeamAccessActor): Promise<void> {
+    const course = await this.courseRepository.findById(courseId);
+    if (!course) throw new NotFoundError('Không tìm thấy môn học.');
+    if (actor.role === 'ADMIN') return;
+    if (actor.role === 'LECTURER' && course.lecturerId === actor.userId) return;
+    if (actor.role === 'STUDENT' && await this.courseRepository.isStudentEnrolled(courseId, actor.userId)) return;
+    throw new ForbiddenError('Bạn không có quyền xem danh sách nhóm của môn học này.');
   }
 
   async addMemberByEmail(
