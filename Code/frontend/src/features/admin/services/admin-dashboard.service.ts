@@ -73,12 +73,7 @@ export interface AdminDashboardData {
 
 export const adminDashboardService = {
   async getDashboard(): Promise<AdminDashboardData | null> {
-    try {
-      const res = await api.get('/users/admin-dashboard');
-      return res.data?.data ?? null;
-    } catch (error) {
-      console.warn('[AdminDashboardService] Backend /users/admin-dashboard unreachable, using fallback demo telemetry:', error);
-      return null;
-    }
+    const res = await api.get('/users/admin-dashboard');
+    return res.data?.data ?? null;
   },
 };

@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowUpToLine, RotateCcw, Search, SquareTerminal } from 'lucide-react';
+import { RotateCcw, Search, SquareTerminal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { EmptyState } from '../../../../components/feedback/EmptyState';
 import type { JobState, QueueJob } from '../../types/admin.types';
@@ -26,13 +26,12 @@ const PAGE_SIZE = 5;
 interface JobsTableProps {
   jobs: QueueJob[];
   onRetry: (id: string) => void;
-  onPrioritize: (id: string) => void;
   onTerminal: (job: QueueJob) => void;
   /** Lets the page force a state filter (e.g. "Chi tiết lỗi" → Failed). `nonce` re-applies the same value. */
   forcedState?: { value: JobState | ''; nonce: number };
 }
 
-export const JobsTable: React.FC<JobsTableProps> = ({ jobs, onRetry, onPrioritize, onTerminal, forcedState }) => {
+export const JobsTable: React.FC<JobsTableProps> = ({ jobs, onRetry, onTerminal, forcedState }) => {
   const [search, setSearch] = useState('');
   const [queue, setQueue] = useState('');
   const [state, setState] = useState('');
@@ -66,7 +65,7 @@ export const JobsTable: React.FC<JobsTableProps> = ({ jobs, onRetry, onPrioritiz
           <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900">
             Bảng điều phối jobs thời gian thực <span className="h-2 w-2 rounded-full bg-emerald-600" />
           </h2>
-          <p className="text-xs text-slate-500">Chi tiết các phiên biên dịch GCC/Python/Java và chấm thang đo tiêu chí AI</p>
+          <p className="text-xs text-slate-500">Danh sách job và trạng thái thực lấy từ backend.</p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <div className="relative">
@@ -75,8 +74,7 @@ export const JobsTable: React.FC<JobsTableProps> = ({ jobs, onRetry, onPrioritiz
           </div>
           <select value={queue} onChange={(e) => setQueue(e.target.value)} className={cn(inputClass, 'sm:w-52')} aria-label="Lọc hàng đợi">
             <option value="">Tất cả hàng đợi (Queues)</option>
-            <option value="docker-eval-queue">docker-eval-queue</option>
-            <option value="ai-rubric-queue">ai-rubric-queue</option>
+            <option value="grading">grading</option>
           </select>
           <select value={state} onChange={(e) => setState(e.target.value)} className={cn(inputClass, 'sm:w-44')} aria-label="Lọc trạng thái">
             <option value="">Tất cả trạng thái</option>
@@ -109,9 +107,9 @@ export const JobsTable: React.FC<JobsTableProps> = ({ jobs, onRetry, onPrioritiz
                   <TableCell><span className="block max-w-[120px] truncate font-mono text-xs font-semibold text-blue-600">{j.id}</span></TableCell>
                   <TableCell><p className="font-mono text-xs font-semibold text-slate-900">{j.name}</p><p className="text-[11px] text-slate-500">{j.detail}</p></TableCell>
                   <TableCell><p className="text-sm font-semibold text-slate-900">{j.student}</p><p className="text-[11px] text-slate-500">{j.course}</p></TableCell>
-                  <TableCell><Badge tone={j.queue === 'ai-rubric-queue' ? 'violet' : 'info'}>{j.queue}</Badge></TableCell>
+                  <TableCell><Badge tone="info">{j.queue}</Badge></TableCell>
                   <TableCell className="w-52">
-                    <p className="mb-1 flex justify-between text-[11px] font-semibold text-slate-600"><span>{j.progressLabel}</span><span>{j.percent}%</span></p>
+                    <p className="mb-1 flex justify-between text-[11px] font-semibold text-slate-600"><span>{j.progressLabel}</span>{j.percent === 100 ? <span>Hoàn tất</span> : null}</p>
                     <ProgressBar value={j.percent} color={BAR_COLOR[j.state]} />
                   </TableCell>
                   <TableCell className="whitespace-nowrap font-mono text-xs text-slate-600">{j.duration}</TableCell>
@@ -119,9 +117,6 @@ export const JobsTable: React.FC<JobsTableProps> = ({ jobs, onRetry, onPrioritiz
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1 text-slate-400">
                       <button type="button" onClick={() => onTerminal(j)} aria-label="Xem log terminal" title="Xem log terminal" className="rounded-lg p-2 hover:bg-slate-100 hover:text-slate-700"><SquareTerminal className="h-4 w-4" /></button>
-                      {j.state === 'Queued' && (
-                        <button type="button" onClick={() => onPrioritize(j.id)} aria-label="Ưu tiên job" title="Đẩy lên đầu hàng đợi" className="rounded-lg p-2 hover:bg-slate-100 hover:text-slate-700"><ArrowUpToLine className="h-4 w-4" /></button>
-                      )}
                       {j.state === 'Failed' && (
                         <button type="button" onClick={() => onRetry(j.id)} aria-label="Retry job" title="Retry job" className="rounded-lg bg-blue-50 p-2 text-blue-600 hover:bg-blue-100">
                           <RotateCcw className="h-4 w-4" />
@@ -137,7 +132,7 @@ export const JobsTable: React.FC<JobsTableProps> = ({ jobs, onRetry, onPrioritiz
       )}
       <div className="flex flex-col items-center justify-between gap-3 border-t border-slate-100 px-6 py-4 text-xs text-slate-500 sm:flex-row">
         <span>
-          Hiển thị <strong>{rows.length}</strong> trên <strong>{filtered.length === jobs.length ? active : filtered.length}</strong> active/queued jobs • Worker pool đang vận hành 16 luồng phân tán
+          Hiển thị <strong>{rows.length}</strong> trên <strong>{filtered.length === jobs.length ? active : filtered.length}</strong> jobs
         </span>
         <div className="flex items-center gap-1">
           <button type="button" disabled={page <= 1} onClick={() => setPage(page - 1)} className="rounded-lg px-3 py-1.5 font-semibold hover:bg-slate-100 disabled:opacity-40">Trước</button>

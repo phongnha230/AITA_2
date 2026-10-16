@@ -1,16 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { BrainCircuit, CircleAlert, Hourglass, Pause, Play, RefreshCw, RotateCcw, SquareTerminal } from 'lucide-react';
+import { BrainCircuit, CircleAlert, Hourglass, RefreshCw, RotateCcw, SquareTerminal } from 'lucide-react';
 import { getErrorMessage } from '../../../../lib/errors';
 import { AlertBox } from '../../../../components/feedback/AlertBox';
 import { LoadingSpinner } from '../../../../components/feedback/LoadingSpinner';
 import { useQueueJobs } from '../../hooks/useQueueJobs';
-import { JOBS_AVG_MS, JOBS_PER_MIN } from '../../mocks/ops.mock';
-import { adminSettingsService } from '../../services/admin-settings.service';
 import { adminQueueService, type QueueMetricsOverview } from '../../services/admin-queue.service';
 import type { QueueJob } from '../../types/admin.types';
-import { AreaChart } from '../ui/AreaChart';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
@@ -22,22 +19,25 @@ import { JobsTable } from './JobsTable';
 import { RedisTelemetry } from './RedisTelemetry';
 
 export const QueuePage: React.FC = () => {
-  const { jobs, loading, error, reload, retry, retryAllFailed, prioritize, flushDeadLetter, clearCompleted } = useQueueJobs();
+  const { jobs, loading, error, reload, retry, retryAllFailed, flushDeadLetter, clearCompleted } = useQueueJobs();
   const toast = useToast();
-  const [paused, setPaused] = useState(false);
   const [terminalJob, setTerminalJob] = useState<QueueJob | null>(null);
   const [forcedState, setForcedState] = useState<{ value: 'Failed' | ''; nonce: number }>();
   const [metrics, setMetrics] = useState<QueueMetricsOverview | null>(null);
+  const [metricsError, setMetricsError] = useState<string | null>(null);
 
   const fetchMetrics = async () => {
     try {
       const m = await adminQueueService.getMetrics();
-      if (m) setMetrics(m);
-    } catch {}
+      setMetrics(m);
+      setMetricsError(null);
+    } catch (error) {
+      console.error('Không tải được queue metrics:', error);
+      setMetricsError('Không thể tải metrics hàng đợi từ backend.');
+    }
   };
 
   useEffect(() => {
-    setPaused(adminSettingsService.get().workersPaused);
     void fetchMetrics();
   }, []);
 
@@ -51,32 +51,22 @@ export const QueuePage: React.FC = () => {
     }
   };
 
-  const togglePause = async () => {
-    const next = !paused;
-    await adminSettingsService.save({ workersPaused: next });
-    setPaused(next);
-    toast.info(next ? 'Đã tạm dừng toàn bộ Workers.' : 'Workers đã hoạt động trở lại.');
-  };
-
-  const queued = (metrics?.bullmq?.waiting ?? 0) + jobs.filter((j) => j.state === 'Queued').length;
-  const sandbox = jobs.filter((j) => j.state === 'Processing' && j.queue === 'docker-eval-queue').length;
-  const ai = jobs.filter((j) => j.state === 'Processing' && j.queue === 'ai-rubric-queue').length;
-  const failed = (metrics?.bullmq?.failed ?? 0) + jobs.filter((j) => j.state === 'Failed').length;
-  const completed = (metrics?.bullmq?.completed ?? 0) + (metrics?.database?.statuses?.['COMPLETED'] ?? jobs.filter((j) => j.state === 'Completed').length);
+  const queued = metrics?.bullmq.waiting ?? jobs.filter((j) => j.state === 'Queued').length;
+  const sandbox = jobs.filter((j) => j.state === 'Processing').length;
+  const ai = metrics?.database.statuses['RUNNING_AI'] ?? 0;
+  const failed = metrics?.database.statuses['FAILED'] ?? metrics?.bullmq.failed ?? jobs.filter((j) => j.state === 'Failed').length;
+  const completed = metrics?.database.statuses['COMPLETED'] ?? metrics?.bullmq.completed ?? jobs.filter((j) => j.state === 'Completed').length;
   const totalCompletedOrFailed = completed + failed;
-  const successRate = totalCompletedOrFailed > 0 ? ((completed / totalCompletedOrFailed) * 100).toFixed(1) : '100.0';
+  const successRate = totalCompletedOrFailed > 0 ? `${((completed / totalCompletedOrFailed) * 100).toFixed(1)}%` : '—';
 
   return (
     <>
       <PageHeader
-        eyebrow={<span className="font-semibold uppercase tracking-wider">BullMQ cluster v5.14 • Cluster Redis-Primary</span>}
+        eyebrow={<span className="font-semibold uppercase tracking-wider">Metrics hàng đợi từ backend</span>}
         title="Quản trị Hàng đợi BullMQ & Redis"
         description="Theo dõi và điều phối các luồng xử lý bất đồng bộ (async jobs) biên dịch mã nguồn Sandbox và chấm điểm AI thời gian thực."
         actions={
           <>
-            <Button onClick={() => void togglePause()}>
-              {paused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />} {paused ? 'Tiếp tục Workers' : 'Tạm dừng Workers'}
-            </Button>
             <Button variant="danger" disabled={failed === 0} onClick={() => void run(async () => toast.success(`Đã retry ${await retryAllFailed()} job lỗi.`))}>
               <RotateCcw className="h-4 w-4" /> Retry toàn bộ Failed Jobs
             </Button>
@@ -85,12 +75,12 @@ export const QueuePage: React.FC = () => {
         }
       />
 
-      {paused && <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-700">Workers đang tạm dừng — các job mới sẽ chờ trong hàng đợi.</p>}
+      {metricsError ? <AlertBox message={metricsError} onRetry={() => void fetchMetrics()} /> : null}
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard accent="border-l-amber-400" label="QUEUED (đang chờ)" value={queued} icon={Hourglass} iconClassName="bg-amber-50 text-amber-600" footer={<p className="flex justify-between text-[11px] text-slate-600"><span>Chờ phân bổ worker</span><span className="font-semibold">≈ 240ms latency</span></p>} />
-        <StatCard accent="border-l-blue-500" label="RUNNING_SANDBOX" value={sandbox} icon={SquareTerminal} iconClassName="bg-blue-50 text-blue-600" footer={<p className="flex justify-between text-[11px] text-slate-600"><span>Docker Sandbox isolates</span><span className="font-semibold text-emerald-600">12 active nodes</span></p>} />
-        <StatCard accent="border-l-violet-500" label="RUNNING_AI (chấm rubric)" value={ai} icon={BrainCircuit} iconClassName="bg-violet-50 text-violet-600" footer={<p className="flex justify-between text-[11px] text-slate-600"><span>GPT-4o • Claude 3.5</span><span className="font-semibold text-emerald-600">Rate-limit OK</span></p>} />
+        <StatCard accent="border-l-amber-400" label="Đang chờ" value={queued} icon={Hourglass} iconClassName="bg-amber-50 text-amber-600" footer={<p className="text-[11px] text-slate-600">Jobs waiting trong hàng đợi.</p>} />
+        <StatCard accent="border-l-blue-500" label="Đang xử lý" value={sandbox} icon={SquareTerminal} iconClassName="bg-blue-50 text-blue-600" footer={<p className="text-[11px] text-slate-600">Jobs đang chạy.</p>} />
+        <StatCard accent="border-l-violet-500" label="Đang chấm AI" value={ai} icon={BrainCircuit} iconClassName="bg-violet-50 text-violet-600" footer={<p className="text-[11px] text-slate-600">Trạng thái từ bản ghi grading job.</p>} />
         <StatCard
           accent="border-l-rose-500"
           label="FAILED (cần retry)"
@@ -99,7 +89,7 @@ export const QueuePage: React.FC = () => {
           iconClassName="bg-rose-50 text-rose-600"
           footer={
             <p className="flex justify-between text-[11px] text-slate-600">
-              <span>Segfault / OOM Timeout</span>
+              <span>Bản ghi chấm thất bại</span>
               <button type="button" onClick={() => setForcedState({ value: 'Failed', nonce: Date.now() })} className="font-semibold text-rose-600 hover:underline">Chi tiết lỗi →</button>
             </p>
           }
@@ -108,33 +98,18 @@ export const QueuePage: React.FC = () => {
 
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <Card className="space-y-4 xl:col-span-2">
-          <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
-            <div>
-              <h2 className="text-base font-semibold text-slate-900">Thông lượng xử lý jobs (Throughput &amp; Speed)</h2>
-              <p className="text-xs text-slate-500">Lưu lượng jobs hoàn thành và thời gian phản hồi trung bình trong 60 phút qua</p>
-            </div>
-            <Badge tone="student">{completed} jobs hoàn thành</Badge>
-          </div>
-          <AreaChart
-            height={220}
-            series={[
-              { name: 'Thời gian TB', color: '#059669', values: JOBS_AVG_MS },
-              { name: 'Jobs/min', color: '#2563eb', values: JOBS_PER_MIN },
-            ]}
-            labels={['-60m', '-45m', '-30m', '-15m', 'Hiện tại']}
-          />
-          <dl className="grid grid-cols-2 gap-3 rounded-xl bg-slate-50 p-4 text-xs sm:grid-cols-4">
-            <div><dt className="text-slate-500">Đỉnh xử lý (peak)</dt><dd className="font-bold text-slate-900">148 jobs/phút</dd></div>
-            <div><dt className="text-slate-500">Độ trễ trung bình</dt><dd className="font-bold text-emerald-600">1.82 giây/job</dd></div>
-            <div><dt className="text-slate-500">Tỷ lệ thành công</dt><dd className="font-bold text-slate-900">{successRate}%</dd></div>
-            <div><dt className="text-slate-500">Dead-letter overflow</dt><dd className="font-bold text-rose-600">{failed} jobs</dd></div>
+          <h2 className="text-base font-semibold text-slate-900">Tổng kết queue</h2>
+          <dl className="grid grid-cols-2 gap-3 rounded-xl bg-slate-50 p-4 text-sm sm:grid-cols-3">
+            <div><dt className="text-slate-500">Hoàn tất</dt><dd className="font-bold text-slate-900">{completed}</dd></div>
+            <div><dt className="text-slate-500">Thất bại</dt><dd className="font-bold text-rose-600">{failed}</dd></div>
+            <div><dt className="text-slate-500">Tỷ lệ hoàn tất trong nhóm kết thúc</dt><dd className="font-bold text-slate-900">{successRate}</dd></div>
           </dl>
         </Card>
         <RedisTelemetry
-          dlqCount={failed}
+          failedCount={failed}
           completedCount={completed}
-          onFlushDlq={() => {
-            if (window.confirm(`Xóa vĩnh viễn ${failed} job trong Dead Letter Queue?`)) void run(async () => toast.success(`Đã xóa ${await flushDeadLetter()} job khỏi DLQ.`));
+          onClearFailed={() => {
+            if (window.confirm(`Xóa vĩnh viễn ${failed} bản ghi chấm thất bại?`)) void run(async () => toast.success(`Đã xóa ${await flushDeadLetter()} job thất bại.`));
           }}
           onClearCompleted={() => void run(async () => toast.success(`Đã xóa ${await clearCompleted()} job Completed.`))}
         />
@@ -149,7 +124,6 @@ export const QueuePage: React.FC = () => {
           jobs={jobs}
           forcedState={forcedState}
           onRetry={(id) => void run(() => retry(id), `Đã đưa ${id} về hàng đợi.`)}
-          onPrioritize={(id) => void run(() => prioritize(id), `Đã ưu tiên ${id}.`)}
           onTerminal={setTerminalJob}
         />
       )}

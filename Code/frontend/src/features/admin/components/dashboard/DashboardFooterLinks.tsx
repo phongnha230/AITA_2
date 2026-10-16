@@ -6,9 +6,9 @@ import { ArrowRight, KeyRound, Layers, Server, Users } from 'lucide-react';
 
 const QUICK_LINKS = [
   { href: '/admin/users', icon: Users, title: 'Người dùng & RBAC', sub: 'Phân quyền toàn hệ thống' },
-  { href: '/admin/ai-keys', icon: KeyRound, title: 'Kho AI Keys & Limits', sub: 'Gemini • OpenAI' },
-  { href: '/admin/queue', icon: Layers, title: 'BullMQ & Redis Queue', sub: 'Giám sát tải nộp bài' },
-  { href: '/admin/docker', icon: Server, title: 'Giám sát Hạ tầng Docker', sub: '8 Nodes • Sandbox Clustered' },
+  { href: '/admin/ai-keys', icon: KeyRound, title: 'Kho AI Keys & Limits', sub: 'Quản lý khóa API' },
+  { href: '/admin/queue', icon: Layers, title: 'Hàng đợi chấm bài', sub: 'Jobs và thao tác backend' },
+  { href: '/admin/docker', icon: Server, title: 'Docker Sandbox', sub: 'Trạng thái từ Sandbox API' },
 ];
 
 export const DashboardFooterLinks: React.FC = () => {
