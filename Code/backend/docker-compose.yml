@@ -1,4 +1,39 @@
 services:
+  playwright-public-egress-proxy:
+    container_name: aita-playwright-egress-proxy
+    image: aita-playwright-egress-proxy:1.0.0
+    pull_policy: build
+    build:
+      context: .
+      dockerfile: Dockerfile.playwright-proxy
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 32
+    mem_limit: 128m
+    tmpfs:
+      - /tmp:rw,nosuid,size=16m
+    networks:
+      playwright-internal:
+        aliases: [aita-browser-egress]
+      playwright-egress:
+
+  playwright-sandbox-image:
+    image: ${PLAYWRIGHT_SANDBOX_IMAGE:-aita-playwright-sandbox:1.64.1}
+    build:
+      context: .
+      dockerfile: Dockerfile.playwright
+    profiles: ["sandbox-build"]
+
+  playwright-control-image:
+    image: ${PLAYWRIGHT_CONTROL_IMAGE:-aita-playwright-control:1.0.0}
+    pull_policy: build
+    build:
+      context: .
+      dockerfile: Dockerfile.playwright-control
+    profiles: ["sandbox-build"]
+
   redis:
     image: redis:7.0-alpine
     container_name: aita-redis
@@ -45,3 +80,10 @@ services:
 volumes:
   redis_data:
   chroma_data:
+
+networks:
+  playwright-internal:
+    name: ${PLAYWRIGHT_SANDBOX_NETWORK:-aita-playwright-internal}
+    internal: true
+  playwright-egress:
+    name: aita-playwright-egress

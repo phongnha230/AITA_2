@@ -19,6 +19,12 @@ if not exist backend\.env (
     copy backend\.env.example backend\.env > nul
 )
 docker compose -f backend/docker-compose.yml --env-file backend/.env up -d
+docker compose -f backend/docker-compose.yml --env-file backend/.env --profile sandbox-build build playwright-sandbox-image playwright-control-image
+if %errorlevel% neq 0 (
+    echo [LOI] Khong the build image Chromium sandbox. Khong the cham bai React/Web an toan.
+    pause
+    exit /b 1
+)
 
 :: Đợi 3 giây để container sẵn sàng
 timeout /t 3 /nobreak > nul
@@ -48,12 +54,12 @@ cd ..
 
 :: 5. Chạy Backend và Frontend trong 2 cửa sổ riêng biệt
 echo [4/4] Đang khởi động server...
-start "AITA Backend (Port 5000)" cmd /k "cd backend && npm run dev"
+start "AITA Backend (Port 5003)" cmd /k "cd backend && npm run dev"
 start "AITA Frontend (Port 3000)" cmd /k "cd frontend && npm run dev"
 
 echo ==============================================================================
 echo [THÀNH CÔNG] Hệ thống đã được khởi động!
-echo  - Backend API: http://localhost:5000/api/v1/health
+echo  - Backend API: http://localhost:5003/api/v1/health
 echo  - Frontend Web: http://localhost:3000
 echo ==============================================================================
 pause

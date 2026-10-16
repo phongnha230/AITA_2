@@ -55,6 +55,8 @@ import { ManageSolutionsUseCase } from '../../modules/assignment/application/use
 import { GetProctoringDataUseCase } from '../../modules/assignment/application/use-cases/get-proctoring-data.use-case.js';
 import { ControlSessionUseCase } from '../../modules/assignment/application/use-cases/control-session.use-case.js';
 import { DeleteAssignmentUseCase } from '../../modules/assignment/application/use-cases/delete-assignment.use-case.js';
+import { SaveAssignmentPackageUseCase } from '../../modules/assignment/application/use-cases/save-assignment-package.use-case.js';
+import { ExamSessionUseCase } from '../../modules/assignment/application/use-cases/exam-session.use-case.js';
 
 import { CreateCourseUseCase } from '../../modules/course/application/use-cases/create-course.use-case.js';
 import { GetCoursesUseCase } from '../../modules/course/application/use-cases/get-courses.use-case.js';
@@ -195,6 +197,10 @@ class ServiceContainer {
     this.courseRepository,
     this.userRepository
   );
+  public readonly saveAssignmentPackageUseCase = new SaveAssignmentPackageUseCase(
+    this.assignmentRepository,
+    this.courseRepository
+  );
   public readonly getAssignmentDetailUseCase = new GetAssignmentDetailUseCase(this.assignmentRepository);
   public readonly getAssignmentsByCourseUseCase = new GetAssignmentsByCourseUseCase(this.assignmentRepository);
   public readonly updateAssignmentUseCase = new UpdateAssignmentUseCase(this.assignmentRepository);
@@ -210,6 +216,7 @@ class ServiceContainer {
   );
   public readonly getProctoringDataUseCase = new GetProctoringDataUseCase(this.assignmentRepository);
   public readonly controlSessionUseCase = new ControlSessionUseCase(this.assignmentRepository);
+  public readonly examSessionUseCase = new ExamSessionUseCase(this.assignmentRepository);
 
   // Use Cases - Course
   public readonly createCourseUseCase = new CreateCourseUseCase(this.courseRepository, this.userRepository);
@@ -246,7 +253,7 @@ class ServiceContainer {
   );
 
   // Use Cases - Team
-  public readonly createTeamUseCase = new CreateTeamUseCase(this.teamRepository);
+  public readonly createTeamUseCase = new CreateTeamUseCase(this.teamRepository, this.courseRepository);
   public readonly manageTeamUseCase = new ManageTeamUseCase(
     this.teamRepository,
     this.userRepository,
@@ -319,7 +326,9 @@ class ServiceContainer {
     this.manageRubricsUseCase,
     this.manageSolutionsUseCase,
     this.getProctoringDataUseCase,
-    this.controlSessionUseCase
+    this.controlSessionUseCase,
+    this.saveAssignmentPackageUseCase,
+    this.examSessionUseCase
   );
   public readonly submissionController = new SubmissionController(
     this.submitAssignmentUseCase,
@@ -337,7 +346,7 @@ class ServiceContainer {
     this.getTutorConversationUseCase
   );
   public readonly aiApiKeyController = new AiApiKeyController(this.manageApiKeysUseCase);
-  public readonly sandboxController = new SandboxController(this.sandboxService, this.sandboxRepository);
+  public readonly sandboxController = new SandboxController(this.sandboxService, this.sandboxRepository, this.courseRepository);
   public readonly jobController = new JobController(this.jobAdminService);
   public readonly healthController = new HealthController(this.healthService);
 }

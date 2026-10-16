@@ -1,110 +1,80 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { RefreshCw, SlidersHorizontal, Terminal } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { RefreshCw, Server } from 'lucide-react';
 import api from '@/lib/api';
-import { CPU_SERIES, RAM_SERIES } from '../../mocks/ops.mock';
-import { AreaChart } from '../ui/AreaChart';
+import { getErrorMessage } from '../../../../lib/errors';
+import { AlertBox } from '../../../../components/feedback/AlertBox';
+import { LoadingSpinner } from '../../../../components/feedback/LoadingSpinner';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { PageHeader } from '../ui/PageHeader';
-import { useToast } from '../ui/Toast';
-import { SandboxConfigModal } from './SandboxConfigModal';
-import { AuditLog } from './AuditLog';
-import { NodesTable } from './NodesTable';
-import { DockerStatusBanner } from './DockerStatusBanner';
-import { DockerKpiCards } from './DockerKpiCards';
+
+interface SandboxStatus {
+  dockerDaemonRunning: boolean;
+  playwrightSandboxAvailable: boolean;
+  playwrightSandboxImage: string;
+  activeMode: string;
+  activeExecutions: number;
+  totalGradedCount: number;
+  failedExecutions: number;
+  limits: { minTimeoutMs: number; maxTimeoutMs: number; minMemoryMb: number; maxMemoryMb: number; maxTestCases: number };
+}
 
 export const DockerPage: React.FC = () => {
-  const toast = useToast();
-  const [configOpen, setConfigOpen] = useState(false);
-  const [pulse, setPulse] = useState(0);
-  const [sandboxStatus, setSandboxStatus] = useState<any>(null);
+  const [status, setStatus] = useState<SandboxStatus | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    api.get('/sandbox/status')
-      .then((res) => setSandboxStatus(res.data?.data))
-      .catch(() => {});
-  }, [pulse]);
+  const loadStatus = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await api.get('/sandbox/status');
+      setStatus(response.data?.data ?? null);
+      if (!response.data?.data) throw new Error('Backend không trả trạng thái Sandbox.');
+    } catch (loadError) {
+      console.error('Không tải được trạng thái Sandbox cho Admin:', loadError);
+      setError(getErrorMessage(loadError));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { void loadStatus(); }, [loadStatus]);
 
   return (
     <>
       <PageHeader
-        eyebrow={
-          <>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 font-semibold text-emerald-700">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" /> Cluster telemetry: synchronized
-            </span>
-            <span>v2.4.9 Engine Swarm</span>
-          </>
-        }
-        title="Giám sát Hạ tầng Cụm Docker Sandbox"
-        description="Theo dõi sức khỏe tài nguyên vật lý, trạng thái container cách ly, CPU/RAM limits và an toàn bảo mật Seccomp/AppArmor của hệ thống chấm thi tự động phân tán."
-        actions={
-          <>
-            <Button
-              onClick={() => {
-                setPulse((p) => p + 1);
-                toast.success('Đã làm mới telemetry cụm Docker.');
-              }}
-            >
-              <RefreshCw className="h-4 w-4" /> Làm mới tức thì
-            </Button>
-            <Button variant="primary" onClick={() => setConfigOpen(true)}>
-              <SlidersHorizontal className="h-4 w-4" /> Cấu hình Sandbox
-            </Button>
-          </>
-        }
+        eyebrow={<span className="inline-flex items-center gap-2"><Server className="h-4 w-4" /> Trạng thái Sandbox từ backend</span>}
+        title="Giám sát Docker Sandbox"
+        description="Thông tin daemon, chế độ thực thi và số liệu chấm do API Sandbox cung cấp."
+        actions={<Button onClick={() => void loadStatus()}><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Làm mới</Button>}
       />
 
-      <DockerStatusBanner sandboxStatus={sandboxStatus} />
-
-      <DockerKpiCards sandboxStatus={sandboxStatus} />
-
-      <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <Card className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-bold text-slate-900">CPU Usage — Cluster 8 Nodes</h2>
-              <p className="text-xs text-slate-500">Giới hạn cứng: 1.0 CPU / container sandbox</p>
-            </div>
-            <Badge tone="student">4.2 / 32 Cores</Badge>
-          </div>
-          <AreaChart
-            series={[{ name: 'CPU', color: '#2563eb', values: CPU_SERIES }]}
-            labels={['14:00 (bắt đầu thi)', '14:15 (nộp hàng loạt)', '14:30 (hiện tại)']}
-          />
-        </Card>
-        <Card className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-bold text-slate-900">Memory Cap (RAM) — Peak vs Allocation</h2>
-              <p className="text-xs text-slate-500">256MB Hard cap / runner; OOM Killer kích hoạt nếu vượt</p>
-            </div>
-            <Badge tone="neutral">1.8GB / 64GB RAM</Badge>
-          </div>
-          <AreaChart
-            series={[{ name: 'RAM', color: '#2563eb', values: RAM_SERIES }]}
-            threshold={{ value: 256, label: 'Soft limit 256MB/sandbox' }}
-            labels={['Trung bình: 184MB', 'Đỉnh: 298MB (đã thu hồi)', 'Phân bổ an toàn']}
-          />
-        </Card>
-      </section>
-
-      <NodesTable />
-
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="flex items-center gap-2 text-base font-bold text-slate-900">
-            <Terminal className="h-4 w-4 text-blue-600" /> Nhật ký Chấm Thi &amp; Sandbox Lifecycles
-          </h2>
-          <span className="text-xs text-slate-400">Streamed từ Redis pub/sub queue</span>
-        </div>
-        <AuditLog pulse={pulse} />
-      </section>
-
-      <SandboxConfigModal open={configOpen} onClose={() => setConfigOpen(false)} />
+      {error ? <AlertBox message={error} onRetry={() => void loadStatus()} /> : null}
+      {loading && !status ? <LoadingSpinner /> : null}
+      {status ? (
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <Card className="space-y-2">
+            <p className="text-xs text-slate-500">Docker daemon</p>
+            <Badge tone={status.dockerDaemonRunning ? 'student' : 'admin'} dot>{status.dockerDaemonRunning ? 'Sẵn sàng' : 'Không khả dụng'}</Badge>
+            <p className="text-xs text-slate-500">Chế độ: {status.activeMode}</p>
+          </Card>
+          <Card className="space-y-2">
+            <p className="text-xs text-slate-500">Chromium sandbox cho React/Web</p>
+            <Badge tone={status.playwrightSandboxAvailable ? 'student' : 'admin'} dot>
+              {status.playwrightSandboxAvailable ? 'Sẵn sàng' : 'Chưa sẵn sàng'}
+            </Badge>
+            <p className="break-all text-xs text-slate-500">Image: {status.playwrightSandboxImage}</p>
+          </Card>
+          <Card className="space-y-2"><p className="text-xs text-slate-500">Lượt chạy hiện tại</p><p className="text-3xl font-bold text-slate-900">{status.activeExecutions}</p></Card>
+          <Card className="space-y-2"><p className="text-xs text-slate-500">Tổng lượt đã chấm</p><p className="text-3xl font-bold text-slate-900">{status.totalGradedCount}</p></Card>
+          <Card className="space-y-2"><p className="text-xs text-slate-500">Lượt chạy thất bại</p><p className="text-3xl font-bold text-rose-700">{status.failedExecutions}</p></Card>
+          <Card className="space-y-2 sm:col-span-2"><p className="text-sm font-semibold text-slate-900">Giới hạn Sandbox từ API</p><p className="text-sm text-slate-600">Timeout: {status.limits.minTimeoutMs}–{status.limits.maxTimeoutMs} ms · RAM: {status.limits.minMemoryMb}–{status.limits.maxMemoryMb} MB · Tối đa {status.limits.maxTestCases} testcase</p></Card>
+        </section>
+      ) : null}
     </>
   );
 };

@@ -44,6 +44,6 @@ Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd frontend; npm 
 
 Write-Host "==============================================================================" -ForegroundColor Cyan
 Write-Host "[THANH CONG] Da bat cac tien trinh cuc bo!" -ForegroundColor Green
-Write-Host "  - Backend API:  http://localhost:5000/api/v1/health" -ForegroundColor Yellow
+Write-Host "  - Backend API:  http://localhost:5003/api/v1/health" -ForegroundColor Yellow
 Write-Host "  - Frontend Web: http://localhost:3000" -ForegroundColor Yellow
 Write-Host "==============================================================================" -ForegroundColor Cyan

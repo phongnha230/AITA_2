@@ -52,9 +52,13 @@ export class JavaDockerRunner implements ISandboxRunner {
 
   public async execute(
     stagedFolderPath: string,
-    testCases: TestCaseInput[]
+    testCases: TestCaseInput[],
+    context?: { targetBaseUrl?: string; requireDocker?: boolean }
   ): Promise<SandboxExecutionSummary> {
     const isDocker = await this.isDockerDaemonRunning();
+    if (context?.requireDocker && !isDocker) {
+      throw new Error('Docker Sandbox is unavailable; local execution is disabled for this request.');
+    }
     const binDir = path.join(stagedFolderPath, 'bin');
     if (!fs.existsSync(binDir)) fs.mkdirSync(binDir, { recursive: true });
 

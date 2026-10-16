@@ -29,7 +29,7 @@ FROM docker:29.9.0-cli@sha256:1a4c7cb63513f349bdad01fcc6e0f3f2f67d37b9da86f14dc0
 FROM ${NODE_IMAGE} AS production
 
 ENV NODE_ENV=production
-ENV PORT=5000
+ENV PORT=5003
 
 WORKDIR /app
 
@@ -47,10 +47,10 @@ COPY --from=build --chown=aita:aita /app/dist ./dist
 
 USER aita
 
-EXPOSE 5000
+EXPOSE 5003
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-  CMD node -e "const request=require('http').get('http://127.0.0.1:'+(process.env.PORT||5000)+'/',response=>process.exit(response.statusCode===200?0:1));request.on('error',()=>process.exit(1));request.setTimeout(3000,()=>{request.destroy();process.exit(1)})"
+  CMD node -e "const request=require('http').get('http://127.0.0.1:'+(process.env.PORT||5003)+'/',response=>process.exit(response.statusCode===200?0:1));request.on('error',()=>process.exit(1));request.setTimeout(3000,()=>{request.destroy();process.exit(1)})"
 
 ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["node", "dist/server.js"]

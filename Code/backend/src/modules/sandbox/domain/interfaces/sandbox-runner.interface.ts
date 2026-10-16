@@ -53,6 +53,6 @@ export interface ISandboxRunner {
   execute(
     stagedFolderPath: string,
     testCases: TestCaseInput[],
-    context?: { targetBaseUrl?: string }
+    context?: { targetBaseUrl?: string; requireDocker?: boolean }
   ): Promise<SandboxExecutionSummary>;
 }

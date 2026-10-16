@@ -53,7 +53,7 @@ JWT_REFRESH_SECRET="replace_with_another_random_secret_of_at_least_32_characters
 Thêm các biến sau khi dùng chế độ Docker local được hướng dẫn trong tài liệu này:
 
 ```ini
-PORT=5000
+PORT=5003
 NODE_ENV=development
 REDIS_HOST="localhost"
 REDIS_PORT=6380
@@ -87,7 +87,7 @@ Nếu `.env` đã tồn tại từ trước, không copy đè file vì sẽ mấ
 Frontend dùng URL local mặc định. Tạo `frontend/.env.local` khi cần cấu hình rõ ràng hoặc dùng reCAPTCHA:
 
 ```ini
-NEXT_PUBLIC_API_URL=http://localhost:5000/api/v1
+NEXT_PUBLIC_API_URL=http://localhost:5003/api/v1
 NEXT_PUBLIC_RECAPTCHA_SITE_KEY=
 ```
 
@@ -110,12 +110,13 @@ Chạy lại `npm ci` khi `package-lock.json` thay đổi. Không dựa vào th�
 
 Chế độ này chạy Redis và ChromaDB bằng Docker. Backend và frontend vẫn chạy trực tiếp bằng Node.js.
 
-### 1. Khởi động Redis và ChromaDB
+### 1. Khởi động Redis, ChromaDB và build image browser sandbox
 
 Chạy lệnh sau từ thư mục `Code/` sau khi đã tạo `backend/.env`:
 
 ```bash
 docker compose -f backend/docker-compose.yml --env-file backend/.env up -d
+docker compose -f backend/docker-compose.yml --env-file backend/.env --profile sandbox-build build playwright-sandbox-image
 ```
 
 Kiểm tra trạng thái container:
@@ -138,9 +139,10 @@ cd Code/backend
 npm run dev
 ```
 
-Backend chạy tại `http://localhost:5000`. Kiểm tra `http://localhost:5000/api/v1/health`.
+Backend chạy tại `http://localhost:5003`. Kiểm tra `http://localhost:5003/api/v1/health`.
 
 Backend tự khởi động grading worker và RAG indexing worker. Lần chấm C hoặc Java đầu tiên có thể tải image `gcc:alpine` hoặc `openjdk:17-alpine`.
+Chấm React/Web tạo Chromium container riêng cho mỗi lượt chấm, chạy bằng user không phải root, giới hạn CPU/RAM/process và không mount file backend. Container nằm trong mạng Docker `internal`; proxy egress riêng chỉ cho HTTPS tới hostname phân giải thành IP công khai và ghim IP đã kiểm tra. Container bị xóa sau khi chấm. Compose khởi động proxy, còn lệnh build ở bước 1 tạo image Chromium và cổng điều khiển. Nếu Docker/image/proxy không sẵn sàng, lượt chấm báo lỗi thay vì chạy Chromium trực tiếp trong backend.
 
 ### 3. Khởi động frontend
 
@@ -330,4 +332,4 @@ Với native sandbox, thêm GCC và JDK vào `PATH`. Với Docker sandbox, kiể
 
 ### Cookie đăng nhập không hoạt động
 
-Giữ frontend ở `http://localhost:3000`, backend ở `http://localhost:5000`, `FRONTEND_URL` đúng origin và `COOKIE_SAME_SITE=lax`. Nếu đổi host hoặc port, cập nhật cả `FRONTEND_URL` và `NEXT_PUBLIC_API_URL`.
+Giữ frontend ở `http://localhost:3000`, backend ở `http://localhost:5003`, `FRONTEND_URL` đúng origin và `COOKIE_SAME_SITE=lax`. Nếu đổi host hoặc port, cập nhật cả `FRONTEND_URL` và `NEXT_PUBLIC_API_URL`.

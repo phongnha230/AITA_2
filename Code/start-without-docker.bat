@@ -39,12 +39,12 @@ cd ..
 
 :: 3. Khởi chạy 2 tiến trình
 echo [3/3] Đang khởi động Backend & Frontend...
-start "AITA Backend - Local Native (Port 5000)" cmd /k "cd backend && npm run dev"
+start "AITA Backend - Local Native (Port 5003)" cmd /k "cd backend && npm run dev"
 start "AITA Frontend - Local Native (Port 3000)" cmd /k "cd frontend && npm run dev"
 
 echo ==============================================================================
 echo [THÀNH CÔNG] Đã khởi chạy các tiến trình cục bộ!
-echo  - Backend API: http://localhost:5000/api/v1/health
+echo  - Backend API: http://localhost:5003/api/v1/health
 echo  - Frontend Web: http://localhost:3000
 echo ==============================================================================
 pause
