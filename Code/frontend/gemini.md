@@ -137,7 +137,7 @@ Mỗi feature bao gồm 4 thư mục con khép kín:
 ### 2. Quản lý Data Fetching & Axios
 - Mọi request HTTP phải gọi qua instance Axios tập trung tại `@/services/http.client` hoặc `@/lib/api`.
 - Đã cấu hình sẵn `baseURL` từ biến môi trường và tự động đính kèm `Bearer Token`.
-- **Tuyệt đối không hardcode URL** dạng `http://localhost:5000/...` rải rác trong component.
+- **Tuyệt đối không hardcode URL** dạng `http://localhost:5003/...` rải rác trong component.
 
 ### 3. Loading, Empty & Error States
 - Mọi component tải dữ liệu bất đồng bộ bắt buộc xử lý đủ 3 trạng thái:
