@@ -1,5 +1,6 @@
 export type AssignmentEnv = 'C_GCC' | 'JAVA_JDK' | 'REACT_JS';
-export type AssignmentStatus = 'DRAFT' | 'PUBLISHED' | 'CLOSED' | 'ARCHIVED';
+export type AssignmentStatus = 'DRAFT' | 'PUBLISHED' | 'PAUSED' | 'CLOSED' | 'ARCHIVED';
+export type AssignmentFlowType = 'PE_EXAM' | 'ASSIGNMENT';
 export type RationaleTag = 'FUNCTIONAL' | 'BOUNDARY' | 'EDGE' | 'PERFORMANCE' | 'SECURITY';
 export type ComparisonMode = 'STDIO' | 'FILE_TO_FILE';
 
@@ -145,6 +146,35 @@ export interface CreateAssignmentPayload {
   allowZipSubmission?: boolean;
   pdfFilePath?: string;
   starterCodePath?: string;
+}
+
+export interface SaveAssignmentPackagePayload {
+  assignment: CreateAssignmentPayload;
+  testCases: TestCase[];
+  rubricRules: RubricRuleInput[];
+  solution?: AssignmentSolution;
+  removeSolution?: boolean;
+  removePdf?: boolean;
+  removeStarter?: boolean;
+}
+
+export interface DryRunExecutionSummary {
+  success: boolean;
+  compileError?: string | null;
+  compilerWarnings?: string | null;
+  totalTests: number;
+  passedTests: number;
+  totalScore: number;
+  maxScore: number;
+  results: Array<{
+    testCaseId: string;
+    passed: boolean;
+    status: string;
+    actualOutput: string;
+    expectedOutput: string;
+    executionTimeMs: number;
+    errorMessage?: string | null;
+  }>;
 }
 
 

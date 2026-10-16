@@ -35,6 +35,7 @@ export function StudentExams() {
     openCount: exams.openCount,
     upcomingCount: exams.upcomingCount,
     endedCount: exams.endedCount,
+    pausedCount: exams.pausedCount,
   });
 
   const refreshBusy = exams.courses.status === 'loading' || exams.assignments.status === 'loading';
@@ -44,8 +45,8 @@ export function StudentExams() {
     <div className="space-y-6">
       <StudentPageHeading
         eyebrow="Đánh giá học phần"
-        title="Danh sách Bài thi Thực hành (PE)"
-        description="Theo dõi lịch thi, thời hạn và môi trường thực thi của các lớp bạn đang tham gia."
+        title="Bài tập & bài thi"
+        description="Theo dõi lịch, hạn nộp và trạng thái bài trong các lớp bạn đang tham gia."
         action={
           <button
             type="button"
@@ -80,7 +81,7 @@ export function StudentExams() {
         openCount={exams.openCount}
         upcomingCount={exams.upcomingCount}
         endedCount={exams.endedCount}
-        environmentCount={exams.environmentCount}
+        pausedCount={exams.pausedCount}
         isLoading={exams.assignments.status === 'loading'}
       />
 
@@ -106,8 +107,8 @@ export function StudentExams() {
         {filterData.noExamsAtAll && (
           <StudentEmptyState
             icon={CalendarClock}
-            title="Chưa có bài thi PE nào."
-            description="Các bài thi đã được xuất bản trong lớp của bạn sẽ xuất hiện tại đây."
+            title="Chưa có bài tập hoặc bài thi nào."
+            description="Các bài đã được công bố trong lớp sẽ xuất hiện tại đây."
           />
         )}
 
@@ -121,6 +122,7 @@ export function StudentExams() {
           otherOpenExams={filterData.otherOpenExams}
           visibleUpcoming={filterData.visibleUpcoming}
           visibleEnded={filterData.visibleEnded}
+          visiblePaused={filterData.visiblePaused}
           unknownExams={filterData.unknownExams}
         />
 

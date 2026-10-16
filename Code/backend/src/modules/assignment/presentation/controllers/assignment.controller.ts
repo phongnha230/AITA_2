@@ -11,6 +11,14 @@ import { ControlSessionUseCase } from '../../application/use-cases/control-sessi
 import { DeleteAssignmentUseCase } from '../../application/use-cases/delete-assignment.use-case.js';
 import { sendSuccess } from '../../../../shared/presentation/utils/api-response.util.js';
 import { UnauthorizedError } from '../../../../shared/domain/exceptions/app.error.js';
+import { randomUUID } from 'node:crypto';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { SaveAssignmentPackageSchema } from '../../application/dtos/assignment.dto.js';
+import { SaveAssignmentPackageUseCase } from '../../application/use-cases/save-assignment-package.use-case.js';
+import { ExamSessionUseCase } from '../../application/use-cases/exam-session.use-case.js';
+import { removeAssignmentFile, resolveAssignmentFile, storeAssignmentFiles } from '../../infrastructure/storage/assignment-file.storage.js';
+import { ValidationError } from '../../../../shared/domain/exceptions/app.error.js';
 
 export class AssignmentController {
   constructor(
@@ -23,7 +31,9 @@ export class AssignmentController {
     private readonly manageRubricsUseCase: ManageRubricsUseCase,
     private readonly manageSolutionsUseCase: ManageSolutionsUseCase,
     private readonly getProctoringDataUseCase: GetProctoringDataUseCase,
-    private readonly controlSessionUseCase: ControlSessionUseCase
+    private readonly controlSessionUseCase: ControlSessionUseCase,
+    private readonly saveAssignmentPackageUseCase: SaveAssignmentPackageUseCase,
+    private readonly examSessionUseCase: ExamSessionUseCase
   ) {}
 
 
@@ -34,6 +44,88 @@ export class AssignmentController {
       }
       const assignment = await this.createAssignmentUseCase.execute(req.body, req.user.userId);
       sendSuccess(res, assignment, 'Tạo đề thi thành công!', 201);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  saveAssignmentPackage = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const files = req.files as Record<string, Express.Multer.File[]> | undefined;
+    const pdf = files?.pdf?.[0];
+    const starter = files?.starter?.[0];
+    let storedFiles: { pdfFilePath?: string; starterCodePath?: string } = {};
+    try {
+      if (!req.user?.userId) throw new UnauthorizedError('Người dùng chưa xác thực.');
+      if (pdf && pdf.size > 25 * 1024 * 1024) throw new ValidationError('PDF không được vượt quá 25 MiB.');
+      const payloadText = req.body?.payload;
+      if (typeof payloadText !== 'string') throw new ValidationError('Thiếu payload đề thi.');
+      let payloadValue: unknown;
+      try {
+        payloadValue = JSON.parse(payloadText) as unknown;
+      } catch {
+        throw new ValidationError('Payload đề thi không phải JSON hợp lệ.');
+      }
+      const parsed = SaveAssignmentPackageSchema.safeParse(payloadValue);
+      if (!parsed.success) {
+        throw new ValidationError('Thông tin đề thi không hợp lệ.', parsed.error.flatten());
+      }
+
+      const isUpdate = Boolean(req.params.id);
+      const assignmentId = req.params.id || randomUUID();
+      storedFiles = await storeAssignmentFiles(assignmentId, { pdf, starter });
+      const result = await this.saveAssignmentPackageUseCase.execute(
+        assignmentId,
+        parsed.data,
+        { userId: req.user.userId, role: req.user.role },
+        isUpdate,
+        {
+          pdfFilePath: storedFiles.pdfFilePath ?? (parsed.data.removePdf ? null : undefined),
+          starterCodePath: storedFiles.starterCodePath ?? (parsed.data.removeStarter ? null : undefined),
+        }
+      );
+
+      if ((storedFiles.pdfFilePath || parsed.data.removePdf) && result.previousFiles.pdfFilePath) {
+        await removeAssignmentFile(result.previousFiles.pdfFilePath).catch((error: unknown) =>
+          console.error('[AssignmentController] Unable to remove replaced PDF', { error })
+        );
+      }
+      if ((storedFiles.starterCodePath || parsed.data.removeStarter) && result.previousFiles.starterCodePath) {
+        await removeAssignmentFile(result.previousFiles.starterCodePath).catch((error: unknown) =>
+          console.error('[AssignmentController] Unable to remove replaced starter ZIP', { error })
+        );
+      }
+      sendSuccess(res, result.assignment.toJSON(), isUpdate ? 'Cập nhật đề thi thành công.' : 'Tạo đề thi thành công!', isUpdate ? 200 : 201);
+    } catch (error) {
+      await Promise.all([
+        removeAssignmentFile(storedFiles.pdfFilePath),
+        removeAssignmentFile(storedFiles.starterCodePath),
+      ]).catch((cleanupError: unknown) => console.error('[AssignmentController] Failed to clean staged assignment files', { cleanupError }));
+      next(error);
+    }
+  };
+
+  downloadAssignmentFile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const kind = req.params.kind;
+      if (kind !== 'pdf' && kind !== 'starter') throw new ValidationError('Loại tệp không hợp lệ.');
+      const accessCode = (req.query.accessCode as string) || (req.headers['x-access-code'] as string);
+      const assignment = await this.getAssignmentDetailUseCase.execute(req.params.id, req.user?.role, accessCode);
+      const relativePath = !('pdfFilePath' in assignment)
+        ? undefined
+        : kind === 'pdf' ? assignment.pdfFilePath : assignment.starterCodePath;
+      if (typeof relativePath !== 'string' || !relativePath) throw new ValidationError('Đề thi chưa có tệp này.');
+      const absolutePath = resolveAssignmentFile(relativePath);
+      await fs.access(absolutePath);
+      if (kind === 'pdf') {
+        res.type('application/pdf').setHeader('Content-Disposition', 'inline; filename="exam-paper.pdf"');
+        res.sendFile(absolutePath, (error) => {
+          if (error && !res.headersSent) next(error);
+        });
+      } else {
+        res.download(absolutePath, 'starter-code.zip', (error) => {
+          if (error && !res.headersSent) next(error);
+        });
+      }
     } catch (error) {
       next(error);
     }
@@ -55,11 +147,32 @@ export class AssignmentController {
 
   getAssignmentsByCourse = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const assignments = await this.getAssignmentsByCourseUseCase.execute(req.params.courseId);
+      const assignments = await this.getAssignmentsByCourseUseCase.execute(req.params.courseId, req.user?.role);
       sendSuccess(res, assignments, 'Lấy danh sách đề thi theo khóa học thành công.');
     } catch (error) {
       next(error);
     }
+  };
+
+  unlockExam = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!req.user?.userId) throw new UnauthorizedError();
+      const status = await this.examSessionUseCase.unlock(
+        req.params.id,
+        req.user.userId,
+        req.user.role,
+        req.body.accessCode
+      );
+      sendSuccess(res, status, 'Đã mở quyền truy cập ca thi.');
+    } catch (error) { next(error); }
+  };
+
+  getExamSession = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!req.user?.userId) throw new UnauthorizedError();
+      const status = await this.examSessionUseCase.status(req.params.id, req.user.userId, req.user.role);
+      sendSuccess(res, status, 'Lấy trạng thái ca thi thành công.');
+    } catch (error) { next(error); }
   };
 
   updateAssignment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -162,7 +275,7 @@ export class AssignmentController {
     try {
       if (!req.user) throw new UnauthorizedError();
       const rooms = await this.getProctoringDataUseCase.getAllRooms(req.user);
-      sendSuccess(res, rooms, 'Lấy danh sách phòng thi giám sát trực tiếp thành công.');
+      sendSuccess(res, rooms, 'Lấy danh sách ca thi thành công.');
     } catch (error) {
       next(error);
     }
@@ -171,7 +284,7 @@ export class AssignmentController {
   getProctoringData = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const data = await this.getProctoringDataUseCase.execute(req.params.id);
-      sendSuccess(res, data, 'Lấy dữ liệu giám sát phòng thi trực tiếp thành công.');
+      sendSuccess(res, data, 'Lấy thông tin ca thi thành công.');
     } catch (error) {
       next(error);
     }

@@ -6,10 +6,12 @@ import {
   CreateAssignmentData,
   ProctoringAssignmentRecord,
   ProctoringRoomRecord,
+  ExamSessionStatus,
 } from '../../domain/repositories/assignment.repository.interface.js';
 import { Assignment, AssignmentEnv } from '../../domain/entities/assignment.entity.js';
 import { createHash } from 'node:crypto';
 import { CreateTestCaseDto, SetRubricRulesDto, UpsertSolutionDto } from '../../application/dtos/assignment.dto.js';
+import { ConflictError, ForbiddenError, NotFoundError } from '../../../../shared/domain/exceptions/app.error.js';
 
 export class PrismaAssignmentRepository implements IAssignmentRepository {
   constructor(private readonly prisma: PrismaClient) {}
@@ -30,6 +32,7 @@ export class PrismaAssignmentRepository implements IAssignmentRepository {
       allowGitSubmission: raw.allowGitSubmission,
       allowZipSubmission: raw.allowZipSubmission,
       status: raw.status,
+      pausedAt: raw.pausedAt,
       createdBy: raw.createdBy,
       createdAt: raw.createdAt,
       updatedAt: raw.updatedAt,
@@ -37,6 +40,8 @@ export class PrismaAssignmentRepository implements IAssignmentRepository {
       functionalMaxScore: Number(raw.functionalMaxScore),
       algorithmMaxScore: Number(raw.algorithmMaxScore),
       cleanCodeMaxScore: Number(raw.cleanCodeMaxScore),
+      pdfFilePath: raw.pdfFilePath,
+      starterCodePath: raw.starterCodePath,
     });
   }
 
@@ -45,6 +50,57 @@ export class PrismaAssignmentRepository implements IAssignmentRepository {
       where: { id },
     });
     return raw ? this.toDomain(raw) : null;
+  }
+
+  async unlockExam(assignmentId: string, studentId: string, accessCode: string) {
+    const assignment = await this.prisma.assignment.findFirst({
+      where: { id: assignmentId, course: { enrollments: { some: { studentId } } } },
+      select: { id: true, status: true, accessCode: true, startTime: true, deadline: true, durationMinutes: true, pausedAt: true },
+    });
+    if (!assignment) throw new ForbiddenError('Không tìm thấy đề thi hoặc bạn chưa ghi danh môn học này.');
+    if (assignment.status === 'DRAFT' || assignment.status === 'CLOSED' || assignment.status === 'ARCHIVED') {
+      throw new ForbiddenError('Ca thi hiện không nhận lượt mở mới.');
+    }
+    if (!assignment.accessCode || assignment.accessCode.trim() !== accessCode.trim()) {
+      throw new ForbiddenError('Mã đề không chính xác hoặc đề chưa được đặt mã.');
+    }
+    await this.prisma.assignmentExamAccess.upsert({
+      where: { assignmentId_studentId: { assignmentId, studentId } },
+      create: { assignmentId, studentId },
+      update: {},
+    });
+    return this.toExamSessionStatus(assignment);
+  }
+
+  async getExamSessionStatus(assignmentId: string, studentId: string) {
+    const assignment = await this.prisma.assignment.findUnique({
+      where: { id: assignmentId },
+      select: { id: true, status: true, startTime: true, deadline: true, durationMinutes: true, pausedAt: true,
+        course: { select: { enrollments: { where: { studentId }, select: { id: true }, take: 1 } } },
+        examAccessGrants: { where: { studentId }, select: { id: true }, take: 1 } },
+    });
+    if (!assignment) throw new NotFoundError('Đề thi');
+    if (assignment.course.enrollments.length === 0 || assignment.examAccessGrants.length === 0) {
+      throw new ForbiddenError('Hãy ghi danh môn học và nhập đúng mã đề trước.');
+    }
+    return this.toExamSessionStatus(assignment);
+  }
+
+  async hasStudentExamAccess(assignmentId: string, studentId: string): Promise<boolean> {
+    const grant = await this.prisma.assignmentExamAccess.findUnique({
+      where: { assignmentId_studentId: { assignmentId, studentId } }, select: { id: true },
+    });
+    return Boolean(grant);
+  }
+
+  private toExamSessionStatus(assignment: { id: string; status: string; startTime: Date; deadline: Date; durationMinutes: number | null; pausedAt: Date | null }): ExamSessionStatus {
+    const now = Date.now();
+    const status = assignment.status === 'PAUSED' ? 'PAUSED'
+      : assignment.status === 'CLOSED' || assignment.status === 'ARCHIVED' || now > assignment.deadline.getTime()
+      ? (assignment.status === 'CLOSED' || assignment.status === 'ARCHIVED' ? 'CLOSED' : 'ENDED')
+      : now < assignment.startTime.getTime() ? 'UPCOMING' : 'OPEN';
+    return { assignmentId: assignment.id, status: status as ExamSessionStatus['status'], assignmentStatus: assignment.status as ExamSessionStatus['assignmentStatus'], startTime: assignment.startTime,
+      deadline: assignment.deadline, durationMinutes: assignment.durationMinutes, pausedAt: assignment.pausedAt };
   }
 
   async findDetailedById(id: string, includeHiddenTests: boolean = false): Promise<AssignmentDetailRecord | null> {
@@ -78,6 +134,7 @@ export class PrismaAssignmentRepository implements IAssignmentRepository {
           select: {
             submissions: true,
             testCases: true,
+            examAccessGrants: true,
           },
         },
       },
@@ -100,6 +157,156 @@ export class PrismaAssignmentRepository implements IAssignmentRepository {
       },
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  async countSubmissions(assignmentId: string): Promise<number> {
+    return this.prisma.submission.count({ where: { assignmentId } });
+  }
+
+  async saveComplete(
+    assignmentId: string,
+    data: CreateAssignmentData,
+    testCases: CreateTestCaseDto[],
+    rubricRules: SetRubricRulesDto['rules'],
+    solution?: UpsertSolutionDto,
+    removeSolution = false
+  ): Promise<Assignment> {
+    const assignment = await this.prisma.$transaction(async (transaction) => {
+      const existing = await transaction.assignment.findUnique({
+        where: { id: assignmentId },
+        include: { _count: { select: { submissions: true } } },
+      });
+      if (existing && existing._count.submissions > 0) {
+        throw new ConflictError('Không thể sửa đề thi sau khi đã có bài nộp.');
+      }
+
+      if (existing) {
+        await transaction.assignment.update({
+          where: { id: assignmentId },
+          data: {
+            courseId: data.courseId,
+            title: data.title,
+            description: data.description,
+            environment: data.environment,
+            submissionType: data.submissionType,
+            startTime: data.startTime,
+            deadline: data.deadline,
+            durationMinutes: data.durationMinutes,
+            accessCode: data.accessCode,
+            allowGitSubmission: data.allowGitSubmission,
+            allowZipSubmission: data.allowZipSubmission,
+            status: data.status,
+            pausedAt: data.status === 'PAUSED' ? existing.pausedAt : null,
+            gradingVersion: data.gradingVersion,
+            functionalMaxScore: data.functionalMaxScore,
+            algorithmMaxScore: data.algorithmMaxScore,
+            cleanCodeMaxScore: data.cleanCodeMaxScore,
+            ...(data.pdfFilePath !== undefined ? { pdfFilePath: data.pdfFilePath } : {}),
+            ...(data.starterCodePath !== undefined ? { starterCodePath: data.starterCodePath } : {}),
+          },
+        });
+        await transaction.testCase.deleteMany({ where: { assignmentId } });
+        await transaction.rubricRule.deleteMany({ where: { assignmentId } });
+      } else {
+        await transaction.assignment.create({
+          data: {
+            id: assignmentId,
+            courseId: data.courseId,
+            title: data.title,
+            description: data.description,
+            environment: data.environment,
+            submissionType: data.submissionType || 'INDIVIDUAL',
+            startTime: data.startTime || new Date(),
+            deadline: data.deadline,
+            durationMinutes: data.durationMinutes ?? 90,
+            accessCode: data.accessCode?.trim() || null,
+            allowGitSubmission: data.allowGitSubmission ?? true,
+            allowZipSubmission: data.allowZipSubmission ?? true,
+            status: data.status ?? 'PUBLISHED',
+            gradingVersion: data.gradingVersion ?? 1,
+            functionalMaxScore: data.functionalMaxScore ?? 8,
+            algorithmMaxScore: data.algorithmMaxScore ?? 2,
+            cleanCodeMaxScore: data.cleanCodeMaxScore ?? 0,
+            pdfFilePath: data.pdfFilePath ?? null,
+            starterCodePath: data.starterCodePath ?? null,
+            createdBy: data.createdBy,
+          },
+        });
+      }
+
+      await transaction.testCase.createMany({
+        data: testCases.map((testCase, index) => ({
+          assignmentId,
+          label: testCase.label,
+          rationaleTag: testCase.rationaleTag ?? 'FUNCTIONAL',
+          isHidden: Boolean(testCase.isHidden),
+          timeLimitMs: testCase.timeLimitMs ?? 2000,
+          memoryLimitKb: testCase.memoryLimitKb ?? 262144,
+          points: testCase.points ?? 1,
+          comparisonMode: testCase.comparisonMode ?? 'STDIO',
+          stdinInput: testCase.stdinInput ?? null,
+          expectedStdout: testCase.expectedStdout ?? null,
+          inputFileName: testCase.inputFileName ?? null,
+          inputFileContent: testCase.inputFileContent ?? null,
+          expectedFileName: testCase.expectedFileName ?? null,
+          expectedFileContent: testCase.expectedFileContent ?? null,
+          paperCode: testCase.paperCode?.trim().toUpperCase() ?? null,
+          orderIndex: testCase.orderIndex ?? index + 1,
+        })),
+      });
+      await transaction.rubricRule.createMany({
+        data: rubricRules.map((rule, index) => ({
+          assignmentId,
+          criterionName: rule.criterionName,
+          description: rule.description,
+          maxPoints: rule.maxPoints,
+          weight: rule.weight ?? 1,
+          orderIndex: rule.orderIndex ?? index + 1,
+          criterionType: rule.criterionType ?? 'GENERAL',
+        })),
+      });
+
+      if (solution) {
+        const contentHash = createHash('sha256').update(JSON.stringify({
+          sourceCode: solution.sourceCode,
+          explanation: solution.explanation ?? null,
+          expectedTimeComplexity: solution.expectedTimeComplexity ?? null,
+          expectedSpaceComplexity: solution.expectedSpaceComplexity ?? null,
+          acceptedStrategies: solution.acceptedStrategies ?? [],
+          algorithmNotes: solution.algorithmNotes ?? null,
+        }), 'utf8').digest('hex');
+        await transaction.assignmentSolution.updateMany({
+          where: { assignmentId, isActive: true },
+          data: { isActive: false, activeKey: null },
+        });
+        await transaction.assignmentSolution.create({
+          data: {
+            assignmentId,
+            activeKey: assignmentId,
+            contentHash,
+            indexStatus: 'PENDING',
+            title: solution.title,
+            sourceCode: solution.sourceCode,
+            explanation: solution.explanation ?? null,
+            expectedTimeComplexity: solution.expectedTimeComplexity ?? null,
+            expectedSpaceComplexity: solution.expectedSpaceComplexity ?? null,
+            acceptedStrategies: solution.acceptedStrategies ?? [],
+            algorithmNotes: solution.algorithmNotes ?? null,
+            isActive: true,
+          },
+        });
+      } else if (removeSolution) {
+        await transaction.assignmentSolution.updateMany({
+          where: { assignmentId, isActive: true },
+          data: { isActive: false, activeKey: null },
+        });
+      }
+
+      const saved = await transaction.assignment.findUnique({ where: { id: assignmentId } });
+      if (!saved) throw new Error(`Assignment ${assignmentId} not found after save.`);
+      return saved;
+    });
+    return this.toDomain(assignment);
   }
 
   async create(data: CreateAssignmentData): Promise<Assignment> {
@@ -143,6 +350,7 @@ export class PrismaAssignmentRepository implements IAssignmentRepository {
         allowGitSubmission: data.allowGitSubmission,
         allowZipSubmission: data.allowZipSubmission,
         status: data.status,
+        pausedAt: data.pausedAt,
       },
     });
     return this.toDomain(raw);
@@ -302,6 +510,7 @@ export class PrismaAssignmentRepository implements IAssignmentRepository {
             code: true,
             name: true,
             semester: true,
+            _count: { select: { enrollments: true } },
             enrollments: {
               include: {
                 student: {
@@ -353,6 +562,10 @@ export class PrismaAssignmentRepository implements IAssignmentRepository {
           },
           orderBy: { submittedAt: 'desc' },
         },
+        examAccessGrants: {
+          include: { student: { select: { id: true, fullName: true, studentCode: true } } },
+          orderBy: { unlockedAt: 'desc' },
+        },
       },
     });
   }
@@ -383,6 +596,7 @@ export class PrismaAssignmentRepository implements IAssignmentRepository {
           select: {
             submissions: true,
             testCases: true,
+            examAccessGrants: true,
           },
         },
       },

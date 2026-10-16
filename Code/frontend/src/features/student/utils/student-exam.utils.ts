@@ -9,6 +9,7 @@ export function getExamTemporalStatus(
   assignment: StudentAssignment,
   now = Date.now(),
 ): StudentExamTemporalStatus {
+  if (assignment.status === 'PAUSED') return 'PAUSED';
   const startTime = Date.parse(assignment.startTime);
   const deadline = Date.parse(assignment.deadline);
   if (!Number.isFinite(startTime) || !Number.isFinite(deadline)) return 'UNKNOWN';
@@ -25,7 +26,9 @@ export function mapStudentExams(
   const coursesById = new Map(courses.map((course) => [course.id, course]));
 
   return assignments
-    .filter((assignment) => assignment.status === 'PUBLISHED' || assignment.status === 'CLOSED')
+    .filter((assignment) =>
+      assignment.status === 'PUBLISHED' || assignment.status === 'PAUSED' || assignment.status === 'CLOSED'
+    )
     .map((assignment) => ({
       assignment,
       course: coursesById.get(assignment.courseId) ?? null,

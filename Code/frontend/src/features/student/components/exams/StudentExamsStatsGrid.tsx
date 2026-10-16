@@ -1,14 +1,14 @@
 'use client';
 
 import React from 'react';
-import { CalendarClock, CheckCheck, Code2 } from 'lucide-react';
+import { CalendarClock, CheckCheck, Code2, PauseCircle } from 'lucide-react';
 import { StudentStatCard } from '../shared/StudentStatCard';
 
 interface StudentExamsStatsGridProps {
   openCount: number | null;
   upcomingCount: number | null;
   endedCount: number | null;
-  environmentCount: number | null;
+  pausedCount: number | null;
   isLoading: boolean;
 }
 
@@ -16,7 +16,7 @@ export const StudentExamsStatsGrid: React.FC<StudentExamsStatsGridProps> = ({
   openCount,
   upcomingCount,
   endedCount,
-  environmentCount,
+  pausedCount,
   isLoading,
 }) => {
   return (
@@ -46,10 +46,10 @@ export const StudentExamsStatsGrid: React.FC<StudentExamsStatsGridProps> = ({
         loading={isLoading}
       />
       <StudentStatCard
-        label="Môi trường có bài thi"
-        value={environmentCount === null ? '--' : String(environmentCount)}
-        detail={environmentCount === null ? 'Chưa có dữ liệu' : 'Số môi trường trong danh sách'}
-        icon={Code2}
+        label="Đang tạm dừng"
+        value={pausedCount === null ? '--' : String(pausedCount)}
+        detail={pausedCount === null ? 'Chưa có dữ liệu' : 'Tạm khóa nội dung và nộp bài'}
+        icon={PauseCircle}
         tone="amber"
         loading={isLoading}
       />

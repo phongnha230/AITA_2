@@ -79,4 +79,26 @@ describe('studentService API contracts', () => {
     await expect(studentService.getSandboxHealth()).resolves.toEqual({ status: 'ready' });
     expect(api.get).toHaveBeenCalledWith('/sandbox/health');
   });
+
+  it('opens a student exam session with the access code and reads its server state', async () => {
+    const session = {
+      assignmentId: 'assignment-1', status: 'UPCOMING', assignmentStatus: 'PUBLISHED',
+      startTime: '2026-10-17T10:00:00.000Z', deadline: '2026-10-17T11:00:00.000Z', durationMinutes: 60,
+    };
+    api.post.mockResolvedValue({ data: { data: session } });
+    api.get.mockResolvedValue({ data: { data: session } });
+
+    await expect(studentService.unlockExam('assignment-1', 'PE-2026')).resolves.toEqual(session);
+    await expect(studentService.getExamSession('assignment-1')).resolves.toEqual(session);
+    expect(api.post).toHaveBeenCalledWith('/assignments/assignment-1/unlock', { accessCode: 'PE-2026' });
+    expect(api.get).toHaveBeenCalledWith('/assignments/assignment-1/session');
+  });
+
+  it('downloads the real PDF through the protected assignment file endpoint', async () => {
+    const pdf = new Blob(['pdf-data'], { type: 'application/pdf' });
+    api.get.mockResolvedValue({ data: pdf });
+
+    await expect(studentService.downloadExamPdf('assignment-1')).resolves.toBe(pdf);
+    expect(api.get).toHaveBeenCalledWith('/assignments/assignment-1/files/pdf', { responseType: 'blob' });
+  });
 });

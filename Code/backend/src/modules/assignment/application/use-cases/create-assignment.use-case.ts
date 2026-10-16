@@ -2,7 +2,7 @@ import { IAssignmentRepository } from '../../domain/repositories/assignment.repo
 import { ICourseRepository } from '../../../course/domain/repositories/course.repository.interface.js';
 import { IUserRepository } from '../../../user/domain/repositories/user.repository.interface.js';
 import { CreateAssignmentDto } from '../dtos/assignment.dto.js';
-import { NotFoundError, ForbiddenError } from '../../../../shared/domain/exceptions/app.error.js';
+import { NotFoundError, ForbiddenError, ValidationError } from '../../../../shared/domain/exceptions/app.error.js';
 
 export class CreateAssignmentUseCase {
   constructor(
@@ -12,6 +12,7 @@ export class CreateAssignmentUseCase {
   ) {}
 
   async execute(dto: CreateAssignmentDto, createdBy: string) {
+    if (dto.status === 'PAUSED') throw new ValidationError('Ca thi mới không thể được tạo ở trạng thái tạm dừng.');
     const course = await this.courseRepository.findById(dto.courseId);
     if (!course) {
       throw new NotFoundError(`Khóa học với ID: ${dto.courseId}`);
@@ -35,6 +36,8 @@ export class CreateAssignmentUseCase {
       submissionType: dto.submissionType || 'INDIVIDUAL',
       startTime: dto.startTime || new Date(),
       deadline: new Date(dto.deadline),
+      durationMinutes: dto.durationMinutes,
+      accessCode: dto.accessCode,
       allowGitSubmission: dto.allowGitSubmission !== undefined ? dto.allowGitSubmission : true,
       allowZipSubmission: dto.allowZipSubmission !== undefined ? dto.allowZipSubmission : true,
       status: dto.status || 'DRAFT',

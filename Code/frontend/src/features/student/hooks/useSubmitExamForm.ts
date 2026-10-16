@@ -32,6 +32,9 @@ export function useSubmitExamForm(exam: StudentExamViewModel | null, onClose: ()
 
   const allowZip = assignment?.allowZipSubmission !== false;
   const allowGit = Boolean(assignment?.allowGitSubmission ?? true);
+  const canSubmit = assignment?.submissionType === 'GROUP'
+    ? allowGit
+    : allowGit || allowZip;
 
   const defaultChannel: SubmissionChannel = !allowZip && allowGit ? 'GIT_COMMIT' : 'ZIP_UPLOAD';
   const channel = userChannel ?? defaultChannel;
@@ -129,6 +132,7 @@ export function useSubmitExamForm(exam: StudentExamViewModel | null, onClose: ()
           router.push(`/student/results?submissionId=${encodeURIComponent(result.id)}`);
         }, 1200);
       } catch (err) {
+        console.error('Nộp bài nhóm thất bại:', err);
         setErrorMessage(getStudentServiceErrorMessage(err, 'Nộp bài nhóm thất bại.'));
       } finally {
         setIsSubmitting(false);
@@ -181,6 +185,7 @@ export function useSubmitExamForm(exam: StudentExamViewModel | null, onClose: ()
         router.push(`/student/results?submissionId=${encodeURIComponent(result.id)}`);
       }, 1200);
     } catch (err) {
+      console.error('Nộp bài thất bại:', err);
       setErrorMessage(getStudentServiceErrorMessage(err, 'Nộp bài thất bại. Vui lòng kiểm tra lại.'));
     } finally {
       setIsSubmitting(false);
@@ -189,6 +194,7 @@ export function useSubmitExamForm(exam: StudentExamViewModel | null, onClose: ()
 
   const isSubmitDisabled =
     isSubmitting
+    || !canSubmit
     || loadingGroupTeam
     || (assignment?.submissionType === 'GROUP'
       ? !groupTeam || !groupTeam.gitRepoUrl || !groupTeam.deployedUrl
@@ -202,6 +208,7 @@ export function useSubmitExamForm(exam: StudentExamViewModel | null, onClose: ()
     setChannel: setUserChannel,
     allowZip,
     allowGit,
+    canSubmit,
     fileInputRef,
     selectedFile,
     setSelectedFile,

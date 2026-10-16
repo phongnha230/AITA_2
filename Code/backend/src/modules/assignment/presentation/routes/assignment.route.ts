@@ -9,6 +9,7 @@ import {
   SetRubricRulesSchema,
   UpsertSolutionSchema,
   ControlSessionSchema,
+  UnlockExamSchema,
 } from '../../application/dtos/assignment.dto.js';
 import { SubmitTeamAssignmentSchema } from '../../../submission/application/dtos/submission.dto.js';
 import {
@@ -16,7 +17,10 @@ import {
   requireAssignmentView,
   requireCourseView,
   requireTestCaseManage,
+  requireExamContentAccess,
+  requireUnlockedExam,
 } from '../middlewares/assignment-access.middleware.js';
+import { assignmentFilesUpload } from '../middlewares/assignment-files.middleware.js';
 
 const router = Router();
 
@@ -30,6 +34,13 @@ router.post(
   authorizeRoles('STUDENT'),
   validateBody(SubmitTeamAssignmentSchema),
   submissionController.submitTeamAssignment
+);
+router.post(
+  '/compose',
+  authenticateJWT,
+  authorizeRoles('LECTURER', 'ADMIN'),
+  assignmentFilesUpload,
+  assignmentController.saveAssignmentPackage
 );
 router.post(
   '/',
@@ -62,7 +73,19 @@ router.patch(
   assignmentController.controlSession
 );
 
-router.get('/:id', authenticateJWT, requireAssignmentView, assignmentController.getAssignmentDetail);
+router.post('/:id/unlock', authenticateJWT, authorizeRoles('STUDENT'), validateBody(UnlockExamSchema), assignmentController.unlockExam);
+router.get('/:id/session', authenticateJWT, authorizeRoles('STUDENT'), requireUnlockedExam, assignmentController.getExamSession);
+
+router.get('/:id', authenticateJWT, requireExamContentAccess, assignmentController.getAssignmentDetail);
+router.get('/:id/files/:kind', authenticateJWT, requireExamContentAccess, assignmentController.downloadAssignmentFile);
+router.put(
+  '/:id/compose',
+  authenticateJWT,
+  authorizeRoles('LECTURER', 'ADMIN'),
+  requireAssignmentManage,
+  assignmentFilesUpload,
+  assignmentController.saveAssignmentPackage
+);
 router.put(
   '/:id',
   authenticateJWT,
@@ -90,7 +113,7 @@ router.post(
   validateBody(CreateTestCaseSchema),
   assignmentController.addTestCase
 );
-router.get('/:id/testcases', authenticateJWT, requireAssignmentView, assignmentController.getTestCases);
+router.get('/:id/testcases', authenticateJWT, requireExamContentAccess, assignmentController.getTestCases);
 router.put(
   '/testcases/:testCaseId',
   authenticateJWT,
@@ -116,7 +139,7 @@ router.post(
   validateBody(SetRubricRulesSchema),
   assignmentController.setRubricRules
 );
-router.get('/:id/rubrics', authenticateJWT, requireAssignmentView, assignmentController.getRubricRules);
+router.get('/:id/rubrics', authenticateJWT, requireExamContentAccess, assignmentController.getRubricRules);
 
 // Solutions (RAG)
 router.post(

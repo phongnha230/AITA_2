@@ -1,255 +1,131 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import {
-  CalendarDays,
-  Clock,
-  Code2,
-  Cpu,
-  ExternalLink,
-  FileCode,
-  FileText,
-  HardDriveUpload,
-  Layers,
-  Scale,
-  Sparkles,
-  X,
-} from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { formatTime } from '@/lib/formatDate';
+import { useCallback, useEffect, useState } from 'react';
+import { CalendarDays, Clock3, ExternalLink, FileCode, FileText, HardDriveUpload, LockKeyhole, Scale, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { studentService } from '../../services/student.service';
-import type {
-  AssignmentRubric,
-  AssignmentTestCase,
-  StudentExamViewModel,
-} from '../../types/student.types';
+import { formatTime } from '@/lib/formatDate';
+import { studentService, getStudentServiceErrorMessage } from '../../services/student.service';
+import type { AssignmentRubric, AssignmentTestCase, StudentExamViewModel } from '../../types/student.types';
 
-interface ExamDetailModalProps {
-  exam: StudentExamViewModel | null;
-  isOpen: boolean;
-  onClose: () => void;
-  onOpenSubmit: () => void;
-}
+type ExamSession = Awaited<ReturnType<typeof studentService.getExamSession>>;
+interface ExamDetailModalProps { exam: StudentExamViewModel | null; isOpen: boolean; onClose: () => void; onOpenSubmit: () => void }
 
-export function ExamDetailModal({
-  exam,
-  isOpen,
-  onClose,
-  onOpenSubmit,
-}: ExamDetailModalProps) {
+export function ExamDetailModal({ exam, isOpen, onClose, onOpenSubmit }: ExamDetailModalProps) {
+  const [accessCode, setAccessCode] = useState('');
+  const [session, setSession] = useState<ExamSession | null>(null);
+  const [assignment, setAssignment] = useState<StudentExamViewModel['assignment'] | null>(null);
   const [testCases, setTestCases] = useState<AssignmentTestCase[]>([]);
   const [rubrics, setRubrics] = useState<AssignmentRubric[]>([]);
-  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [secondsUntilStart, setSecondsUntilStart] = useState(0);
+
+  const loadContent = useCallback(async (assignmentId: string) => {
+    try {
+      const [details, cases, rules] = await Promise.all([
+        studentService.getAssignmentDetail(assignmentId),
+        studentService.getAssignmentTestCases(assignmentId),
+        studentService.getAssignmentRubrics(assignmentId),
+      ]);
+      setAssignment(details);
+      setTestCases(cases.filter((testCase) => testCase.isSample));
+      setRubrics(rules);
+    } catch (cause) {
+      console.error('Không tải được nội dung ca thi:', cause);
+      setError(getStudentServiceErrorMessage(cause, 'Không tải được nội dung ca thi.'));
+    }
+  }, []);
+
+  const unlock = async () => {
+    if (!exam || !accessCode.trim() || loading) return;
+    setLoading(true); setError(null);
+    try {
+      const result = await studentService.unlockExam(exam.assignment.id, accessCode.trim());
+      setSession(result); setAccessCode('');
+      if (result.status === 'OPEN') await loadContent(exam.assignment.id);
+    } catch (cause) {
+      console.error('Không mở được ca thi:', cause);
+      setError(getStudentServiceErrorMessage(cause, 'Mã đề không đúng hoặc bạn chưa được ghi danh.'));
+    } finally { setLoading(false); }
+  };
 
   useEffect(() => {
-    if (!isOpen || !exam) return;
+    if (!isOpen || !exam || !session) return;
     let active = true;
-    setIsLoadingDetails(true);
+    const refresh = async () => {
+      try {
+        const current = await studentService.getExamSession(exam.assignment.id);
+        if (!active) return;
+        setSession(current);
+        if (current.status === 'OPEN' && !assignment) await loadContent(exam.assignment.id);
+      } catch (cause) {
+        console.error('Không cập nhật được trạng thái ca thi:', cause);
+      }
+    };
+    const timer = window.setInterval(() => { void refresh(); }, 5000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [isOpen, exam, session?.status, assignment, loadContent]);
 
-    Promise.allSettled([
-      studentService.getAssignmentTestCases(exam.assignment.id),
-      studentService.getAssignmentRubrics(exam.assignment.id),
-    ]).then(([tcResult, rbResult]) => {
-      if (!active) return;
-      if (tcResult.status === 'fulfilled') setTestCases(tcResult.value);
-      if (rbResult.status === 'fulfilled') setRubrics(rbResult.value);
-      setIsLoadingDetails(false);
-    });
+  useEffect(() => {
+    if (!session || session.status !== 'UPCOMING') { setSecondsUntilStart(0); return; }
+    const update = () => setSecondsUntilStart(Math.max(0, Math.ceil((new Date(session.startTime).getTime() - Date.now()) / 1000)));
+    update();
+    const timer = window.setInterval(update, 1000);
+    return () => window.clearInterval(timer);
+  }, [session]);
 
-    return () => { active = false; };
-  }, [isOpen, exam]);
+  if (!exam || !isOpen) return null;
+  const currentAssignment = assignment ?? exam.assignment;
+  const isOpenForWork = session?.status === 'OPEN';
 
-  if (!exam) return null;
+  const openPdf = async () => {
+    const pdfWindow = window.open('about:blank', '_blank');
+    setError(null);
+    try {
+      const pdf = await studentService.downloadExamPdf(exam.assignment.id);
+      if (!pdf.type.includes('pdf') && pdf.size === 0) throw new Error('Tệp PDF không hợp lệ.');
+      const url = URL.createObjectURL(pdf);
+      if (pdfWindow) pdfWindow.location.href = url;
+      else window.location.assign(url);
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (cause) {
+      pdfWindow?.close();
+      console.error('Không mở được PDF đề thi:', cause);
+      setError(getStudentServiceErrorMessage(cause, 'Không tải được PDF đề thi.'));
+    }
+  };
 
-  const { assignment, course } = exam;
-  const sampleTestCases = testCases.filter((tc) => tc.isSample);
+  const countdown = `${Math.floor(secondsUntilStart / 3600).toString().padStart(2, '0')}:${Math.floor((secondsUntilStart % 3600) / 60).toString().padStart(2, '0')}:${(secondsUntilStart % 60).toString().padStart(2, '0')}`;
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto bg-white p-6 rounded-2xl shadow-2xl">
-        <DialogHeader className="space-y-1 text-left">
-          <div className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
-              <FileCode size={18} />
-            </span>
-            <DialogTitle className="text-lg font-bold text-slate-900">
-              {assignment.title}
-            </DialogTitle>
-          </div>
-          <DialogDescription className="text-xs text-slate-500">
-            {course ? `${course.code} • ${course.name} (Học kỳ ${course.semester})` : 'Môn học khảo thí'}
-          </DialogDescription>
-        </DialogHeader>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-3" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+      <section role="dialog" aria-modal="true" aria-labelledby="exam-detail-title" className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl sm:p-6">
+        <header className="flex items-start justify-between gap-4">
+          <div><p className="text-xs font-bold text-indigo-700">{exam.course?.code ?? 'Ca thi'}</p><h2 id="exam-detail-title" className="mt-1 text-lg font-bold text-slate-900">{currentAssignment.title}</h2><p className="mt-1 text-xs text-slate-500">Bắt đầu {formatTime(currentAssignment.startTime)} · Hạn nộp {formatTime(currentAssignment.deadline)}</p></div>
+          <button type="button" onClick={onClose} aria-label="Đóng" className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"><X className="h-4 w-4" /></button>
+        </header>
 
-        {/* General Meta Information */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 rounded-xl border border-slate-100 bg-slate-50 p-3 text-xs">
-          <div>
-            <span className="text-slate-400 block text-[11px]">Môi trường Sandbox</span>
-            <span className="font-bold text-slate-800 font-mono">{assignment.environment}</span>
-          </div>
-          <div>
-            <span className="text-slate-400 block text-[11px]">Hình thức thi</span>
-            <span className="font-bold text-slate-800">{assignment.submissionType === 'GROUP' ? 'Nhóm' : 'Cá nhân'}</span>
-          </div>
-          <div>
-            <span className="text-slate-400 block text-[11px]">Kênh nộp bài</span>
-            <span className="font-bold text-indigo-700">
-              {[
-                assignment.allowZipSubmission !== false ? 'File .ZIP' : null,
-                assignment.allowGitSubmission ? 'GitHub' : null,
-              ].filter(Boolean).join(' / ') || 'Tự do'}
-            </span>
-          </div>
-          <div>
-            <span className="text-slate-400 block text-[11px]">Hạn nộp</span>
-            <span className="font-semibold text-rose-600">{formatTime(assignment.deadline)}</span>
-          </div>
-        </div>
+        {!session ? (
+          <form className="mt-6 space-y-3 rounded-xl border border-indigo-100 bg-indigo-50/60 p-4" onSubmit={(event) => { event.preventDefault(); void unlock(); }}>
+            <div className="flex items-center gap-2 text-sm font-semibold text-slate-800"><LockKeyhole className="h-4 w-4 text-indigo-600" />Nhập mã đề để vào ca thi</div>
+            <p className="text-xs text-slate-600">Mã chỉ cần nhập một lần. Nếu ca chưa bắt đầu, bạn sẽ vào màn hình chờ.</p>
+            <div className="flex gap-2"><input value={accessCode} onChange={(event) => setAccessCode(event.target.value)} autoComplete="off" className="h-10 min-w-0 flex-1 rounded-lg border border-slate-300 px-3 text-sm" placeholder="Mã đề" aria-label="Mã đề" /><Button type="submit" disabled={loading || !accessCode.trim()}>{loading ? 'Đang xác thực…' : 'Mở ca thi'}</Button></div>
+          </form>
+        ) : null}
 
-        {/* Problem Description & Exam PDF Sheet */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
-              <Layers size={14} className="text-indigo-600" />
-              Đặc tả đề bài &amp; Đề thi
-            </h4>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                // Create a simulated or real PDF view in new window/tab
-                const win = window.open('', '_blank');
-                if (win) {
-                  win.document.write(`
-                    <!DOCTYPE html>
-                    <html>
-                      <head>
-                        <title>Đề thi: ${assignment.title}</title>
-                        <style>
-                          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; color: #1e293b; line-height: 1.6; }
-                          .header { border-bottom: 2px solid #3b82f6; padding-bottom: 16px; margin-bottom: 24px; }
-                          h1 { margin: 0 0 8px 0; color: #0f172a; font-size: 24px; }
-                          .meta { color: #64748b; font-size: 14px; }
-                          .content { white-space: pre-wrap; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; }
-                          .footer { margin-top: 30px; font-size: 12px; color: #94a3b8; text-align: center; }
-                        </style>
-                      </head>
-                      <body>
-                        <div class="header">
-                          <h1>HỆ THỐNG KHẢO THÍ AITA - ĐỀ THI THỰC HÀNH</h1>
-                          <div class="meta"><strong>Môn:</strong> ${course?.code || 'PE'} | <strong>Đề bài:</strong> ${assignment.title} | <strong>Thời lượng:</strong> ${assignment.durationMinutes || 90} phút</div>
-                        </div>
-                        <div class="content">${assignment.description || 'Chưa có tệp PDF đính kèm hoặc nội dung văn bản cho đề thi này.'}</div>
-                        <div class="footer">FPT University Academic Integrity &amp; Testing Automation System (AITA)</div>
-                      </body>
-                    </html>
-                  `);
-                  win.document.close();
-                }
-              }}
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-700 hover:underline cursor-pointer bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200/60"
-            >
-              <FileText size={13} />
-              <span>Mở Đề thi PDF (Tab mới)</span>
-              <ExternalLink size={12} />
-            </button>
-          </div>
-          <div className="rounded-xl border border-slate-200/80 bg-white p-4 text-xs leading-relaxed text-slate-700 max-h-48 overflow-y-auto whitespace-pre-wrap">
-            {assignment.description || 'Chưa có mô tả chi tiết cho đề thi này.'}
-          </div>
-        </div>
+        {session?.status === 'UPCOMING' ? <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-5 text-center"><CalendarDays className="mx-auto h-7 w-7 text-blue-700" /><p className="mt-2 font-semibold text-blue-900">Ca thi chưa bắt đầu</p><p className="mt-2 font-mono text-3xl font-bold text-blue-800">{countdown}</p><p className="mt-1 text-xs text-blue-700">Đề PDF, testcase và nộp bài sẽ mở khi đến giờ.</p></div> : null}
+        {session?.status === 'PAUSED' ? <div role="status" className="mt-6 rounded-xl bg-amber-50 p-5 text-center text-sm font-semibold text-amber-800"><Clock3 className="mx-auto mb-2 h-6 w-6" />Ca thi đang tạm dừng. Nội dung và nộp bài tạm khóa.</div> : null}
+        {session?.status === 'ENDED' || session?.status === 'CLOSED' ? <div role="status" className="mt-6 rounded-xl bg-slate-100 p-5 text-center text-sm font-semibold text-slate-700">Ca thi đã kết thúc hoặc đã được đóng.</div> : null}
 
-        {/* Sample Test Cases */}
-        <div className="space-y-2">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
-            <Cpu size={14} className="text-indigo-600" />
-            Testcase mẫu công khai ({sampleTestCases.length})
-          </h4>
-          {isLoadingDetails ? (
-            <p className="text-xs text-slate-400 py-2">Đang tải testcases...</p>
-          ) : sampleTestCases.length > 0 ? (
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {sampleTestCases.map((tc, index) => (
-                <div key={tc.id || `sample_tc_${tc.scoreWeight}_${tc.timeLimitMs}`} className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 text-xs space-y-1.5 font-mono">
-                  <div className="flex items-center justify-between text-[11px] text-slate-500 font-sans font-semibold">
-                    <span>Testcase #{index + 1}</span>
-                    <span>Trọng số: {tc.scoreWeight}đ • Giới hạn: {tc.timeLimitMs}ms</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-[11px]">
-                    <div>
-                      <span className="text-slate-400 block">Đầu vào (Input):</span>
-                      <pre className="rounded bg-slate-900 text-slate-100 p-2 overflow-x-auto text-[10px]">
-                        {tc.inputData || '(Không có)'}
-                      </pre>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block">Đầu ra kỳ vọng (Expected Output):</span>
-                      <pre className="rounded bg-slate-900 text-emerald-400 p-2 overflow-x-auto text-[10px]">
-                        {tc.expectedOutput || '(Không có)'}
-                      </pre>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs text-slate-400 italic">Đề thi chưa công bố testcase mẫu trước giờ làm bài.</p>
-          )}
-        </div>
-
-        {/* Rubrics Criteria */}
-        {rubrics.length > 0 && (
-          <div className="space-y-2">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
-              <Scale size={14} className="text-indigo-600" />
-              Thang điểm Rubric đánh giá ({rubrics.length})
-            </h4>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {rubrics.map((rubric) => (
-                <div key={rubric.id} className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-xs flex justify-between items-start">
-                  <div>
-                    <p className="font-bold text-slate-800">{rubric.criteriaName}</p>
-                    {rubric.description && <p className="text-[11px] text-slate-500 mt-0.5">{rubric.description}</p>}
-                  </div>
-                  <span className="rounded-md bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 text-xs shrink-0">
-                    +{rubric.maxPoints}đ
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <DialogFooter className="pt-3 gap-2 sm:gap-0 border-t border-slate-100">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onClose}
-            className="h-10 text-xs rounded-lg"
-          >
-            Đóng
-          </Button>
-          <Button
-            type="button"
-            onClick={() => {
-              onClose();
-              onOpenSubmit();
-            }}
-            className="h-10 text-xs rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold flex items-center gap-1.5"
-          >
-            <HardDriveUpload size={15} />
-            <span>Nộp bài thi này</span>
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        {isOpenForWork ? <div className="mt-5 space-y-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-slate-50 p-4"><div><p className="text-xs text-slate-500">Thời lượng</p><p className="font-semibold text-slate-900">{currentAssignment.durationMinutes ?? 90} phút</p></div>{assignment?.hasPdf ? <Button onClick={() => void openPdf()}><FileText className="mr-2 h-4 w-4" />Mở đề PDF<ExternalLink className="ml-2 h-3.5 w-3.5" /></Button> : <p className="text-xs text-amber-700">Giảng viên chưa tải PDF đề thi.</p>}</div>
+          <div><h3 className="mb-2 flex items-center gap-2 text-sm font-bold text-slate-800"><FileCode className="h-4 w-4 text-indigo-600" />Nội dung đề</h3><div className="whitespace-pre-wrap rounded-xl border p-4 text-sm leading-relaxed text-slate-700">{currentAssignment.description || 'Đề thi được cung cấp trong tệp PDF.'}</div></div>
+          {testCases.length ? <div><h3 className="mb-2 text-sm font-bold text-slate-800">Testcase mẫu công khai</h3><div className="space-y-2">{testCases.map((testCase) => <div key={testCase.id} className="grid gap-2 rounded-lg bg-slate-50 p-3 text-xs sm:grid-cols-2"><pre className="overflow-auto rounded bg-slate-900 p-2 text-slate-100">{testCase.inputData || '(Không có input)'}</pre><pre className="overflow-auto rounded bg-slate-900 p-2 text-emerald-300">{testCase.expectedOutput || '(Không có output)'}</pre></div>)}</div></div> : null}
+          {rubrics.length ? <div><h3 className="mb-2 flex items-center gap-2 text-sm font-bold text-slate-800"><Scale className="h-4 w-4 text-indigo-600" />Rubric ({rubrics.length})</h3><ul className="space-y-2">{rubrics.map((rubric) => <li key={rubric.id} className="flex justify-between rounded-lg border p-3 text-sm"><span>{rubric.criteriaName}</span><strong>{rubric.maxPoints} điểm</strong></li>)}</ul></div> : null}
+          <div className="flex justify-end border-t pt-4"><Button onClick={() => { onClose(); onOpenSubmit(); }}><HardDriveUpload className="mr-2 h-4 w-4" />Nộp bài</Button></div>
+        </div> : null}
+        {error ? <p role="alert" className="mt-4 rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{error}</p> : null}
+      </section>
+    </div>
   );
 }

@@ -6,7 +6,7 @@ import {
   Save,
   ArrowLeft,
 } from 'lucide-react';
-import { AssignmentEnv, Course, TestCase } from '../../types/assignment.types';
+import { AssignmentEnv, Course, DryRunExecutionSummary, TestCase } from '../../types/assignment.types';
 
 interface WizardStep4ReviewProps {
   selectedCourse?: Course;
@@ -17,8 +17,9 @@ interface WizardStep4ReviewProps {
   title: string;
   description: string;
   dryRunRunning: boolean;
-  dryRunResult: { passed: number; total: number; latency: string } | null;
-  onDryRun: () => void;
+  dryRunResult: DryRunExecutionSummary | null;
+  dryRunError: string | null;
+  onDryRun: () => void | Promise<void>;
   isSubmitting: boolean;
   onSaveToDatabase: () => void;
   onBack: () => void;
@@ -34,12 +35,14 @@ export const WizardStep4Review: React.FC<WizardStep4ReviewProps> = ({
   description,
   dryRunRunning,
   dryRunResult,
+  dryRunError,
   onDryRun,
   isSubmitting,
   onSaveToDatabase,
   onBack,
 }) => {
   const isReact = environment === 'REACT_JS';
+  const allTestsPassed = Boolean(dryRunResult?.success && dryRunResult.passedTests === dryRunResult.totalTests);
   const environmentLabel = environment === 'C_GCC'
     ? 'C GCC 11'
     : environment === 'JAVA_JDK'
@@ -91,7 +94,7 @@ export const WizardStep4Review: React.FC<WizardStep4ReviewProps> = ({
             <div className="text-sm font-black text-slate-900 mt-0.5">
               {durationMinutes} phút
             </div>
-            <div className="text-[10px] text-slate-500">Đếm ngược Kiosk</div>
+            <div className="text-[10px] text-slate-500">Tính từ giờ mở ca</div>
           </div>
         </div>
 
@@ -139,7 +142,7 @@ export const WizardStep4Review: React.FC<WizardStep4ReviewProps> = ({
         ) : (
           <>
             <p className="text-xs text-slate-500">
-              Hệ thống sẽ chạy thử nghiệm mã giải tham chiếu đã nạp với toàn bộ {testCases.length} testcase để đảm bảo đề thi đạt chuẩn 100% trước khi lưu trữ vào CSDL.
+              Chạy mã giải tham chiếu trong Docker sandbox trên toàn bộ {testCases.length} testcase. Kết quả phản ánh lần chạy thực tế; Docker chưa sẵn sàng thì hệ thống sẽ báo lỗi và không chạy trên máy chủ.
             </p>
 
             <div className="flex items-center gap-3">
@@ -150,23 +153,28 @@ export const WizardStep4Review: React.FC<WizardStep4ReviewProps> = ({
                 className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-2 shadow-sm shadow-emerald-500/20 transition disabled:opacity-50"
               >
                 <Play className={`w-3.5 h-3.5 ${dryRunRunning ? 'animate-spin' : ''}`} />
-                <span>{dryRunRunning ? 'Đang chạy mô phỏng Sandbox...' : 'Bắt đầu Dry Run Kiểm thử'}</span>
+                <span>{dryRunRunning ? 'Đang chạy mã trong Docker...' : 'Chạy thử trong Docker'}</span>
               </button>
             </div>
           </>
         )}
 
+        {!isReact && dryRunError && (
+          <div role="alert" className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs">{dryRunError}</div>
+        )}
         {!isReact && dryRunResult && (
-          <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center justify-between animate-in fade-in">
+          <div className={`p-4 rounded-xl border text-xs animate-in fade-in ${allTestsPassed ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-amber-50 border-amber-200 text-amber-950'}`}>
             <div className="flex items-center gap-2 font-bold">
-              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-              <span>
-                KẾT QUẢ DRY RUN: Vượt qua {dryRunResult.passed}/{dryRunResult.total} Testcases! (Độ trễ trung bình {dryRunResult.latency})
-              </span>
+              {allTestsPassed ? <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" /> : <span className="font-black">!</span>}
+              <span>Kết quả chạy thật: {dryRunResult.passedTests}/{dryRunResult.totalTests} testcase đạt • {dryRunResult.totalScore}/{dryRunResult.maxScore} điểm</span>
             </div>
-            <span className="text-[11px] text-emerald-700 font-mono font-bold bg-white px-2.5 py-1 rounded-lg border border-emerald-200">
-              100% PASSED
-            </span>
+            {dryRunResult.compileError && <pre className="mt-2 whitespace-pre-wrap">{dryRunResult.compileError}</pre>}
+            {dryRunResult.compilerWarnings && <pre className="mt-2 whitespace-pre-wrap text-slate-600">{dryRunResult.compilerWarnings}</pre>}
+            <ul className="mt-2 space-y-1">
+              {dryRunResult.results.map((result) => (
+                <li key={result.testCaseId} className="font-mono">{result.passed ? 'Đạt' : result.status}: {result.testCaseId} ({result.executionTimeMs} ms){result.errorMessage ? ` — ${result.errorMessage}` : ''}</li>
+              ))}
+            </ul>
           </div>
         )}
       </div>

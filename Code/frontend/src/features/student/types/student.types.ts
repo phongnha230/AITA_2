@@ -45,7 +45,7 @@ export interface StudentCourse {
 }
 
 export type AssignmentEnvironment = 'C_GCC' | 'JAVA_JDK' | 'REACT_JS';
-export type AssignmentStatus = 'DRAFT' | 'PUBLISHED' | 'CLOSED' | 'ARCHIVED';
+export type AssignmentStatus = 'DRAFT' | 'PUBLISHED' | 'PAUSED' | 'CLOSED' | 'ARCHIVED';
 
 export interface StudentAssignment {
   id: string;
@@ -64,9 +64,10 @@ export interface StudentAssignment {
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+  hasPdf?: boolean;
 }
 
-export type StudentExamTemporalStatus = 'UPCOMING' | 'OPEN' | 'ENDED' | 'UNKNOWN';
+export type StudentExamTemporalStatus = 'UPCOMING' | 'OPEN' | 'PAUSED' | 'ENDED' | 'UNKNOWN';
 
 export interface StudentExamViewModel {
   assignment: StudentAssignment;
@@ -81,7 +82,10 @@ export interface CourseJoinResult {
 }
 
 export interface PublicSandboxHealth {
-  status: 'ready';
+  status: 'ready' | 'unavailable';
+  dockerAvailable: boolean;
+  dockerRequired: true;
+  playwrightSandboxAvailable: boolean;
 }
 
 export type TutorMessageRole = 'USER' | 'ASSISTANT' | 'SYSTEM';

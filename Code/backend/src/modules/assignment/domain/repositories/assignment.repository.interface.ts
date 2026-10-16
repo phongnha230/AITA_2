@@ -39,6 +39,7 @@ export type ProctoringAssignmentRecord = Prisma.AssignmentGetPayload<{
       user: { select: { id: true; fullName: true; studentCode: true } };
       testResults: { select: { id: true; testCaseId: true; verdict: true; earnedPoints: true } };
     } };
+    examAccessGrants: { include: { student: { select: { id: true; fullName: true; studentCode: true } } } };
   };
 }>;
 
@@ -49,7 +50,7 @@ export type ProctoringRoomRecord = Prisma.AssignmentGetPayload<{
       _count: { select: { enrollments: true } };
     } };
     creator: { select: { id: true; fullName: true; email: true } };
-    _count: { select: { submissions: true; testCases: true } };
+    _count: { select: { submissions: true; testCases: true; examAccessGrants: true } };
   };
 }>;
 
@@ -66,11 +67,14 @@ export interface CreateAssignmentData {
   maxFileSizeBytes?: bigint;
   allowGitSubmission?: boolean;
   allowZipSubmission?: boolean;
-  status?: 'DRAFT' | 'PUBLISHED' | 'CLOSED' | 'ARCHIVED';
+  status?: 'DRAFT' | 'PUBLISHED' | 'PAUSED' | 'CLOSED' | 'ARCHIVED';
   gradingVersion?: number;
   functionalMaxScore?: number;
   algorithmMaxScore?: number;
   cleanCodeMaxScore?: number;
+  pdfFilePath?: string | null;
+  starterCodePath?: string | null;
+  pausedAt?: Date | null;
   createdBy: string;
 }
 
@@ -78,6 +82,15 @@ export interface IAssignmentRepository {
   findById(id: string): Promise<Assignment | null>;
   findDetailedById(id: string, includeHiddenTests?: boolean): Promise<AssignmentDetailRecord | null>;
   findByCourseId(courseId: string): Promise<AssignmentListRecord[]>;
+  countSubmissions(assignmentId: string): Promise<number>;
+  saveComplete(
+    assignmentId: string,
+    data: CreateAssignmentData,
+    testCases: CreateTestCaseDto[],
+    rubricRules: SetRubricRulesDto['rules'],
+    solution?: UpsertSolutionDto,
+    removeSolution?: boolean
+  ): Promise<Assignment>;
   create(data: CreateAssignmentData): Promise<Assignment>;
   update(id: string, data: Partial<CreateAssignmentData>): Promise<Assignment>;
   deleteIfNoSubmissions(id: string): Promise<'DELETED' | 'NOT_FOUND' | 'HAS_SUBMISSIONS'>;
@@ -99,5 +112,18 @@ export interface IAssignmentRepository {
   // Proctoring & Live Sessions
   getProctoringAssignment(assignmentId: string): Promise<ProctoringAssignmentRecord | null>;
   getAllAssignmentsForProctoring(lecturerId?: string): Promise<ProctoringRoomRecord[]>;
+  unlockExam(assignmentId: string, studentId: string, accessCode: string): Promise<ExamSessionStatus>;
+  getExamSessionStatus(assignmentId: string, studentId: string): Promise<ExamSessionStatus>;
+  hasStudentExamAccess(assignmentId: string, studentId: string): Promise<boolean>;
+}
+
+export interface ExamSessionStatus {
+  assignmentId: string;
+  status: 'UPCOMING' | 'OPEN' | 'PAUSED' | 'ENDED' | 'CLOSED';
+  assignmentStatus: 'DRAFT' | 'PUBLISHED' | 'PAUSED' | 'CLOSED' | 'ARCHIVED';
+  startTime: Date;
+  deadline: Date;
+  durationMinutes: number | null;
+  pausedAt: Date | null;
 }
 

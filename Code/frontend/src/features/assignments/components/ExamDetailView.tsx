@@ -79,7 +79,7 @@ export const ExamDetailView: React.FC<ExamDetailViewProps> = ({ examId }) => {
 
         <div className="flex flex-wrap items-center gap-2.5">
           <Button asChild variant="outline" size="sm" className="h-9 px-3.5 rounded-xl text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300 shadow-2xs">
-            <Link href={`/exam-bank/create?editId=${assignment.id}`}>
+            <Link href={`/exam-bank/create?editId=${encodeURIComponent(assignment.id)}&type=PE_EXAM`}>
               <Edit3 className="w-3.5 h-3.5 mr-1.5 text-amber-700" />
               <span>Chỉnh sửa trong Wizard</span>
             </Link>

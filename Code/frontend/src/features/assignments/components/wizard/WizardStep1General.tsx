@@ -1,9 +1,11 @@
 import React from 'react';
 import { ArrowRight } from 'lucide-react';
-import { AssignmentEnv, Course } from '../../types/assignment.types';
+import { AssignmentEnv, AssignmentFlowType, Course } from '../../types/assignment.types';
 
 interface WizardStep1GeneralProps {
   courseId: string;
+  flowType: AssignmentFlowType;
+  courseLoadError: string | null;
   setCourseId: (val: string) => void;
   courses: Course[];
   environment: AssignmentEnv;
@@ -25,6 +27,8 @@ interface WizardStep1GeneralProps {
 
 export const WizardStep1General: React.FC<WizardStep1GeneralProps> = ({
   courseId,
+  flowType,
+  courseLoadError,
   setCourseId,
   courses,
   environment,
@@ -49,7 +53,7 @@ export const WizardStep1General: React.FC<WizardStep1GeneralProps> = ({
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
           <h2 className="font-extrabold text-sm text-slate-900">
-            Bước 1: Thông tin chung &amp; Cấu hình Ca thi PE
+            {flowType === 'PE_EXAM' ? 'Bước 1: Cấu hình ca thi PE' : 'Bước 1: Thông tin Assignment'}
           </h2>
         </div>
         <span className="text-[11px] font-semibold text-slate-400">Bước 1 trên 4</span>
@@ -67,12 +71,14 @@ export const WizardStep1General: React.FC<WizardStep1GeneralProps> = ({
             onChange={(e) => setCourseId(e.target.value)}
             className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium"
           >
+            <option value="">Chọn khóa học</option>
             {courses.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.code} — {c.name} ({c.semester})
               </option>
             ))}
           </select>
+          {courseLoadError && <p role="alert" className="mt-1 text-[11px] font-semibold text-rose-700">{courseLoadError}</p>}
         </div>
 
         <div>
@@ -109,15 +115,15 @@ export const WizardStep1General: React.FC<WizardStep1GeneralProps> = ({
 
         <div className="md:col-span-2">
           <label htmlFor="wizard-title-input" className="block font-bold text-slate-700 mb-1">
-            Tiêu đề Đề thi PE
+            {flowType === 'PE_EXAM' ? 'Tiêu đề Đề thi PE' : 'Tiêu đề Assignment'}
           </label>
           <input
             id="wizard-title-input"
             type="text"
-            aria-label="Tiêu đề Đề thi PE"
+            aria-label={flowType === 'PE_EXAM' ? 'Tiêu đề Đề thi PE' : 'Tiêu đề Assignment'}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Ví dụ: Kỳ thi Thực hành PE PRF192 - Spring 2025"
+            placeholder={flowType === 'PE_EXAM' ? 'Ví dụ: Kỳ thi Thực hành PE PRF192 - Spring 2025' : 'Ví dụ: Bài tập cấu trúc dữ liệu'}
             className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-semibold text-slate-800"
           />
         </div>
@@ -168,7 +174,7 @@ export const WizardStep1General: React.FC<WizardStep1GeneralProps> = ({
 
         <div className="md:col-span-2">
           <label htmlFor="exam-access-code" className="block font-bold text-slate-700 mb-1">
-            Mã mở đề thi / Passcode PE (Tùy chọn)
+            Mã đề (bắt buộc)
           </label>
           <input
             id="exam-access-code"
@@ -176,7 +182,7 @@ export const WizardStep1General: React.FC<WizardStep1GeneralProps> = ({
             aria-label="Mã mở đề thi / Passcode PE"
             value={accessCode}
             onChange={(e) => setAccessCode(e.target.value)}
-            placeholder="Ví dụ: PE-PRF192-2026 (Để trống nếu không đặt mật khẩu mở đề)"
+            placeholder="Ví dụ: PE-PRF192-2026"
             className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono"
           />
         </div>
@@ -201,8 +207,12 @@ export const WizardStep1General: React.FC<WizardStep1GeneralProps> = ({
         <button
           type="button"
           onClick={() => {
+            if (!courseId) {
+              alert('Vui lòng chọn khóa học trước khi tiếp tục.');
+              return;
+            }
             if (!title.trim()) {
-              alert('Vui lòng nhập Tiêu đề Đề thi PE trước khi tiếp tục!');
+              alert('Vui lòng nhập tiêu đề trước khi tiếp tục!');
               return;
             }
             onNext();

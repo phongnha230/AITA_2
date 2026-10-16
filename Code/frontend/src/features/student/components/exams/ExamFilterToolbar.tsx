@@ -10,13 +10,14 @@ interface ExamFilterToolbarProps {
   onSearchChange: (search: string) => void;
   sort: ExamSort;
   onSortChange: (sort: ExamSort) => void;
-  counts: { all: number | null; open: number | null; upcoming: number | null; ended: number | null };
+  counts: { all: number | null; open: number | null; upcoming: number | null; paused: number | null; ended: number | null };
 }
 
 const filterOptions: { key: ExamFilter; label: string; countKey: keyof ExamFilterToolbarProps['counts'] }[] = [
   { key: 'ALL', label: 'Tất cả', countKey: 'all' },
   { key: 'OPEN', label: 'Đang mở', countKey: 'open' },
   { key: 'UPCOMING', label: 'Sắp tới', countKey: 'upcoming' },
+  { key: 'PAUSED', label: 'Tạm dừng', countKey: 'paused' },
   { key: 'ENDED', label: 'Đã kết thúc', countKey: 'ended' },
 ];
 
@@ -30,7 +31,7 @@ export function ExamFilterToolbar({
   counts,
 }: ExamFilterToolbarProps) {
   return (
-    <section aria-label="Lọc và tìm kiếm bài thi" className="space-y-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-elevated">
+    <section aria-label="Lọc và tìm kiếm bài tập, bài thi" className="space-y-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-elevated">
       <div role="group" aria-label="Lọc theo trạng thái" className="flex flex-wrap gap-2">
         {filterOptions.map(({ key, label, countKey }) => (
           <button
@@ -59,12 +60,12 @@ export function ExamFilterToolbar({
       <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_200px]">
         <label className="flex min-h-11 items-center gap-2.5 rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 shadow-inner transition-colors focus-within:border-blue-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-100">
           <Search aria-hidden="true" className="h-4 w-4 shrink-0 text-slate-400" />
-          <span className="sr-only">Tìm kiếm bài thi</span>
+          <span className="sr-only">Tìm kiếm bài tập hoặc bài thi</span>
           <input
             type="search"
             value={search}
             onChange={(event) => onSearchChange(event.target.value)}
-            placeholder="Tìm kiếm theo tiêu đề bài thi..."
+            placeholder="Tìm kiếm theo tiêu đề bài..."
             className="min-w-0 flex-1 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
           />
         </label>

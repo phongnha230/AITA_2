@@ -9,11 +9,17 @@ import {
   LecturerSubmission,
   RubricRule,
   RubricRuleInput,
+  SaveAssignmentPackagePayload,
+  DryRunExecutionSummary,
 } from '../types/assignment.types';
-import type { ExamRoom, StudentExamStation } from '../../proctoring/types/proctoring.types';
+import type { ExamSession, ExamSessionStudentAccess, ExamSessionSubmission } from '../../proctoring/types/proctoring.types';
 
 
 export const assignmentService = {
+  getAssignmentFileUrl(assignmentId: string, kind: 'pdf' | 'starter'): string {
+    return `${api.defaults.baseURL}/assignments/${encodeURIComponent(assignmentId)}/files/${kind}`;
+  },
+
   /**
    * Đảm bảo đã có phiên đăng nhập của Giảng viên / Quản trị viên
    */
@@ -84,6 +90,46 @@ export const assignmentService = {
     await this.ensureLecturerAuth();
     const res = await api.post('/assignments', payload);
     return res.data?.data;
+  },
+
+  async saveAssignmentPackage(
+    assignmentId: string | null,
+    payload: SaveAssignmentPackagePayload,
+    files: { pdf?: File; starter?: File }
+  ): Promise<Assignment> {
+    await this.ensureLecturerAuth();
+    const formData = new FormData();
+    formData.append('payload', JSON.stringify(payload));
+    if (files.pdf) formData.append('pdf', files.pdf);
+    if (files.starter) formData.append('starter', files.starter);
+    const endpoint = assignmentId ? `/assignments/${assignmentId}/compose` : '/assignments/compose';
+    const response = assignmentId
+      ? await api.put(endpoint, formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+      : await api.post(endpoint, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+    return response.data.data as Assignment;
+  },
+
+  async runDryRun(payload: {
+    courseId: string;
+    language: 'C_GCC' | 'JAVA_JDK';
+    sourceCode: string;
+    testCases: Array<{
+      id?: string;
+      questionNo?: string;
+      stdinInput?: string | null;
+      expectedStdout?: string | null;
+      inputFileContent?: string | null;
+      expectedFileName?: string | null;
+      expectedFileContent?: string | null;
+      comparisonMode: 'STDIO' | 'FILE_TO_FILE';
+      timeLimitMs: number;
+      memoryLimitKb: number;
+      points: number;
+    }>;
+  }): Promise<DryRunExecutionSummary> {
+    await this.ensureLecturerAuth();
+    const response = await api.post('/sandbox/dry-run', payload);
+    return response.data.data as DryRunExecutionSummary;
   },
 
   /**
@@ -275,34 +321,25 @@ export const assignmentService = {
   /**
    * Lấy danh sách tất cả các phòng thi giám sát trực tiếp từ CSDL
    */
-  async getProctoringRooms(): Promise<ExamRoom[]> {
+  async getProctoringRooms(): Promise<ExamSession[]> {
     await this.ensureLecturerAuth();
-    try {
-      const res = await api.get('/assignments/proctoring/rooms');
-      const data = res.data?.data;
-      if (Array.isArray(data) && data.length > 0) return data;
-    } catch (err) {
-      console.warn('[AssignmentService] getProctoringRooms failed:', err);
-    }
-    return [];
+    const res = await api.get('/assignments/proctoring/rooms');
+    const data: unknown = res.data?.data;
+    if (!Array.isArray(data)) throw new Error('Phản hồi danh sách ca thi không hợp lệ.');
+    return data as ExamSession[];
   },
 
   /**
    * Lấy chi tiết dữ liệu giám sát phòng thi theo assignmentId
    */
   async getProctoringData(assignmentId: string): Promise<{
-    room: ExamRoom;
-    stations: StudentExamStation[];
-    assignment: any;
+    session: ExamSession;
+    submissions: ExamSessionSubmission[];
+    unlockedStudents: ExamSessionStudentAccess[];
   } | null> {
     await this.ensureLecturerAuth();
-    try {
-      const res = await api.get(`/assignments/${assignmentId}/proctoring`);
-      return res.data?.data || null;
-    } catch (err) {
-      console.warn(`[AssignmentService] getProctoringData failed for ${assignmentId}:`, err);
-      return null;
-    }
+    const res = await api.get(`/assignments/${assignmentId}/proctoring`);
+    return res.data?.data || null;
   },
 
   /**
@@ -310,7 +347,7 @@ export const assignmentService = {
    */
   async controlExamSession(
     assignmentId: string,
-    action: 'EXTEND' | 'CLOSE' | 'START' | 'PAUSE',
+    action: 'EXTEND' | 'CLOSE' | 'START' | 'PAUSE' | 'RESUME',
     extraMinutes?: number
   ): Promise<{
     message: string;

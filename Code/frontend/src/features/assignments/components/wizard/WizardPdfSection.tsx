@@ -3,7 +3,9 @@ import { Upload, Eye, Trash2, ExternalLink } from 'lucide-react';
 
 interface WizardPdfSectionProps {
   pdfFile: { name: string; size: string } | null;
-  setPdfFile: (f: { name: string; size: string } | null) => void;
+  onSelectPdf: (file: File) => void;
+  onRemovePdf: () => void;
+  existingPdfDownloadUrl: string | null;
   pdfBlobUrl: string | null;
   setPdfBlobUrl: (url: string | null) => void;
   showPdfPreview: boolean;
@@ -12,7 +14,9 @@ interface WizardPdfSectionProps {
 
 export const WizardPdfSection: React.FC<WizardPdfSectionProps> = ({
   pdfFile,
-  setPdfFile,
+  onSelectPdf,
+  onRemovePdf,
+  existingPdfDownloadUrl,
   pdfBlobUrl,
   setPdfBlobUrl,
   showPdfPreview,
@@ -27,7 +31,7 @@ export const WizardPdfSection: React.FC<WizardPdfSectionProps> = ({
             1. File PDF Đề Thi Chính Thức
           </h2>
         </div>
-        <span className="text-[11px] text-slate-400 font-medium">Bảo mật cấp độ Phòng thi Kiosk</span>
+        <span className="text-[11px] text-slate-400 font-medium">Tệp chỉ tải qua API có phân quyền</span>
       </div>
 
       <div className="p-4 rounded-xl border-2 border-dashed border-slate-200 hover:border-blue-400 bg-slate-50/50 text-center transition">
@@ -39,7 +43,7 @@ export const WizardPdfSection: React.FC<WizardPdfSectionProps> = ({
               </div>
               <div>
                 <div className="font-extrabold text-xs text-slate-900">{pdfFile.name}</div>
-                <div className="text-[11px] text-slate-400">{pdfFile.size} • Đã sẵn sàng phát cho thí sinh</div>
+                <div className="text-[11px] text-slate-400">{pdfFile.size} • Tệp sẽ được lưu cùng đề khi bấm lưu</div>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -55,7 +59,7 @@ export const WizardPdfSection: React.FC<WizardPdfSectionProps> = ({
                 type="button"
                 aria-label="Xóa tệp PDF đề thi"
                 onClick={() => {
-                  setPdfFile(null);
+                  onRemovePdf();
                   if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
                   setPdfBlobUrl(null);
                   setShowPdfPreview(false);
@@ -70,7 +74,7 @@ export const WizardPdfSection: React.FC<WizardPdfSectionProps> = ({
           <label className="cursor-pointer block py-4">
             <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />
             <div className="text-xs font-bold text-slate-700">Kéo thả hoặc Nhấp để tải file PDF đề thi (.pdf)</div>
-            <div className="text-[11px] text-slate-400 mt-1">Dung lượng tối đa 20MB. Đề thi sẽ được khóa và mã hóa.</div>
+            <div className="text-[11px] text-slate-400 mt-1">PDF tối đa 25 MiB. Tệp được lưu riêng và chỉ tải qua API có xác thực.</div>
             <input
               type="file"
               accept=".pdf"
@@ -78,7 +82,7 @@ export const WizardPdfSection: React.FC<WizardPdfSectionProps> = ({
               onChange={(e) => {
                 const f = e.target.files?.[0];
                 if (f) {
-                  setPdfFile({ name: f.name, size: `${(f.size / 1024).toFixed(1)} KB` });
+                  onSelectPdf(f);
                   if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
                   // react-doctor-disable-next-line react-doctor/no-create-object-url-without-revoke
                   setPdfBlobUrl(URL.createObjectURL(f));
@@ -92,12 +96,12 @@ export const WizardPdfSection: React.FC<WizardPdfSectionProps> = ({
 
       {showPdfPreview && pdfFile && (
         <div className="rounded-xl border border-slate-300 bg-slate-100 p-4 animate-in fade-in">
-          {pdfBlobUrl ? (
+          {pdfBlobUrl || existingPdfDownloadUrl ? (
             <div className="space-y-2">
               <div className="flex items-center justify-between text-xs text-slate-600 font-medium px-1">
                 <span>Xem trước file PDF: <strong className="text-slate-900">{pdfFile.name}</strong></span>
                 <a
-                  href={pdfBlobUrl}
+                  href={pdfBlobUrl || existingPdfDownloadUrl || undefined}
                   target="_blank"
                   rel="noreferrer"
                   className="text-blue-600 hover:underline flex items-center gap-1 font-bold text-xs"
@@ -107,24 +111,14 @@ export const WizardPdfSection: React.FC<WizardPdfSectionProps> = ({
                 </a>
               </div>
               <iframe
-                src={pdfBlobUrl}
+                src={pdfBlobUrl || existingPdfDownloadUrl || undefined}
                 sandbox="allow-same-origin"
                 className="w-full h-[550px] rounded-lg border border-slate-300 shadow bg-white"
                 title="PDF Document Preview"
               />
             </div>
           ) : (
-            <div className="bg-white rounded-lg border border-slate-200 shadow-md p-6 max-w-2xl mx-auto space-y-4 text-xs font-serif text-slate-800">
-              <div className="text-center border-b pb-3 border-slate-200 font-sans">
-                <div className="font-bold text-sm tracking-wider uppercase text-slate-900">TRƯỜNG ĐẠI HỌC FPT — KHOA CNTT</div>
-                <div className="font-extrabold text-base text-blue-700 mt-1">ĐỀ THI THỰC HÀNH (PRACTICAL EXAM)</div>
-                <div className="text-slate-500 text-[11px]">Môn: PRF192 — Programming Fundamentals with C • Thời gian: 60 phút</div>
-              </div>
-              <div className="space-y-3 font-sans leading-relaxed">
-                <p><strong>Câu 1 (5.0 điểm):</strong> Viết chương trình C đọc số nguyên N. Đếm và in tất cả các số nguyên tố trong đoạn [1, N] theo thứ tự tăng dần. Dòng tiếp theo in <code>Total primes: K</code>.</p>
-                <p><strong>Câu 2 (5.0 điểm):</strong> Cho mảng N số nguyên. Tìm phần tử lớn nhất đầu tiên và đảo ngược mảng từ vị trí 0 đến vị trí phần tử lớn nhất đó.</p>
-              </div>
-            </div>
+            <p className="rounded-lg bg-white p-5 text-sm text-slate-600">PDF mẫu chưa được đính kèm. Tải PDF thật lên để xem trước và lưu cùng đề.</p>
           )}
         </div>
       )}

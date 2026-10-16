@@ -21,13 +21,13 @@ export const ExamDetailOverviewTab: React.FC<ExamDetailOverviewTabProps> = ({ as
         </h3>
         <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-700 leading-relaxed space-y-2">
           <p>
-            <strong>Quy định chung cho sinh viên:</strong> Thí sinh đọc kỹ đề bài trên giao diện Kiosk của phòng thi.
-            Không sử dụng tài liệu ngoài và không kết nối Internet ngoài phạm vi Sandbox.
+            <strong>Quy định chung cho sinh viên:</strong> Sinh viên xem PDF và làm bài trên IDE cá nhân theo hướng dẫn của giảng viên.
+            Nội dung này dùng để mô tả yêu cầu; hệ thống không khóa thiết bị cá nhân.
           </p>
           <p>
             <strong>Môi trường thực thi:</strong> Hệ thống tự động biên dịch trên nền tảng{' '}
             <code>{isJava ? 'Java JDK 21 (javac)' : 'C GCC 11 (gcc -O2)'}</code>.
-            Mỗi lần nộp thử sẽ chạy qua Docker Sandbox để trả kết quả ngay cho thí sinh.
+            Bài nộp được xử lý qua Docker Sandbox theo cấu hình chấm của đề.
           </p>
         </div>
       </Card>

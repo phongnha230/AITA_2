@@ -95,7 +95,7 @@ export const ExamBankList: React.FC = () => {
         </div>
 
         <Button asChild className="h-10 px-4 rounded-xl font-bold text-xs bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs shrink-0">
-          <Link href="/exam-bank/create">
+          <Link href="/exam-bank/create?type=PE_EXAM">
             <Plus className="w-4 h-4 mr-1.5 shrink-0" />
             <span>Tạo đề thi PE mới</span>
           </Link>
@@ -181,7 +181,7 @@ export const ExamBankList: React.FC = () => {
             Hãy tạo đề thi đầu tiên với file PDF đề, starter code và bộ testcase để bắt đầu!
           </p>
           <Button asChild className="h-9 px-4 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs">
-            <Link href="/exam-bank/create">
+            <Link href="/exam-bank/create?type=PE_EXAM">
               <Plus className="w-4 h-4 mr-1.5" /> Tạo đề thi PE ngay
             </Link>
           </Button>

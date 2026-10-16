@@ -31,6 +31,7 @@ model User {
   enrollments                    CourseEnrollment[]
   coursesTaught                  Course[]                     @relation("LecturerCourses")
   submissions                    Submission[]
+  examAccessGrants               AssignmentExamAccess[]
   teamMemberships                TeamMember[]
   teamsLed                       Team[]                       @relation("TeamLeader")
   submissionParticipants         SubmissionParticipant[]      @relation("SubmissionParticipantUser")
@@ -51,6 +52,7 @@ model Course {
   createdAt      DateTime           @default(now()) @map("created_at")
   updatedAt      DateTime           @updatedAt @map("updated_at")
   isActive       Boolean            @default(true) @map("is_active")
+  capacity       Int?
   codeExpiresAt  DateTime?          @map("code_expires_at")
   enrollmentCode String?            @unique @map("enrollment_code") @db.VarChar(20)
   assignments    Assignment[]
@@ -101,6 +103,10 @@ model Assignment {
   functionalMaxScore Decimal              @default(8.00) @map("functional_max_score") @db.Decimal(4, 2)
   algorithmMaxScore  Decimal              @default(2.00) @map("algorithm_max_score") @db.Decimal(4, 2)
   cleanCodeMaxScore  Decimal              @default(0.00) @map("clean_code_max_score") @db.Decimal(4, 2)
+  pdfFilePath        String?              @map("pdf_file_path") @db.VarChar(500)
+  starterCodePath    String?              @map("starter_code_path") @db.VarChar(500)
+  pausedAt           DateTime?            @map("paused_at")
+  examAccessGrants   AssignmentExamAccess[]
   solutions          AssignmentSolution[]
   course             Course               @relation(fields: [courseId], references: [id], onDelete: Cascade)
   creator            User                 @relation("AssignmentCreator", fields: [createdBy], references: [id])
@@ -112,6 +118,19 @@ model Assignment {
   @@index([deadline], map: "idx_assignments_deadline")
   @@index([createdBy], map: "assignments_created_by_fkey")
   @@map("assignments")
+}
+
+model AssignmentExamAccess {
+  id            String     @id @default(uuid()) @db.Char(36)
+  assignmentId  String     @map("assignment_id") @db.Char(36)
+  studentId     String     @map("student_id") @db.Char(36)
+  unlockedAt    DateTime   @default(now()) @map("unlocked_at")
+  assignment    Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student       User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([assignmentId, studentId], map: "uk_exam_access_assignment_student")
+  @@index([studentId, unlockedAt], map: "idx_exam_access_student_unlocked")
+  @@map("assignment_exam_access")
 }
 
 model TestCase {
@@ -478,6 +497,7 @@ enum SubmissionType {
 enum AssignmentStatus {
   DRAFT
   PUBLISHED
+  PAUSED
   CLOSED
   ARCHIVED
 }

@@ -26,6 +26,14 @@ export const requireAssignmentView = accessMiddleware((req) =>
   policy.assertCanViewAssignment(actorFrom(req), req.params.id)
 );
 
+export const requireExamContentAccess = accessMiddleware((req) =>
+  policy.assertCanAccessExamContent(actorFrom(req), req.params.id)
+);
+
+export const requireUnlockedExam = accessMiddleware((req) =>
+  policy.assertCanViewUnlockedExam(actorFrom(req), req.params.id)
+);
+
 export const requireAssignmentManage = accessMiddleware((req) =>
   policy.assertCanManageAssignment(actorFrom(req), req.params.id ?? req.params.assignmentId)
 );
