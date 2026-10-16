@@ -1,10 +1,8 @@
 'use client';
 
-import { BrainCircuit, CheckCircle2, ShieldAlert } from 'lucide-react';
-import { CLASS_CATALOG, DEFAULT_LECTURER_CLASSES, SAMPLE_LECTURER, SAMPLE_STUDENT } from '../../mocks/ops.mock';
+import { CheckCircle2 } from 'lucide-react';
 import type { AdminUser } from '../../types/admin.types';
 import { Badge } from '../ui/Badge';
-import { Toggle } from '../ui/Toggle';
 
 const Title: React.FC<{ children: React.ReactNode; aside?: React.ReactNode }> = ({ children, aside }) => (
   <div className="mb-2 flex items-center justify-between gap-3">
@@ -16,13 +14,11 @@ const Title: React.FC<{ children: React.ReactNode; aside?: React.ReactNode }> = 
 interface LecturerViewProps {
   user: AdminUser;
   detailedUser?: any;
-  onToggleSandbox: (next: boolean) => void;
 }
 import { lecturerClasses } from './profileUtils';
 
-export const LecturerView: React.FC<LecturerViewProps> = ({ user, detailedUser, onToggleSandbox }) => {
+export const LecturerView: React.FC<LecturerViewProps> = ({ user, detailedUser }) => {
   const classes = lecturerClasses(user, detailedUser);
-  const sandboxAi = user.sandboxAiEnabled ?? true;
   const totalStudents = classes.reduce((s: number, c: any) => s + c.students, 0);
   const examsCreated = detailedUser?.coursesTaught?.reduce((acc: number, c: any) => acc + (c.assignments?.length || 0), 0) ?? 0;
 
@@ -30,18 +26,17 @@ export const LecturerView: React.FC<LecturerViewProps> = ({ user, detailedUser, 
     <div className="space-y-5">
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Đề PE đã biên soạn</p>
-          <p className="mt-1 flex items-baseline gap-2"><span className="text-3xl font-bold text-blue-600">{examsCreated}</span><span className="text-xs font-semibold text-slate-600">Đề PE thực chiến</span></p>
-          <p className="mt-2 text-xs text-slate-500">Đã nạp bộ dữ liệu RAG &amp; testcases tự động chống gian lận.</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Bài đã tạo</p>
+          <p className="mt-1 flex items-baseline gap-2"><span className="text-3xl font-bold text-blue-600">{examsCreated}</span><span className="text-xs font-semibold text-slate-600">trong khóa học</span></p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Tổng SV quản lý</p>
           <p className="mt-1 flex items-baseline gap-2"><span className="text-3xl font-bold text-slate-900">{totalStudents}</span><span className="text-xs font-semibold text-slate-600">Sinh viên active</span></p>
-          <p className="mt-2 text-xs text-slate-500">Phân bổ qua {classes.length} nhóm lớp thực hành FAP.</p>
+          <p className="mt-2 text-xs text-slate-500">Khóa học giảng viên phụ trách theo dữ liệu backend.</p>
         </div>
       </div>
       <div>
-        <Title aside={<span className="text-xs font-semibold text-blue-600">Học kỳ Fall 2024</span>}>Các lớp học đang phụ trách ({classes.length} lớp)</Title>
+        <Title>Các khóa học đang phụ trách ({classes.length})</Title>
         {classes.length === 0 ? (
           <p className="rounded-xl border border-dashed border-slate-200 p-4 text-sm text-slate-500">Chưa được phân công lớp nào.</p>
         ) : (
@@ -58,22 +53,13 @@ export const LecturerView: React.FC<LecturerViewProps> = ({ user, detailedUser, 
           </ul>
         )}
       </div>
-      <div className="flex items-center justify-between gap-3 rounded-xl border border-blue-100 bg-blue-50/60 p-4">
-        <div className="flex min-w-0 items-center gap-3">
-          <BrainCircuit className="h-5 w-5 shrink-0 text-blue-600" />
-          <div className="min-w-0"><p className="text-sm font-semibold text-slate-900">Cấu hình Sandbox Chấm AI riêng</p><p className="text-xs text-slate-500">Quyền nạp bộ Testcases ẩn &amp; prompt chấm Rubric chi tiết</p></div>
-        </div>
-        <span className="flex shrink-0 items-center gap-2 text-xs font-semibold text-emerald-600">
-          <Toggle checked={sandboxAi} onChange={onToggleSandbox} label="Bật Sandbox chấm AI riêng" /> {sandboxAi ? 'Đã bật' : 'Đã tắt'}
-        </span>
-      </div>
     </div>
   );
 };
 
 export const StudentView: React.FC<{ user?: AdminUser; detailedUser?: any }> = ({ user, detailedUser }) => {
   const studentCode = detailedUser?.studentCode || user?.userCode || '—';
-  const major = detailedUser?.major || user?.department || 'Kỹ thuật phần mềm';
+  const major = detailedUser?.major || user?.department || '—';
   const classes: Array<{ name: string; lecturer: string }> =
     detailedUser?.enrollments && Array.isArray(detailedUser.enrollments) && detailedUser.enrollments.length > 0
       ? detailedUser.enrollments.map((e: any) => ({
@@ -119,14 +105,14 @@ export const StudentView: React.FC<{ user?: AdminUser; detailedUser?: any }> = (
         )}
       </div>
       <div>
-        <Title>Lịch sử thi PE &amp; điểm số ({exams.length} bài nộp)</Title>
+        <Title>Lịch sử bài nộp &amp; điểm số ({exams.length})</Title>
         {exams.length === 0 ? (
           <p className="rounded-xl border border-dashed border-slate-200 p-4 text-xs text-slate-500">Chưa có bài thi nào được ghi nhận.</p>
         ) : (
           <ul className="space-y-2">
             {exams.map((x) => (
               <li key={x.name} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-100 p-3 text-sm">
-                <div className="min-w-0"><p className="font-semibold text-slate-900">{x.name}</p><p className="text-xs text-slate-500">{x.score} • {x.submissions} lần nộp ZIP</p></div>
+                <div className="min-w-0"><p className="font-semibold text-slate-900">{x.name}</p><p className="text-xs text-slate-500">{x.score}</p></div>
                 <Badge tone={x.passed ? 'student' : 'admin'}>{x.passed ? <><CheckCircle2 className="h-3 w-3" /> Pass</> : 'Fail'}</Badge>
               </li>
             ))}

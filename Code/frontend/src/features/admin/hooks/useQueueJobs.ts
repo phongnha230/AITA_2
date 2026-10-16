@@ -40,7 +40,6 @@ export const useQueueJobs = () => {
     reload: load,
     retry: (id: string) => mutate(() => adminQueueService.retry(id)),
     retryAllFailed: () => mutate(() => adminQueueService.retryAllFailed()),
-    prioritize: (id: string) => mutate(() => adminQueueService.prioritize(id)),
     flushDeadLetter: () => mutate(() => adminQueueService.flushDeadLetter()),
     clearCompleted: () => mutate(() => adminQueueService.clearCompleted()),
   };

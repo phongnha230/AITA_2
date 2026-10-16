@@ -35,7 +35,7 @@ const mapJobState = (status: string): JobState => {
 const mapProgressLabel = (status: string): string => {
   switch (status?.toUpperCase()) {
     case 'COMPLETED':
-      return 'Chấm hoàn tất 100%';
+      return 'Đã hoàn tất';
     case 'FAILED':
       return 'Lỗi biên dịch / timeout';
     case 'RUNNING_SANDBOX':
@@ -50,18 +50,7 @@ const mapProgressLabel = (status: string): string => {
 };
 
 const mapPercent = (status: string): number => {
-  switch (status?.toUpperCase()) {
-    case 'COMPLETED':
-      return 100;
-    case 'FAILED':
-      return 50;
-    case 'RUNNING_AI':
-      return 85;
-    case 'RUNNING_SANDBOX':
-      return 45;
-    default:
-      return 10;
-  }
+  return status?.toUpperCase() === 'COMPLETED' ? 100 : 0;
 };
 
 export const adminQueueService = {
@@ -69,7 +58,6 @@ export const adminQueueService = {
    * Lấy danh sách jobs từ Backend BullMQ / DB
    */
   async list(): Promise<QueueJob[]> {
-    try {
       const response = await api.get('/jobs/queue/jobs');
       const rawJobs = response.data?.data;
 
@@ -83,34 +71,24 @@ export const adminQueueService = {
           return {
             id: j.submissionId || j.id,
             name: `${courseCode}: ${assignmentTitle.slice(0, 26)}...`,
-            detail: j.errorStage ? `Lỗi: ${j.errorStage}` : (j.status === 'RUNNING_AI' ? 'Socratic AI Rubric' : 'Docker Sandbox Runner'),
+            detail: j.errorStage ? `Lỗi: ${j.errorStage}` : (j.status === 'RUNNING_AI' ? 'Đang chấm AI' : 'Đang xử lý'),
             student: studentCode ? `${studentName} (${studentCode})` : studentName,
             course: courseCode,
-            queue: (j.status === 'RUNNING_AI' ? 'ai-rubric-queue' : 'docker-eval-queue') as JobQueueName,
+            queue: 'grading' as JobQueueName,
             progressLabel: mapProgressLabel(j.status),
             percent: mapPercent(j.status),
-            duration: j.sandboxEndedAt || j.aiEndedAt ? '1.8s' : '0.4s',
+            duration: formatJobDuration(j),
             state: mapJobState(j.status),
           };
         });
       }
-    } catch (e) {
-      console.warn('[AdminQueueService] Failed to load jobs from backend:', e);
-    }
-
-    return [];
+      throw new Error('Backend trả về danh sách job không hợp lệ.');
   },
 
-  /**
-   * Lấy số liệu metrics tổng quan từ BullMQ & Database
-   */
-  async getMetrics(): Promise<QueueMetricsOverview | null> {
-    try {
+  async getMetrics(): Promise<QueueMetricsOverview> {
       const response = await api.get('/jobs/metrics/overview');
-      return response.data?.data || null;
-    } catch {
-      return null;
-    }
+      if (!response.data?.data) throw new Error('Backend không trả metrics hàng đợi.');
+      return response.data.data;
   },
 
   /**
@@ -118,10 +96,6 @@ export const adminQueueService = {
    */
   async retry(submissionId: string): Promise<void> {
     await api.post(`/jobs/${encodeURIComponent(submissionId)}/retry`);
-  },
-
-  async prioritize(id: string): Promise<void> {
-    console.log(`Prioritizing job ${id}`);
   },
 
   async flushDeadLetter(): Promise<number> {
@@ -139,3 +113,11 @@ export const adminQueueService = {
     return res.data?.data?.retriedCount ?? 0;
   },
 };
+
+function formatJobDuration(job: Record<string, unknown>): string {
+  const start = Date.parse(String(job.sandboxStartedAt ?? job.aiStartedAt ?? job.queuedAt ?? ''));
+  const end = Date.parse(String(job.aiEndedAt ?? job.sandboxEndedAt ?? job.failedAt ?? ''));
+  if (!Number.isFinite(start)) return '—';
+  const seconds = Math.max(0, Math.round(((Number.isFinite(end) ? end : Date.now()) - start) / 1000));
+  return `${seconds}s`;
+}

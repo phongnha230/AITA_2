@@ -9,7 +9,7 @@ export interface AdminUser {
   avatarUrl?: string | null;
   role: UserRole;
   status: UserStatus;
-  /** MSSV / MSGV style code (UI only; not yet in backend). */
+  /** Student code when present in the backend response. */
   userCode?: string | null;
   /** Small line under the name, e.g. "Senior Lecturer" or "Khóa K17 - CNTT". */
   subtitle?: string | null;
@@ -18,7 +18,7 @@ export interface AdminUser {
   departmentNote?: string | null;
   assignedClasses?: string[];
   sandboxAiEnabled?: boolean;
-  /** True while the user still holds an admin-issued temporary password (mock-only until the backend tracks it). */
+  /** Password reset state, when tracked by the backend. */
   mustChangePassword?: boolean;
   lastLoginAt?: string | null;
   createdAt: string;
@@ -58,46 +58,9 @@ export interface CreateUserPayload {
   status?: UserStatus;
 }
 
-/** `department` / `subtitle` / `assignedClasses` / `sandboxAiEnabled` are mock-only until the backend models them. */
 export type UpdateUserPayload = Partial<
-  Pick<AdminUser, 'fullName' | 'role' | 'status' | 'department' | 'subtitle' | 'assignedClasses' | 'sandboxAiEnabled'>
+  Pick<AdminUser, 'fullName' | 'role' | 'status' | 'avatarUrl'>
 >;
-
-export interface RouterSettings {
-  strategy: 'round-robin' | 'least-loaded';
-  tokensPerExam: number;
-}
-
-export interface SandboxSettings {
-  cpuLimit: number;
-  ramLimitMb: number;
-  timeoutMs: number;
-  networkDisabled: boolean;
-  seccompEnforced: boolean;
-  forkBombShield: boolean;
-}
-
-export interface AdminSettings {
-  router: RouterSettings;
-  sandbox: SandboxSettings;
-  workersPaused: boolean;
-}
-
-export const DEFAULT_ADMIN_SETTINGS: AdminSettings = {
-  router: {
-    strategy: 'least-loaded',
-    tokensPerExam: 4000,
-  },
-  sandbox: {
-    cpuLimit: 2,
-    ramLimitMb: 1024,
-    timeoutMs: 10000,
-    networkDisabled: true,
-    seccompEnforced: true,
-    forkBombShield: true,
-  },
-  workersPaused: false,
-};
 
 export interface AiApiKey {
   id: string;
@@ -134,7 +97,7 @@ export interface CreateAiKeyPayload {
 }
 
 export type JobState = 'Processing' | 'Queued' | 'Failed' | 'Completed';
-export type JobQueueName = 'docker-eval-queue' | 'ai-rubric-queue';
+export type JobQueueName = 'grading' | 'docker-eval-queue' | 'ai-rubric-queue';
 
 export interface QueueJob {
   id: string;

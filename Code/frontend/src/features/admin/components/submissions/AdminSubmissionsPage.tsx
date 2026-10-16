@@ -17,7 +17,6 @@ import {
   GraduationCap,
 } from 'lucide-react';
 import { assignmentService } from '@/features/assignments/services/assignment.service';
-import { adminDashboardService } from '../../services/admin-dashboard.service';
 import { adminSubmissionService, type AdminSubmissionItem } from '../../services/admin-submission.service';
 import { PageHeader } from '../ui/PageHeader';
 import { Card } from '../ui/Card';
@@ -53,6 +52,7 @@ const formatSubmissionTime = (isoString: string): string => {
 export const AdminSubmissionsPage: React.FC = () => {
   const toast = useToast();
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [submissions, setSubmissions] = useState<AdminSubmissionItem[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -63,19 +63,13 @@ export const AdminSubmissionsPage: React.FC = () => {
 
   const loadData = React.useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const res = await adminSubmissionService.getSubmissions();
-      if (res && res.submissions && res.submissions.length > 0) {
-        setSubmissions(res.submissions);
-      } else {
-        const data = await adminDashboardService.getDashboard();
-        if (data && data.recentSubmissions && data.recentSubmissions.length > 0) {
-          setSubmissions(data.recentSubmissions);
-        } else {
-          setSubmissions([]);
-        }
-      }
-    } catch {
+      setSubmissions(res.submissions);
+    } catch (error) {
+      console.error('Không tải được danh sách bài nộp Admin:', error);
+      setLoadError('Không thể kết nối backend để tải danh sách bài nộp.');
       toast.error('Không thể tải danh sách bài nộp.');
     } finally {
       setLoading(false);
@@ -205,7 +199,7 @@ export const AdminSubmissionsPage: React.FC = () => {
               {filtered.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-10 text-slate-500 text-sm">
-                    {loading ? 'Đang tải danh sách bài nộp...' : 'Không có bài nộp nào khớp bộ lọc.'}
+                    {loading ? 'Đang tải danh sách bài nộp...' : loadError || 'Không có bài nộp nào khớp bộ lọc.'}
                   </TableCell>
                 </TableRow>
               ) : (

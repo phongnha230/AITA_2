@@ -9,13 +9,13 @@ function normalizeUser(raw: any): AdminUser {
     avatarUrl: raw.avatarUrl ?? null,
     role: raw.role,
     status: raw.status,
-    userCode: raw.userCode ?? (raw.email.split('@')[0]?.toUpperCase()),
+    userCode: raw.studentCode ?? null,
     subtitle: raw.role === 'LECTURER' ? 'Giảng viên' : raw.role === 'ADMIN' ? 'Quản trị viên' : 'Sinh viên',
-    department: raw.department ?? (raw.role === 'LECTURER' ? 'Bộ môn Kỹ thuật phần mềm' : 'Khoa CNTT'),
+    department: raw.department ?? null,
     departmentNote: raw.departmentNote ?? null,
     assignedClasses: raw.assignedClasses ?? [],
-    sandboxAiEnabled: raw.sandboxAiEnabled ?? true,
-    mustChangePassword: raw.mustChangePassword ?? false,
+    sandboxAiEnabled: typeof raw.sandboxAiEnabled === 'boolean' ? raw.sandboxAiEnabled : undefined,
+    mustChangePassword: typeof raw.mustChangePassword === 'boolean' ? raw.mustChangePassword : undefined,
     lastLoginAt: raw.lastLoginAt ? new Date(raw.lastLoginAt).toISOString() : null,
     createdAt: raw.createdAt ? new Date(raw.createdAt).toISOString() : new Date().toISOString(),
     updatedAt: raw.updatedAt ? new Date(raw.updatedAt).toISOString() : new Date().toISOString(),
@@ -116,7 +116,8 @@ export const adminUserService = {
    * Cập nhật thông tin tài khoản người dùng trực tiếp vào Backend
    */
   async update(id: string, payload: UpdateUserPayload): Promise<AdminUser> {
-    const res = await api.patch(`/users/${id}`, payload);
+    const { fullName, role, status, avatarUrl } = payload;
+    const res = await api.patch(`/users/${id}`, { fullName, role, status, avatarUrl });
     return normalizeUser(res.data.data);
   },
 

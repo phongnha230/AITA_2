@@ -27,9 +27,7 @@ export interface QuerySubmissionsParams {
 }
 
 export const adminSubmissionService = {
-  /**
-   * Lấy danh sách toàn bộ bài thi nộp toàn trường (Graceful Fallback)
-   */
+  /** Lấy danh sách bài nộp thực từ backend. */
   async getSubmissions(
     params?: QuerySubmissionsParams
   ): Promise<{ submissions: AdminSubmissionItem[]; total: number }> {
@@ -58,8 +56,8 @@ export const adminSubmissionService = {
 
       return { submissions, total };
     } catch (error) {
-      console.warn('[AdminSubmissionService] Failed to fetch system submissions, using fallback:', error);
-      return { submissions: [], total: 0 };
+      console.error('Không tải được danh sách bài nộp Admin:', error);
+      throw error;
     }
   },
 };
