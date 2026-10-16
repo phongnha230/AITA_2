@@ -5,6 +5,7 @@ export const CreateCourseSchema = z.object({
   name: z.string().min(2, 'Tên môn học tối thiểu 2 ký tự').max(200),
   semester: z.string().min(2, 'Học kỳ tối thiểu 2 ký tự').max(20),
   lecturerId: z.string().uuid('ID Giảng viên phải là UUID hợp lệ').optional(),
+  capacity: z.coerce.number().int().positive().max(100_000).optional(),
 });
 
 export type CreateCourseDto = z.infer<typeof CreateCourseSchema>;

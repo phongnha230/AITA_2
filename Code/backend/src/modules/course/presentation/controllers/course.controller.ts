@@ -84,8 +84,40 @@ export class CourseController {
 
   getCourseById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const course = await this.getCourseByIdUseCase.execute(req.params.id);
-      sendSuccess(res, course, 'Lấy chi tiết khóa học thành công.');
+      const requester = req.user!;
+      const course = await this.getCourseByIdUseCase.execute(req.params.id, {
+        userId: requester.userId,
+        role: requester.role,
+      });
+
+      const enrollments = Array.isArray(course.enrollments)
+        ? course.enrollments
+            .filter((enrollment: { studentId?: string; student?: { id?: string } }) =>
+              requester.role !== 'STUDENT'
+              || enrollment.studentId === requester.userId
+              || enrollment.student?.id === requester.userId
+            )
+            .map((enrollment: {
+              id: string;
+              courseId: string;
+              studentId: string;
+              enrolledAt: Date;
+              student: { id: string; studentCode?: string | null; fullName: string; email: string; avatarUrl?: string | null; role: string; status: string };
+            }) => ({
+              id: enrollment.id,
+              courseId: enrollment.courseId,
+              studentId: enrollment.studentId,
+              joinedAt: enrollment.enrolledAt,
+              status: enrollment.student.status === 'ACTIVE' ? 'VERIFIED' : 'PENDING',
+              student: enrollment.student,
+            }))
+        : [];
+      const courseView = {
+        ...course,
+        enrollmentCode: requester.role === 'STUDENT' ? undefined : course.enrollmentCode,
+        enrollments,
+      };
+      sendSuccess(res, courseView, 'Lấy chi tiết khóa học thành công.');
     } catch (error) {
       next(error);
     }

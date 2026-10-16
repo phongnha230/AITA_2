@@ -11,6 +11,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { CourseEnrollment } from '../types/course.types';
+import { buildCourseRosterCsv } from '../utils/course-roster-export';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -34,15 +35,21 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface EnrolledStudentsTableProps {
   enrollments: CourseEnrollment[];
+  courseCode: string;
   studentSearch: string;
   onSearchChange: (val: string) => void;
   statusFilter: 'ALL' | 'VERIFIED' | 'PENDING';
   onStatusFilterChange: (val: 'ALL' | 'VERIFIED' | 'PENDING') => void;
-  isShowingEmptyStateDemo: boolean;
-  onToggleEmptyStateDemo: () => void;
   joinCode: string;
   onRemoveStudent: (studentId: string, studentName: string) => void;
   onShowToast: (msg: string) => void;
@@ -50,17 +57,36 @@ interface EnrolledStudentsTableProps {
 
 export const EnrolledStudentsTable: React.FC<EnrolledStudentsTableProps> = ({
   enrollments,
+  courseCode,
   studentSearch,
   onSearchChange,
   statusFilter,
   onStatusFilterChange,
-  isShowingEmptyStateDemo,
-  onToggleEmptyStateDemo,
   joinCode,
   onRemoveStudent,
   onShowToast,
 }) => {
   const [studentToDelete, setStudentToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [selectedEnrollment, setSelectedEnrollment] = useState<CourseEnrollment | null>(null);
+
+  const exportRoster = () => {
+    try {
+      const csv = buildCourseRosterCsv(enrollments);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const downloadUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `danh-sach-sinh-vien-${courseCode.toLowerCase()}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 0);
+      onShowToast(`Đã xuất ${enrollments.length} sinh viên ra file CSV.`);
+    } catch (error: unknown) {
+      console.error('[EnrolledStudentsTable] Failed to export course roster', error);
+      onShowToast('Không thể xuất danh sách sinh viên. Vui lòng thử lại.');
+    }
+  };
 
   const confirmDelete = () => {
     if (studentToDelete) {
@@ -102,23 +128,11 @@ export const EnrolledStudentsTable: React.FC<EnrolledStudentsTableProps> = ({
         <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
           <Button
             variant="outline"
-            onClick={() => onShowToast('Đang tải file danh sách sinh viên (Excel/CSV)...')}
+            onClick={exportRoster}
             className="h-9 inline-flex items-center gap-1.5 px-3.5 rounded-xl border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition shadow-2xs whitespace-nowrap"
           >
             <Download className="w-4 h-4 text-slate-500 shrink-0" />
             <span>Xuất Danh Sách</span>
-          </Button>
-
-          {/* Nút Demo Switcher */}
-          <Button
-            variant="outline"
-            onClick={onToggleEmptyStateDemo}
-            type="button"
-            className="h-9 px-3 rounded-xl bg-indigo-50 hover:bg-indigo-100 border-indigo-200 text-xs font-bold text-indigo-700 transition whitespace-nowrap inline-flex items-center gap-1.5 shrink-0"
-            title="Chuyển đổi giữa chế độ Danh sách có SV và Empty State"
-          >
-            <Eye className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-            <span>{isShowingEmptyStateDemo ? 'Xem Danh Sách SV' : 'Xem Empty State'}</span>
           </Button>
 
           {/* Sĩ số Badge */}
@@ -183,7 +197,7 @@ export const EnrolledStudentsTable: React.FC<EnrolledStudentsTableProps> = ({
                     }`}
                   >
                     <TableCell className="px-6 py-4 font-mono font-bold text-slate-900 text-sm whitespace-nowrap">
-                      {student.studentCode || 'QE190000'}
+                      {student.studentCode || '—'}
                     </TableCell>
                     <TableCell className="px-5 py-4">
                       <div className="flex items-center gap-3">
@@ -228,9 +242,7 @@ export const EnrolledStudentsTable: React.FC<EnrolledStudentsTableProps> = ({
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() =>
-                          onShowToast(`Xem thông tin sinh viên ${student.fullName}`)
-                        }
+                        onClick={() => setSelectedEnrollment(enrollment)}
                         className="h-8 w-8 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 transition"
                         title="Xem thông tin"
                       >
@@ -276,16 +288,21 @@ export const EnrolledStudentsTable: React.FC<EnrolledStudentsTableProps> = ({
               variant="outline"
               className="px-4 py-2 bg-indigo-50 border-indigo-200 rounded-xl font-mono text-sm font-black text-indigo-900 tracking-wider"
             >
-              {joinCode}
+              {joinCode || 'Chưa có mã tham gia hoạt động'}
             </Badge>
             <Button
               onClick={() => {
+                if (!joinCode) {
+                  onShowToast('Khóa học chưa có mã tham gia hoạt động.');
+                  return;
+                }
                 if (typeof navigator !== 'undefined' && navigator.clipboard) {
                   navigator.clipboard.writeText(joinCode);
                 }
                 onShowToast(`Đã sao chép mã mời: ${joinCode}`);
               }}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5"
+              disabled={!joinCode}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5 disabled:opacity-50"
             >
               <Copy className="w-3.5 h-3.5" />
               <span>Sao chép mã mời</span>
@@ -293,6 +310,40 @@ export const EnrolledStudentsTable: React.FC<EnrolledStudentsTableProps> = ({
           </div>
         </Card>
       )}
+
+      <Dialog open={Boolean(selectedEnrollment)} onOpenChange={(open) => !open && setSelectedEnrollment(null)}>
+        <DialogContent className="sm:max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Thông tin sinh viên</DialogTitle>
+            <DialogDescription>Thông tin hồ sơ và ghi danh được tải từ khóa học này.</DialogDescription>
+          </DialogHeader>
+          {selectedEnrollment && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-4">
+                {selectedEnrollment.student.avatarUrl ? (
+                  <img src={selectedEnrollment.student.avatarUrl} alt="" className="h-12 w-12 rounded-full object-cover" />
+                ) : (
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 font-bold text-indigo-700">
+                    {selectedEnrollment.student.fullName.split(' ').map((part) => part[0]).slice(-2).join('').toUpperCase() || 'SV'}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <p className="font-semibold text-slate-900">{selectedEnrollment.student.fullName}</p>
+                  <p className="break-all text-sm text-slate-500">{selectedEnrollment.student.email}</p>
+                </div>
+              </div>
+              <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-3 text-sm">
+                <dt className="text-slate-500">Mã sinh viên</dt>
+                <dd className="font-mono font-medium text-slate-900">{selectedEnrollment.student.studentCode || 'Chưa cập nhật'}</dd>
+                <dt className="text-slate-500">Trạng thái tài khoản</dt>
+                <dd className="font-medium text-slate-900">{selectedEnrollment.student.status}</dd>
+                <dt className="text-slate-500">Ghi danh</dt>
+                <dd className="font-medium text-slate-900">{formatDateTime(selectedEnrollment.joinedAt)}</dd>
+              </dl>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Modal using shadcn AlertDialog */}
       <AlertDialog

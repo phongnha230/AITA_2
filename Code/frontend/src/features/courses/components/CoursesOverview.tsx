@@ -17,6 +17,7 @@ import { CoursesRecentSubmissions } from './CoursesRecentSubmissions';
 interface CoursesOverviewProps {
   courses: Course[];
   kpiMetrics: LecturerKpiMetrics;
+  dashboardError?: string | null;
   recentSubmissions?: LecturerDashboardRecentSubmission[];
   semesters: string[];
   searchQuery: string;
@@ -26,12 +27,15 @@ interface CoursesOverviewProps {
   statusFilter: 'ALL' | 'ACTIVE' | 'ARCHIVED';
   onStatusFilterChange: (val: 'ALL' | 'ACTIVE' | 'ARCHIVED') => void;
   onSelectCourse: (course: Course) => void;
+  onEditCourse: (course: Course) => void;
+  onDeleteCourse: (course: Course) => void;
   onOpenCreateModal: () => void;
 }
 
 export const CoursesOverview: React.FC<CoursesOverviewProps> = ({
   courses,
   kpiMetrics,
+  dashboardError,
   recentSubmissions,
   semesters,
   searchQuery,
@@ -41,12 +45,19 @@ export const CoursesOverview: React.FC<CoursesOverviewProps> = ({
   statusFilter,
   onStatusFilterChange,
   onSelectCourse,
+  onEditCourse,
+  onDeleteCourse,
   onOpenCreateModal,
 }) => {
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 w-full max-w-full">
       {/* 1. Thanh KPI Metrics */}
       <CoursesOverviewKpis kpiMetrics={kpiMetrics} />
+      {dashboardError && (
+        <Card role="alert" className="border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          {dashboardError}
+        </Card>
+      )}
 
       {/* Filter and Title Toolbar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
@@ -113,6 +124,8 @@ export const CoursesOverview: React.FC<CoursesOverviewProps> = ({
               key={course.id}
               course={course}
               onSelectCourse={onSelectCourse}
+              onEditCourse={onEditCourse}
+              onDeleteCourse={onDeleteCourse}
             />
           ))}
         </section>

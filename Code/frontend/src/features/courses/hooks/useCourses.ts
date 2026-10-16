@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Course,
   CreateCoursePayload,
+  UpdateCoursePayload,
   LecturerKpiMetrics,
   LecturerDashboardResponse,
 } from '../types/course.types';
@@ -22,14 +23,27 @@ export function useCourses() {
     setLoading(true);
     setError(null);
     try {
-      const [coursesList, dashData] = await Promise.all([
+      const [coursesResult, dashboardResult] = await Promise.allSettled([
         courseService.getCourses(),
         courseService.getLecturerDashboard(),
       ]);
-      setCourses(coursesList);
-      setDashboardData(dashData);
-    } catch (err: any) {
-      setError(err?.message || 'Không thể tải danh sách khóa học');
+      if (coursesResult.status === 'fulfilled') {
+        setCourses(coursesResult.value);
+      } else {
+        setCourses([]);
+        setError('Không thể tải danh sách khóa học từ máy chủ.');
+      }
+
+      if (dashboardResult.status === 'fulfilled') {
+        setDashboardData(dashboardResult.value);
+      } else {
+        setDashboardData(null);
+        setError((currentError) => currentError ?? 'Không thể tải thống kê dashboard từ máy chủ.');
+      }
+    } catch {
+      setCourses([]);
+      setDashboardData(null);
+      setError('Đã xảy ra lỗi khi tải dữ liệu khóa học.');
     } finally {
       setLoading(false);
     }
@@ -65,10 +79,10 @@ export function useCourses() {
     if (dashboardData?.teachingStats) {
       return {
         totalCourses: dashboardData.teachingStats.totalCourses,
-        activeCourses: courses.filter((c) => c.isActive).length || dashboardData.teachingStats.totalCourses,
+        activeCourses: courses.filter((c) => c.isActive).length,
         totalStudents: dashboardData.teachingStats.totalStudents,
-        avgCompletionRate: Math.round((dashboardData.teachingStats.averageScore || 8.0) * 10),
-        active24hCount: Math.round(dashboardData.teachingStats.totalStudents * 0.9) || 120,
+        averageScore: dashboardData.teachingStats.averageScore,
+        pendingGradingCount: dashboardData.teachingStats.pendingGradingCount,
       };
     }
     return courseService.calculateKpis(courses);
@@ -87,10 +101,31 @@ export function useCourses() {
   const createCourse = async (payload: CreateCoursePayload) => {
     try {
       const created = await courseService.createCourse(payload);
-      setCourses((prev) => [created, ...prev]);
+      await fetchCoursesAndDashboard();
       return created;
     } catch (err: any) {
       throw new Error(err?.response?.data?.message || err?.message || 'Lỗi tạo khóa học');
+    }
+  };
+
+  const updateCourse = async (courseId: string, payload: UpdateCoursePayload) => {
+    try {
+      const updated = await courseService.updateCourse(courseId, payload);
+      await fetchCoursesAndDashboard();
+      return updated;
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Lỗi cập nhật khóa học';
+      throw new Error(message);
+    }
+  };
+
+  const deleteCourse = async (courseId: string) => {
+    try {
+      await courseService.deleteCourse(courseId);
+      await fetchCoursesAndDashboard();
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Lỗi xóa khóa học';
+      throw new Error(message);
     }
   };
 
@@ -111,5 +146,7 @@ export function useCourses() {
     setStatusFilter,
     refreshCourses: fetchCoursesAndDashboard,
     createCourse,
+    updateCourse,
+    deleteCourse,
   };
 }

@@ -13,6 +13,7 @@ export class PrismaCourseRepository implements ICourseRepository {
       semester: raw.semester,
       lecturerId: raw.lecturerId,
       isActive: raw.isActive,
+      capacity: raw.capacity,
       enrollmentCode: raw.enrollmentCode,
       codeExpiresAt: raw.codeExpiresAt,
       createdAt: raw.createdAt,
@@ -102,6 +103,7 @@ export class PrismaCourseRepository implements ICourseRepository {
             student: {
               select: {
                 id: true,
+                studentCode: true,
                 fullName: true,
                 email: true,
                 avatarUrl: true,
@@ -122,6 +124,7 @@ export class PrismaCourseRepository implements ICourseRepository {
     name: string;
     semester: string;
     lecturerId: string;
+    capacity?: number;
   }): Promise<Course> {
     const raw = await this.prisma.course.create({
       data: {
@@ -129,6 +132,7 @@ export class PrismaCourseRepository implements ICourseRepository {
         name: data.name,
         semester: data.semester,
         lecturerId: data.lecturerId,
+        capacity: data.capacity,
       },
       include: {
         lecturer: {

@@ -16,6 +16,7 @@ export interface ICourseRepository {
     name: string;
     semester: string;
     lecturerId: string;
+    capacity?: number;
   }): Promise<Course>;
   update(id: string, data: Partial<{
     name: string;

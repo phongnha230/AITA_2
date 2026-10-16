@@ -5,6 +5,7 @@ export interface CourseProps {
   semester: string;
   lecturerId: string;
   isActive: boolean;
+  capacity?: number | null;
   enrollmentCode?: string | null;
   codeExpiresAt?: Date | null;
   createdAt: Date;
@@ -46,6 +47,10 @@ export class Course {
     return this.props.isActive;
   }
 
+  get capacity(): number | null | undefined {
+    return this.props.capacity;
+  }
+
   get enrollmentCode(): string | null | undefined {
     return this.props.enrollmentCode;
   }
@@ -85,6 +90,7 @@ export class Course {
       semester: this.props.semester,
       lecturerId: this.props.lecturerId,
       isActive: this.props.isActive,
+      capacity: this.props.capacity,
       enrollmentCode: this.props.enrollmentCode,
       codeExpiresAt: this.props.codeExpiresAt,
       isCodeActive: this.isCodeActive(),

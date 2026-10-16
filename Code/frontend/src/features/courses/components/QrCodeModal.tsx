@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Copy, Check } from 'lucide-react';
+import { Copy, Check, QrCode } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -53,32 +53,14 @@ export const QrCodeModal: React.FC<QrCodeModalProps> = ({
             {courseName}
           </DialogTitle>
           <DialogDescription className="text-xs text-slate-500 mt-1 text-center">
-            Quét mã bằng camera hoặc app AITA để tham gia lớp ngay lập tức
+            Dùng mã tham gia dưới đây để ghi danh vào lớp.
           </DialogDescription>
         </DialogHeader>
 
-        {/* QR Code Illustration Frame */}
-        <div className="my-5 p-4 bg-white rounded-2xl border-2 border-dashed border-indigo-200 shadow-inner flex flex-col items-center">
-          <div className="w-44 h-44 bg-slate-900 rounded-xl p-3 flex flex-col justify-between relative overflow-hidden shadow-md">
-            {/* SVG QR Code Pattern */}
-            <svg viewBox="0 0 100 100" className="w-full h-full text-white fill-current">
-              <path d="M0,0 h30 v30 h-30 z M6,6 h18 v18 h-18 z M10,10 h10 v10 h-10 z" />
-              <path d="M70,0 h30 v30 h-30 z M76,6 h18 v18 h-18 z M80,10 h10 v10 h-10 z" />
-              <path d="M0,70 h30 v30 h-30 z M6,76 h18 v18 h-18 z M10,80 h10 v10 h-10 z" />
-              <path d="M40,10 h10 v10 h-10 z M55,5 h10 v10 h-10 z M40,25 h10 v10 h-10 z" />
-              <path d="M35,45 h30 v10 h-30 z M45,60 h10 v10 h-10 z M35,75 h10 v20 h-10 z" />
-              <path d="M50,80 h20 v10 h-20 z M75,40 h10 v30 h-10 z M90,55 h10 v10 h-10 z" />
-              <path d="M60,65 h10 v10 h-10 z M80,85 h15 v10 h-15 z M15,45 h15 v15 h-15 z" />
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="bg-white text-indigo-700 font-black text-[10px] px-2 py-0.5 rounded shadow">
-                AITA
-              </span>
-            </div>
-          </div>
-          <span className="text-[11px] font-mono font-bold text-slate-500 mt-2">
-            Mã đổi sau: {formattedCountdown}
-          </span>
+        <div className="my-5 flex w-full flex-col items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-6 text-slate-500">
+          <QrCode className="h-9 w-9 text-slate-400" aria-hidden="true" />
+          <span className="text-xs font-semibold">QR chưa được cấu hình. Hãy nhập mã tham gia thủ công.</span>
+          <span className="text-[11px] font-mono">{joinCode && formattedCountdown !== 'Đã hết hạn' ? `Mã có hiệu lực thêm ${formattedCountdown}` : 'Mã hiện không hoạt động'}</span>
         </div>
 
         {/* Big OTP Code Display */}

@@ -18,6 +18,8 @@ import { useToast } from '../ui/Toast';
 import { CreateCourseModal } from './CreateCourseModal';
 import { CourseStudentsModal } from './CourseStudentsModal';
 import { AdminCoursesTable } from './AdminCoursesTable';
+import { adminUserService } from '../../services/admin-user.service';
+import type { AdminUser } from '../../types/admin.types';
 
 export const AdminCoursesPage: React.FC = () => {
   const toast = useToast();
@@ -29,12 +31,15 @@ export const AdminCoursesPage: React.FC = () => {
   // Modals
   const [createOpen, setCreateOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [editingCourse, setEditingCourse] = useState<Course | null>(null);
+  const [editingIsActive, setEditingIsActive] = useState(true);
+  const [lecturers, setLecturers] = useState<AdminUser[]>([]);
+  const [lecturerId, setLecturerId] = useState('');
   const [createForm, setCreateForm] = useState<CreateCoursePayload>({
     code: '',
     name: '',
     semester: 'Fall 2026',
     capacity: 40,
-    room: 'LAB-302',
   });
 
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
@@ -56,6 +61,17 @@ export const AdminCoursesPage: React.FC = () => {
     void loadCourses();
   }, [loadCourses]);
 
+  useEffect(() => {
+    let active = true;
+    adminUserService.list({ role: 'LECTURER', page: 1, limit: 100 })
+      .then(({ users }) => { if (active) setLecturers(users); })
+      .catch((error: unknown) => {
+        console.error('Không tải được danh sách giảng viên để gán khóa học:', error);
+        if (active) toast.error('Không thể tải danh sách giảng viên.');
+      });
+    return () => { active = false; };
+  }, [toast]);
+
   const semesters = useMemo(() => {
     const set = new Set(courses.map((c) => c.semester));
     return ['ALL', ...Array.from(set)];
@@ -74,24 +90,46 @@ export const AdminCoursesPage: React.FC = () => {
     });
   }, [courses, search, semesterFilter]);
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const handleSaveCourse = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!createForm.code || !createForm.name) {
       toast.error('Vui lòng nhập đầy đủ mã môn và tên môn.');
       return;
     }
+    if (!editingCourse && !lecturerId) {
+      toast.error('Vui lòng chọn giảng viên phụ trách.');
+      return;
+    }
     setSubmitting(true);
     try {
-      await courseService.createCourse(createForm);
-      toast.success(`Đã tạo khóa học ${createForm.code} thành công.`);
+      if (editingCourse) {
+        await courseService.updateCourse(editingCourse.id, {
+          name: createForm.name,
+          semester: createForm.semester,
+          isActive: editingIsActive,
+        });
+        toast.success(`Đã cập nhật khóa học ${createForm.code}.`);
+      } else {
+        await courseService.createCourse({ ...createForm, lecturerId });
+        toast.success(`Đã tạo khóa học ${createForm.code} thành công.`);
+      }
       setCreateOpen(false);
-      setCreateForm({ code: '', name: '', semester: 'Fall 2026', capacity: 40, room: 'LAB-302' });
+      setEditingCourse(null);
+      setLecturerId('');
+      setCreateForm({ code: '', name: '', semester: 'Fall 2026', capacity: 40 });
       await loadCourses();
     } catch {
-      toast.error('Lỗi khi tạo khóa học mới.');
+      toast.error(editingCourse ? 'Không thể cập nhật khóa học.' : 'Lỗi khi tạo khóa học mới.');
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleEdit = (course: Course) => {
+    setEditingCourse(course);
+    setEditingIsActive(course.isActive);
+    setCreateForm({ code: course.code, name: course.name, semester: course.semester, capacity: course.capacity });
+    setCreateOpen(true);
   };
 
   const handleGenerateCode = async (c: Course) => {
@@ -157,7 +195,7 @@ export const AdminCoursesPage: React.FC = () => {
             <Button onClick={loadCourses}>
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Làm mới
             </Button>
-            <Button variant="primary" onClick={() => setCreateOpen(true)}>
+            <Button variant="primary" onClick={() => { setEditingCourse(null); setLecturerId(''); setCreateForm({ code: '', name: '', semester: 'Fall 2026', capacity: 40 }); setCreateOpen(true); }}>
               <Plus className="h-4 w-4" /> Tạo lớp học mới
             </Button>
           </>
@@ -208,6 +246,7 @@ export const AdminCoursesPage: React.FC = () => {
         onGenerateCode={handleGenerateCode}
         onRevokeCode={handleRevokeCode}
         onDeleteCourse={handleDelete}
+        onEditCourse={handleEdit}
       />
 
       {/* Modal Tạo Khóa Học Mới */}
@@ -216,8 +255,14 @@ export const AdminCoursesPage: React.FC = () => {
         onClose={() => setCreateOpen(false)}
         form={createForm}
         onChangeForm={setCreateForm}
-        onSubmit={handleCreate}
+        onSubmit={handleSaveCourse}
         submitting={submitting}
+        isEditing={Boolean(editingCourse)}
+        isActive={editingIsActive}
+        onChangeIsActive={setEditingIsActive}
+        lecturers={lecturers}
+        lecturerId={lecturerId}
+        onChangeLecturerId={setLecturerId}
       />
 
       {/* Modal Xem Danh Sách Sinh Viên Trong Lớp */}

@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Users, KeyRound, Trash2 } from 'lucide-react';
+import { Users, KeyRound, Pencil, Trash2 } from 'lucide-react';
 import type { Course } from '@/features/courses/types/course.types';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
@@ -22,6 +22,7 @@ interface AdminCoursesTableProps {
   onGenerateCode: (course: Course) => void;
   onRevokeCode: (course: Course) => void;
   onDeleteCourse: (course: Course) => void;
+  onEditCourse: (course: Course) => void;
 }
 
 export const AdminCoursesTable: React.FC<AdminCoursesTableProps> = ({
@@ -31,6 +32,7 @@ export const AdminCoursesTable: React.FC<AdminCoursesTableProps> = ({
   onGenerateCode,
   onRevokeCode,
   onDeleteCourse,
+  onEditCourse,
 }) => {
   return (
     <Card className="overflow-hidden p-0">
@@ -82,7 +84,7 @@ export const AdminCoursesTable: React.FC<AdminCoursesTableProps> = ({
                       title="Xem danh sách sinh viên"
                     >
                       <Users className="h-3.5 w-3.5" />
-                      {c.enrolledStudentsCount || c.enrollments?.length || 0} / {c.capacity || 40} SV
+                      {c.enrollmentCount ?? c._count?.enrollments ?? c.enrollments?.length ?? 0} / {c.capacity ?? '—'} SV
                     </button>
                   </TableCell>
                   <TableCell>
@@ -117,6 +119,14 @@ export const AdminCoursesTable: React.FC<AdminCoursesTableProps> = ({
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        className="h-8 w-8 p-0 text-slate-400 hover:text-blue-600"
+                        title="Sửa khóa học"
+                        onClick={() => onEditCourse(c)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="ghost"
                         className="h-8 w-8 p-0 text-slate-400 hover:text-blue-600"

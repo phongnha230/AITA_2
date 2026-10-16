@@ -1,12 +1,15 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Sparkles, X } from 'lucide-react';
-import { Course } from '../types/course.types';
+import { Pencil, Sparkles, X } from 'lucide-react';
+import { Course, UpdateCoursePayload } from '../types/course.types';
 import { useCourses } from '../hooks/useCourses';
 import { CoursesOverview } from './CoursesOverview';
 import { CourseDetailManagement } from './CourseDetailManagement';
 import { CreateCourseModal } from './CreateCourseModal';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 interface LecturerDashboardProps {
   initialCourseId?: string;
@@ -25,6 +28,9 @@ export const LecturerDashboard: React.FC<LecturerDashboardProps> = ({ initialCou
     statusFilter,
     setStatusFilter,
     createCourse,
+    updateCourse,
+    deleteCourse,
+    error,
   } = useCourses();
 
   // Active view: 'OVERVIEW' | 'DETAIL'
@@ -35,6 +41,12 @@ export const LecturerDashboard: React.FC<LecturerDashboardProps> = ({ initialCou
 
   // Create course modal
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [courseBeingEdited, setCourseBeingEdited] = useState<Course | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editSemester, setEditSemester] = useState('');
+  const [editIsActive, setEditIsActive] = useState(true);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
 
   // Toast feedback state
   const [toast, setToast] = useState<string | null>(null);
@@ -53,6 +65,52 @@ export const LecturerDashboard: React.FC<LecturerDashboardProps> = ({ initialCou
 
   const handleBackToOverview = () => {
     setActiveTab('OVERVIEW');
+  };
+
+  const handleOpenEdit = (course: Course) => {
+    setCourseBeingEdited(course);
+    setEditName(course.name);
+    setEditSemester(course.semester);
+    setEditIsActive(course.isActive);
+    setEditError(null);
+  };
+
+  const handleSaveEdit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!courseBeingEdited || !editName.trim() || !editSemester.trim()) {
+      setEditError('Vui lòng nhập tên khóa học và học kỳ.');
+      return;
+    }
+    setIsSavingEdit(true);
+    setEditError(null);
+    try {
+      const payload: UpdateCoursePayload = {
+        name: editName.trim(),
+        semester: editSemester.trim(),
+        isActive: editIsActive,
+      };
+      await updateCourse(courseBeingEdited.id, payload);
+      showToast('Đã cập nhật khóa học.');
+      setCourseBeingEdited(null);
+    } catch (error: unknown) {
+      setEditError(error instanceof Error ? error.message : 'Không thể cập nhật khóa học.');
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  const handleDeleteCourse = async (course: Course) => {
+    if (!window.confirm(`Xóa khóa học ${course.code} – ${course.name}? Thao tác này không thể hoàn tác.`)) return;
+    try {
+      await deleteCourse(course.id);
+      if (selectedCourse?.id === course.id) {
+        setSelectedCourse(null);
+        setActiveTab('OVERVIEW');
+      }
+      showToast(`Đã xóa khóa học ${course.code}.`);
+    } catch (error: unknown) {
+      showToast(error instanceof Error ? error.message : 'Không thể xóa khóa học.');
+    }
   };
 
   // Currently managed course
@@ -84,6 +142,7 @@ export const LecturerDashboard: React.FC<LecturerDashboardProps> = ({ initialCou
         <CoursesOverview
           courses={courses}
           kpiMetrics={kpiMetrics}
+          dashboardError={error}
           recentSubmissions={recentSubmissions}
           semesters={semesters}
           searchQuery={searchQuery}
@@ -93,6 +152,8 @@ export const LecturerDashboard: React.FC<LecturerDashboardProps> = ({ initialCou
           statusFilter={statusFilter}
           onStatusFilterChange={setStatusFilter}
           onSelectCourse={handleSelectCourse}
+          onEditCourse={handleOpenEdit}
+          onDeleteCourse={handleDeleteCourse}
           onOpenCreateModal={() => setIsCreateModalOpen(true)}
         />
       ) : currentCourse ? (
@@ -114,6 +175,32 @@ export const LecturerDashboard: React.FC<LecturerDashboardProps> = ({ initialCou
           showToast(`Đã tạo khóa học ${payload.code} thành công!`);
         }}
       />
+
+      <Dialog open={Boolean(courseBeingEdited)} onOpenChange={(open) => !open && setCourseBeingEdited(null)}>
+        <DialogContent className="sm:max-w-md rounded-3xl bg-white p-6">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Pencil className="h-4 w-4 text-indigo-600" /> Sửa khóa học</DialogTitle>
+            <DialogDescription>Mã môn {courseBeingEdited?.code} không thể thay đổi.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSaveEdit} className="space-y-4">
+            {editError && <p role="alert" className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{editError}</p>}
+            <label className="block space-y-1.5 text-sm font-medium">Tên khóa học
+              <Input value={editName} onChange={(event) => setEditName(event.target.value)} required maxLength={200} />
+            </label>
+            <label className="block space-y-1.5 text-sm font-medium">Học kỳ
+              <Input value={editSemester} onChange={(event) => setEditSemester(event.target.value)} required maxLength={50} />
+            </label>
+            <label className="flex items-center gap-2 text-sm font-medium">
+              <input type="checkbox" checked={editIsActive} onChange={(event) => setEditIsActive(event.target.checked)} />
+              Khóa học đang mở
+            </label>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setCourseBeingEdited(null)} disabled={isSavingEdit}>Hủy</Button>
+              <Button type="submit" disabled={isSavingEdit || !editName.trim() || !editSemester.trim()}>{isSavingEdit ? 'Đang lưu...' : 'Lưu thay đổi'}</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

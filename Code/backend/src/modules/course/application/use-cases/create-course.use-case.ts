@@ -1,7 +1,7 @@
 import { ICourseRepository } from '../../domain/repositories/course.repository.interface.js';
 import { IUserRepository } from '../../../user/domain/repositories/user.repository.interface.js';
 import { CreateCourseDto } from '../dtos/course.dto.js';
-import { ConflictError, NotFoundError } from '../../../../shared/domain/exceptions/app.error.js';
+import { ConflictError, NotFoundError, ValidationError } from '../../../../shared/domain/exceptions/app.error.js';
 
 export class CreateCourseUseCase {
   constructor(
@@ -13,6 +13,9 @@ export class CreateCourseUseCase {
     const lecturer = await this.userRepository.findById(dto.lecturerId);
     if (!lecturer) {
       throw new NotFoundError(`Giảng viên với ID: ${dto.lecturerId}`);
+    }
+    if (lecturer.role !== 'LECTURER') {
+      throw new ValidationError('Khóa học phải được giao cho tài khoản giảng viên.');
     }
 
     const existing = await this.courseRepository.findByCodeAndSemester(
@@ -28,6 +31,7 @@ export class CreateCourseUseCase {
       name: dto.name.trim(),
       semester: dto.semester.trim(),
       lecturerId: dto.lecturerId,
+      capacity: dto.capacity,
     });
 
     return course.toJSON();

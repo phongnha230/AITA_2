@@ -54,13 +54,15 @@ export interface Course {
   lecturer?: Lecturer;
   room?: string;
   capacity?: number;
-  enrolledStudentsCount?: number;
   syllabusProgress?: number;
   currentGpaAvg?: number;
+  enrollmentCount?: number;
+  assignmentCount?: number;
   _count?: {
     enrollments: number;
     assignments: number;
   };
+  enrolledStudentIds?: string[];
   enrollments?: CourseEnrollment[];
   assignments?: CourseAssignmentSummary[];
 }
@@ -99,8 +101,8 @@ export interface LecturerKpiMetrics {
   totalCourses: number;
   activeCourses: number;
   totalStudents: number;
-  avgCompletionRate: number;
-  active24hCount: number;
+  averageScore: number | null;
+  pendingGradingCount: number | null;
 }
 
 export interface LecturerDashboardRecentSubmission {
