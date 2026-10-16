@@ -21,6 +21,11 @@ if (-not (Test-Path "backend/.env")) {
     Write-Host "[THONG BAO] Da tao file backend/.env tu .env.example" -ForegroundColor Green
 }
 docker compose -f backend/docker-compose.yml --env-file backend/.env up -d
+docker compose -f backend/docker-compose.yml --env-file backend/.env --profile sandbox-build build playwright-sandbox-image playwright-control-image
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "[LOI] Khong the build image Chromium sandbox. Khong the cham bai React/Web an toan." -ForegroundColor Red
+    exit 1
+}
 
 Start-Sleep -Seconds 3
 
@@ -56,6 +61,6 @@ Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd frontend; npm 
 
 Write-Host "==============================================================================" -ForegroundColor Cyan
 Write-Host "[THANH CONG] He thong da khoi dong!" -ForegroundColor Green
-Write-Host "  - Backend API:  http://localhost:5000/api/v1/health" -ForegroundColor Yellow
+Write-Host "  - Backend API:  http://localhost:5003/api/v1/health" -ForegroundColor Yellow
 Write-Host "  - Frontend Web: http://localhost:3000" -ForegroundColor Yellow
 Write-Host "==============================================================================" -ForegroundColor Cyan

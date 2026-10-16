@@ -3,7 +3,7 @@ import { authenticateJWT, authorizeRoles } from '../../../auth/presentation/midd
 import { createAuthRateLimiter } from '../../../auth/presentation/middlewares/auth-rate-limit.middleware.js';
 import { requireSubmissionAccess } from '../../../assignment/presentation/middlewares/assignment-access.middleware.js';
 import { validateBody } from '../../../../shared/presentation/middlewares/validate.middleware.js';
-import { executeSandboxSchema } from '../../application/dtos/sandbox.dto.js';
+import { executeSandboxSchema, instructorDryRunSchema } from '../../application/dtos/sandbox.dto.js';
 import { SandboxController } from '../controllers/sandbox.controller.js';
 import { container } from '../../../../infrastructure/container/container.js';
 import { enforceSandboxPayloadLimits } from '../middlewares/sandbox-limits.middleware.js';
@@ -23,6 +23,16 @@ router.get(
   authenticateJWT,
   authorizeRoles('ADMIN'),
   sandboxController.getStatus
+);
+
+router.post(
+  '/dry-run',
+  authenticateJWT,
+  authorizeRoles('ADMIN', 'LECTURER'),
+  directExecutionLimiter,
+  enforceSandboxPayloadLimits,
+  validateBody(instructorDryRunSchema),
+  sandboxController.dryRunCode
 );
 
 router.post(

@@ -1,10 +1,12 @@
 import { PrismaClient } from '@prisma/client';
 import { Redis } from 'ioredis';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { IHealthService, HealthSnapshot } from '../../application/services/health.service.interface.js';
 import { logger } from '../logging/logger.js';
-import fs from 'node:fs/promises';
-import { chromium } from 'playwright';
 import { env } from '../config/env.js';
+
+const execFileAsync = promisify(execFile);
 
 export class HealthService implements IHealthService {
   constructor(
@@ -50,10 +52,31 @@ export class HealthService implements IHealthService {
       logger.error('health_fer201_migration_failed', { stage: 'HEALTHCHECK', error });
     }
     try {
-      await fs.access(chromium.executablePath());
+      if (!env.USE_DOCKER_SANDBOX) throw new Error('Docker sandbox is disabled.');
+      await execFileAsync('docker', ['info'], { timeout: 3_000, windowsHide: true });
+      await execFileAsync('docker', ['image', 'inspect', env.PLAYWRIGHT_SANDBOX_IMAGE], {
+        timeout: 3_000,
+        windowsHide: true,
+      });
+      await execFileAsync('docker', ['image', 'inspect', env.PLAYWRIGHT_CONTROL_IMAGE], {
+        timeout: 3_000,
+        windowsHide: true,
+      });
+      await execFileAsync('docker', ['network', 'inspect', env.PLAYWRIGHT_SANDBOX_NETWORK], {
+        timeout: 3_000,
+        windowsHide: true,
+      });
+      const proxyStatus = await execFileAsync('docker', [
+        'inspect', '--format', '{{.State.Running}}', 'aita-playwright-egress-proxy',
+      ], { timeout: 3_000, windowsHide: true });
+      if (proxyStatus.stdout.trim() !== 'true') throw new Error('Playwright egress proxy is not running.');
     } catch (error) {
       snapshot.services.chromium = 'UNAVAILABLE';
-      logger.error('health_fer201_runtime_failed', { stage: 'HEALTHCHECK', error });
+      logger.error('health_fer201_docker_browser_failed', {
+        stage: 'HEALTHCHECK',
+        image: env.PLAYWRIGHT_SANDBOX_IMAGE,
+        error,
+      });
     }
     if (env.FER201_GRADING_ENABLED) {
       const fer201Ready = snapshot.services.database === 'CONNECTED'

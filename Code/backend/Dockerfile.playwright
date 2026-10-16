@@ -1,0 +1,18 @@
+FROM mcr.microsoft.com/playwright:v1.64.1-noble@sha256:7852dc5a7d72f5fe458a597d690f6c42fbc8e9e26ddfa95f8e6ef552558d9bbf
+
+WORKDIR /opt/aita-playwright
+
+RUN corepack enable \
+    && corepack prepare pnpm@12.11.2 --activate \
+    && pnpm init \
+    && pnpm add --save-exact playwright@1.64.1 \
+    && chown -R pwuser:pwuser /opt/aita-playwright
+
+COPY --chown=pwuser:pwuser sandbox/playwright-browser-server.mjs ./playwright-browser-server.mjs
+
+USER pwuser
+ENV NODE_ENV=production
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+
+EXPOSE 3000
+ENTRYPOINT ["node", "/opt/aita-playwright/playwright-browser-server.mjs"]

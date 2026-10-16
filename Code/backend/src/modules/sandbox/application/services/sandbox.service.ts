@@ -19,6 +19,10 @@ export const calculatePerformanceScore = (
   return Number((passedCount / performanceCases.length).toFixed(2));
 };
 
+const WEB_RUNNER_LANGUAGES = new Set([
+  'WEB', 'REACT', 'REACT_JS', 'NEXTJS', 'HTML_CSS_JS', 'PLAYWRIGHT', 'VERCEL', 'SWP391', 'FER201',
+]);
+
 export class SandboxService implements ISandboxService {
   constructor(
     private readonly sandboxRepository: ISandboxRepository,
@@ -72,11 +76,12 @@ export class SandboxService implements ISandboxService {
       score: testCase.rationaleTag === 'PERFORMANCE' ? 0 : testCase.points,
     }));
 
-    const runner = SandboxRunnerFactory.createRunner(
-      languageOverride || submission.assignment.environment || 'C_GCC'
-    );
+    const language = languageOverride || submission.assignment.environment || 'C_GCC';
+    const runner = SandboxRunnerFactory.createRunner(language);
+    const requireDocker = !WEB_RUNNER_LANGUAGES.has(language.trim().toUpperCase());
     const summary = await runner.execute(executionFolderPath, testCases, {
       targetBaseUrl: submission.deployedUrl ?? undefined,
+      requireDocker,
     });
     const algorithmPerformanceScore = calculatePerformanceScore(testCasesToRun, summary.results);
     const normalizedSandboxScore = Number(

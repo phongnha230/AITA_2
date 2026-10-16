@@ -5,7 +5,7 @@ import { z } from 'zod';
 dotenv.config();
 
 const envSchema = z.object({
-  PORT: z.coerce.number().default(5000),
+  PORT: z.coerce.number().default(5003),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 
   // Database
@@ -23,6 +23,9 @@ const envSchema = z.object({
     }
     return Boolean(val);
   }, z.boolean().default(true)),
+  PLAYWRIGHT_SANDBOX_IMAGE: z.string().default('aita-playwright-sandbox:1.64.1'),
+  PLAYWRIGHT_CONTROL_IMAGE: z.string().default('aita-playwright-control:1.0.0'),
+  PLAYWRIGHT_SANDBOX_NETWORK: z.string().default('aita-playwright-internal'),
 
   // JWT Authentication
   JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 characters'),
@@ -34,7 +37,7 @@ const envSchema = z.object({
   // Google OAuth 2.0
   GOOGLE_CLIENT_ID: z.string().optional().default(''),
   GOOGLE_CLIENT_SECRET: z.string().optional().default(''),
-  GOOGLE_CALLBACK_URL: z.string().default('http://localhost:5000/api/v1/auth/google/callback'),
+  GOOGLE_CALLBACK_URL: z.string().default('http://localhost:5003/api/v1/auth/google/callback'),
   FRONTEND_URL: z.string().default('http://localhost:3000'),
 
   // Storage & Workspaces

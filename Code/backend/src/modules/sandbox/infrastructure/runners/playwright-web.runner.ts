@@ -1,3 +1,6 @@
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { randomUUID } from 'node:crypto';
 import {
   ISandboxRunner,
   TestCaseInput,
@@ -7,6 +10,9 @@ import {
 import { validatePublicDeploymentUrl } from '../../../submission/infrastructure/storage/deployed-url.validator.js';
 import { logger } from '../../../../infrastructure/logging/logger.js';
 import { parseWebTestScript, WebActionStep } from '../../domain/web-test-script.js';
+import { env } from '../../../../infrastructure/config/env.js';
+
+const execFileAsync = promisify(execFile);
 
 interface PageLike {
   goto(url: string, options: Record<string, unknown>): Promise<unknown>;
@@ -26,11 +32,14 @@ interface PageLike {
 }
 
 interface BrowserLike {
-  newContext(options: Record<string, unknown>): Promise<{
-    newPage(): Promise<PageLike>;
-    route(pattern: string, handler: (route: RouteLike) => Promise<void>): Promise<void>;
-    close(): Promise<void>;
-  }>;
+  newContext(options: Record<string, unknown>): Promise<BrowserContextLike>;
+  close(): Promise<void>;
+}
+
+interface BrowserContextLike {
+  newPage(): Promise<PageLike>;
+  route(pattern: string, handler: (route: RouteLike) => Promise<void>): Promise<void>;
+  routeWebSocket(pattern: string, handler: (route: WebSocketRouteLike) => Promise<void>): Promise<void>;
   close(): Promise<void>;
 }
 
@@ -40,8 +49,14 @@ interface RouteLike {
   abort(errorCode?: string): Promise<void>;
 }
 
+interface WebSocketRouteLike {
+  url(): string;
+  connectToServer(): Promise<void>;
+  close(): Promise<void>;
+}
+
 interface ChromiumLike {
-  launch(options: Record<string, unknown>): Promise<BrowserLike>;
+  connect(endpoint: string, options?: Record<string, unknown>): Promise<BrowserLike>;
 }
 
 export class PlaywrightWebRunner implements ISandboxRunner {
@@ -63,36 +78,43 @@ export class PlaywrightWebRunner implements ISandboxRunner {
       throw new Error('[PlaywrightWebRunner] Submission không có deployedUrl snapshot.');
     }
     const targetBaseUrl = await validatePublicDeploymentUrl(context.targetBaseUrl);
-    await this.assertReachable(targetBaseUrl);
 
-    // 2. Thử load thư viện Playwright (nếu đã cài đặt)
+    if (!env.USE_DOCKER_SANDBOX) {
+      throw new Error('[PlaywrightWebRunner] Chấm React/Web yêu cầu Docker Sandbox; không chạy Chromium trực tiếp trên backend.');
+    }
+
     let playwrightChromium: ChromiumLike;
     try {
       const playwrightModule = await import('playwright') as unknown as { chromium?: ChromiumLike };
       if (!playwrightModule.chromium) throw new Error('Playwright Chromium API không khả dụng.');
       playwrightChromium = playwrightModule.chromium;
-      const probe = await playwrightChromium.launch({ headless: true });
-      await probe.close();
     } catch (error) {
       logger.error('playwright_runtime_unavailable', { stage: 'PLAYWRIGHT_BOOT', error });
-      throw new Error('[PlaywrightWebRunner] Chromium chưa được cài đặt hoặc không thể khởi động.');
+      throw new Error('[PlaywrightWebRunner] Thư viện Playwright chưa sẵn sàng trên backend.');
     }
 
-    for (const tc of testCases) {
-      const startTime = Date.now();
-      const steps = this.parseTestCaseSteps(tc.inputData);
-
-      const tcResult = await this.runRealBrowserSteps(
-        playwrightChromium,
-        tc,
-        steps,
-        targetBaseUrl,
-        startTime
-      );
-      results.push(tcResult);
-      if (tcResult.passed) {
-        totalScore += tc.score || 0;
+    const parsedCases = testCases.map((testCase) => ({
+      testCase,
+      steps: this.parseTestCaseSteps(testCase.inputData),
+    }));
+    const browserSession = await this.startIsolatedBrowser(playwrightChromium);
+    try {
+      for (const { testCase, steps } of parsedCases) {
+        const startTime = Date.now();
+        const tcResult = await this.runRealBrowserSteps(
+          browserSession.browser,
+          testCase,
+          steps,
+          targetBaseUrl,
+          startTime
+        );
+        results.push(tcResult);
+        if (tcResult.passed) {
+          totalScore += testCase.score || 0;
+        }
       }
+    } finally {
+      await browserSession.close();
     }
 
     const passedCount = results.filter((r) => r.passed).length;
@@ -107,28 +129,129 @@ export class PlaywrightWebRunner implements ISandboxRunner {
     };
   }
 
-  private async assertReachable(initialUrl: string): Promise<void> {
-    let currentUrl = initialUrl;
-    for (let redirectCount = 0; redirectCount <= 5; redirectCount += 1) {
-      currentUrl = await validatePublicDeploymentUrl(currentUrl);
-      const response = await fetch(currentUrl, {
-        method: 'GET',
-        redirect: 'manual',
-        signal: AbortSignal.timeout(15_000),
-        headers: { 'user-agent': 'AITA-FER201-Grader/1.0' },
+  private async startIsolatedBrowser(chromium: ChromiumLike): Promise<{
+    browser: BrowserLike;
+    close: () => Promise<void>;
+  }> {
+    const containerName = `aita-playwright-${randomUUID()}`;
+    let containerId: string | undefined;
+    let controlContainerId: string | undefined;
+
+    try {
+      const runResult = await execFileAsync('docker', [
+        'run', '--detach', '--rm', '--name', containerName,
+        '--network', env.PLAYWRIGHT_SANDBOX_NETWORK,
+        '--user', 'pwuser',
+        '--cpus', '1',
+        '--memory', '1g',
+        '--pids-limit', '128',
+        '--cap-drop', 'ALL',
+        '--security-opt', 'no-new-privileges',
+        '--read-only',
+        '--tmpfs', '/tmp:rw,nosuid,size=128m',
+        '--tmpfs', '/home/pwuser/.cache:rw,nosuid,size=64m',
+        '--shm-size', '256m',
+        env.PLAYWRIGHT_SANDBOX_IMAGE,
+      ], { timeout: 15_000, windowsHide: true });
+      containerId = runResult.stdout.trim();
+      if (!containerId) throw new Error('Docker không trả về container ID cho Chromium.');
+
+      const endpoint = await this.waitForBrowserEndpoint(containerId);
+      const controlResult = await execFileAsync('docker', [
+        'run', '--detach', '--rm', '--name', `${containerName}-control`,
+        '--network', 'bridge',
+        '--publish', '127.0.0.1::3001',
+        '--user', 'control',
+        '--memory', '64m',
+        '--pids-limit', '32',
+        '--cap-drop', 'ALL',
+        '--security-opt', 'no-new-privileges',
+        '--read-only',
+        env.PLAYWRIGHT_CONTROL_IMAGE,
+        'TCP-LISTEN:3001,fork,reuseaddr,bind=0.0.0.0',
+        `TCP:${containerName}:3000`,
+      ], { timeout: 15_000, windowsHide: true });
+      controlContainerId = controlResult.stdout.trim();
+      if (!controlContainerId) throw new Error('Docker không trả về container ID cho kênh điều khiển Chromium.');
+      await execFileAsync('docker', ['network', 'connect', env.PLAYWRIGHT_SANDBOX_NETWORK, controlContainerId], {
+        timeout: 5_000,
+        windowsHide: true,
       });
-      if (response.status >= 300 && response.status < 400) {
-        const location = response.headers.get('location');
-        if (!location) throw new Error('Deploy URL redirect nhưng không có Location header.');
-        await response.body?.cancel();
-        currentUrl = new URL(location, currentUrl).toString();
-        continue;
-      }
-      if (!response.ok) throw new Error(`Deploy URL trả về HTTP ${response.status}.`);
-      await response.body?.cancel();
-      return;
+
+      const port = await this.waitForPublishedPort(controlContainerId);
+      const endpointUrl = new URL(endpoint);
+      endpointUrl.hostname = '127.0.0.1';
+      endpointUrl.port = String(port);
+      const browser = await chromium.connect(endpointUrl.toString(), { timeout: 10_000 });
+
+      return {
+        browser,
+        close: async () => {
+          try {
+            await browser.close();
+          } finally {
+            await this.removeBrowserContainer(controlContainerId!);
+            await this.removeBrowserContainer(containerId!);
+          }
+        },
+      };
+    } catch (error) {
+      if (controlContainerId) await this.removeBrowserContainer(controlContainerId);
+      if (containerId) await this.removeBrowserContainer(containerId);
+      logger.error('playwright_docker_start_failed', {
+        stage: 'PLAYWRIGHT_DOCKER_BOOT',
+        browserImage: env.PLAYWRIGHT_SANDBOX_IMAGE,
+        controlImage: env.PLAYWRIGHT_CONTROL_IMAGE,
+        error,
+      });
+      throw new Error(
+        '[PlaywrightWebRunner] Không thể khởi chạy Chromium trong Docker. Kiểm tra Docker daemon, image sandbox và proxy egress.'
+      );
     }
-    throw new Error('Deploy URL redirect quá 5 lần.');
+  }
+
+  private async waitForBrowserEndpoint(containerId: string): Promise<string> {
+    for (let attempt = 0; attempt < 60; attempt += 1) {
+      const [logs, state] = await Promise.all([
+        execFileAsync('docker', ['logs', containerId], { timeout: 3_000, windowsHide: true })
+          .then(({ stdout, stderr }) => `${stdout}\n${stderr}`)
+          .catch(() => ''),
+        execFileAsync('docker', ['inspect', '--format', '{{.State.Running}}', containerId], {
+          timeout: 3_000,
+          windowsHide: true,
+        }).then(({ stdout }) => stdout.trim() === 'true').catch(() => false),
+      ]);
+      const endpoint = logs.match(/PLAYWRIGHT_WS_ENDPOINT=(ws:\/\/\S+)/)?.[1];
+      if (endpoint) return endpoint;
+      if (!state) throw new Error(`Chromium container exited before becoming ready: ${logs.slice(-2000)}`);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+    throw new Error('Timed out waiting for the Chromium container to become ready.');
+  }
+
+  private async waitForPublishedPort(containerId: string): Promise<number> {
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      const portOutput = await execFileAsync('docker', ['port', containerId, '3001/tcp'], {
+        timeout: 3_000,
+        windowsHide: true,
+      }).then(({ stdout }) => stdout.trim()).catch(() => '');
+      const port = Number(portOutput.match(/:(\d+)\s*$/)?.[1]);
+      if (Number.isInteger(port) && port > 0) return port;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    throw new Error('Docker did not publish the Chromium control port.');
+  }
+
+  private async removeBrowserContainer(containerId: string): Promise<void> {
+    try {
+      await execFileAsync('docker', ['rm', '--force', containerId], { timeout: 5_000, windowsHide: true });
+    } catch (error) {
+      logger.warn('playwright_docker_cleanup_failed', {
+        stage: 'PLAYWRIGHT_DOCKER_CLEANUP',
+        containerId,
+        error,
+      });
+    }
   }
 
   /**
@@ -142,39 +265,42 @@ export class PlaywrightWebRunner implements ISandboxRunner {
    * Chạy kịch bản với Playwright Chromium thật
    */
   private async runRealBrowserSteps(
-    chromium: ChromiumLike,
+    browser: BrowserLike,
     tc: TestCaseInput,
     steps: WebActionStep[],
     baseUrl: string,
     startTime: number
   ): Promise<TestCaseResult> {
-    let browser: BrowserLike | null = null;
+    let browserContext: BrowserContextLike | null = null;
     const logs: string[] = [];
 
     try {
-      browser = await chromium.launch({
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-      });
-      const context = await browser.newContext({
+      browserContext = await browser.newContext({
         viewport: { width: 1280, height: 720 },
+        serviceWorkers: 'block',
       });
-      const validatedOrigins = new Set<string>();
-      await context.route('**/*', async (route) => {
+      await browserContext.route('**/*', async (route) => {
         const requestUrl = route.request().url();
         try {
-          const parsed = new URL(requestUrl);
-          if (!validatedOrigins.has(parsed.origin)) {
-            await validatePublicDeploymentUrl(requestUrl);
-            validatedOrigins.add(parsed.origin);
-          }
+          await validatePublicDeploymentUrl(requestUrl);
           await route.continue();
         } catch (error) {
           logs.push(`[SSRF] Blocked resource ${requestUrl}: ${error instanceof Error ? error.message : String(error)}`);
           await route.abort('blockedbyclient');
         }
       });
-      const page = await context.newPage();
+      await browserContext.routeWebSocket('**/*', async (route) => {
+        try {
+          const socketUrl = new URL(route.url());
+          if (socketUrl.protocol !== 'wss:') throw new Error('Only secure WebSockets are allowed.');
+          await validatePublicDeploymentUrl(`https://${socketUrl.host}/`);
+          await route.connectToServer();
+        } catch (error) {
+          logs.push(`[SSRF] Blocked WebSocket ${route.url()}: ${error instanceof Error ? error.message : String(error)}`);
+          await route.close();
+        }
+      });
+      const page = await browserContext.newPage();
 
       for (let i = 0; i < steps.length; i++) {
         const step = steps[i];
@@ -319,8 +445,8 @@ export class PlaywrightWebRunner implements ISandboxRunner {
         errorMessage: message,
       };
     } finally {
-      if (browser) {
-        await browser.close();
+      if (browserContext) {
+        await browserContext.close();
       }
     }
   }
