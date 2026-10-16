@@ -27,14 +27,14 @@ export function UpcomingExams({ state, upcomingAssignments, courses, onRetry }: 
           </span>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-base font-bold text-slate-900 sm:text-lg">Kỳ thi PE sắp tới</h2>
+          <h2 className="text-base font-bold text-slate-900 sm:text-lg">Bài sắp tới</h2>
               {state.status === 'success' && upcomingAssignments.length > 0 && (
                 <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-700">
                   {upcomingAssignments.length}
                 </span>
               )}
             </div>
-            <p className="mt-0.5 text-xs text-slate-500">Các bài thi đã xuất bản và chưa đến thời gian bắt đầu.</p>
+            <p className="mt-0.5 text-xs text-slate-500">Các bài đã công bố và chưa đến thời gian bắt đầu.</p>
           </div>
         </div>
 

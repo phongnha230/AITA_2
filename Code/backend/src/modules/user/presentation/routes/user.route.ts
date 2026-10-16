@@ -20,7 +20,7 @@ const userController = container.userController;
 // --- 1. User & Lecturer Self-Service Endpoints ---
 router.get('/profile', authenticateJWT, userController.getProfile);
 router.get('/portfolio', authenticateJWT, userController.getStudentPortfolio);
-router.get('/lecturer-dashboard', authenticateJWT, authorizeRoles('LECTURER', 'ADMIN'), userController.getLecturerDashboard);
+router.get('/lecturer-dashboard', authenticateJWT, authorizeRoles('LECTURER'), userController.getLecturerDashboard);
 router.get('/admin-dashboard', authenticateJWT, authorizeRoles('ADMIN'), userController.getAdminDashboard);
 router.patch('/profile', authenticateJWT, validateBody(UpdateProfileSchema), userController.updateProfile);
 router.post('/avatar', authenticateJWT, uploadImageMiddleware.single('avatar'), userController.uploadAvatar);

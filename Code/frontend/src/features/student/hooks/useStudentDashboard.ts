@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useStudentAcademicData } from './useStudentAcademicData';
 import { getStudentServiceErrorMessage, studentService } from '../services/student.service';
-import type { PublicSandboxHealth, ResourceState } from '../types/student.types';
+import type { PublicSandboxHealth, ResourceState, StudentPortfolioData } from '../types/student.types';
 
 const loadingState = <T,>(data: T): ResourceState<T> => ({
   status: 'loading',
@@ -17,6 +17,10 @@ export function useStudentDashboard() {
     loadingState<PublicSandboxHealth | null>(null),
   );
   const [sandboxAttempt, setSandboxAttempt] = useState(0);
+  const [portfolio, setPortfolio] = useState<ResourceState<StudentPortfolioData | null>>(() =>
+    loadingState<StudentPortfolioData | null>(null),
+  );
+  const [portfolioAttempt, setPortfolioAttempt] = useState(0);
   const now = Date.now();
   const upcomingAssignments = academic.assignments.status === 'success'
     ? academic.assignments.data
@@ -44,6 +48,7 @@ export function useStudentDashboard() {
       })
       .catch((requestError: unknown) => {
         if (!active) return;
+        console.error('Không kiểm tra được trạng thái Docker Sandbox:', requestError);
         setSandbox({
           status: 'error',
           data: null,
@@ -54,9 +59,36 @@ export function useStudentDashboard() {
     return () => { active = false; };
   }, [sandboxAttempt]);
 
+  useEffect(() => {
+    let active = true;
+
+    studentService
+      .getPortfolio()
+      .then((data) => {
+        if (active) setPortfolio({ status: 'success', data, error: null });
+      })
+      .catch((requestError: unknown) => {
+        console.error('Không tải được dữ liệu portfolio trên dashboard:', requestError);
+        if (active) {
+          setPortfolio({
+            status: 'error',
+            data: null,
+            error: getStudentServiceErrorMessage(requestError, 'Không thể tải hoạt động và điểm trung bình.'),
+          });
+        }
+      });
+
+    return () => { active = false; };
+  }, [portfolioAttempt]);
+
   const retrySandbox = () => {
     setSandbox(loadingState<PublicSandboxHealth | null>(null));
     setSandboxAttempt((attempt) => attempt + 1);
+  };
+
+  const retryPortfolio = () => {
+    setPortfolio(loadingState<StudentPortfolioData | null>(null));
+    setPortfolioAttempt((attempt) => attempt + 1);
   };
 
   const joinCourse = async (code: string) => {
@@ -65,6 +97,15 @@ export function useStudentDashboard() {
     return result;
   };
 
-  return { ...academic, upcomingAssignments, completedAssignments, sandbox, retrySandbox, joinCourse };
+  return {
+    ...academic,
+    upcomingAssignments,
+    completedAssignments,
+    sandbox,
+    retrySandbox,
+    portfolio,
+    retryPortfolio,
+    joinCourse,
+  };
 }
 
