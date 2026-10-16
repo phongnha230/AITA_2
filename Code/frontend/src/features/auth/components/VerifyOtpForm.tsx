@@ -160,7 +160,7 @@ export default function VerifyOtpForm() {
         if (error.response?.data?.message) {
           setErrorMessage(error.response.data.message);
         } else if (!error.response) {
-          setErrorMessage('Không thể kết nối đến máy chủ Backend (http://localhost:5000). Hãy đảm bảo Backend đang chạy!');
+          setErrorMessage('Không thể kết nối đến máy chủ Backend (http://localhost:5003). Hãy đảm bảo Backend đang chạy!');
         } else {
           setErrorMessage('Xác thực thất bại. Vui lòng thử lại.');
         }
