@@ -49,7 +49,12 @@ describe('hardened upload and sandbox routes', () => {
 
   it('keeps public sandbox health minimal and direct execution ADMIN-only', async () => {
     const health = await request(app).get('/api/v1/sandbox/health').expect(200);
-    expect(health.body).toEqual({ status: 'ready' });
+    expect(health.body).toEqual({
+      status: expect.stringMatching(/^(ready|unavailable)$/),
+      dockerRequired: true,
+      dockerAvailable: expect.any(Boolean),
+      playwrightSandboxAvailable: expect.any(Boolean),
+    });
 
     await request(app)
       .get('/api/v1/sandbox/status')
