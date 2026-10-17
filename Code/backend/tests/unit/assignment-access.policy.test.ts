@@ -198,4 +198,31 @@ describe('PrismaAssignmentAccessPolicy', () => {
     await expect(policy.assertCanManageTestCase({ userId: 'u', role: 'ADMIN' }, 'missing')).rejects.toThrow();
     await expect(policy.assertCanAccessSubmission({ userId: 'u', role: 'ADMIN' }, 'missing')).rejects.toThrow();
   });
+
+  it('delegates exam content access and unlocked exam view to assignment view for non-students', async () => {
+    const { policy, fake } = makePolicy();
+    fake.assignment.findUnique.mockResolvedValue({
+      course: { lecturerId: 'lecturer-1', enrollments: [] },
+    });
+
+    await expect(policy.assertCanAccessExamContent({ userId: 'admin', role: 'ADMIN' }, 'assignment-1'))
+      .resolves.toBeUndefined();
+    await expect(policy.assertCanViewUnlockedExam({ userId: 'admin', role: 'ADMIN' }, 'assignment-1'))
+      .resolves.toBeUndefined();
+    await expect(policy.assertCanAccessExamContent({ userId: 'lecturer-1', role: 'LECTURER' }, 'assignment-1'))
+      .resolves.toBeUndefined();
+    await expect(policy.assertCanViewUnlockedExam({ userId: 'lecturer-1', role: 'LECTURER' }, 'assignment-1'))
+      .resolves.toBeUndefined();
+  });
+
+  it('rejects student viewing unlocked exam when enrollment or grant is missing', async () => {
+    const { policy, fake } = makePolicy();
+    fake.assignment.findUnique.mockResolvedValue({
+      course: { enrollments: [] },
+      examAccessGrants: [],
+    });
+
+    await expect(policy.assertCanViewUnlockedExam({ userId: 'student-1', role: 'STUDENT' }, 'assignment-1'))
+      .rejects.toThrow(/Hãy ghi danh môn học và nhập đúng mã đề trước/i);
+  });
 });

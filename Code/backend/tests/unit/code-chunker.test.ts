@@ -29,4 +29,12 @@ describe('CodeChunker', () => {
     expect(chunks[0]).toMatchObject({ type: 'BLOCK', startLine: 1, endLine: 50 });
     expect(chunks[1]).toMatchObject({ type: 'BLOCK', startLine: 41, endLine: 75 });
   });
+
+  it('uses default file names when file parameter is omitted', () => {
+    const javaChunks = CodeChunker.chunkSourceCode('class Main { void run() {} }', 'JAVA_JDK');
+    expect(javaChunks[0].file).toBe('Solution.java');
+
+    const cChunks = CodeChunker.chunkSourceCode('void run() {}', 'C_GCC');
+    expect(cChunks[0].file).toBe('solution.c');
+  });
 });

@@ -111,4 +111,28 @@ describe('ZipExtractorService security limits', () => {
     ).rejects.toBeInstanceOf(ValidationError);
     await expect(fs.stat(fixture.workspace.getWorkspacePath('submission-many'))).rejects.toThrow();
   }, 15_000);
+
+  it('rejects archive with unknown structure and cleans workspace', async () => {
+    const fixture = await createFixture();
+    const archive = new AdmZip();
+    archive.addFile('notes.txt', Buffer.from('hello'));
+    archive.writeZip(fixture.zipPath);
+    const service = new ZipExtractorService(fixture.workspace);
+
+    await expect(
+      service.extractAndStage(fixture.zipPath, 'submission-unknown', 10_000)
+    ).rejects.toThrow(/Không nhận diện được cấu trúc bài nộp/i);
+    await expect(fs.stat(fixture.workspace.getWorkspacePath('submission-unknown'))).rejects.toThrow();
+  });
+
+  it('rejects corrupted zip archive and cleans workspace', async () => {
+    const fixture = await createFixture();
+    await fs.writeFile(fixture.zipPath, 'not-a-valid-zip-file-data');
+    const service = new ZipExtractorService(fixture.workspace);
+
+    await expect(
+      service.extractAndStage(fixture.zipPath, 'submission-corrupted', 10_000)
+    ).rejects.toThrow(/File nộp bài không phải file ZIP hợp lệ/i);
+    await expect(fs.stat(fixture.workspace.getWorkspacePath('submission-corrupted'))).rejects.toThrow();
+  });
 });
