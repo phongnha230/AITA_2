@@ -9,6 +9,10 @@ import { UnauthorizedError } from '../../../../shared/domain/exceptions/app.erro
 import { logger } from '../../../../infrastructure/logging/logger.js';
 import { SubmitTeamAssignmentUseCase } from '../../application/use-cases/submit-team-assignment.use-case.js';
 import { AdjustParticipantScoreUseCase } from '../../application/use-cases/adjust-participant-score.use-case.js';
+import { RegradeSubmissionUseCase } from '../../application/use-cases/regrade-submission.use-case.js';
+import { GetGradingHistoryUseCase } from '../../application/use-cases/get-grading-history.use-case.js';
+import { ReviewGradingRunUseCase } from '../../application/use-cases/review-grading-run.use-case.js';
+import { NotFoundError } from '../../../../shared/domain/exceptions/app.error.js';
 
 
 export class SubmissionController {
@@ -18,7 +22,10 @@ export class SubmissionController {
     private readonly getAssignmentSubmissionsUseCase: GetAssignmentSubmissionsUseCase,
     private readonly getAllSubmissionsUseCase: GetAllSubmissionsUseCase,
     private readonly submitTeamAssignmentUseCase: SubmitTeamAssignmentUseCase,
-    private readonly adjustParticipantScoreUseCase: AdjustParticipantScoreUseCase
+    private readonly adjustParticipantScoreUseCase: AdjustParticipantScoreUseCase,
+    private readonly regradeSubmissionUseCase: RegradeSubmissionUseCase,
+    private readonly getGradingHistoryUseCase: GetGradingHistoryUseCase,
+    private readonly reviewGradingRunUseCase: ReviewGradingRunUseCase
   ) {}
 
   submitAssignment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -142,5 +149,48 @@ export class SubmissionController {
     } catch (error) {
       next(error);
     }
+  };
+
+  regradeSubmission = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!req.user?.userId || !req.user.role) throw new UnauthorizedError('Cần đăng nhập để chấm lại.');
+      const result = await this.regradeSubmissionUseCase.execute(req.params.id, { userId: req.user.userId, role: req.user.role });
+      sendSuccess(res, result, 'Đã tạo lượt chấm mới từ đúng mã nguồn đã nộp.', 202);
+    } catch (error) { next(error); }
+  };
+
+  getGradingHistory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!req.user?.userId || !req.user.role) throw new UnauthorizedError('Cần đăng nhập để xem lịch sử chấm.');
+      const result = await this.getGradingHistoryUseCase.execute(req.params.id, req.user.userId, req.user.role);
+      sendSuccess(res, result, 'Lấy lịch sử chấm thành công.');
+    } catch (error) { next(error); }
+  };
+
+  getGradingEvidence = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!req.user?.userId || !req.user.role) throw new UnauthorizedError('Cần đăng nhập để xem bằng chứng chấm.');
+      const evidence = await this.getGradingHistoryUseCase.getEvidence(
+        req.params.id, req.params.runId, req.params.evidenceId, req.user.userId, req.user.role
+      );
+      if (!evidence) throw new NotFoundError('Bằng chứng chấm');
+      res.setHeader('Cache-Control', 'private, no-store');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.type(evidence.mimeType).sendFile(evidence.path, (error) => { if (error) next(error); });
+    } catch (error) { next(error); }
+  };
+
+  reviewGradingRun = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!req.user?.userId || !req.user.role) throw new UnauthorizedError('Cần đăng nhập để duyệt điểm.');
+      const result = await this.reviewGradingRunUseCase.execute({
+        runId: req.params.runId,
+        requestingUserId: req.user.userId,
+        requestingUserRole: req.user.role,
+        finalScore: req.body.finalScore,
+        reviewNote: req.body.reviewNote,
+      });
+      sendSuccess(res, result, 'Đã lưu duyệt điểm và công bố kết quả.');
+    } catch (error) { next(error); }
   };
 }

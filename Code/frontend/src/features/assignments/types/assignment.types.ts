@@ -109,6 +109,7 @@ export interface Assignment {
   status: AssignmentStatus;
   durationMinutes?: number | null;
   gradingVersion?: number;
+  gradingApprovalMode?: 'LECTURER_REVIEW' | 'AUTO_PUBLISH';
   functionalMaxScore?: number;
   algorithmMaxScore?: number;
   cleanCodeMaxScore?: number;
@@ -137,6 +138,7 @@ export interface CreateAssignmentPayload {
   deadline: string;
   durationMinutes?: number;
   gradingVersion?: number;
+  gradingApprovalMode?: 'LECTURER_REVIEW' | 'AUTO_PUBLISH';
   functionalMaxScore?: number;
   algorithmMaxScore?: number;
   cleanCodeMaxScore?: number;

@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState, type FormEvent } from 'react';
+import { Suspense, useEffect, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -10,16 +10,17 @@ import {
   FileSearch,
   RefreshCw,
   Search,
-  Sparkles,
 } from 'lucide-react';
 import { useStudentSubmission } from '../../hooks/useStudentSubmission';
 import { StudentEmptyState } from '../shared/StudentEmptyState';
 import { StudentPageHeading } from '../shared/StudentPageHeading';
-import { AiRubricFeedbackCard } from './AiRubricFeedbackCard';
 import { GradingLifecycleProgress } from './GradingLifecycleProgress';
 import { SubmissionScoreOverview } from './SubmissionScoreOverview';
 import { TestCaseResultsList } from './TestCaseResultsList';
 import { RecentSubmissionsList } from './RecentSubmissionsList';
+import { studentService } from '../../services/student.service';
+import type { GradingRun } from '@/features/grading/types/grading-history.types';
+import { GradingHistoryDetails } from './GradingHistoryDetails';
 
 function StudentResultsContent() {
   const router = useRouter();
@@ -27,6 +28,9 @@ function StudentResultsContent() {
   const currentSubmissionId = searchParams.get('submissionId');
 
   const [inputVal, setInputVal] = useState(currentSubmissionId || '');
+  const [gradingHistory, setGradingHistory] = useState<GradingRun[]>([]);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const [evidenceUrl, setEvidenceUrl] = useState<string | null>(null);
   const { submission, gradingJob, isPolling, isStreaming, refetch } = useStudentSubmission(currentSubmissionId);
 
   const handleLookup = (e: FormEvent) => {
@@ -37,6 +41,29 @@ function StudentResultsContent() {
   };
 
   const hasSubmission = Boolean(currentSubmissionId && submission.data);
+
+  useEffect(() => {
+    let cancelled = false;
+    setGradingHistory([]);
+    setHistoryError(null);
+    if (!currentSubmissionId) return () => { cancelled = true; };
+    studentService.getGradingHistory(currentSubmissionId).then((history) => {
+      if (!cancelled) setGradingHistory(history);
+    }).catch((error: unknown) => {
+      if (!cancelled) setHistoryError(error instanceof Error ? error.message : 'Không tải được lịch sử chấm.');
+    });
+    return () => { cancelled = true; };
+  }, [currentSubmissionId]);
+
+  const showEvidence = async (runId: string, evidenceId: string) => {
+    if (!currentSubmissionId) return;
+    try {
+      const blob = await studentService.getGradingEvidence(currentSubmissionId, runId, evidenceId);
+      setEvidenceUrl((current) => { if (current) URL.revokeObjectURL(current); return URL.createObjectURL(blob); });
+    } catch (error) {
+      setHistoryError(error instanceof Error ? error.message : 'Không mở được ảnh bằng chứng.');
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -152,6 +179,10 @@ function StudentResultsContent() {
             </section>
           )}
 
+          {submission.data.status === 'REVIEW_PENDING' && <div role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            Hệ thống đã chấm xong và đang chờ giảng viên xem xét, công bố điểm. Điểm đề xuất và testcase ẩn sẽ chưa hiển thị trong thời gian này.
+          </div>}
+
           {/* 1. Real Grading Lifecycle Progress */}
           <GradingLifecycleProgress
             gradingJob={gradingJob}
@@ -167,11 +198,8 @@ function StudentResultsContent() {
           {/* 3. Detailed Testcases */}
           <TestCaseResultsList testResults={submission.data.testResults ?? []} />
 
-          {/* 4. AI Feedback */}
-          <AiRubricFeedbackCard
-            aiGradingResult={submission.data.aiGradingResult}
-            submissionId={submission.data.id}
-          />
+          {historyError && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{historyError}</p>}
+          <GradingHistoryDetails runs={gradingHistory} onShowEvidence={showEvidence} evidenceUrl={evidenceUrl} />
         </div>
       )}
 

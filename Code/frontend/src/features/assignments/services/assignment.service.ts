@@ -13,6 +13,7 @@ import {
   DryRunExecutionSummary,
 } from '../types/assignment.types';
 import type { ExamSession, ExamSessionStudentAccess, ExamSessionSubmission } from '../../proctoring/types/proctoring.types';
+import type { GradingRun } from '@/features/grading/types/grading-history.types';
 
 
 export const assignmentService = {
@@ -286,6 +287,26 @@ export const assignmentService = {
         },
       ];
     }
+  },
+
+  async getGradingHistory(submissionId: string): Promise<GradingRun[]> {
+    const response = await api.get<{ data?: GradingRun[] }>(`/submissions/${encodeURIComponent(submissionId)}/grading-history`);
+    return response.data.data ?? [];
+  },
+
+  async getGradingEvidence(submissionId: string, runId: string, evidenceId: string): Promise<Blob> {
+    const response = await api.get<Blob>(`/submissions/${encodeURIComponent(submissionId)}/grading-history/${encodeURIComponent(runId)}/evidence/${encodeURIComponent(evidenceId)}`, { responseType: 'blob' });
+    return response.data;
+  },
+
+  async regradeSubmission(submissionId: string): Promise<void> {
+    await this.ensureLecturerAuth();
+    await api.post(`/submissions/${encodeURIComponent(submissionId)}/grading-runs`);
+  },
+
+  async reviewGradingRun(runId: string, reviewNote: string, finalScore?: number): Promise<void> {
+    await this.ensureLecturerAuth();
+    await api.post(`/submissions/grading-runs/${encodeURIComponent(runId)}/review`, { reviewNote, finalScore });
   },
 
   /**

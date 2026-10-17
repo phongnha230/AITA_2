@@ -12,6 +12,7 @@ import type {
   TutorConversation,
   TutorMessage,
 } from '../types/student.types';
+import type { GradingRun } from '@/features/grading/types/grading-history.types';
 
 interface ApiResponse<T> {
   success: boolean;
@@ -124,6 +125,16 @@ export const studentService = {
       throw new Error('Không tìm thấy thông tin bài nộp.');
     }
     return response.data.data;
+  },
+
+  async getGradingHistory(submissionId: string): Promise<GradingRun[]> {
+    const response = await api.get<ApiResponse<GradingRun[]>>(`/submissions/${encodeURIComponent(submissionId)}/grading-history`);
+    return response.data.data ?? [];
+  },
+
+  async getGradingEvidence(submissionId: string, runId: string, evidenceId: string): Promise<Blob> {
+    const response = await api.get<Blob>(`/submissions/${encodeURIComponent(submissionId)}/grading-history/${encodeURIComponent(runId)}/evidence/${encodeURIComponent(evidenceId)}`, { responseType: 'blob' });
+    return response.data;
   },
 
   async getGradingJobStatus(submissionId: string): Promise<GradingJobInfo | null> {

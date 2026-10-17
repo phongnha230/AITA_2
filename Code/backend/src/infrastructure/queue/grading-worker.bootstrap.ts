@@ -22,7 +22,7 @@ export function startGradingWorker() {
         submissionId: jobData.submissionId,
         stage: 'RUNNING_SANDBOX',
       });
-      const summary = await container.sandboxService.gradeSubmission(jobData.submissionId, jobData.language);
+      const summary = await container.sandboxService.gradeSubmission(jobData.submissionId, jobData.language, jobData.gradingRunId);
       return summary;
     },
 

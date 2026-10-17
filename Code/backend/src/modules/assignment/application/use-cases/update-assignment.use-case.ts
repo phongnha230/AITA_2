@@ -44,8 +44,14 @@ export class UpdateAssignmentUseCase {
       }
       if (existing.environment === 'REACT_JS') {
         try {
-          testCases.forEach((testCase) => parseWebTestScript(testCase.stdinInput ?? ''));
+          testCases.forEach((testCase) => {
+            const steps = parseWebTestScript(testCase.stdinInput ?? '');
+            if (!steps.some((step) => step.action.startsWith('ASSERT_'))) {
+              throw new ValidationError(`Luồng “${testCase.label}” cần ít nhất một bước Kiểm tra để được tính điểm.`);
+            }
+          });
         } catch (error) {
+          if (error instanceof ValidationError) throw error;
           throw new ValidationError(
             `Không thể công bố đề: ${error instanceof Error ? error.message : 'kịch bản Playwright không hợp lệ.'}`
           );
@@ -75,6 +81,7 @@ export class UpdateAssignmentUseCase {
       ...(dto.deadline && { deadline: new Date(dto.deadline) }),
       ...(dto.allowGitSubmission !== undefined && { allowGitSubmission: dto.allowGitSubmission }),
       ...(dto.allowZipSubmission !== undefined && { allowZipSubmission: dto.allowZipSubmission }),
+      ...(dto.gradingApprovalMode && { gradingApprovalMode: dto.gradingApprovalMode }),
       ...(dto.status && { status: dto.status }),
     });
 

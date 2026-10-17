@@ -42,6 +42,7 @@ export class CreateAssignmentUseCase {
       allowZipSubmission: dto.allowZipSubmission !== undefined ? dto.allowZipSubmission : true,
       status: dto.status || 'DRAFT',
       gradingVersion: dto.gradingVersion,
+      gradingApprovalMode: dto.gradingApprovalMode,
       functionalMaxScore: dto.functionalMaxScore,
       algorithmMaxScore: dto.algorithmMaxScore,
       cleanCodeMaxScore: dto.cleanCodeMaxScore,

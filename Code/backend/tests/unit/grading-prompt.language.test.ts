@@ -102,8 +102,8 @@ describe('language-specific AI grading prompts', () => {
     expect(csdSystem).toContain('cấu trúc dữ liệu');
     expect(csdSystem).not.toContain('Profile PRO192');
     expect(generalSystem).toContain('Profile Java chung');
-    expect(proSystem).toContain('{"rubricBreakdown"');
-    expect(csdSystem).toContain('{"rubricBreakdown"');
+    expect(proSystem).toContain('{"answerComparison":"text","rubricBreakdown"');
+    expect(csdSystem).toContain('{"answerComparison":"text","rubricBreakdown"');
     expect(proSystem).toContain('Không tự tạo rubricId');
     expect(csdSystem).toContain('Không tự tạo rubricId');
   });

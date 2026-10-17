@@ -267,8 +267,6 @@ export const LecturerSubmissionsView: React.FC<LecturerSubmissionsViewProps> = (
         onOpenChange={setIsDetailModalOpen}
         submission={selectedSubmission}
         renderStatusBadge={renderStatusBadge}
-        onReGradeSandbox={handleReGradeSandbox}
-        onReGradeAi={handleReGradeAi}
       />
     </div>
   );

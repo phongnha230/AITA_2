@@ -35,6 +35,12 @@ export const AdjustParticipantScoreSchema = z.object({
   reason: z.string().trim().min(5).max(500),
 });
 
+export const ReviewGradingRunSchema = z.object({
+  finalScore: z.number().finite().min(0).max(10).optional(),
+  reviewNote: z.string().trim().min(5).max(2_000),
+});
+export type ReviewGradingRunDto = z.infer<typeof ReviewGradingRunSchema>;
+
 export type SubmitAssignmentInput = z.infer<typeof SubmitAssignmentSchema>;
 export type SubmitTeamAssignmentInput = z.infer<typeof SubmitTeamAssignmentSchema>;
 export type AdjustParticipantScoreInput = z.infer<typeof AdjustParticipantScoreSchema>;

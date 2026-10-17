@@ -28,6 +28,30 @@ export class GetSubmissionStatusUseCase {
       throw new ForbiddenError('Bạn không có quyền xem bài nộp này.');
     }
 
-    return submission;
+    if (request.requestingUserRole !== 'STUDENT') return submission;
+    const safeSubmission = { ...submission };
+    delete safeSubmission.zipFilePath;
+    delete safeSubmission.workspacePath;
+    delete safeSubmission.sourceSnapshotPath;
+    delete safeSubmission.sourceSnapshotHash;
+    delete safeSubmission.gradingSnapshot;
+    if (submission.status !== 'GRADED') {
+      safeSubmission.finalScore = null;
+      safeSubmission.sandboxScore = null;
+      safeSubmission.aiScore = null;
+      safeSubmission.algorithmScore = null;
+      safeSubmission.cleanCodeScore = null;
+      safeSubmission.compileOutput = null;
+      safeSubmission.testResults = [];
+      safeSubmission.aiGradingResult = null;
+      return safeSubmission;
+    }
+    safeSubmission.testResults = (submission.testResults ?? []).map((result: Record<string, unknown>) => {
+      const testCase = result.testCase as Record<string, unknown> | undefined;
+      if (!testCase?.isHidden) return result;
+      const { actualStdout: _actualStdout, actualFileOutput: _actualFileOutput, diffLog: _diffLog, ...safeResult } = result;
+      return { ...safeResult, testCase: { id: testCase.id, label: testCase.label, isHidden: true } };
+    });
+    return safeSubmission;
   }
 }

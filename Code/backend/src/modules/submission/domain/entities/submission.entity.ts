@@ -5,6 +5,7 @@ export type SubmissionStatus =
   | 'RUNNING_SANDBOX'
   | 'RUNNING_AI'
   | 'GRADED'
+  | 'REVIEW_PENDING'
   | 'FAILED';
 
 

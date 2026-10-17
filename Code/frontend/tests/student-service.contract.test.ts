@@ -101,4 +101,19 @@ describe('studentService API contracts', () => {
     await expect(studentService.downloadExamPdf('assignment-1')).resolves.toBe(pdf);
     expect(api.get).toHaveBeenCalledWith('/assignments/assignment-1/files/pdf', { responseType: 'blob' });
   });
+
+  it('fetches grading history and retrieves protected evidence as a blob', async () => {
+    const history = [{ id: 'run-1', runNo: 1, status: 'PUBLISHED', stages: [] }];
+    const image = new Blob(['image-data'], { type: 'image/jpeg' });
+    api.get.mockResolvedValueOnce({ data: { data: history } });
+    api.get.mockResolvedValueOnce({ data: image });
+
+    await expect(studentService.getGradingHistory('sub/1')).resolves.toEqual(history);
+    await expect(studentService.getGradingEvidence('sub/1', 'run-1', 'evidence-1')).resolves.toBe(image);
+    expect(api.get).toHaveBeenNthCalledWith(1, '/submissions/sub%2F1/grading-history');
+    expect(api.get).toHaveBeenNthCalledWith(2,
+      '/submissions/sub%2F1/grading-history/run-1/evidence/evidence-1',
+      { responseType: 'blob' }
+    );
+  });
 });

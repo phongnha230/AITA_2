@@ -4,11 +4,12 @@ import { AppError } from '../../../../shared/domain/exceptions/app.error.js';
 import { logger } from '../../../../infrastructure/logging/logger.js';
 
 export class BullmqGradingDispatcher implements IGradingDispatcher {
-  async dispatch(submissionId: string, stagedPath: string): Promise<void> {
+  async dispatch(submissionId: string, stagedPath: string, requestedById?: string): Promise<void> {
     try {
       await enqueueSubmission({
         submissionId,
         stagedFolderPath: stagedPath,
+        requestedById,
       });
     } catch (error) {
       logger.error('submission_grading_enqueue_failed', {

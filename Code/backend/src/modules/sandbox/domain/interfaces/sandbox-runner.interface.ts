@@ -29,6 +29,8 @@ export interface TestCaseResult {
   executionTimeMs: number;
   memoryUsedKb: number;
   errorMessage?: string | null;
+  evidenceBase64?: string;
+  earnedScore?: number;
 }
 
 export interface SandboxExecutionSummary {

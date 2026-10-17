@@ -1,4 +1,5 @@
 export interface RagSubmissionData {
+  gradingSnapshot?: unknown;
   compileOutput: string | null;
   assignment: {
     id: string;

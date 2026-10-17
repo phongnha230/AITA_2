@@ -70,7 +70,10 @@ export function TestCaseResultsList({ testResults }: TestCaseResultsListProps) {
 
       <div className="mt-4 divide-y divide-slate-100">
         {testResults.map((tc, index) => {
-          const vInfo = getVerdictInfo(tc.verdict);
+          const partialScore = tc.verdict?.toUpperCase() !== 'PASSED' && Number(tc.earnedPoints) > 0;
+          const vInfo = partialScore
+            ? { label: 'Đạt một phần', tone: 'amber', icon: CheckCircle2 }
+            : getVerdictInfo(tc.verdict);
           const Icon = vInfo.icon;
           const isExpanded = expandedId === tc.id;
           const hasDetails = tc.diffLog || tc.actualStdout || tc.actualFileOutput;
@@ -93,7 +96,7 @@ export function TestCaseResultsList({ testResults }: TestCaseResultsListProps) {
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-slate-900 text-xs sm:text-sm">
-                        Testcase {index + 1}
+                        {tc.testCase?.label || `Testcase ${index + 1}`}
                       </span>
                       <span
                         className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ${
@@ -121,7 +124,9 @@ export function TestCaseResultsList({ testResults }: TestCaseResultsListProps) {
                     {(tc.memoryUsedKb / 1024).toFixed(1)} MB
                   </span>
                   <span className="font-semibold text-slate-800 tabular-nums">
-                    +{tc.earnedPoints} điểm
+                    {tc.testCase?.points !== undefined
+                      ? `${tc.earnedPoints} / ${tc.testCase.points} điểm`
+                      : `${tc.earnedPoints} điểm`}
                   </span>
 
                   {hasDetails && (

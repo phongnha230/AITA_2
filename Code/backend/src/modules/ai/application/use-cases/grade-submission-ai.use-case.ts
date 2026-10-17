@@ -65,6 +65,10 @@ export class GradeSubmissionAiUseCase {
         llmResponse.text,
         ragContext.rubricRules
       );
+      if (environment !== 'REACT_JS' && !gradingOutput.answerComparison?.trim()) {
+        gradingOutput = null;
+        continue;
+      }
 
       const feedback = [
         gradingOutput.codeQualityFeedback,
@@ -112,6 +116,8 @@ export class GradeSubmissionAiUseCase {
       overallAiScore: gradingOutput.overallAiScore,
       algorithmScore: gradingOutput.algorithmScore,
       cleanCodeScore: gradingOutput.cleanCodeScore,
+      answerComparison: gradingOutput.answerComparison,
+      rubricBreakdown: gradingOutput.rubricBreakdown,
       gradingResult: savedResult.toJSON(),
     };
   }

@@ -13,6 +13,7 @@ export interface GradingRubricRule {
 }
 
 const gradingOutputSchema = z.object({
+  answerComparison: z.string().max(4_000).optional(),
   rubricBreakdown: z.array(z.object({
     rubricId: z.string().min(1),
     earnedPoints: z.number().finite().min(0),
@@ -24,6 +25,7 @@ const gradingOutputSchema = z.object({
 }).strict();
 
 export interface ValidatedGradingOutput {
+  answerComparison?: string;
   rubricBreakdown: RubricEvaluationItem[];
   overallAiScore: number;
   algorithmScore: number | null;
@@ -79,6 +81,7 @@ export class AiGradingOutputService {
       (item) => item.category === 'ALGORITHM' || item.category === 'CLEAN_CODE'
     );
     return {
+      answerComparison: parsed.data.answerComparison,
       rubricBreakdown,
       overallAiScore: this.scoreCalculator.calculate(rubricBreakdown),
       algorithmScore: hasSplitRubric ? this.scoreCalculator.calculateCategory(rubricBreakdown, 'ALGORITHM', 2) : null,

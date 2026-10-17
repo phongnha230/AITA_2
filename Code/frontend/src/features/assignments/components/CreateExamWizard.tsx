@@ -134,6 +134,8 @@ export const CreateExamWizard: React.FC = () => {
           durationMinutes={wizard.durationMinutes}
           title={wizard.title}
           description={wizard.description}
+          gradingApprovalMode={wizard.gradingApprovalMode}
+          onGradingApprovalModeChange={wizard.setGradingApprovalMode}
           dryRunRunning={wizard.dryRunRunning}
           dryRunResult={wizard.dryRunResult}
           dryRunError={wizard.dryRunError}

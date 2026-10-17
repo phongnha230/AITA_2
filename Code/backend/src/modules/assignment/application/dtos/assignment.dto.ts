@@ -16,6 +16,7 @@ export const CreateAssignmentSchema = z.object({
   allowZipSubmission: z.boolean().default(true),
   status: z.enum(['DRAFT', 'PUBLISHED', 'PAUSED', 'CLOSED', 'ARCHIVED']).default('DRAFT'),
   gradingVersion: z.number().int().min(1).max(2).optional(),
+  gradingApprovalMode: z.enum(['LECTURER_REVIEW', 'AUTO_PUBLISH']).default('LECTURER_REVIEW'),
   functionalMaxScore: z.number().finite().positive().optional(),
   algorithmMaxScore: z.number().finite().min(0).optional(),
   cleanCodeMaxScore: z.number().finite().min(0).optional(),
@@ -56,6 +57,7 @@ export const UpdateAssignmentSchema = z.object({
   allowGitSubmission: z.boolean().optional(),
   allowZipSubmission: z.boolean().optional(),
   status: z.enum(['DRAFT', 'PUBLISHED', 'CLOSED', 'ARCHIVED']).optional(),
+  gradingApprovalMode: z.enum(['LECTURER_REVIEW', 'AUTO_PUBLISH']).optional(),
 });
 
 export type UpdateAssignmentDto = z.infer<typeof UpdateAssignmentSchema>;
