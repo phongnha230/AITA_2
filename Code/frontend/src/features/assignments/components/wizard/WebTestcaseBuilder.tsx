@@ -37,6 +37,7 @@ const targetActions = new Set<WebTestAction>([
 ]);
 const valueActions = new Set<WebTestAction>(['FILL', 'SELECT', 'PRESS_KEY', 'WAIT_FOR_TIMEOUT']);
 const expectedActions = new Set<WebTestAction>(['ASSERT_TEXT', 'ASSERT_VALUE', 'ASSERT_URL']);
+const assertionActions = new Set<WebTestAction>(['ASSERT_VISIBLE', 'ASSERT_TEXT', 'ASSERT_VALUE', 'ASSERT_URL']);
 
 const parseScript = (raw: string | null | undefined): WebTestScript => {
   if (!raw?.trim()) return { version: 1, steps: [] };
@@ -127,6 +128,21 @@ export function WebTestcaseBuilder({
 
       {testCases.map((testCase, testCaseIndex) => {
         const steps = parseScript(testCase.stdinInput).steps;
+        const assertionCount = steps.filter((step) => assertionActions.has(step.action)).length;
+        const lastAssertionIndex = steps.reduce(
+          (lastIndex, step, index) => assertionActions.has(step.action) ? index : lastIndex,
+          -1
+        );
+        const baseAssertionPoints = assertionCount > 0
+          ? Math.floor((Number(testCase.points) / assertionCount) * 100) / 100
+          : 0;
+        const getAssertionAward = (stepIndex: number): number => {
+          const assertionIndex = steps.slice(0, stepIndex + 1).filter((step) => assertionActions.has(step.action)).length - 1;
+          if (assertionIndex < 0) return 0;
+          return assertionIndex === assertionCount - 1
+            ? Number((Number(testCase.points) - (baseAssertionPoints * (assertionCount - 1))).toFixed(2))
+            : baseAssertionPoints;
+        };
         return (
           <section key={testCase.id ?? `web-test-${testCaseIndex}`} className="rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="grid gap-3 border-b border-slate-100 p-4 lg:grid-cols-[1fr_130px_130px_auto]">
@@ -190,6 +206,11 @@ export function WebTestcaseBuilder({
             </div>
 
             <div className="space-y-2 p-4">
+              <p className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-[11px] text-blue-800">
+                {assertionCount > 0
+                  ? `Luồng này có ${assertionCount} bước kiểm tra; điểm ${baseAssertionPoints.toFixed(2)}đ mỗi bước (bước cuối ${getAssertionAward(lastAssertionIndex).toFixed(2)}đ) / ${Number(testCase.points).toFixed(2)}đ. Thao tác mở trang/nhập liệu không tính điểm.`
+                  : 'Thêm ít nhất một bước “Kiểm tra” để luồng có thể được chấm điểm.'}
+              </p>
               {steps.length === 0 && (
                 <p className="rounded-lg bg-rose-50 p-2 text-xs font-medium text-rose-700">
                   Kịch bản chưa có bước nào. Assignment sẽ không thể công bố cho đến khi thêm bước hợp lệ.
@@ -261,6 +282,11 @@ export function WebTestcaseBuilder({
                   />
 
                   <div className="flex items-center justify-end gap-1">
+                    {assertionActions.has(step.action) && (
+                      <span className="whitespace-nowrap rounded bg-emerald-50 px-1.5 py-1 text-[10px] font-bold text-emerald-700" title="Điểm nhận nếu assertion này đạt">
+                        +{getAssertionAward(stepIndex).toFixed(2)}đ
+                      </span>
+                    )}
                     <button
                       type="button"
                       aria-label="Đưa bước lên"

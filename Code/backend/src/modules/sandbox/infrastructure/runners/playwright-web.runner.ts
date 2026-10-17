@@ -9,7 +9,7 @@ import {
 } from '../../domain/interfaces/sandbox-runner.interface.js';
 import { validatePublicDeploymentUrl } from '../../../submission/infrastructure/storage/deployed-url.validator.js';
 import { logger } from '../../../../infrastructure/logging/logger.js';
-import { parseWebTestScript, WebActionStep } from '../../domain/web-test-script.js';
+import { getWebAssertionPoints, parseWebTestScript, WebActionStep } from '../../domain/web-test-script.js';
 import { env } from '../../../../infrastructure/config/env.js';
 
 const execFileAsync = promisify(execFile);
@@ -28,6 +28,7 @@ interface PageLike {
   isVisible(target: string, options: Record<string, unknown>): Promise<boolean>;
   innerText(target: string, options: Record<string, unknown>): Promise<string>;
   inputValue(target: string, options: Record<string, unknown>): Promise<string>;
+  screenshot(options: Record<string, unknown>): Promise<Uint8Array>;
   url(): string;
 }
 
@@ -109,9 +110,7 @@ export class PlaywrightWebRunner implements ISandboxRunner {
           startTime
         );
         results.push(tcResult);
-        if (tcResult.passed) {
-          totalScore += testCase.score || 0;
-        }
+        totalScore += tcResult.earnedScore ?? (tcResult.passed ? testCase.score || 0 : 0);
       }
     } finally {
       await browserSession.close();
@@ -272,7 +271,19 @@ export class PlaywrightWebRunner implements ISandboxRunner {
     startTime: number
   ): Promise<TestCaseResult> {
     let browserContext: BrowserContextLike | null = null;
+    let page: PageLike | null = null;
+    let evidenceBase64: string | undefined;
     const logs: string[] = [];
+    const assertionSteps = steps
+      .map((step, index) => ({ step, index }))
+      .filter(({ step }) => step.action.startsWith('ASSERT_'));
+    const assertionCount = assertionSteps.length;
+    let earnedScore = 0;
+
+    const awardAssertionPoints = (stepIndex: number): number => {
+      const assertionIndex = assertionSteps.findIndex((assertion) => assertion.index === stepIndex);
+      return getWebAssertionPoints(tc.score, assertionCount, assertionIndex);
+    };
 
     try {
       browserContext = await browser.newContext({
@@ -300,7 +311,7 @@ export class PlaywrightWebRunner implements ISandboxRunner {
           await route.close();
         }
       });
-      const page = await browserContext.newPage();
+      page = await browserContext.newPage();
 
       for (let i = 0; i < steps.length; i++) {
         const step = steps[i];
@@ -375,11 +386,13 @@ export class PlaywrightWebRunner implements ISandboxRunner {
           }
 
           case 'ASSERT_VISIBLE': {
-            logs.push(`[Step ${i + 1}] Assert visible: "${step.target}"`);
+            logs.push(`[Step ${i + 1}] Kiểm tra hiển thị: "${step.target}"`);
             const isVisible = await page.isVisible(step.target!, { timeout: stepTimeout });
             if (!isVisible) {
               throw new Error(`Element "${step.target}" was not visible on the page`);
             }
+            earnedScore += awardAssertionPoints(i);
+            logs.push(`✓ Đạt assertion (+${awardAssertionPoints(i).toFixed(2)} điểm)`);
             break;
           }
 
@@ -391,6 +404,8 @@ export class PlaywrightWebRunner implements ISandboxRunner {
                 `Expected text "${step.expected}" in "${step.target}", but found: "${text}"`
               );
             }
+            earnedScore += awardAssertionPoints(i);
+            logs.push(`✓ Đạt assertion (+${awardAssertionPoints(i).toFixed(2)} điểm)`);
             break;
           }
 
@@ -402,6 +417,8 @@ export class PlaywrightWebRunner implements ISandboxRunner {
                 `Expected input value "${step.expected}" in "${step.target}", but found: "${val}"`
               );
             }
+            earnedScore += awardAssertionPoints(i);
+            logs.push(`✓ Đạt assertion (+${awardAssertionPoints(i).toFixed(2)} điểm)`);
             break;
           }
 
@@ -411,10 +428,14 @@ export class PlaywrightWebRunner implements ISandboxRunner {
             if (!currentUrl.includes(step.expected || '')) {
               throw new Error(`Expected URL to contain "${step.expected}", but was: "${currentUrl}"`);
             }
+            earnedScore += awardAssertionPoints(i);
+            logs.push(`✓ Đạt assertion (+${awardAssertionPoints(i).toFixed(2)} điểm)`);
             break;
           }
         }
       }
+
+      evidenceBase64 = await this.captureScreenshot(page, logs);
 
       const executionTimeMs = Date.now() - startTime;
 
@@ -422,32 +443,49 @@ export class PlaywrightWebRunner implements ISandboxRunner {
         testCaseId: tc.id,
         questionNo: tc.questionNo,
         passed: true,
+        earnedScore: Number(earnedScore.toFixed(2)),
         status: 'PASSED',
         actualOutput: logs.join('\n').slice(0, 16_000),
         expectedOutput: tc.expectedOutput || 'All steps completed successfully',
         executionTimeMs,
         memoryUsedKb: 45000,
+        evidenceBase64,
       };
     } catch (error: unknown) {
       const executionTimeMs = Date.now() - startTime;
       const message = error instanceof Error ? error.message : String(error);
       logs.push(`Step Failed: ${message}`);
+      logs.push(`Điểm assertion đạt được: ${earnedScore.toFixed(2)} / ${(tc.score || 0).toFixed(2)}`);
+      if (page) evidenceBase64 = await this.captureScreenshot(page, logs);
 
       return {
         testCaseId: tc.id,
         questionNo: tc.questionNo,
         passed: false,
+        earnedScore: Number(earnedScore.toFixed(2)),
         status: 'WRONG_ANSWER',
         actualOutput: logs.join('\n').slice(0, 16_000),
         expectedOutput: tc.expectedOutput || 'All steps completed successfully',
         executionTimeMs,
         memoryUsedKb: 30000,
         errorMessage: message,
+        evidenceBase64,
       };
     } finally {
       if (browserContext) {
         await browserContext.close();
       }
+    }
+  }
+
+  private async captureScreenshot(page: PageLike, logs: string[]): Promise<string | undefined> {
+    try {
+      const image = await page.screenshot({ type: 'jpeg', quality: 60, timeout: 5_000 });
+      return Buffer.from(image).toString('base64');
+    } catch (error) {
+      logger.warn('playwright_screenshot_failed', { stage: 'PLAYWRIGHT_EVIDENCE', error });
+      logs.push('Không lưu được ảnh chụp testcase.');
+      return undefined;
     }
   }
 

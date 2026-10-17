@@ -24,6 +24,14 @@ export interface WebActionStep {
   timeoutMs?: number;
 }
 
+export const getWebAssertionPoints = (totalPoints: number, assertionCount: number, assertionIndex: number): number => {
+  if (assertionCount <= 0 || assertionIndex < 0 || assertionIndex >= assertionCount) return 0;
+  const basePoints = Math.floor((totalPoints / assertionCount) * 100) / 100;
+  return assertionIndex === assertionCount - 1
+    ? Number((totalPoints - (basePoints * (assertionCount - 1))).toFixed(2))
+    : basePoints;
+};
+
 const actionSet = new Set<string>(webTestActions);
 const targetActions = new Set<WebTestAction>([
   'GOTO', 'FILL', 'CLICK', 'SELECT', 'CHECK', 'UNCHECK', 'PRESS_KEY', 'WAIT_FOR',

@@ -2,6 +2,7 @@ import { IAssignmentRepository } from '../../domain/repositories/assignment.repo
 import { ICourseRepository } from '../../../course/domain/repositories/course.repository.interface.js';
 import { SaveAssignmentPackageDto } from '../dtos/assignment.dto.js';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../../../../shared/domain/exceptions/app.error.js';
+import { parseWebTestScript } from '../../../sandbox/domain/web-test-script.js';
 
 export class SaveAssignmentPackageUseCase {
   constructor(
@@ -40,6 +41,19 @@ export class SaveAssignmentPackageUseCase {
     const rubricPoints = dto.rubricRules.reduce((sum, rule) => sum + rule.maxPoints, 0);
     if (Math.abs(functionalPoints - dto.assignment.functionalMaxScore) > 0.01) {
       throw new ValidationError(`Tổng điểm testcase phải bằng ${dto.assignment.functionalMaxScore}.`);
+    }
+    if (dto.assignment.environment === 'REACT_JS') {
+      for (const testCase of dto.testCases) {
+        let steps: ReturnType<typeof parseWebTestScript>;
+        try {
+          steps = parseWebTestScript(testCase.stdinInput ?? '');
+        } catch (error) {
+          throw new ValidationError(error instanceof Error ? error.message : 'Kịch bản Playwright không hợp lệ.');
+        }
+        if (!steps.some((step) => step.action.startsWith('ASSERT_'))) {
+          throw new ValidationError(`Luồng “${testCase.label}” cần ít nhất một bước Kiểm tra để được tính điểm.`);
+        }
+      }
     }
     if (Math.abs(rubricPoints - dto.assignment.algorithmMaxScore - dto.assignment.cleanCodeMaxScore) > 0.01) {
       throw new ValidationError('Tổng điểm rubric phải khớp cấu hình thuật toán và Clean Code.');
