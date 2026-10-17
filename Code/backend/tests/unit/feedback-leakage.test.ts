@@ -24,5 +24,6 @@ describe('FeedbackLeakageService', () => {
       'alpha beta gamma delta epsilon zeta eta theta iota kappa lambda omega',
       reference
     )).toBe(false);
+    expect(service.detectsLeakage('', '')).toBe(false);
   });
 });

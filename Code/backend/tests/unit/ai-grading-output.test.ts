@@ -69,4 +69,16 @@ describe('AiGradingOutputService', () => {
     expect(result).toMatchObject({ overallAiScore: 2.6, algorithmScore: 1.8, cleanCodeScore: 0.8 });
     expect(result.rubricBreakdown.map((item) => item.category)).toEqual(['ALGORITHM', 'CLEAN_CODE']);
   });
+
+  it('defaults rubric category to GENERAL when criterionType is omitted', () => {
+    const rules = [{
+      id: 'rubric-1',
+      criterionName: 'Correctness',
+      description: 'Correct result',
+      maxPoints: 3,
+      weight: 1,
+    }] as any;
+    const result = service.validateAndScore(JSON.stringify(validOutput), rules);
+    expect(result.rubricBreakdown[0].category).toBe('GENERAL');
+  });
 });
