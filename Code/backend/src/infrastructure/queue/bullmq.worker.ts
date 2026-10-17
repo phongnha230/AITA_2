@@ -268,15 +268,16 @@ function getErrorStage(
 // ============================================================
 
 async function markSandboxRunning(
-    submissionId: string
+    submissionId: string,
+    gradingRunId?: string
 ): Promise<void> {
 
     const now =
         new Date();
 
-    await prisma.$transaction([
+    await prisma.$transaction(async (transaction) => {
 
-        prisma.gradingJob.update({
+        await transaction.gradingJob.update({
             where: {
                 submissionId,
             },
@@ -303,9 +304,9 @@ async function markSandboxRunning(
                 systemLogs:
                     null,
             },
-        }),
+        });
 
-        prisma.submission.update({
+        await transaction.submission.update({
             where: {
                 id:
                     submissionId,
@@ -315,23 +316,28 @@ async function markSandboxRunning(
                 status:
                     "RUNNING_SANDBOX",
             },
-        }),
-    ]);
+        });
+        if (gradingRunId) {
+            await transaction.gradingRun.update({ where: { id: gradingRunId }, data: { status: 'RUNNING', startedAt: now } });
+            await transaction.gradingRunStage.updateMany({ where: { gradingRunId, stageKey: { in: ['TESTCASES', 'WEB_TESTCASES'] } }, data: { status: 'RUNNING', startedAt: now } });
+        }
+    });
 }
 
 
 // ============================================================
 
 async function markAiRunning(
-    submissionId: string
+    submissionId: string,
+    gradingRunId?: string
 ): Promise<void> {
 
     const now =
         new Date();
 
-    await prisma.$transaction([
+    await prisma.$transaction(async (transaction) => {
 
-        prisma.gradingJob.update({
+        await transaction.gradingJob.update({
             where: {
                 submissionId,
             },
@@ -346,9 +352,9 @@ async function markAiRunning(
                 aiStartedAt:
                     now,
             },
-        }),
+        });
 
-        prisma.submission.update({
+        await transaction.submission.update({
             where: {
                 id:
                     submissionId,
@@ -358,8 +364,11 @@ async function markAiRunning(
                 status:
                     "RUNNING_AI",
             },
-        }),
-    ]);
+        });
+        if (gradingRunId) {
+            await transaction.gradingRunStage.updateMany({ where: { gradingRunId, stageKey: { in: ['ANSWER_COMPARISON', 'ALGORITHM', 'CLEAN_CODE', 'SOURCE_REVIEW'] } }, data: { status: 'RUNNING', startedAt: now } });
+        }
+    });
 }
 
 
@@ -368,7 +377,8 @@ async function markAiRunning(
 async function markCompleted(
     submissionId: string,
     sandboxResult: unknown,
-    aiResult: unknown
+    aiResult: unknown,
+    gradingRunId?: string
 ): Promise<void> {
 
     const now =
@@ -403,8 +413,14 @@ async function markCompleted(
                     true,
                 algorithmScore: true,
                 cleanCodeScore: true,
+                gradingSnapshot: true,
+                gitRepoUrl: true,
+                gitCommitHash: true,
+                deployedUrl: true,
+                submissionChannel: true,
                 assignment: {
                     select: {
+                        environment: true,
                         gradingVersion: true,
                         functionalMaxScore: true,
                         algorithmMaxScore: true,
@@ -421,21 +437,74 @@ async function markCompleted(
         );
     }
 
+    const snapshot = currentSubmission.gradingSnapshot as { assignment?: Record<string, unknown> } | null;
+    const frozenAssignment = snapshot?.assignment;
     const aggregatedScores = aggregateGradingScores({
         sandboxScore: sandboxScore ?? Number(currentSubmission.sandboxScore ?? 0),
         aiScore: aiScore ?? Number(currentSubmission.aiScore ?? 0),
         algorithmScore: readNumberField(aiResult, ["algorithmScore"]) ?? Number(currentSubmission.algorithmScore ?? 0),
         cleanCodeScore: readNumberField(aiResult, ["cleanCodeScore"]) ?? Number(currentSubmission.cleanCodeScore ?? 0),
     }, {
-        gradingVersion: currentSubmission.assignment.gradingVersion,
-        functionalMaxScore: Number(currentSubmission.assignment.functionalMaxScore),
-        algorithmMaxScore: Number(currentSubmission.assignment.algorithmMaxScore),
-        cleanCodeMaxScore: Number(currentSubmission.assignment.cleanCodeMaxScore),
+        gradingVersion: Number(frozenAssignment?.gradingVersion ?? currentSubmission.assignment.gradingVersion),
+        functionalMaxScore: Number(frozenAssignment?.functionalMaxScore ?? currentSubmission.assignment.functionalMaxScore),
+        algorithmMaxScore: Number(frozenAssignment?.algorithmMaxScore ?? currentSubmission.assignment.algorithmMaxScore),
+        cleanCodeMaxScore: Number(frozenAssignment?.cleanCodeMaxScore ?? currentSubmission.assignment.cleanCodeMaxScore),
     });
 
-    await prisma.$transaction([
+    const run = gradingRunId ? await prisma.gradingRun.findUnique({ where: { id: gradingRunId } }) : null;
+    const approvalMode = run?.approvalMode ?? 'AUTO_PUBLISH';
+    const submissionStatus = approvalMode === 'AUTO_PUBLISH' ? 'GRADED' : 'REVIEW_PENDING';
+    const publishedScore = approvalMode === 'AUTO_PUBLISH' ? aggregatedScores.finalScore : null;
+    const jsonRecord = (value: unknown): Record<string, unknown> =>
+        typeof value === 'object' && value !== null ? value as Record<string, unknown> : {};
+    const aiRecord = jsonRecord(aiResult);
+    const aiGradingResult = jsonRecord(aiRecord.gradingResult);
+    const sandboxRecord = {
+        success: jsonRecord(sandboxResult).success ?? null,
+        passedTests: jsonRecord(sandboxResult).passedTests ?? null,
+        totalTests: jsonRecord(sandboxResult).totalTests ?? null,
+    };
+    const stageValues: Array<{ key: string; score: number | null; max: number | null; details: Record<string, unknown> }> = [
+        { key: 'ANSWER_COMPARISON', score: null, max: null, details: { feedback: aiRecord.answerComparison ?? '' } },
+        { key: 'ALGORITHM', score: readNumberField(aiResult, ['algorithmScore']) ?? null, max: Number(frozenAssignment?.algorithmMaxScore ?? currentSubmission.assignment.algorithmMaxScore), details: {
+            answerComparison: aiRecord.answerComparison ?? null,
+            detectedTimeComplexity: aiGradingResult.detectedTimeComplexity ?? null,
+            detectedSpaceComplexity: aiGradingResult.detectedSpaceComplexity ?? null,
+            rubricBreakdown: Array.isArray(aiRecord.rubricBreakdown) ? aiRecord.rubricBreakdown.filter((item) => ['ALGORITHM', 'GENERAL'].includes(String(jsonRecord(item).category))) : [],
+        } },
+        { key: 'CLEAN_CODE', score: readNumberField(aiResult, ['cleanCodeScore']) ?? null, max: Number(frozenAssignment?.cleanCodeMaxScore ?? currentSubmission.assignment.cleanCodeMaxScore), details: {
+            feedback: aiGradingResult.codeQualityFeedback ?? '',
+            rubricBreakdown: Array.isArray(aiRecord.rubricBreakdown)
+                ? aiRecord.rubricBreakdown.filter((item) => currentSubmission.assignment.environment === 'REACT_JS' || jsonRecord(item).category === 'CLEAN_CODE')
+                : [],
+        } },
+        { key: 'SOURCE_REVIEW', score: null, max: null, details: {
+            submissionChannel: jsonRecord(currentSubmission).submissionChannel ?? null,
+            repositoryUrl: currentSubmission.gitRepoUrl,
+            commitHash: currentSubmission.gitCommitHash,
+            repositoryAccessible: Boolean(currentSubmission.gitRepoUrl),
+            deployedUrl: currentSubmission.deployedUrl,
+            deploymentChecked: Boolean(currentSubmission.deployedUrl),
+            feedback: 'Repository được checkout và URL deploy được chạy qua bộ testcase web.',
+        } },
+    ];
+    const summaryJson = {
+        suggestedFinalScore: aggregatedScores.finalScore,
+        publishedFinalScore: publishedScore,
+        sandboxScore: aggregatedScores.sandboxScore,
+        aiScore: aggregatedScores.aiScore,
+        algorithmScore: aggregatedScores.algorithmScore,
+        cleanCodeScore: aggregatedScores.cleanCodeScore,
+        repositoryUrl: currentSubmission.gitRepoUrl,
+        commitHash: currentSubmission.gitCommitHash,
+        deployedUrl: currentSubmission.deployedUrl,
+        answerComparison: aiRecord.answerComparison ?? null,
+        sandbox: sandboxRecord,
+    };
 
-        prisma.gradingJob.update({
+    await prisma.$transaction(async (transaction) => {
+
+        await transaction.gradingJob.update({
             where: {
                 submissionId,
             },
@@ -453,17 +522,16 @@ async function markCompleted(
                 systemLogs:
                     null,
             },
-        }),
+        });
 
-        prisma.submission.update({
+        await transaction.submission.update({
             where: {
                 id:
                     submissionId,
             },
 
             data: {
-                status:
-                    "GRADED",
+                status: submissionStatus,
 
                 sandboxScore:
                     aggregatedScores.sandboxScore,
@@ -475,14 +543,30 @@ async function markCompleted(
 
                 cleanCodeScore: aggregatedScores.cleanCodeScore,
 
-                finalScore:
-                    aggregatedScores.finalScore,
+                finalScore: publishedScore,
 
                 gradedAt:
                     now,
             },
-        }),
-    ]);
+        });
+        if (gradingRunId) {
+            const runData = await transaction.gradingRun.findUnique({ where: { id: gradingRunId }, select: { stages: { select: { id: true, stageKey: true } } } });
+            for (const stage of runData?.stages ?? []) {
+                if (stage.stageKey === 'TESTCASES' || stage.stageKey === 'WEB_TESTCASES') continue;
+                const value = stageValues.find((item) => item.key === stage.stageKey);
+                if (!value) continue;
+                await transaction.gradingRunStage.update({ where: { id: stage.id }, data: {
+                    status: 'COMPLETED', score: value.score, maxScore: value.max,
+                    detailsJson: value.details as never, completedAt: now,
+                } });
+            }
+            await transaction.gradingRun.update({ where: { id: gradingRunId }, data: {
+                status: approvalMode === 'AUTO_PUBLISH' ? 'PUBLISHED' : 'REVIEW_PENDING',
+                completedAt: now,
+                summaryJson: summaryJson as never,
+            } });
+        }
+    });
     try {
         await workspaceService.cleanupWorkspace(submissionId);
     } catch (error) {
@@ -579,9 +663,9 @@ async function markFailedAttempt(
     // FINAL FAILURE
     // --------------------------------------------------------
 
-    await prisma.$transaction([
+        await prisma.$transaction(async (transaction) => {
 
-        prisma.gradingJob.update({
+        await transaction.gradingJob.update({
             where: {
                 submissionId,
             },
@@ -598,9 +682,9 @@ async function markFailedAttempt(
                 systemLogs:
                     logMessage,
             },
-        }),
+        });
 
-        prisma.submission.update({
+        await transaction.submission.update({
             where: {
                 id:
                     submissionId,
@@ -610,8 +694,12 @@ async function markFailedAttempt(
                 status:
                     "FAILED",
             },
-        }),
-    ]);
+        });
+        if (job.data.gradingRunId) {
+            await transaction.gradingRun.update({ where: { id: job.data.gradingRunId }, data: { status: 'FAILED', completedAt: new Date() } });
+            await transaction.gradingRunStage.updateMany({ where: { gradingRunId: job.data.gradingRunId, status: 'RUNNING' }, data: { status: 'FAILED', errorMessage, completedAt: new Date() } });
+        }
+    });
     try {
         await workspaceService.cleanupWorkspace(submissionId);
     } catch (cleanupError) {
@@ -672,7 +760,8 @@ async function processGradingJob(
         ) {
 
             await markSandboxRunning(
-                job.data.submissionId
+                job.data.submissionId,
+                job.data.gradingRunId
             );
         }
 
@@ -726,7 +815,8 @@ async function processGradingJob(
         ) {
 
             await markAiRunning(
-                job.data.submissionId
+                job.data.submissionId,
+                job.data.gradingRunId
             );
         }
 
@@ -779,7 +869,8 @@ async function processGradingJob(
             await markCompleted(
                 job.data.submissionId,
                 sandboxResult,
-                aiResult
+                aiResult,
+                job.data.gradingRunId
             );
         }
 

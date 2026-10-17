@@ -75,6 +75,9 @@ import { GetAssignmentSubmissionsUseCase } from '../../modules/submission/applic
 import { GetAllSubmissionsUseCase } from '../../modules/submission/application/use-cases/get-all-submissions.use-case.js';
 import { SubmitTeamAssignmentUseCase } from '../../modules/submission/application/use-cases/submit-team-assignment.use-case.js';
 import { AdjustParticipantScoreUseCase } from '../../modules/submission/application/use-cases/adjust-participant-score.use-case.js';
+import { RegradeSubmissionUseCase } from '../../modules/submission/application/use-cases/regrade-submission.use-case.js';
+import { GetGradingHistoryUseCase } from '../../modules/submission/application/use-cases/get-grading-history.use-case.js';
+import { ReviewGradingRunUseCase } from '../../modules/submission/application/use-cases/review-grading-run.use-case.js';
 
 import { CreateTeamUseCase } from '../../modules/team/application/use-cases/create-team.use-case.js';
 import { ManageTeamUseCase } from '../../modules/team/application/use-cases/manage-team.use-case.js';
@@ -251,6 +254,15 @@ class ServiceContainer {
     this.submissionRepository,
     this.courseRepository
   );
+  public readonly regradeSubmissionUseCase = new RegradeSubmissionUseCase(
+    this.submissionRepository,
+    this.assignmentRepository,
+    this.courseRepository,
+    this.artifactExtractor,
+    this.gradingDispatcher
+  );
+  public readonly getGradingHistoryUseCase = new GetGradingHistoryUseCase(this.submissionRepository);
+  public readonly reviewGradingRunUseCase = new ReviewGradingRunUseCase(this.submissionRepository);
 
   // Use Cases - Team
   public readonly createTeamUseCase = new CreateTeamUseCase(this.teamRepository, this.courseRepository);
@@ -336,7 +348,10 @@ class ServiceContainer {
     this.getAssignmentSubmissionsUseCase,
     this.getAllSubmissionsUseCase,
     this.submitTeamAssignmentUseCase,
-    this.adjustParticipantScoreUseCase
+    this.adjustParticipantScoreUseCase,
+    this.regradeSubmissionUseCase,
+    this.getGradingHistoryUseCase,
+    this.reviewGradingRunUseCase
   );
   public readonly teamController = new TeamController(this.createTeamUseCase, this.manageTeamUseCase);
   public readonly aiGradingController = new AiGradingController(this.gradeSubmissionAiUseCase);

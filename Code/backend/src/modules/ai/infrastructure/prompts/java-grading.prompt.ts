@@ -37,6 +37,7 @@ export class JavaGradingPrompt implements GradingPromptStrategy {
       '</UNTRUSTED_JAVA_ASSIGNMENT>',
       '<UNTRUSTED_JAVA_RUBRIC>', JSON.stringify(buildRubricPayload(context)), '</UNTRUSTED_JAVA_RUBRIC>',
       '<UNTRUSTED_JAVA_ALGORITHM_SPECIFICATION>', JSON.stringify(buildAlgorithmSpecificationPayload(context)), '</UNTRUSTED_JAVA_ALGORITHM_SPECIFICATION>',
+      '<UNTRUSTED_JAVA_REFERENCE_SOLUTION>', context.referenceSolutionSource.slice(0, 12_000), '</UNTRUSTED_JAVA_REFERENCE_SOLUTION>',
       '<UNTRUSTED_JAVA_TEST_OUTPUT>', JSON.stringify(context.failedTestCases), '</UNTRUSTED_JAVA_TEST_OUTPUT>',
       '<UNTRUSTED_JAVA_TEST_PERFORMANCE>', JSON.stringify(buildTestPerformancePayload(context)), '</UNTRUSTED_JAVA_TEST_PERFORMANCE>',
       '<UNTRUSTED_JAVA_RETRIEVED_CONTEXT>', JSON.stringify(buildRetrievedChunksPayload(context)), '</UNTRUSTED_JAVA_RETRIEVED_CONTEXT>',

@@ -8,6 +8,7 @@ import { validatePublicDeploymentUrl } from '../../infrastructure/storage/deploy
 import { ForbiddenError, NotFoundError, ValidationError } from '../../../../shared/domain/exceptions/app.error.js';
 import { env } from '../../../../infrastructure/config/env.js';
 import { logger } from '../../../../infrastructure/logging/logger.js';
+import { createSourceSnapshot } from '../../infrastructure/storage/source-snapshot.service.js';
 
 export interface SubmitTeamAssignmentRequest {
   assignmentId: string;
@@ -104,6 +105,8 @@ export class SubmitTeamAssignmentUseCase {
           })),
         }
       );
+      const sourceSnapshot = await createSourceSnapshot(submission.id, gitResult.stagedPath);
+      await this.deps.submissionRepository.updateSourceSnapshot(submission.id, sourceSnapshot.path, sourceSnapshot.sha256);
       await this.deps.submissionRepository.updateWorkspacePath(submission.id, gitResult.stagedPath);
       const updated = await this.deps.submissionRepository.updateGitMetadata(submission.id, {
         commitCount: gitResult.commitCount,
@@ -111,7 +114,7 @@ export class SubmitTeamAssignmentUseCase {
         gitCommitHash: gitResult.resolvedCommitHash,
         contributors: gitResult.contributors,
       });
-      await this.deps.gradingDispatcher.dispatch(submission.id, gitResult.stagedPath);
+      await this.deps.gradingDispatcher.dispatch(submission.id, gitResult.stagedPath, request.userId);
       return updated;
     } catch (error) {
       logger.error('team_submission_preprocessing_failed', {

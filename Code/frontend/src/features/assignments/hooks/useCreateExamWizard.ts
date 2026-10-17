@@ -33,6 +33,15 @@ const hasWebTestSteps = (testCase: TestCase): boolean => {
   }
 };
 
+const hasWebAssertions = (testCase: TestCase): boolean => {
+  try {
+    const parsed = JSON.parse(testCase.stdinInput ?? '') as Partial<WebTestScript>;
+    return Boolean(parsed.steps?.some((step) => step.action.startsWith('ASSERT_')));
+  } catch {
+    return false;
+  }
+};
+
 export function useCreateExamWizard() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -60,6 +69,7 @@ export function useCreateExamWizard() {
   });
   const [accessCode, setAccessCode] = useState('');
   const [assignmentStatus, setAssignmentStatus] = useState<'DRAFT' | 'PUBLISHED' | 'PAUSED' | 'CLOSED' | 'ARCHIVED'>('PUBLISHED');
+  const [gradingApprovalMode, setGradingApprovalMode] = useState<'LECTURER_REVIEW' | 'AUTO_PUBLISH'>('LECTURER_REVIEW');
 
 
   // 2. PDF Exam File State
@@ -176,6 +186,7 @@ export function useCreateExamWizard() {
         setDescription(data.description || '');
         if (data.courseId) setCourseId(data.courseId);
         setAssignmentStatus(data.status || 'PUBLISHED');
+        setGradingApprovalMode(data.gradingApprovalMode ?? 'LECTURER_REVIEW');
         if (data.startTime) setStartTime(toLocalDateTimeInput(data.startTime));
         if (data.durationMinutes) setDurationMinutes(data.durationMinutes);
         if (data.accessCode) setAccessCode(data.accessCode);
@@ -441,6 +452,11 @@ export function useCreateExamWizard() {
       setActiveStep(3);
       return;
     }
+    if (environment === 'REACT_JS' && testCases.some((testCase) => !hasWebAssertions(testCase))) {
+      alert('Mỗi luồng React cần ít nhất một bước Kiểm tra để được tính điểm.');
+      setActiveStep(3);
+      return;
+    }
     if (
       environment === 'REACT_JS'
       && (reactStructureRequirements.trim().length < 20 || reactCleanCodeRequirements.trim().length < 20)
@@ -516,6 +532,7 @@ export function useCreateExamWizard() {
           functionalMaxScore: 7,
           algorithmMaxScore: 2,
           cleanCodeMaxScore: 1,
+          gradingApprovalMode,
         },
         testCases: testCases.map((testCase, index) => ({
           ...testCase,
@@ -571,6 +588,8 @@ export function useCreateExamWizard() {
     setStartTime,
     accessCode,
     setAccessCode,
+    gradingApprovalMode,
+    setGradingApprovalMode,
     pdfFile,
     existingPdfPath,
     pdfDownloadUrl: editId ? assignmentService.getAssignmentFileUrl(editId, 'pdf') : null,

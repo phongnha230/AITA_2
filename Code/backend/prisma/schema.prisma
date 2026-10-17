@@ -38,6 +38,7 @@ model User {
   adjustedSubmissionParticipants SubmissionParticipant[]      @relation("SubmissionParticipantAdjuster")
   matchedGitContributions        GitContributor[]             @relation("GitContributorMatchedUser")
   participantScoreAdjustments    ParticipantScoreAdjustment[] @relation("ParticipantScoreAdjustmentActor")
+  gradingRunsReviewed            GradingRun[]                 @relation("GradingRunReviewer")
 
   @@index([role, status], map: "idx_users_role_status")
   @@map("users")
@@ -100,6 +101,7 @@ model Assignment {
   accessCode         String?              @map("access_code") @db.VarChar(50)
   durationMinutes    Int?                 @default(90) @map("duration_minutes")
   gradingVersion     Int                  @default(1) @map("grading_version")
+  gradingApprovalMode GradingApprovalMode @default(LECTURER_REVIEW) @map("grading_approval_mode")
   functionalMaxScore Decimal              @default(8.00) @map("functional_max_score") @db.Decimal(4, 2)
   algorithmMaxScore  Decimal              @default(2.00) @map("algorithm_max_score") @db.Decimal(4, 2)
   cleanCodeMaxScore  Decimal              @default(0.00) @map("clean_code_max_score") @db.Decimal(4, 2)
@@ -230,6 +232,9 @@ model Submission {
   teamId                    String?                 @map("team_id") @db.Char(36)
   deployedUrl               String?                 @map("deployed_url") @db.VarChar(500)
   workspacePath             String?                 @map("workspace_path") @db.VarChar(500)
+  gradingSnapshot           Json?                   @map("grading_snapshot")
+  sourceSnapshotPath        String?                 @map("source_snapshot_path") @db.VarChar(500)
+  sourceSnapshotHash        String?                 @map("source_snapshot_hash") @db.Char(64)
   attemptNo                 Int                     @default(1) @map("attempt_no")
   paperCode                 String?                 @map("paper_code") @db.VarChar(50)
   aiGradingResult           AiGradingResult?
@@ -238,6 +243,7 @@ model Submission {
   gradingJob                GradingJob?
   testResults               SubmissionTestResult[]
   participants              SubmissionParticipant[]
+  gradingRuns               GradingRun[]
   assignment                Assignment              @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
   team                      Team?                   @relation(fields: [teamId], references: [id])
   user                      User                    @relation(fields: [userId], references: [id])
@@ -300,6 +306,66 @@ model GradingJob {
   @@index([status, priority, queuedAt], map: "idx_grading_jobs_scheduler")
   @@index([assignedApiKeyId], map: "grading_jobs_assigned_api_key_id_fkey")
   @@map("grading_jobs")
+}
+
+model GradingRun {
+  id                 String               @id @default(uuid()) @db.Char(36)
+  submissionId       String               @map("submission_id") @db.Char(36)
+  runNo              Int                  @map("run_no")
+  status             GradingRunStatus     @default(QUEUED)
+  approvalMode       GradingApprovalMode  @map("approval_mode")
+  snapshotJson       Json                 @map("snapshot_json")
+  summaryJson        Json?                @map("summary_json")
+  requestedById      String?              @map("requested_by_id") @db.Char(36)
+  reviewedById       String?              @map("reviewed_by_id") @db.Char(36)
+  reviewNote         String?              @map("review_note") @db.Text
+  createdAt          DateTime             @default(now()) @map("created_at")
+  startedAt          DateTime?            @map("started_at")
+  completedAt        DateTime?            @map("completed_at")
+  reviewedAt         DateTime?            @map("reviewed_at")
+  submission         Submission           @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  reviewer           User?                @relation("GradingRunReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  stages             GradingRunStage[]
+
+  @@unique([submissionId, runNo], map: "uk_grading_run_submission_no")
+  @@index([submissionId, createdAt], map: "idx_grading_runs_submission")
+  @@index([status, createdAt], map: "idx_grading_runs_status")
+  @@map("grading_runs")
+}
+
+model GradingRunStage {
+  id             String            @id @default(uuid()) @db.Char(36)
+  gradingRunId   String            @map("grading_run_id") @db.Char(36)
+  stageKey       String            @map("stage_key") @db.VarChar(40)
+  status         String            @db.VarChar(24)
+  score          Decimal?          @db.Decimal(5, 2)
+  maxScore       Decimal?          @map("max_score") @db.Decimal(5, 2)
+  detailsJson    Json?             @map("details_json")
+  errorMessage   String?           @map("error_message") @db.Text
+  startedAt      DateTime?         @map("started_at")
+  completedAt    DateTime?         @map("completed_at")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  gradingRun     GradingRun        @relation(fields: [gradingRunId], references: [id], onDelete: Cascade)
+  evidence       GradingEvidence[]
+
+  @@unique([gradingRunId, stageKey], map: "uk_grading_run_stage")
+  @@index([gradingRunId, status], map: "idx_grading_run_stages_status")
+  @@map("grading_run_stages")
+}
+
+model GradingEvidence {
+  id           String          @id @default(uuid()) @db.Char(36)
+  stageId      String          @map("stage_id") @db.Char(36)
+  testCaseId   String?         @map("test_case_id") @db.Char(36)
+  storagePath  String          @map("storage_path") @db.VarChar(500)
+  mimeType     String          @map("mime_type") @db.VarChar(100)
+  fileSize     Int             @map("file_size")
+  sha256       String          @db.Char(64)
+  createdAt    DateTime        @default(now()) @map("created_at")
+  stage        GradingRunStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+
+  @@index([stageId, testCaseId], map: "idx_grading_evidence_stage_test")
+  @@map("grading_evidence")
 }
 
 model SubmissionTestResult {
@@ -526,6 +592,7 @@ enum SubmissionStatus {
   RUNNING_SANDBOX
   RUNNING_AI
   GRADED
+  REVIEW_PENDING
   FAILED
 }
 
@@ -564,6 +631,19 @@ enum GradingCriterionType {
   GENERAL
   ALGORITHM
   CLEAN_CODE
+}
+
+enum GradingApprovalMode {
+  LECTURER_REVIEW
+  AUTO_PUBLISH
+}
+
+enum GradingRunStatus {
+  QUEUED
+  RUNNING
+  FAILED
+  REVIEW_PENDING
+  PUBLISHED
 }
 
 enum TestCaseVerdict {

@@ -1,4 +1,8 @@
 import { PrismaClient, TestCaseVerdict } from '@prisma/client';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { createHash, randomUUID } from 'node:crypto';
+import { env } from '../../../../infrastructure/config/env.js';
 import {
   ISandboxRepository,
   SandboxStatusCounts,
@@ -14,6 +18,7 @@ export class PrismaSandboxRepository implements ISandboxRepository {
       where: { id: submissionId },
       select: {
         id: true,
+        gradingSnapshot: true,
         zipFilePath: true,
         workspacePath: true,
         deployedUrl: true,
@@ -37,6 +42,7 @@ export class PrismaSandboxRepository implements ISandboxRepository {
                 memoryLimitKb: true,
                 points: true,
                 rationaleTag: true,
+                isHidden: true,
               },
             },
           },
@@ -44,12 +50,16 @@ export class PrismaSandboxRepository implements ISandboxRepository {
       },
     });
     if (!submission) return null;
+    const snapshot = submission.gradingSnapshot as unknown as SandboxSubmissionRecord['gradingSnapshot'];
     return {
       ...submission,
+      gradingSnapshot: snapshot,
       assignment: {
         ...submission.assignment,
-        functionalMaxScore: Number(submission.assignment.functionalMaxScore),
-        testCases: submission.assignment.testCases.map((testCase) => ({
+        environment: snapshot?.assignment.environment ?? submission.assignment.environment,
+        maxFileSizeBytes: snapshot ? BigInt(snapshot.assignment.maxFileSizeBytes) : submission.assignment.maxFileSizeBytes,
+        functionalMaxScore: snapshot?.assignment.functionalMaxScore ?? Number(submission.assignment.functionalMaxScore),
+        testCases: (snapshot?.testCases ?? submission.assignment.testCases).map((testCase) => ({
           ...testCase,
           points: Number(testCase.points),
           rationaleTag: testCase.rationaleTag,
@@ -69,10 +79,45 @@ export class PrismaSandboxRepository implements ISandboxRepository {
     submission: SandboxSubmissionRecord,
     summary: SandboxExecutionSummary,
     normalizedSandboxScore: number,
-    algorithmPerformanceScore: number
+    algorithmPerformanceScore: number,
+    gradingRunId?: string
   ): Promise<void> {
     const testCaseById = new Map(submission.assignment.testCases.map((testCase) => [testCase.id, testCase]));
-    await this.prisma.$transaction(async (transaction) => {
+    const gradingResults = summary.results.map(({ evidenceBase64: _evidence, ...result }) => {
+      const testCase = testCaseById.get(result.testCaseId);
+      const maxPoints = testCase?.points ?? 0;
+      return {
+        ...result,
+        label: testCase?.label ?? result.questionNo,
+        earnedPoints: testCase?.rationaleTag === 'PERFORMANCE' ? 0 : result.earnedScore ?? (result.passed ? maxPoints : 0),
+        maxPoints,
+      };
+    });
+    const evidenceFiles: Array<{ testCaseId: string; storagePath: string; sha256: string; size: number }> = [];
+    if (gradingRunId) {
+      const evidenceRoot = path.resolve(env.UPLOAD_DIR, 'grading-evidence', gradingRunId);
+      await fs.mkdir(evidenceRoot, { recursive: true });
+      try {
+        for (const result of summary.results) {
+          if (!result.evidenceBase64) continue;
+          const bytes = Buffer.from(result.evidenceBase64, 'base64');
+          if (bytes.length > 5 * 1024 * 1024) continue;
+          const storagePath = path.join(evidenceRoot, `${randomUUID()}.jpg`);
+          await fs.writeFile(storagePath, bytes, { flag: 'wx', mode: 0o600 });
+          evidenceFiles.push({
+            testCaseId: result.testCaseId,
+            storagePath,
+            sha256: createHash('sha256').update(bytes).digest('hex'),
+            size: bytes.length,
+          });
+        }
+      } catch (error) {
+        await Promise.all(evidenceFiles.map((file) => fs.rm(file.storagePath, { force: true })));
+        throw error;
+      }
+    }
+    try {
+      await this.prisma.$transaction(async (transaction) => {
       await transaction.submissionTestResult.deleteMany({ where: { submissionId: submission.id } });
       if (summary.results.length > 0) {
         await transaction.submissionTestResult.createMany({
@@ -90,9 +135,9 @@ export class PrismaSandboxRepository implements ISandboxRepository {
               executionTimeMs: result.executionTimeMs,
               memoryUsedKb: result.memoryUsedKb,
               actualStdout: result.actualOutput || null,
-              earnedPoints: result.passed && testCaseById.get(result.testCaseId)?.rationaleTag !== 'PERFORMANCE'
-                ? (testCaseById.get(result.testCaseId)?.points ?? 0)
-                : 0,
+              earnedPoints: testCaseById.get(result.testCaseId)?.rationaleTag === 'PERFORMANCE'
+                ? 0
+                : result.earnedScore ?? (result.passed ? testCaseById.get(result.testCaseId)?.points ?? 0 : 0),
               diffLog: result.errorMessage || null,
             };
           }),
@@ -107,7 +152,29 @@ export class PrismaSandboxRepository implements ISandboxRepository {
           compileOutput: summary.compileError || null,
         },
       });
-    });
+      if (gradingRunId) {
+        const stageKey = submission.assignment.environment === 'REACT_JS' ? 'WEB_TESTCASES' : 'TESTCASES';
+        const stage = await transaction.gradingRunStage.upsert({
+          where: { gradingRunId_stageKey: { gradingRunId, stageKey } },
+          create: { gradingRunId, stageKey, status: 'COMPLETED', score: normalizedSandboxScore, maxScore: submission.assignment.functionalMaxScore,
+            detailsJson: JSON.parse(JSON.stringify({ results: gradingResults, testCases: submission.assignment.testCases })) as import('@prisma/client').Prisma.InputJsonValue,
+            startedAt: new Date(), completedAt: new Date() },
+          update: { status: 'COMPLETED', score: normalizedSandboxScore, maxScore: submission.assignment.functionalMaxScore,
+            detailsJson: JSON.parse(JSON.stringify({ results: gradingResults, testCases: submission.assignment.testCases })) as import('@prisma/client').Prisma.InputJsonValue,
+            completedAt: new Date() },
+        });
+        if (evidenceFiles.length > 0) {
+          await transaction.gradingEvidence.createMany({
+            data: evidenceFiles.map((file) => ({ stageId: stage.id, testCaseId: file.testCaseId, storagePath: file.storagePath,
+              mimeType: 'image/jpeg', fileSize: file.size, sha256: file.sha256 })),
+          });
+        }
+      }
+      });
+    } catch (error) {
+      await Promise.all(evidenceFiles.map((file) => fs.rm(file.storagePath, { force: true })));
+      throw error;
+    }
   }
 
   async getStatusCounts(): Promise<SandboxStatusCounts> {

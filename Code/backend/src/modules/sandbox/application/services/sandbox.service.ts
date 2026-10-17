@@ -5,7 +5,7 @@ import { SandboxExecutionSummary, TestCaseInput } from '../../domain/interfaces/
 import { ISandboxRepository } from '../../domain/interfaces/sandbox.repository.interface.js';
 
 export interface ISandboxService {
-  gradeSubmission(submissionId: string, languageOverride?: string): Promise<SandboxExecutionSummary>;
+  gradeSubmission(submissionId: string, languageOverride?: string, gradingRunId?: string): Promise<SandboxExecutionSummary>;
 }
 
 export const calculatePerformanceScore = (
@@ -31,7 +31,8 @@ export class SandboxService implements ISandboxService {
 
   public async gradeSubmission(
     submissionId: string,
-    languageOverride?: string
+    languageOverride?: string,
+    gradingRunId?: string
   ): Promise<SandboxExecutionSummary> {
     const submission = await this.sandboxRepository.findSubmissionForGrading(submissionId);
     const sourcePath = submission?.workspacePath ?? submission?.zipFilePath;
@@ -91,8 +92,14 @@ export class SandboxService implements ISandboxService {
       submission,
       summary,
       normalizedSandboxScore,
-      algorithmPerformanceScore
+      algorithmPerformanceScore,
+      gradingRunId
     );
-    return { ...summary, sandboxScore: normalizedSandboxScore, algorithmPerformanceScore };
+    return {
+      ...summary,
+      results: summary.results.map(({ evidenceBase64: _evidenceBase64, ...result }) => result),
+      sandboxScore: normalizedSandboxScore,
+      algorithmPerformanceScore,
+    };
   }
 }

@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Play, Bot, ExternalLink, Terminal } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { ExternalLink, Terminal } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,14 +16,13 @@ import type { LecturerSubmission } from '../../types/assignment.types';
 
 import { formatDateTime } from '@/lib/formatDate';
 import { assignmentService } from '../../services/assignment.service';
+import type { GradingRun } from '@/features/grading/types/grading-history.types';
 
 interface SubmissionDetailModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   submission: LecturerSubmission | null;
   renderStatusBadge: (status: string) => React.ReactNode;
-  onReGradeSandbox: (subId: string) => void;
-  onReGradeAi: (subId: string) => void;
 }
 
 export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
@@ -31,14 +30,65 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
   onOpenChange,
   submission,
   renderStatusBadge,
-  onReGradeSandbox,
-  onReGradeAi,
 }) => {
   const [scoreDrafts, setScoreDrafts] = useState<Record<string, string>>({});
   const [reasonDrafts, setReasonDrafts] = useState<Record<string, string>>({});
   const [adjustmentError, setAdjustmentError] = useState<string | null>(null);
+  const [gradingRuns, setGradingRuns] = useState<GradingRun[]>([]);
+  const [selectedRunId, setSelectedRunId] = useState('');
+  const [reviewNote, setReviewNote] = useState('');
+  const [finalScoreDraft, setFinalScoreDraft] = useState('');
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [evidenceUrl, setEvidenceUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!open || !submission) return () => { cancelled = true; };
+    assignmentService.getGradingHistory(submission.id).then((runs) => {
+      if (!cancelled) {
+        setGradingRuns(runs);
+        setSelectedRunId((current) => current || runs[0]?.id || '');
+      }
+    }).catch((error: unknown) => {
+      if (!cancelled) setHistoryError(error instanceof Error ? error.message : 'Không tải được lịch sử chấm.');
+    });
+    return () => { cancelled = true; };
+  }, [open, submission?.id]);
+
   if (!submission) return null;
 
+  const refreshHistory = async () => {
+    if (!submission) return;
+    const runs = await assignmentService.getGradingHistory(submission.id);
+    setGradingRuns(runs);
+    setSelectedRunId(runs[0]?.id ?? '');
+  };
+
+  const handleRegrade = async () => {
+    if (!submission) return;
+    try { setBusy(true); setHistoryError(null); await assignmentService.regradeSubmission(submission.id); await refreshHistory(); }
+    catch (error) { setHistoryError(error instanceof Error ? error.message : 'Không tạo được lượt chấm mới.'); }
+    finally { setBusy(false); }
+  };
+
+  const handleReview = async () => {
+    if (!selectedRunId) return;
+    try {
+      setBusy(true); setHistoryError(null);
+      const score = finalScoreDraft.trim() ? Number(finalScoreDraft) : undefined;
+      await assignmentService.reviewGradingRun(selectedRunId, reviewNote, score);
+      setReviewNote(''); await refreshHistory();
+    } catch (error) { setHistoryError(error instanceof Error ? error.message : 'Không thể duyệt và công bố điểm.'); }
+    finally { setBusy(false); }
+  };
+
+  const showEvidence = async (runId: string, evidenceId: string) => {
+    try {
+      const blob = await assignmentService.getGradingEvidence(submission.id, runId, evidenceId);
+      setEvidenceUrl((current) => { if (current) URL.revokeObjectURL(current); return URL.createObjectURL(blob); });
+    } catch (error) { setHistoryError(error instanceof Error ? error.message : 'Không tải được ảnh bằng chứng.'); }
+  };
   const handleAdjustScore = async (userId: string) => {
     try {
       setAdjustmentError(null);
@@ -230,26 +280,29 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
             </div>
           )}
 
+          <section className="space-y-3 rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="font-bold text-slate-900">Lịch sử các lượt chấm</h3>
+              <Button type="button" variant="outline" size="sm" disabled={busy} onClick={handleRegrade}>Chấm lại toàn bộ</Button>
+            </div>
+            {historyError && <p role="alert" className="text-sm text-rose-700">{historyError}</p>}
+            {gradingRuns.length > 0 ? <select aria-label="Chọn lượt chấm" value={selectedRunId} onChange={(event) => setSelectedRunId(event.target.value)} className="w-full rounded-lg border border-slate-300 bg-white p-2 text-sm">{gradingRuns.map((run) => <option key={run.id} value={run.id}>Lượt #{run.runNo} · {run.status} · {formatDateTime(run.createdAt)}</option>)}</select> : <p className="text-sm text-slate-600">Chưa có lịch sử chấm.</p>}
+            {gradingRuns.filter((run) => run.id === selectedRunId).map((run) => <div key={run.id} className="space-y-3 rounded-xl bg-white p-3">
+              <div className="flex flex-wrap gap-2 text-xs text-slate-600"><span>Trạng thái: <strong>{run.status}</strong></span><span>Phê duyệt: <strong>{run.approvalMode ?? '—'}</strong></span><span>Hoàn tất: <strong>{run.completedAt ? formatDateTime(run.completedAt) : '—'}</strong></span></div>
+              {typeof run.summaryJson?.suggestedFinalScore === 'number' && <p className="rounded-lg bg-indigo-50 p-3 text-sm text-indigo-900">Điểm hệ thống đề xuất: <strong>{run.summaryJson.suggestedFinalScore} / 10</strong>{typeof run.summaryJson.publishedFinalScore === 'number' && <> · Điểm đã công bố: <strong>{run.summaryJson.publishedFinalScore} / 10</strong></>}</p>}
+              {run.stages.map((stage) => <div key={stage.id} className="rounded-lg border border-slate-100 p-3 text-sm">
+                <div className="flex justify-between gap-2"><strong>{stage.stageKey}</strong><span>{stage.status}{stage.score !== null && stage.score !== undefined ? ` · ${stage.score}${stage.maxScore ? `/${stage.maxScore}` : ''}` : ''}</span></div>
+                {stage.errorMessage && <p className="mt-1 text-rose-700">{stage.errorMessage}</p>}
+                {stage.detailsJson && <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap rounded bg-slate-50 p-2 text-xs">{JSON.stringify(stage.detailsJson, null, 2)}</pre>}
+                {stage.evidence?.map((evidence) => <Button key={evidence.id} type="button" variant="link" size="sm" onClick={() => showEvidence(run.id, evidence.id)}>Xem ảnh testcase</Button>)}
+              </div>)}
+              {run.snapshotJson && <details className="text-sm"><summary className="cursor-pointer font-semibold">Cấu hình testcase, đáp án và rubric đã dùng</summary><pre className="mt-2 max-h-52 overflow-auto whitespace-pre-wrap rounded bg-slate-50 p-2 text-xs">{JSON.stringify(run.snapshotJson, null, 2)}</pre></details>}
+              {run.status === 'REVIEW_PENDING' && <div className="grid gap-2 border-t pt-3"><label className="text-xs font-semibold">Điểm công bố (để trống dùng điểm đề xuất)<input type="number" min="0" max="10" step="0.1" value={finalScoreDraft} onChange={(event) => setFinalScoreDraft(event.target.value)} className="mt-1 w-full rounded-lg border p-2" /></label><label className="text-xs font-semibold">Lý do duyệt bắt buộc<textarea value={reviewNote} onChange={(event) => setReviewNote(event.target.value)} className="mt-1 w-full rounded-lg border p-2" rows={2} /></label><Button type="button" disabled={busy || reviewNote.trim().length < 5} onClick={handleReview}>Duyệt và công bố điểm</Button></div>}
+            </div>)}
+            {evidenceUrl && <img src={evidenceUrl} alt="Ảnh chụp trang trong testcase" className="max-h-64 rounded-lg border" />}
+          </section>
+
           {/* Action Buttons */}
-          <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onReGradeSandbox(submission.id)}
-              className="rounded-xl text-xs font-bold"
-            >
-              <Play className="w-3.5 h-3.5 mr-1.5 text-emerald-600" />
-              Chấm lại Sandbox
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => onReGradeAi(submission.id)}
-              className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white"
-            >
-              <Bot className="w-3.5 h-3.5 mr-1.5" />
-              Chấm lại AI
-            </Button>
-          </div>
         </div>
       </DialogContent>
     </Dialog>

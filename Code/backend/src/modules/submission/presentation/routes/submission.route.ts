@@ -6,7 +6,7 @@ import { authenticateJWT, authorizeRoles } from '../../../auth/presentation/midd
 import { ValidationError } from '../../../../shared/domain/exceptions/app.error.js';
 import { env } from '../../../../infrastructure/config/env.js';
 import { validateBody } from '../../../../shared/presentation/middlewares/validate.middleware.js';
-import { AdjustParticipantScoreSchema } from '../../application/dtos/submission.dto.js';
+import { AdjustParticipantScoreSchema, ReviewGradingRunSchema } from '../../application/dtos/submission.dto.js';
 import {
   requireAssignmentManage,
   requireSubmissionAccess,
@@ -15,6 +15,14 @@ import {
 const router = Router();
 
 const submissionController = container.submissionController;
+
+router.post(
+  '/grading-runs/:runId/review',
+  authenticateJWT,
+  authorizeRoles('LECTURER', 'ADMIN'),
+  validateBody(ReviewGradingRunSchema),
+  submissionController.reviewGradingRun
+);
 
 function uploadSingleZip(req: Request, res: Response, next: NextFunction): void {
   submissionZipUpload.single('file')(req, res, (err: unknown) => {
@@ -48,6 +56,15 @@ router.get(
   authorizeRoles('LECTURER', 'ADMIN'),
   requireAssignmentManage,
   submissionController.getSubmissionsByAssignment
+);
+router.get('/:id/grading-history', authenticateJWT, requireSubmissionAccess, submissionController.getGradingHistory);
+router.get('/:id/grading-history/:runId/evidence/:evidenceId', authenticateJWT, requireSubmissionAccess, submissionController.getGradingEvidence);
+router.post(
+  '/:id/grading-runs',
+  authenticateJWT,
+  authorizeRoles('LECTURER', 'ADMIN'),
+  requireSubmissionAccess,
+  submissionController.regradeSubmission
 );
 router.get('/:id', authenticateJWT, requireSubmissionAccess, submissionController.getSubmissionStatus);
 

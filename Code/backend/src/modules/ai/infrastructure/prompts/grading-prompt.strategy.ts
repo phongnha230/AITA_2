@@ -42,8 +42,9 @@ export const buildTestPerformancePayload = (context: RagContext) => context.test
 export const buildCommonOutputContract = (): string[] => [
   'Không tiết lộ, sao chép hoặc tái tạo lời giải tham chiếu. Chỉ nêu nhận xét ngắn và gợi ý khái niệm.',
   'Đánh giá thuật toán theo độ phức tạp kỳ vọng và các chiến lược được chấp nhận. Lời giải tương đương hợp lệ vẫn đạt điểm dù không giống code tham chiếu.',
+  'Nếu có đáp án tham chiếu, nêu ngắn gọn cách tiếp cận và khác biệt có ý nghĩa trong answerComparison; không yêu cầu code giống mẫu và không chép lại đáp án.',
   'Chỉ trả JSON đúng schema, không markdown:',
-  '{"rubricBreakdown":[{"rubricId":"id","earnedPoints":0,"feedback":"text"}],"detectedTimeComplexity":"O(n)","detectedSpaceComplexity":"O(1)","codeQualityFeedback":"text"}',
+  '{"answerComparison":"text","rubricBreakdown":[{"rubricId":"id","earnedPoints":0,"feedback":"text"}],"detectedTimeComplexity":"O(n)","detectedSpaceComplexity":"O(1)","codeQualityFeedback":"text"}',
   'Không tự tạo rubricId. Không trả maxPoints hoặc tổng điểm; backend sẽ tự tính.',
 ];
 

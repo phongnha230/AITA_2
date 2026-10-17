@@ -27,6 +27,7 @@ export class CGradingPrompt implements GradingPromptStrategy {
       '</UNTRUSTED_C_ASSIGNMENT>',
       '<UNTRUSTED_C_RUBRIC>', JSON.stringify(buildRubricPayload(context)), '</UNTRUSTED_C_RUBRIC>',
       '<UNTRUSTED_C_ALGORITHM_SPECIFICATION>', JSON.stringify(buildAlgorithmSpecificationPayload(context)), '</UNTRUSTED_C_ALGORITHM_SPECIFICATION>',
+      '<UNTRUSTED_C_REFERENCE_SOLUTION>', context.referenceSolutionSource.slice(0, 12_000), '</UNTRUSTED_C_REFERENCE_SOLUTION>',
       '<UNTRUSTED_C_TEST_OUTPUT>', JSON.stringify(context.failedTestCases), '</UNTRUSTED_C_TEST_OUTPUT>',
       '<UNTRUSTED_C_RETRIEVED_CONTEXT>', JSON.stringify(buildRetrievedChunksPayload(context)), '</UNTRUSTED_C_RETRIEVED_CONTEXT>',
       '<UNTRUSTED_C_SOURCE>', studentCode, '</UNTRUSTED_C_SOURCE>',

@@ -8,6 +8,7 @@ import {
 } from "../redis/redis.client.js";
 
 import prisma from "../database/prisma.client.js";
+import { Prisma } from "@prisma/client";
 import { GRADING_MAX_ATTEMPTS } from "./retry-policy.js";
 
 
@@ -29,6 +30,7 @@ export interface GradingJobData {
      * ID của Submission trong MySQL.
      */
     submissionId: string;
+    gradingRunId?: string;
 
     /**
      * Folder đã được TV3 giải nén / staging.
@@ -93,6 +95,7 @@ export interface EnqueueSubmissionInput
      * Số càng nhỏ thì priority càng cao.
      */
     priority?: number;
+    requestedById?: string;
 }
 
 
@@ -233,6 +236,16 @@ export async function enqueueSubmission(
             where: {
                 id: input.submissionId,
             },
+            select: {
+                id: true,
+                gradingSnapshot: true,
+                gitRepoUrl: true,
+                gitCommitHash: true,
+                deployedUrl: true,
+                submissionChannel: true,
+                sourceSnapshotHash: true,
+                assignment: { select: { environment: true, gradingApprovalMode: true } },
+            },
         });
 
 
@@ -242,6 +255,45 @@ export async function enqueueSubmission(
             `Submission ${input.submissionId} was not found.`
         );
     }
+
+    const snapshot = submission.gradingSnapshot && typeof submission.gradingSnapshot === 'object'
+        ? submission.gradingSnapshot as { assignment?: { gradingApprovalMode?: string; environment?: string } }
+        : null;
+    const approvalMode = snapshot?.assignment?.gradingApprovalMode
+        ?? submission.assignment.gradingApprovalMode;
+    const stageKeys = submission.assignment.environment === 'REACT_JS'
+        ? ['WEB_TESTCASES', 'SOURCE_REVIEW', 'CLEAN_CODE']
+        : ['TESTCASES', 'ANSWER_COMPARISON', 'ALGORITHM', 'CLEAN_CODE'];
+    const gradingRun = await prisma.$transaction(async (transaction) => {
+        const latest = await transaction.gradingRun.findFirst({
+            where: { submissionId: input.submissionId },
+            orderBy: { runNo: 'desc' },
+            select: { runNo: true },
+        });
+        const run = await transaction.gradingRun.create({
+            data: {
+                submissionId: input.submissionId,
+                runNo: (latest?.runNo ?? 0) + 1,
+                status: 'QUEUED',
+                approvalMode: approvalMode === 'AUTO_PUBLISH' ? 'AUTO_PUBLISH' : 'LECTURER_REVIEW',
+                snapshotJson: {
+                    ...(submission.gradingSnapshot && typeof submission.gradingSnapshot === 'object' ? submission.gradingSnapshot as Record<string, unknown> : {}),
+                    submission: {
+                        submissionChannel: submission.submissionChannel,
+                        gitRepoUrl: submission.gitRepoUrl,
+                        gitCommitHash: submission.gitCommitHash,
+                        deployedUrl: submission.deployedUrl,
+                        sourceSnapshotHash: submission.sourceSnapshotHash,
+                    },
+                } as Prisma.InputJsonValue,
+                requestedById: input.requestedById ?? null,
+                stages: {
+                    create: stageKeys.map((stageKey) => ({ stageKey, status: 'PENDING' })),
+                },
+            },
+        });
+        return run;
+    });
 
 
     // ========================================================
@@ -348,6 +400,9 @@ export async function enqueueSubmission(
                 {
                     submissionId:
                         input.submissionId,
+
+                    gradingRunId:
+                        gradingRun.id,
 
                     stagedFolderPath:
                         input.stagedFolderPath,
@@ -461,6 +516,11 @@ export async function enqueueSubmission(
                 status:
                     "FAILED",
             },
+        });
+
+        await prisma.gradingRun.update({
+            where: { id: gradingRun.id },
+            data: { status: 'FAILED', completedAt: new Date(), summaryJson: { error: message } },
         });
 
 

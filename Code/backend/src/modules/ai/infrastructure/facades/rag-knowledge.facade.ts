@@ -27,6 +27,8 @@ export class RagKnowledgeFacade implements IRagKnowledgeService {
 
     const assignment = submission.assignment;
     const solution = assignment.activeSolution;
+    const snapshot = submission.gradingSnapshot as { referenceSolution?: { contentHash?: string } | null } | null | undefined;
+    const usesFrozenReference = Boolean(snapshot && Object.prototype.hasOwnProperty.call(snapshot, 'referenceSolution'));
     const courseCode = assignment.courseCode;
     const javaGradingProfile = assignment.environment === 'JAVA_JDK'
       ? resolveJavaGradingProfile(courseCode)
@@ -77,18 +79,19 @@ export class RagKnowledgeFacade implements IRagKnowledgeService {
       };
     }
 
-    if (!env.AI_GRADING_REQUIRE_READY_RAG) {
+    if (!solution) throw new RagUnavailableError('Đề chưa có đáp án tham chiếu để chấm bài code.');
+
+    if (!usesFrozenReference && !env.AI_GRADING_REQUIRE_READY_RAG) {
       throw new RagUnavailableError(
         'AI grading đang tắt cho tới khi backfill RAG hoàn tất và AI_GRADING_REQUIRE_READY_RAG=true.'
       );
     }
 
     if (
-      !solution ||
-      solution.activeKey !== assignment.id ||
+      (solution.activeKey !== assignment.id ||
       solution.indexStatus !== 'READY' ||
       solution.embeddingModel !== env.GEMINI_EMBEDDING_MODEL ||
-      solution.chunkerVersion !== CHUNKER_VERSION
+      solution.chunkerVersion !== CHUNKER_VERSION) && !usesFrozenReference
     ) {
       throw new RagUnavailableError();
     }
@@ -113,23 +116,25 @@ export class RagKnowledgeFacade implements IRagKnowledgeService {
       `Student source excerpt: ${studentCode.slice(0, 4_096)}`,
     ].join('\n').slice(0, 8_192);
 
-    let relevantSolutionChunks;
-    try {
-      relevantSolutionChunks = await this.vectorStore.queryRelevantChunks({
+    let relevantSolutionChunks: Awaited<ReturnType<ISolutionVectorStore['queryRelevantChunks']>> = [];
+    if (!usesFrozenReference && solution?.embeddingModel && solution.chunkerVersion) {
+      try {
+        relevantSolutionChunks = await this.vectorStore.queryRelevantChunks({
         assignmentId: assignment.id,
         solutionId: solution.id,
         contentHash: solution.contentHash,
         environment: assignment.environment,
         embeddingModel: solution.embeddingModel,
         chunkerVersion: solution.chunkerVersion,
-      }, queryText);
-    } catch (error) {
-      throw new RagUnavailableError(
-        error instanceof Error ? `RAG retrieval thất bại: ${error.message}` : undefined
-      );
-    }
-    if (relevantSolutionChunks.length === 0) {
-      throw new RagUnavailableError('Không có RAG chunk nào đạt similarity tối thiểu 0.70.');
+        }, queryText);
+      } catch (error) {
+        throw new RagUnavailableError(
+          error instanceof Error ? `RAG retrieval thất bại: ${error.message}` : undefined
+        );
+      }
+      if (relevantSolutionChunks.length === 0) {
+        throw new RagUnavailableError('Không có RAG chunk nào đạt similarity tối thiểu 0.70.');
+      }
     }
 
     return {

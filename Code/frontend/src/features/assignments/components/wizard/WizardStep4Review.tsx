@@ -16,6 +16,8 @@ interface WizardStep4ReviewProps {
   durationMinutes: number;
   title: string;
   description: string;
+  gradingApprovalMode: 'LECTURER_REVIEW' | 'AUTO_PUBLISH';
+  onGradingApprovalModeChange: (mode: 'LECTURER_REVIEW' | 'AUTO_PUBLISH') => void;
   dryRunRunning: boolean;
   dryRunResult: DryRunExecutionSummary | null;
   dryRunError: string | null;
@@ -33,6 +35,8 @@ export const WizardStep4Review: React.FC<WizardStep4ReviewProps> = ({
   durationMinutes,
   title,
   description,
+  gradingApprovalMode,
+  onGradingApprovalModeChange,
   dryRunRunning,
   dryRunResult,
   dryRunError,
@@ -118,6 +122,21 @@ export const WizardStep4Review: React.FC<WizardStep4ReviewProps> = ({
           </div>
         </div>
       </div>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h3 className="text-sm font-extrabold text-slate-900">Công bố điểm sau khi chấm</h3>
+        <p className="mt-1 text-xs text-slate-500">Chấm lại luôn tạo lịch sử mới; ảnh chụp và kết quả testcase được lưu theo từng lượt.</p>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <label className="flex cursor-pointer gap-3 rounded-xl border p-3 text-sm">
+            <input type="radio" name="gradingApprovalMode" checked={gradingApprovalMode === 'LECTURER_REVIEW'} onChange={() => onGradingApprovalModeChange('LECTURER_REVIEW')} />
+            <span><strong>Giảng viên duyệt</strong><span className="mt-1 block text-xs text-slate-500">Điểm chờ xác nhận trước khi sinh viên xem.</span></span>
+          </label>
+          <label className="flex cursor-pointer gap-3 rounded-xl border p-3 text-sm">
+            <input type="radio" name="gradingApprovalMode" checked={gradingApprovalMode === 'AUTO_PUBLISH'} onChange={() => onGradingApprovalModeChange('AUTO_PUBLISH')} />
+            <span><strong>Tự công bố</strong><span className="mt-1 block text-xs text-slate-500">Tự công bố sau khi toàn bộ bước chấm hoàn tất.</span></span>
+          </label>
+        </div>
+      </section>
 
       <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">

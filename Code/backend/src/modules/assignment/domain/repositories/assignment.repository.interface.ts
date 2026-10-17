@@ -69,6 +69,7 @@ export interface CreateAssignmentData {
   allowZipSubmission?: boolean;
   status?: 'DRAFT' | 'PUBLISHED' | 'PAUSED' | 'CLOSED' | 'ARCHIVED';
   gradingVersion?: number;
+  gradingApprovalMode?: 'LECTURER_REVIEW' | 'AUTO_PUBLISH';
   functionalMaxScore?: number;
   algorithmMaxScore?: number;
   cleanCodeMaxScore?: number;

@@ -13,6 +13,7 @@ export interface SandboxTestCaseRecord {
   memoryLimitKb: number;
   points: number;
   rationaleTag: string;
+  isHidden?: boolean;
 }
 
 export interface SandboxSubmissionRecord {
@@ -21,6 +22,14 @@ export interface SandboxSubmissionRecord {
   workspacePath: string | null;
   deployedUrl: string | null;
   paperCode: string | null;
+  gradingSnapshot: {
+    assignment: {
+      environment: string;
+      maxFileSizeBytes: string;
+      functionalMaxScore: number;
+    };
+    testCases: Array<SandboxTestCaseRecord & { isHidden?: boolean; expectedFileName?: string | null }>;
+  } | null;
   assignment: {
     environment: string;
     maxFileSizeBytes: bigint;
@@ -42,7 +51,8 @@ export interface ISandboxRepository {
     submission: SandboxSubmissionRecord,
     summary: SandboxExecutionSummary,
     normalizedSandboxScore: number,
-    algorithmPerformanceScore: number
+    algorithmPerformanceScore: number,
+    gradingRunId?: string
   ): Promise<void>;
   getStatusCounts(): Promise<SandboxStatusCounts>;
 }

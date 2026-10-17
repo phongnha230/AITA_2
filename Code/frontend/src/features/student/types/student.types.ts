@@ -153,6 +153,7 @@ export interface SubmissionTestResult {
   earnedPoints: number | string;
   diffLog?: string | null;
   createdAt: string;
+  testCase?: { points?: number | string; label?: string; isHidden?: boolean };
 }
 
 export interface SubmissionAiGradingResult {

@@ -1,6 +1,7 @@
 export type AssignmentEnv = 'C_GCC' | 'JAVA_JDK' | 'REACT_JS';
 export type SubmissionType = 'INDIVIDUAL' | 'GROUP';
 export type AssignmentStatus = 'DRAFT' | 'PUBLISHED' | 'PAUSED' | 'CLOSED' | 'ARCHIVED';
+export type GradingApprovalMode = 'LECTURER_REVIEW' | 'AUTO_PUBLISH';
 
 export interface AssignmentProps {
   id: string;
@@ -21,6 +22,7 @@ export interface AssignmentProps {
   createdAt: Date;
   updatedAt: Date;
   gradingVersion?: number;
+  gradingApprovalMode?: GradingApprovalMode;
   functionalMaxScore?: number;
   algorithmMaxScore?: number;
   cleanCodeMaxScore?: number;
@@ -156,6 +158,7 @@ export class Assignment {
       createdAt: this.props.createdAt,
       updatedAt: this.props.updatedAt,
       gradingVersion: this.props.gradingVersion ?? 1,
+      gradingApprovalMode: this.props.gradingApprovalMode ?? 'LECTURER_REVIEW',
       functionalMaxScore: this.props.functionalMaxScore ?? 8,
       algorithmMaxScore: this.props.algorithmMaxScore ?? 2,
       cleanCodeMaxScore: this.props.cleanCodeMaxScore ?? 0,

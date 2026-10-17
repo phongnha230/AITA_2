@@ -12,6 +12,7 @@ export class PrismaRagContextRepository implements IRagContextRepository {
       where: { id: submissionId },
       select: {
         compileOutput: true,
+        gradingSnapshot: true,
         assignment: {
           select: {
             id: true,
@@ -53,6 +54,7 @@ export class PrismaRagContextRepository implements IRagContextRepository {
         testResults: {
           select: {
             verdict: true,
+            testCaseId: true,
             executionTimeMs: true,
             memoryUsedKb: true,
             actualStdout: true,
@@ -63,21 +65,53 @@ export class PrismaRagContextRepository implements IRagContextRepository {
       },
     });
     if (!submission) return null;
+    const snapshot = submission.gradingSnapshot as {
+      assignment?: { id?: string; title?: string; description?: string | null; environment?: string; courseCode?: string };
+      rubricRules?: Array<{ id: string; criterionName: string; description: string; maxPoints: number; weight: number; criterionType: 'GENERAL' | 'ALGORITHM' | 'CLEAN_CODE' }>;
+      referenceSolution?: {
+        id: string; title: string; contentHash: string; sourceCode: string; expectedTimeComplexity: string | null;
+        expectedSpaceComplexity: string | null; acceptedStrategies: unknown; algorithmNotes: string | null;
+      } | null;
+      testCases?: Array<{ id: string; label: string; rationaleTag: string }>;
+    } | null;
     const { solutions, rubricRules, course, ...assignment } = submission.assignment;
+    const snapshotSolution = snapshot?.referenceSolution;
+    const snapshotTestCases = new Map((snapshot?.testCases ?? []).map((testCase) => [testCase.id, testCase]));
     return {
+      gradingSnapshot: submission.gradingSnapshot,
       compileOutput: submission.compileOutput,
       assignment: {
         ...assignment,
-        courseCode: course.code,
-        rubricRules: rubricRules.map((rule) => ({
+        id: snapshot?.assignment?.id ?? assignment.id,
+        title: snapshot?.assignment?.title ?? assignment.title,
+        description: snapshot?.assignment?.description ?? assignment.description,
+        environment: snapshot?.assignment?.environment ?? assignment.environment,
+        courseCode: snapshot?.assignment?.courseCode ?? course.code,
+        rubricRules: snapshot?.rubricRules ?? rubricRules.map((rule) => ({
           ...rule,
           maxPoints: Number(rule.maxPoints),
           weight: Number(rule.weight),
           criterionType: rule.criterionType,
         })),
-        activeSolution: solutions[0] ?? null,
+        activeSolution: snapshotSolution ? {
+          id: snapshotSolution.id,
+          assignmentId: assignment.id,
+          activeKey: assignment.id,
+          contentHash: snapshotSolution.contentHash,
+          indexStatus: 'READY' as const,
+          embeddingModel: null,
+          chunkerVersion: null,
+          sourceCode: snapshotSolution.sourceCode,
+          expectedTimeComplexity: snapshotSolution.expectedTimeComplexity,
+          expectedSpaceComplexity: snapshotSolution.expectedSpaceComplexity,
+          acceptedStrategies: snapshotSolution.acceptedStrategies,
+          algorithmNotes: snapshotSolution.algorithmNotes,
+        } : solutions[0] ?? null,
       },
-      testResults: submission.testResults,
+      testResults: submission.testResults.map((testResult) => ({
+        ...testResult,
+        testCase: snapshotTestCases.get(testResult.testCaseId) ?? testResult.testCase,
+      })),
     };
   }
 }

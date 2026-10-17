@@ -12,6 +12,7 @@ import { cloudinaryService } from '../../../../infrastructure/storage/cloudinary
 import { validatePublicDeploymentUrl } from '../../infrastructure/storage/deployed-url.validator.js';
 import { env } from '../../../../infrastructure/config/env.js';
 import { logger } from '../../../../infrastructure/logging/logger.js';
+import { createSourceSnapshot } from '../../infrastructure/storage/source-snapshot.service.js';
 
 export interface SubmitAssignmentDeps {
   submissionRepository: ISubmissionRepository;
@@ -153,6 +154,8 @@ export class SubmitAssignmentUseCase {
           submission.id,
           assignment.maxFileSizeBytes
         );
+        const sourceSnapshot = await createSourceSnapshot(submission.id, stagingResult.stagedPath);
+        await submissionRepository.updateSourceSnapshot(submission.id, sourceSnapshot.path, sourceSnapshot.sha256);
 
         let finalZipPath = request.uploadedZipPath;
 
@@ -186,7 +189,7 @@ export class SubmitAssignmentUseCase {
         );
         await submissionRepository.updateWorkspacePath(submission.id, stagingResult.stagedPath);
 
-        await gradingDispatcher.dispatch(submission.id, stagingResult.stagedPath);
+        await gradingDispatcher.dispatch(submission.id, stagingResult.stagedPath, request.userId);
 
         return updated;
       } catch (error) {
@@ -205,6 +208,8 @@ export class SubmitAssignmentUseCase {
           assignment.maxFileSizeBytes,
           { since: assignment.startTime, until: submission.submittedAt }
         );
+        const sourceSnapshot = await createSourceSnapshot(submission.id, gitResult.stagedPath);
+        await submissionRepository.updateSourceSnapshot(submission.id, sourceSnapshot.path, sourceSnapshot.sha256);
 
         await submissionRepository.updateWorkspacePath(submission.id, gitResult.stagedPath);
 
@@ -215,7 +220,7 @@ export class SubmitAssignmentUseCase {
           contributors: gitResult.contributors,
         });
 
-        await gradingDispatcher.dispatch(submission.id, gitResult.stagedPath);
+        await gradingDispatcher.dispatch(submission.id, gitResult.stagedPath, request.userId);
 
         return updated;
       } catch (error) {
