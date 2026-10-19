@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Pencil, Sparkles, X } from 'lucide-react';
 import { Course, UpdateCoursePayload } from '../types/course.types';
 import { useCourses } from '../hooks/useCourses';
@@ -10,6 +11,7 @@ import { CreateCourseModal } from './CreateCourseModal';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { ROUTES } from '@/config/routes';
 
 interface LecturerDashboardProps {
   initialCourseId?: string;
@@ -33,11 +35,23 @@ export const LecturerDashboard: React.FC<LecturerDashboardProps> = ({ initialCou
     error,
   } = useCourses();
 
+  const router = useRouter();
+
   // Active view: 'OVERVIEW' | 'DETAIL'
   const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'DETAIL'>(
     initialCourseId ? 'DETAIL' : 'OVERVIEW'
   );
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+
+  useEffect(() => {
+    if (initialCourseId) {
+      setActiveTab('DETAIL');
+      const found = courses.find((c) => c.id === initialCourseId);
+      if (found) setSelectedCourse(found);
+    } else {
+      setActiveTab('OVERVIEW');
+    }
+  }, [initialCourseId, courses]);
 
   // Create course modal
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -61,10 +75,12 @@ export const LecturerDashboard: React.FC<LecturerDashboardProps> = ({ initialCou
   const handleSelectCourse = (course: Course) => {
     setSelectedCourse(course);
     setActiveTab('DETAIL');
+    router.push(ROUTES.LECTURER.COURSE_DETAIL(course.id));
   };
 
   const handleBackToOverview = () => {
     setActiveTab('OVERVIEW');
+    router.push(ROUTES.LECTURER.COURSES);
   };
 
   const handleOpenEdit = (course: Course) => {
