@@ -51,17 +51,17 @@ export const LifecycleStepCard: React.FC<LifecycleStepCardProps> = ({
   return (
     <li className={`relative flex flex-col justify-between rounded-xl border p-3.5 transition-all ${containerClass}`}>
       <div className="flex items-center justify-between">
-        <span className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold ${badgeClass}`}>
-          {state === 'completed' && <CheckCircle2 className="h-4 w-4" />}
-          {state === 'failed' && <XCircle className="h-4 w-4" />}
+        <span className={`flex size-8 items-center justify-center rounded-lg text-xs font-bold ${badgeClass}`}>
+          {state === 'completed' && <CheckCircle2 className="size-4" />}
+          {state === 'failed' && <XCircle className="size-4" />}
           {state !== 'completed' && state !== 'failed' && index + 1}
         </span>
-        <Icon aria-hidden="true" className={`h-4 w-4 ${iconClass}`} />
+        <Icon aria-hidden="true" className={`size-4 ${iconClass}`} />
       </div>
 
       <div className="mt-3">
         <p className="text-xs font-bold tracking-tight">{step.label}</p>
-        <p className="text-[10px] text-slate-500 mt-0.5">{step.sublabel}</p>
+        <p className="text-xs text-slate-500 mt-0.5">{step.sublabel}</p>
       </div>
     </li>
   );

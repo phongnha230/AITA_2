@@ -13,7 +13,7 @@ interface StudentHeaderProps {
   isLoading: boolean;
   menuOpen: boolean;
   onMenuClick: () => void;
-  menuButtonRef: RefObject<HTMLButtonElement>;
+  menuButtonRef: RefObject<HTMLButtonElement | null>;
 }
 
 export function StudentHeader({ user, isLoading, menuOpen, onMenuClick, menuButtonRef }: StudentHeaderProps) {
@@ -33,17 +33,17 @@ export function StudentHeader({ user, isLoading, menuOpen, onMenuClick, menuButt
           aria-label={menuOpen ? 'Đóng menu điều hướng' : 'Mở menu điều hướng'}
           aria-expanded={menuOpen}
           aria-controls="student-mobile-navigation"
-          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 lg:hidden"
+          className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 lg:hidden"
         >
-          <Menu aria-hidden="true" className="h-5 w-5" />
+          <Menu aria-hidden="true" className="size-5" />
         </button>
 
         <nav aria-label="Breadcrumb" className="hidden min-w-0 sm:block">
           <ol className="flex min-w-0 items-center gap-1.5 text-xs font-medium">
             <li className="shrink-0 text-slate-400">Cổng Sinh viên</li>
-            <li aria-hidden="true"><ChevronRight className="h-3.5 w-3.5 text-slate-300" /></li>
+            <li aria-hidden="true"><ChevronRight className="size-3.5 text-slate-300" /></li>
             <li className="shrink-0 text-slate-500">AITA Portal</li>
-            <li aria-hidden="true"><ChevronRight className="h-3.5 w-3.5 text-slate-300" /></li>
+            <li aria-hidden="true"><ChevronRight className="size-3.5 text-slate-300" /></li>
             <li aria-current="page" className="truncate rounded-md bg-slate-100 px-2.5 py-1 font-semibold text-slate-800">
               {pageTitle}
             </li>
@@ -68,17 +68,17 @@ export function StudentHeader({ user, isLoading, menuOpen, onMenuClick, menuButt
             <p className="hidden text-sm font-medium text-slate-600 sm:block">Tài khoản sinh viên</p>
           )}
           {user?.role === 'STUDENT' && (
-            <span className="hidden rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold tracking-wide text-emerald-700 sm:inline-flex">
+            <span className="hidden rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-bold tracking-wide text-emerald-700 sm:inline-flex">
               SINH VIÊN
             </span>
           )}
           {isLoading ? (
-            <span role="status" aria-label="Đang tải ảnh đại diện" className="h-9 w-9 animate-pulse rounded-full bg-slate-100 ring-2 ring-slate-100" />
+            <span role="status" aria-label="Đang tải ảnh đại diện" className="size-9 animate-pulse rounded-full bg-slate-100 ring-2 ring-slate-100" />
           ) : user ? (
             <StudentAvatar fullName={user.fullName} avatarUrl={user.avatarUrl} />
           ) : (
-            <span aria-hidden="true" className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 ring-1 ring-inset ring-slate-200">
-              <UserRound className="h-4 w-4" />
+            <span aria-hidden="true" className="flex size-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 ring-1 ring-inset ring-slate-200">
+              <UserRound className="size-4" />
             </span>
           )}
           {user && (
@@ -87,9 +87,9 @@ export function StudentHeader({ user, isLoading, menuOpen, onMenuClick, menuButt
               onClick={() => authService.logout()}
               title="Đăng xuất"
               aria-label="Đăng xuất"
-              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
+              className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
             >
-              <LogOut className="h-4 w-4" />
+              <LogOut className="size-4" />
             </button>
           )}
         </div>

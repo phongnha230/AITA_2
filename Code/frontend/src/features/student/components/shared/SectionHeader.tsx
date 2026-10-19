@@ -33,9 +33,9 @@ export function SectionHeader({
       <div className="flex items-center gap-3">
         {Icon && (
           <span
-            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${toneClasses[tone]}`}
+            className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${toneClasses[tone]}`}
           >
-            <Icon aria-hidden="true" className="h-4 w-4" />
+            <Icon aria-hidden="true" className="size-4" />
           </span>
         )}
         <div>

@@ -20,8 +20,8 @@ export function StudentEmptyState({
     <div
       className={`flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200/90 bg-slate-50/60 px-6 py-8 text-center ${className}`}
     >
-      <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-slate-500 shadow-elevated-sm ring-1 ring-slate-200/80">
-        <Icon aria-hidden="true" className="h-5 w-5 text-slate-500" />
+      <span className="flex size-12 items-center justify-center rounded-2xl bg-white text-slate-500 shadow-elevated-sm ring-1 ring-slate-200/80">
+        <Icon aria-hidden="true" className="size-5 text-slate-500" />
       </span>
       <p className="mt-3.5 text-sm font-bold text-slate-800">{title}</p>
       {description && (

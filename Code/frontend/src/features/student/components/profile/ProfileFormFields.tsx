@@ -48,7 +48,7 @@ export const ProfileFormFields: React.FC<ProfileFormFieldsProps> = ({
             Họ và tên sinh viên <span className="text-red-500">*</span>
           </label>
           <div className="relative">
-            <User className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
+            <User className="absolute left-3.5 top-3.5 size-4 text-slate-400" />
             <Input
               id="profile-full-name"
               value={fullName}
@@ -68,7 +68,7 @@ export const ProfileFormFields: React.FC<ProfileFormFieldsProps> = ({
             Mã số sinh viên (MSSV)
           </label>
           <div className="relative">
-            <Hash className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
+            <Hash className="absolute left-3.5 top-3.5 size-4 text-slate-400" />
             <Input
               id="profile-student-code"
               value={studentCode}
@@ -88,7 +88,7 @@ export const ProfileFormFields: React.FC<ProfileFormFieldsProps> = ({
             Số điện thoại liên hệ
           </label>
           <div className="relative">
-            <Phone className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
+            <Phone className="absolute left-3.5 top-3.5 size-4 text-slate-400" />
             <Input
               id="profile-phone-number"
               type="tel"
@@ -106,7 +106,7 @@ export const ProfileFormFields: React.FC<ProfileFormFieldsProps> = ({
             Chuyên ngành đào tạo
           </label>
           <div className="relative">
-            <BookOpen className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
+            <BookOpen className="absolute left-3.5 top-3.5 size-4 text-slate-400" />
             <Input
               id="profile-major"
               value={major}
@@ -126,7 +126,7 @@ export const ProfileFormFields: React.FC<ProfileFormFieldsProps> = ({
             Khóa sinh viên
           </label>
           <div className="relative">
-            <GraduationCap className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
+            <GraduationCap className="absolute left-3.5 top-3.5 size-4 text-slate-400" />
             <Input
               id="profile-cohort"
               value={cohort}
@@ -143,7 +143,7 @@ export const ProfileFormFields: React.FC<ProfileFormFieldsProps> = ({
             Liên kết GitHub cá nhân
           </label>
           <div className="relative">
-            <Github className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
+            <Github className="absolute left-3.5 top-3.5 size-4 text-slate-400" />
             <Input
               id="profile-github-url"
               type="url"
@@ -164,7 +164,7 @@ export const ProfileFormFields: React.FC<ProfileFormFieldsProps> = ({
           Tiểu sử &amp; Mục tiêu học tập (Bio)
         </label>
         <div className="relative">
-          <FileText className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
+          <FileText className="absolute left-3.5 top-3.5 size-4 text-slate-400" />
           <textarea
             id="profile-bio"
             value={bio}
@@ -172,10 +172,10 @@ export const ProfileFormFields: React.FC<ProfileFormFieldsProps> = ({
             rows={3}
             maxLength={500}
             placeholder="Chia sẻ ngắn về định hướng nghề nghiệp, sở thích lập trình..."
-            className="w-full rounded-xl border border-input bg-white p-3 pl-10 text-xs text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-blue-600"
+            className="w-full rounded-xl border border-input bg-white p-3 pl-10 text-base text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-blue-600"
           />
         </div>
-        <div className="mt-1 flex justify-between text-[11px] text-slate-400">
+        <div className="mt-1 flex justify-between text-xs text-slate-400">
           <span>Tối đa 500 ký tự</span>
           <span>{bio.length}/500</span>
         </div>

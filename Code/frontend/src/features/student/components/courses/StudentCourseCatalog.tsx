@@ -48,7 +48,7 @@ export function StudentCourseCatalog() {
               className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:opacity-50"
             >
               <RefreshCw
-                className={`h-4 w-4 ${coursesState.status === 'loading' ? 'animate-spin' : ''}`}
+                className={`size-4 ${coursesState.status === 'loading' ? 'animate-spin' : ''}`}
               />
               <span>Làm mới</span>
             </button>
@@ -57,7 +57,7 @@ export function StudentCourseCatalog() {
               onClick={() => openJoinModal(null)}
               className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
             >
-              <KeyRound className="h-4 w-4" />
+              <KeyRound className="size-4" />
               <span>Ghi danh bằng mã</span>
             </button>
           </div>
@@ -105,14 +105,14 @@ export function StudentCourseCatalog() {
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           {/* Ô tìm kiếm */}
           <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Tìm kiếm theo mã môn (CSD201), tên môn, hoặc tên giảng viên..."
               aria-label="Tìm kiếm theo mã môn, tên môn, hoặc tên giảng viên..."
-              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-10 pr-4 text-xs text-slate-900 shadow-inner outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100 sm:text-sm"
+              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-10 pr-4 text-base text-slate-900 shadow-inner outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100 sm:text-base"
             />
           </div>
 
@@ -138,7 +138,7 @@ export function StudentCourseCatalog() {
                 <span>{tab.label}</span>
                 {coursesState.status === 'success' && (
                   <span
-                    className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
+                    className={`rounded-full px-1.5 py-0.2 text-xs font-bold ${
                       activeTab === tab.id
                         ? 'bg-blue-100 text-blue-700'
                         : 'bg-slate-200/80 text-slate-600'
@@ -179,7 +179,7 @@ export function StudentCourseCatalog() {
             onClick={refetch}
             className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-xl border border-rose-300 bg-white px-4 text-xs font-semibold text-rose-900 shadow-sm transition-colors hover:bg-rose-100"
           >
-            <RefreshCw className="h-3.5 w-3.5" />
+            <RefreshCw className="size-3.5" />
             <span>Thử lại</span>
           </button>
         </div>
@@ -211,7 +211,7 @@ export function StudentCourseCatalog() {
                 onClick={() => openJoinModal(null)}
                 className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
               >
-                <KeyRound className="h-4 w-4" />
+                <KeyRound className="size-4" />
                 <span>Nhập mã lớp để tham gia</span>
               </button>
             )

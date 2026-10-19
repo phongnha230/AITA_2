@@ -49,11 +49,11 @@ export function ExamCard({ exam, featured = false }: ExamCardProps) {
 
   if (featured) {
     return (
-      <article className="overflow-hidden rounded-2xl border-2 border-blue-500/80 bg-white p-6 shadow-elevated ring-4 ring-blue-500/10">
+      <article className="overflow-hidden bg-blue-50/30 p-6">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 border border-rose-200 px-3 py-1 text-xs font-bold text-rose-700">
-              <span className="h-2 w-2 rounded-full bg-rose-600 animate-pulse" />
+              <span className="size-2 rounded-full bg-rose-600 animate-pulse" />
               ĐANG DIỄN RA
             </span>
             {course && (
@@ -68,8 +68,8 @@ export function ExamCard({ exam, featured = false }: ExamCardProps) {
         </div>
 
         <div className="mt-4 flex items-start gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-sm shadow-blue-600/30">
-            <Code2 aria-hidden="true" className="h-6 w-6" />
+          <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-sm shadow-blue-600/30">
+            <Code2 aria-hidden="true" className="size-6" />
           </div>
           <div className="min-w-0 flex-1">
             <h3 className="text-lg font-bold tracking-tight text-slate-900 sm:text-xl">
@@ -89,7 +89,7 @@ export function ExamCard({ exam, featured = false }: ExamCardProps) {
         </div>
 
         {/* Spec Box */}
-        <div className="mt-5 grid grid-cols-2 gap-3 rounded-xl border border-slate-100 bg-slate-50/70 p-3.5 text-xs sm:grid-cols-4">
+        <div className="mt-5 grid grid-cols-2 gap-3 bg-slate-50/70 p-3.5 text-xs sm:grid-cols-4">
           <div>
             <p className="text-slate-400">Trình biên dịch</p>
             <p className="mt-0.5 font-semibold text-slate-800">{getEnvironmentLabel(assignment.environment)}</p>
@@ -120,24 +120,24 @@ export function ExamCard({ exam, featured = false }: ExamCardProps) {
           <button
             type="button"
             onClick={() => setIsDetailOpen(true)}
-            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 shadow-sm transition-colors duration-200 hover:bg-slate-50 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 shadow-sm transition-colors duration-200 hover:bg-slate-50 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
           >
-            <FileText className="h-4 w-4 text-slate-500" />
+            <FileText className="size-4 text-slate-500" />
             <span>Xem đề bài</span>
           </button>
           <button
             type="button"
-            onClick={() => setIsDetailOpen(true)}
-            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 text-xs font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-indigo-700 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
+            onClick={() => setIsSubmitOpen(true)}
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 text-xs font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-indigo-700 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
           >
-            <HardDriveUpload className="h-4 w-4" />
+            <HardDriveUpload className="size-4" />
             <span>Mở bài nộp</span>
           </button>
           <Link
             href="/student/results"
-            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-xs font-semibold text-slate-700 shadow-sm transition-colors duration-200 hover:bg-slate-50 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-xs font-semibold text-slate-700 shadow-sm transition-colors duration-200 hover:bg-slate-50 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
           >
-            <Sparkles className="h-4 w-4 text-indigo-600" />
+            <Sparkles className="size-4 text-indigo-600" />
             <span>Xem kết quả &amp; Chấm điểm AI</span>
           </Link>
         </div>
@@ -154,18 +154,18 @@ export function ExamCard({ exam, featured = false }: ExamCardProps) {
   }
 
   return (
-    <article className="flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 shadow-elevated-sm transition-colors duration-200 hover:border-blue-300 hover:shadow-elevated hover:-translate-y-0.5 sm:p-6">
+    <article className="flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 shadow-elevated-sm transition-colors duration-200 hover:border-blue-300 sm:p-6">
       <div className="flex items-start gap-4">
         {/* Date badge on left */}
         {dateBadge ? (
-          <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-2xl border border-blue-100 bg-blue-50/70 text-center shadow-2xs">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700">{dateBadge.dayOfWeek}</span>
+          <div className="flex size-14 shrink-0 flex-col items-center justify-center rounded-2xl border border-blue-100 bg-blue-50/70 text-center shadow-2xs">
+            <span className="text-xs font-bold uppercase tracking-wider text-blue-700">{dateBadge.dayOfWeek}</span>
             <span className="text-base font-extrabold text-slate-900 leading-none mt-0.5">{dateBadge.dateNum}</span>
-            <span className="text-[9px] font-medium text-slate-500">{dateBadge.monthStr}</span>
+            <span className="text-xs font-medium text-slate-500">{dateBadge.monthStr}</span>
           </div>
         ) : (
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-600">
-            <Code2 aria-hidden="true" className="h-5 w-5" />
+          <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-600">
+            <Code2 aria-hidden="true" className="size-5" />
           </div>
         )}
 
@@ -177,7 +177,7 @@ export function ExamCard({ exam, featured = false }: ExamCardProps) {
               </span>
             )}
             <ExamStatusBadge status={temporalStatus} />
-            <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+            <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
               {getEnvironmentLabel(assignment.environment)}
             </span>
           </div>
@@ -194,15 +194,15 @@ export function ExamCard({ exam, featured = false }: ExamCardProps) {
 
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-slate-600">
             <span className="inline-flex items-center gap-1.5">
-              <CalendarDays className="h-3.5 w-3.5 text-slate-400" />
+              <CalendarDays className="size-3.5 text-slate-400" />
               Bắt đầu: {formatDateTime(assignment.startTime)}
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <Clock3 className="h-3.5 w-3.5 text-slate-400" />
+              <Clock3 className="size-3.5 text-slate-400" />
               Hạn nộp: {formatDateTime(assignment.deadline)}
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <Layers className="h-3.5 w-3.5 text-slate-400" />
+              <Layers className="size-3.5 text-slate-400" />
               {assignment.submissionType === 'GROUP' ? 'Nhóm' : 'Cá nhân'}
             </span>
           </div>
@@ -215,22 +215,22 @@ export function ExamCard({ exam, featured = false }: ExamCardProps) {
           onClick={() => setIsDetailOpen(true)}
           className="inline-flex min-h-8 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-2xs transition-colors hover:bg-slate-50 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
         >
-          <FileText className="h-3.5 w-3.5 text-slate-500" />
+          <FileText className="size-3.5 text-slate-500" />
           <span>Xem đề bài</span>
         </button>
         <button
           type="button"
-          onClick={() => setIsDetailOpen(true)}
+          onClick={() => setIsSubmitOpen(true)}
           className="inline-flex min-h-8 items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 py-1 text-xs font-semibold text-white shadow-2xs transition-colors hover:bg-indigo-700 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
         >
-          <HardDriveUpload className="h-3.5 w-3.5" />
+          <HardDriveUpload className="size-3.5" />
           <span>Nộp bài</span>
         </button>
         <Link
           href="/student/results"
           className="inline-flex min-h-8 items-center gap-1.5 rounded-xl border border-blue-100 bg-blue-50/60 px-3 py-1 text-xs font-semibold text-blue-700 shadow-2xs transition-colors hover:bg-blue-100/80 hover:text-blue-800 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
         >
-          <FileCheck2 className="h-3.5 w-3.5" />
+          <FileCheck2 className="size-3.5" />
           <span>Xem kết quả</span>
         </Link>
       </div>

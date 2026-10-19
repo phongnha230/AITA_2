@@ -10,7 +10,7 @@ interface ProfileAvatarSectionProps {
   avatarUrl: string;
   isUploadingImage: boolean;
   isSaving: boolean;
-  fileInputRef: React.RefObject<HTMLInputElement>;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
   onSelectFile: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onRemoveAvatar: () => void;
 }
@@ -40,7 +40,7 @@ export const ProfileAvatarSection: React.FC<ProfileAvatarSectionProps> = ({
           />
           {isUploadingImage && (
             <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/60 text-white">
-              <Loader2 className="h-6 w-6 animate-spin" />
+              <Loader2 className="size-6 animate-spin" />
             </div>
           )}
         </div>
@@ -67,12 +67,12 @@ export const ProfileAvatarSection: React.FC<ProfileAvatarSectionProps> = ({
             >
               {isUploadingImage ? (
                 <>
-                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  <Loader2 className="mr-1.5 size-3.5 animate-spin" />
                   Đang tải lên Cloudinary...
                 </>
               ) : (
                 <>
-                  <UploadCloud className="mr-1.5 h-3.5 w-3.5 text-blue-600" />
+                  <UploadCloud className="mr-1.5 size-3.5 text-blue-600" />
                   Tải ảnh từ máy tính
                 </>
               )}
@@ -87,13 +87,13 @@ export const ProfileAvatarSection: React.FC<ProfileAvatarSectionProps> = ({
                 disabled={isUploadingImage || isSaving}
                 className="rounded-xl text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
               >
-                <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                <Trash2 className="mr-1.5 size-3.5" />
                 Gỡ ảnh
               </Button>
             )}
           </div>
 
-          <p className="text-[11px] text-slate-500">
+          <p className="text-xs text-slate-500">
             Hỗ trợ JPG, PNG, WEBP tối đa 10MB. Ảnh được lưu trữ và tối ưu tự động bởi Cloudinary.
           </p>
         </div>

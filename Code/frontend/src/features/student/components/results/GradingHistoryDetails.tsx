@@ -1,6 +1,7 @@
 'use client';
 
 import type { GradingRun, GradingRunStage } from '@/features/grading/types/grading-history.types';
+import Image from 'next/image';
 
 interface GradingHistoryDetailsProps {
   runs: GradingRun[];
@@ -71,7 +72,7 @@ function RubricBreakdown({ value }: { value: unknown }) {
   const items = Array.isArray(value) ? value.map(asRecord) : [];
   if (items.length === 0) return null;
   return <div className="mt-3 space-y-2">
-    {items.map((item, index) => <div key={String(item.rubricId ?? index)} className="rounded-lg border border-slate-200 bg-white p-3">
+    {items.map((item) => <div key={String(item.id ?? item.rubricId ?? item.criterionId ?? item.title ?? item.criterionName ?? JSON.stringify(item))} className="rounded-lg border border-slate-200 bg-white p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <strong className="text-sm text-slate-800">{String(item.title ?? item.criterionName ?? 'Tiêu chí rubric')}</strong>
         <span className="text-sm font-bold text-indigo-700">{formatScore(item.earnedPoints) ?? '—'} / {formatScore(item.maxPoints) ?? '—'}</span>
@@ -81,13 +82,45 @@ function RubricBreakdown({ value }: { value: unknown }) {
   </div>;
 }
 
+function AlgorithmStageDetails({ details, feedback }: { details: Record<string, unknown>; feedback: string | null }) {
+  const hasComplexity = typeof details.detectedTimeComplexity === 'string' || typeof details.detectedSpaceComplexity === 'string';
+  const hasRubrics = Array.isArray(details.rubricBreakdown) && details.rubricBreakdown.length > 0;
+  return <div className="mt-3 space-y-2">
+    {hasComplexity && <p className="text-sm text-slate-700">Độ phức tạp hệ thống nhận định: thời gian <code>{String(details.detectedTimeComplexity ?? 'chưa xác định')}</code>, bộ nhớ <code>{String(details.detectedSpaceComplexity ?? 'chưa xác định')}</code>.</p>}
+    <RubricBreakdown value={details.rubricBreakdown} />
+    {!hasRubrics && feedback && <p className="whitespace-pre-wrap text-sm text-slate-700">{feedback}</p>}
+  </div>;
+}
+
+function StageFeedback({ stage, details, feedback }: { stage: GradingRunStage; details: Record<string, unknown>; feedback: string | null }) {
+  switch (stage.stageKey) {
+    case 'TESTCASES':
+    case 'WEB_TESTCASES':
+      return <TestcaseResults stage={stage} />;
+    case 'ANSWER_COMPARISON':
+      return feedback && <div className="mt-3 rounded-lg bg-blue-50 p-3 text-sm text-blue-950"><p className="font-semibold">Nhận xét khi đối chiếu đáp án</p><p className="mt-1 whitespace-pre-wrap">{feedback}</p><p className="mt-2 text-xs text-blue-800">Đây là nhận xét tham khảo về cách tiếp cận; bài làm hợp lệ không cần viết giống đáp án mẫu.</p></div>;
+    case 'ALGORITHM':
+      return <AlgorithmStageDetails details={details} feedback={feedback} />;
+    case 'CLEAN_CODE':
+      return <div className="mt-3">{feedback && <p className="whitespace-pre-wrap text-sm text-slate-700">{feedback}</p>}<RubricBreakdown value={details.rubricBreakdown} /></div>;
+    case 'SOURCE_REVIEW':
+      return <div className="mt-3 space-y-1 text-sm text-slate-700">
+        {typeof details.repositoryUrl === 'string' && <p>GitHub: <a className="font-medium text-indigo-700 underline" href={details.repositoryUrl} target="_blank" rel="noreferrer">{details.repositoryUrl}</a></p>}
+        {typeof details.commitHash === 'string' && <p>Commit được chấm: <code>{details.commitHash}</code></p>}
+        {typeof details.deployedUrl === 'string' && <p>URL deploy: <a className="font-medium text-indigo-700 underline" href={details.deployedUrl} target="_blank" rel="noreferrer">{details.deployedUrl}</a></p>}
+        {feedback && <p className="pt-1 text-slate-600">{feedback}</p>}
+      </div>;
+    default:
+      return null;
+  }
+}
+
 function StageDetails({ stage, runId, onShowEvidence }: {
   stage: GradingRunStage;
   runId: string;
   onShowEvidence: (runId: string, evidenceId: string) => void;
 }) {
   const details = stage.detailsJson ?? {};
-  const isTestStage = stage.stageKey === 'TESTCASES' || stage.stageKey === 'WEB_TESTCASES';
   const title = stageTitles[stage.stageKey] ?? stage.stageKey;
   const score = formatScore(stage.score);
   const maxScore = formatScore(stage.maxScore);
@@ -103,34 +136,45 @@ function StageDetails({ stage, runId, onShowEvidence }: {
     </div>
 
     {stage.errorMessage && <p className="mt-2 rounded-lg bg-rose-50 p-3 text-sm text-rose-800">Chưa chấm được bước này: {stage.errorMessage}</p>}
-    {isTestStage && <TestcaseResults stage={stage} />}
-
-    {stage.stageKey === 'ANSWER_COMPARISON' && feedback && <div className="mt-3 rounded-lg bg-blue-50 p-3 text-sm text-blue-950">
-      <p className="font-semibold">Nhận xét khi đối chiếu đáp án</p>
-      <p className="mt-1 whitespace-pre-wrap">{feedback}</p>
-      <p className="mt-2 text-xs text-blue-800">Đây là nhận xét tham khảo về cách tiếp cận; bài làm hợp lệ không cần viết giống đáp án mẫu.</p>
-    </div>}
-
-    {stage.stageKey === 'ALGORITHM' && <div className="mt-3 space-y-2">
-      {(typeof details.detectedTimeComplexity === 'string' || typeof details.detectedSpaceComplexity === 'string') && <p className="text-sm text-slate-700">Độ phức tạp hệ thống nhận định: thời gian <code>{String(details.detectedTimeComplexity ?? 'chưa xác định')}</code>, bộ nhớ <code>{String(details.detectedSpaceComplexity ?? 'chưa xác định')}</code>.</p>}
-      <RubricBreakdown value={details.rubricBreakdown} />
-      {(!Array.isArray(details.rubricBreakdown) || details.rubricBreakdown.length === 0) && feedback && <p className="whitespace-pre-wrap text-sm text-slate-700">{feedback}</p>}
-    </div>}
-
-    {stage.stageKey === 'CLEAN_CODE' && <div className="mt-3">
-      {feedback && <p className="whitespace-pre-wrap text-sm text-slate-700">{feedback}</p>}
-      <RubricBreakdown value={details.rubricBreakdown} />
-    </div>}
-
-    {stage.stageKey === 'SOURCE_REVIEW' && <div className="mt-3 space-y-1 text-sm text-slate-700">
-      {typeof details.repositoryUrl === 'string' && <p>GitHub: <a className="font-medium text-indigo-700 underline" href={details.repositoryUrl} target="_blank" rel="noreferrer">{details.repositoryUrl}</a></p>}
-      {typeof details.commitHash === 'string' && <p>Commit được chấm: <code>{details.commitHash}</code></p>}
-      {typeof details.deployedUrl === 'string' && <p>URL deploy: <a className="font-medium text-indigo-700 underline" href={details.deployedUrl} target="_blank" rel="noreferrer">{details.deployedUrl}</a></p>}
-      {feedback && <p className="pt-1 text-slate-600">{feedback}</p>}
-    </div>}
+    <StageFeedback stage={stage} details={details} feedback={feedback} />
 
     {stage.evidence?.length ? <div className="mt-3 flex flex-wrap gap-2">{stage.evidence.map((evidence, index) => <button key={evidence.id} type="button" onClick={() => onShowEvidence(runId, evidence.id)} className="rounded-lg border border-indigo-200 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-50">Ảnh testcase {index + 1}</button>)}</div> : null}
   </section>;
+}
+
+function GradingRunCard({ run, onShowEvidence }: {
+  run: GradingRun;
+  onShowEvidence: GradingHistoryDetailsProps['onShowEvidence'];
+}) {
+  const summary = run.summaryJson ?? {};
+  const publishedScore = formatScore(summary.publishedFinalScore);
+  const pending = run.status !== 'PUBLISHED';
+  const failed = run.status === 'FAILED';
+  const statusLabel = run.status === 'PUBLISHED'
+    ? 'Đã công bố'
+    : run.status === 'REVIEW_PENDING'
+      ? 'Đang chờ giảng viên duyệt'
+      : run.status;
+
+  return <article className="rounded-xl border border-slate-200 p-4">
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <h3 className="font-semibold text-slate-900">Lượt chấm #{run.runNo}</h3>
+      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">{statusLabel}</span>
+    </div>
+    {pending ? <div className={`mt-3 rounded-lg p-3 text-sm ${failed ? 'bg-rose-50 text-rose-900' : 'bg-amber-50 text-amber-900'}`}>
+      {failed ? <><p className="font-semibold">Lượt này không thể chấm hoàn tất; hệ thống không tính 0 điểm.</p><ul className="mt-2 list-disc space-y-1 pl-5">{run.stages.filter((stage) => stage.errorMessage).map((stage) => <li key={stage.id}>{stageTitles[stage.stageKey] ?? stage.stageKey}: {stage.errorMessage}</li>)}</ul></> : 'Lượt chấm đang chạy hoặc điểm chưa được giảng viên duyệt. Chi tiết nội bộ và điểm đề xuất chưa được công bố.'}
+    </div> : <>
+      <div className="mt-3 rounded-xl bg-indigo-50 p-4">
+        <p className="text-sm text-indigo-900">Điểm tổng kết đã công bố</p>
+        <p className="mt-1 text-3xl font-black tabular-nums text-indigo-950">{publishedScore ?? '—'}<span className="ml-1 text-sm font-semibold">/ 10</span></p>
+        <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-indigo-950 sm:grid-cols-4">
+          {([['Testcase', summary.sandboxScore], ['Rubric', summary.aiScore], ['Thuật toán', summary.algorithmScore], ['Clean code', summary.cleanCodeScore]] as const).map(([label, value]) => <p key={label}>{label}: <strong>{formatScore(value) ?? '—'}</strong></p>)}
+        </div>
+      </div>
+      {run.stages.map((stage) => <div key={stage.id} className="mt-3"><StageDetails stage={stage} runId={run.id} onShowEvidence={onShowEvidence} /></div>)}
+      {run.reviewNote && <p className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-950"><strong>Ghi chú của giảng viên:</strong> {run.reviewNote}</p>}
+    </>}
+  </article>;
 }
 
 export function GradingHistoryDetails({ runs, onShowEvidence, evidenceUrl }: GradingHistoryDetailsProps) {
@@ -144,31 +188,7 @@ export function GradingHistoryDetails({ runs, onShowEvidence, evidenceUrl }: Gra
       <h2 className="text-base font-bold text-slate-900">Giải thích kết quả chấm</h2>
       <p className="mt-1 text-sm text-slate-500">Mỗi lượt chấm giữ bằng chứng và nhận xét theo đúng phiên bản đề đã sử dụng.</p>
     </div>
-    {runs.map((run) => {
-      const summary = run.summaryJson ?? {};
-      const publishedScore = formatScore(summary.publishedFinalScore);
-      const pending = run.status !== 'PUBLISHED';
-      const failed = run.status === 'FAILED';
-      return <article key={run.id} className="rounded-xl border border-slate-200 p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="font-semibold text-slate-900">Lượt chấm #{run.runNo}</h3>
-          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">{run.status === 'PUBLISHED' ? 'Đã công bố' : run.status === 'REVIEW_PENDING' ? 'Đang chờ giảng viên duyệt' : run.status}</span>
-        </div>
-        {pending ? <div className={`mt-3 rounded-lg p-3 text-sm ${failed ? 'bg-rose-50 text-rose-900' : 'bg-amber-50 text-amber-900'}`}>
-          {failed ? <><p className="font-semibold">Lượt này không thể chấm hoàn tất; hệ thống không tính 0 điểm.</p><ul className="mt-2 list-disc space-y-1 pl-5">{run.stages.filter((stage) => stage.errorMessage).map((stage) => <li key={stage.id}>{stageTitles[stage.stageKey] ?? stage.stageKey}: {stage.errorMessage}</li>)}</ul></> : 'Lượt chấm đang chạy hoặc điểm chưa được giảng viên duyệt. Chi tiết nội bộ và điểm đề xuất chưa được công bố.'}
-        </div> : <>
-          <div className="mt-3 rounded-xl bg-indigo-50 p-4">
-            <p className="text-sm text-indigo-900">Điểm tổng kết đã công bố</p>
-            <p className="mt-1 text-3xl font-black tabular-nums text-indigo-950">{publishedScore ?? '—'}<span className="ml-1 text-sm font-semibold">/ 10</span></p>
-            <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-indigo-950 sm:grid-cols-4">
-              {([['Testcase', summary.sandboxScore], ['Rubric', summary.aiScore], ['Thuật toán', summary.algorithmScore], ['Clean code', summary.cleanCodeScore]] as const).map(([label, value]) => <p key={label}>{label}: <strong>{formatScore(value) ?? '—'}</strong></p>)}
-            </div>
-          </div>
-          {run.stages.map((stage) => <div key={stage.id} className="mt-3"><StageDetails stage={stage} runId={run.id} onShowEvidence={onShowEvidence} /></div>)}
-          {run.reviewNote && <p className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-950"><strong>Ghi chú của giảng viên:</strong> {run.reviewNote}</p>}
-        </>}
-      </article>;
-    })}
-    {evidenceUrl && <div className="rounded-xl border border-slate-200 bg-slate-50 p-3"><img src={evidenceUrl} alt="Ảnh chụp bằng chứng chạy testcase" className="max-h-[70vh] rounded-lg" /></div>}
+    {runs.map((run) => <GradingRunCard key={run.id} run={run} onShowEvidence={onShowEvidence} />)}
+    {evidenceUrl && <div className="bg-slate-50 p-3"><Image src={evidenceUrl} alt="Ảnh chụp bằng chứng chạy testcase" width={960} height={640} unoptimized className="max-h-[70vh] w-auto rounded-lg" /></div>}
   </section>;
 }

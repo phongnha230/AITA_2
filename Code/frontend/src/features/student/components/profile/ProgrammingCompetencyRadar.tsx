@@ -101,7 +101,7 @@ export function ProgrammingCompetencyRadar({
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-base font-bold text-slate-900 sm:text-lg">Năng lực lập trình</h2>
-            <span className="rounded-md border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-700">
+            <span className="rounded-md border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-blue-700">
               Socratic AI
             </span>
           </div>
@@ -109,8 +109,8 @@ export function ProgrammingCompetencyRadar({
             Phân tích năng lực tổng hợp từ kết quả đánh giá thực tế các bài thi PE.
           </p>
         </div>
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700 ring-1 ring-blue-100">
-          <Activity className="h-4 w-4" />
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700 ring-1 ring-blue-100">
+          <Activity className="size-4" />
         </div>
       </div>
 
@@ -182,7 +182,7 @@ export function ProgrammingCompetencyRadar({
               y={axis.ly}
               textAnchor={axis.textAnchor}
               dominantBaseline="central"
-              className="text-[10px] font-semibold fill-slate-600 sm:text-[11px]"
+              className="text-xs font-semibold fill-slate-600 sm:text-xs"
             >
               {axis.cat.shortLabel || axis.cat.label}
             </text>
@@ -191,11 +191,11 @@ export function ProgrammingCompetencyRadar({
 
         {/* Empty state overlay when no real competency data exists */}
         {!hasRealData && (
-          <div className="mt-2 w-full rounded-xl border border-slate-200/80 bg-slate-50/90 p-4 text-center">
+          <div className="mt-2 w-full bg-slate-50/90 p-4 text-center">
             <p className="text-xs font-bold text-slate-800">
               Chưa đủ dữ liệu đánh giá để tổng hợp năng lực.
             </p>
-            <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
+            <p className="mt-1 text-xs leading-relaxed text-slate-500">
               Kết quả năng lực sẽ được tổng hợp khi có đủ dữ liệu đánh giá từ các bài thi PE đã hoàn thành.
             </p>
             <div className="sr-only">
@@ -233,12 +233,12 @@ export function ProgrammingCompetencyRadar({
       </div>
 
       {/* Socratic AI Note */}
-      <div className="mt-5 rounded-xl border border-blue-100 bg-blue-50/50 p-3.5 text-xs text-blue-900">
+      <div className="mt-5 bg-blue-50/50 p-3.5 text-xs text-blue-900">
         <div className="flex items-start gap-2">
-          <Bot className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
+          <Bot className="mt-0.5 size-4 shrink-0 text-blue-600" />
           <div className="min-w-0 flex-1 leading-relaxed">
             <p className="font-semibold text-blue-900">Cơ chế đánh giá Rubric:</p>
-            <p className="mt-0.5 text-[11px] text-slate-600">
+            <p className="mt-0.5 text-xs text-slate-600">
               Biểu đồ phân tích đa chiều kết hợp giữa kết quả kiểm thử tự động Docker Sandbox và đánh giá phong cách lập trình từ mô hình Socratic AI.
             </p>
           </div>

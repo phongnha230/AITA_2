@@ -131,8 +131,8 @@ export function ProfileExamHistory({ submissions = [], loading = false }: Profil
               Kết quả đối chiếu tự động Docker Sandbox và đánh giá Socratic AI.
             </p>
           </div>
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700 ring-1 ring-blue-100">
-            <History className="h-4.5 w-4.5" />
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700 ring-1 ring-blue-100">
+            <History className="size-4.5" />
           </span>
         </div>
 
@@ -156,7 +156,7 @@ export function ProfileExamHistory({ submissions = [], loading = false }: Profil
                   >
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="rounded-md bg-blue-50 px-2 py-0.5 text-[11px] font-bold text-blue-700">
+                        <span className="rounded-md bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-700">
                           {sub.courseCode}
                         </span>
                         <h3 className="truncate text-sm font-semibold text-slate-900">
@@ -173,7 +173,7 @@ export function ProfileExamHistory({ submissions = [], loading = false }: Profil
                         <div className="text-sm font-extrabold text-blue-600">
                           {sub.finalScore !== null ? `${sub.finalScore.toFixed(1)} / 10` : '--'}
                         </div>
-                        <span className={`inline-block text-[11px] font-medium ${badge.className}`}>
+                        <span className={`inline-block text-xs font-medium ${badge.className}`}>
                           {badge.text}
                         </span>
                       </div>
@@ -183,7 +183,7 @@ export function ProfileExamHistory({ submissions = [], loading = false }: Profil
                         className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-blue-600"
                         title="Xem chi tiết bài thi"
                       >
-                        <ExternalLink className="h-4 w-4" />
+                        <ExternalLink className="size-4" />
                       </Link>
                     </div>
                   </div>
@@ -200,9 +200,9 @@ export function ProfileExamHistory({ submissions = [], loading = false }: Profil
               action={
                 <Link
                   href="/student/exams"
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
                 >
-                  <Sparkles className="h-4 w-4" />
+                  <Sparkles className="size-4" />
                   <span>Xem danh sách bài thi PE</span>
                 </Link>
               }

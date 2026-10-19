@@ -1,5 +1,6 @@
 import axios from 'axios';
 import api from '@/lib/api';
+import { getErrorMessage } from '@/lib/errors';
 import type {
   CourseJoinResult,
   GradingJobInfo,
@@ -18,10 +19,6 @@ interface ApiResponse<T> {
   success: boolean;
   message?: string;
   data?: T | null;
-}
-
-interface ApiErrorResponse {
-  message?: string;
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -249,10 +246,5 @@ export const studentService = {
 };
 
 export function getStudentServiceErrorMessage(error: unknown, fallback: string): string {
-  if (axios.isAxiosError<ApiErrorResponse>(error)) {
-    const message = error.response?.data?.message;
-    if (typeof message === 'string' && message.trim()) return message;
-  }
-
-  return fallback;
+  return axios.isAxiosError(error) ? getErrorMessage(error, fallback) : fallback;
 }

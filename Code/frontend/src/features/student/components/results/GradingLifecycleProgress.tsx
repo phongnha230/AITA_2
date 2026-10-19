@@ -120,16 +120,16 @@ export function GradingLifecycleProgress({
           <div className="flex items-center gap-2">
             <h2 className="text-base font-bold text-slate-900 sm:text-lg">Tiến trình chấm điểm tự động</h2>
             {isStreaming ? (
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-[11px] font-semibold text-indigo-700 animate-in fade-in">
-                <span className="relative flex h-2 w-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700 animate-in fade-in">
+                <span className="relative flex size-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-600"></span>
+                  <span className="relative inline-flex rounded-full size-2 bg-indigo-600"></span>
                 </span>
                 <span>SSE Stream: Đang chấm trực tiếp</span>
               </span>
             ) : isPolling ? (
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-[11px] font-semibold text-blue-700">
-                <Loader2 className="h-3 w-3 animate-spin text-blue-600" />
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
+                <Loader2 className="size-3 animate-spin text-blue-600" />
                 <span>Đang chấm theo thời gian thực</span>
               </span>
             ) : null}
@@ -185,9 +185,9 @@ export function GradingLifecycleProgress({
 
       {/* Error Details if Failed */}
       {isFailed && gradingJob?.systemLogs && (
-        <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-3.5 text-xs text-rose-800">
+        <div className="mt-4 bg-rose-50 p-3.5 text-xs text-rose-800">
           <p className="font-bold">Lỗi trong quá trình chấm:</p>
-          <pre className="mt-1 whitespace-pre-wrap font-mono text-[11px] text-rose-900">
+          <pre className="mt-1 whitespace-pre-wrap font-mono text-xs text-rose-900">
             {gradingJob.systemLogs}
           </pre>
         </div>

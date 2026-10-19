@@ -23,8 +23,8 @@ function getInitials(fullName: string): string {
 export function StudentAvatar({ fullName, avatarUrl, size = 'header' }: StudentAvatarProps) {
   const [imageFailed, setImageFailed] = useState(false);
   const dimension = size === 'profile'
-    ? 'h-20 w-20 text-2xl font-bold rounded-2xl bg-blue-600 text-white shadow-sm ring-4 ring-blue-50/80'
-    : 'h-9 w-9 text-xs font-semibold rounded-full bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-100';
+    ? 'size-20 text-2xl font-bold rounded-2xl bg-blue-600 text-white shadow-sm ring-4 ring-blue-50/80'
+    : 'size-9 text-xs font-semibold rounded-full bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-100';
   const name = fullName?.trim() ?? '';
 
   return (
@@ -46,7 +46,7 @@ export function StudentAvatar({ fullName, avatarUrl, size = 'header' }: StudentA
       ) : name ? (
         getInitials(name)
       ) : (
-        <span aria-hidden="true" className="h-2 w-2 rounded-full bg-slate-400" />
+        <span aria-hidden="true" className="size-2 rounded-full bg-slate-400" />
       )}
     </span>
   );

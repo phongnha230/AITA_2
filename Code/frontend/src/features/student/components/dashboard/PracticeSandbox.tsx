@@ -62,14 +62,14 @@ const SandboxInfoList: React.FC<{
       <div className="flex items-center justify-between text-slate-600">
         <dt className="text-slate-500">Chromium sandbox React/Web:</dt>
         <dd className={`flex items-center gap-1 font-bold ${playwrightSandboxAvailable ? 'text-emerald-700' : 'text-rose-700'}`}>
-          {playwrightSandboxAvailable ? <CheckCircle2 className="h-3.5 w-3.5" /> : null}
+          {playwrightSandboxAvailable ? <CheckCircle2 className="size-3.5" /> : null}
           {playwrightSandboxAvailable ? 'Sẵn sàng' : 'Chưa sẵn sàng'}
         </dd>
       </div>
       <div className="flex items-center justify-between text-slate-600">
         <dt className="text-slate-500">Docker Daemon:</dt>
         <dd className={`flex items-center gap-1 font-bold ${dockerAvailable ? 'text-emerald-700' : 'text-rose-700'}`}>
-          {dockerAvailable ? <CheckCircle2 className="h-3.5 w-3.5" /> : null}
+          {dockerAvailable ? <CheckCircle2 className="size-3.5" /> : null}
           {dockerAvailable ? 'Sẵn sàng' : 'Chưa sẵn sàng'}
         </dd>
       </div>
@@ -86,12 +86,12 @@ export function PracticeSandbox({ state, onRetry }: PracticeSandboxProps) {
       className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-elevated"
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 ring-1 ring-slate-200/80">
-          <TerminalSquare aria-hidden="true" className="h-5 w-5" />
+        <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 ring-1 ring-slate-200/80">
+          <TerminalSquare aria-hidden="true" className="size-5" />
         </div>
         <div className="flex items-center gap-2">
           <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${badgeClass}`}>
-            <span className={`h-2 w-2 rounded-full ${dotClass}`} />
+            <span className={`size-2 rounded-full ${dotClass}`} />
             {label}
           </span>
           {(state.status === 'error' || (state.status === 'success' && !state.data?.dockerAvailable)) && (
@@ -99,9 +99,9 @@ export function PracticeSandbox({ state, onRetry }: PracticeSandboxProps) {
               type="button"
               onClick={onRetry}
               aria-label="Kiểm tra lại trạng thái Sandbox"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+              className="inline-flex size-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
             >
-              <RefreshCw aria-hidden="true" className="h-4 w-4" />
+              <RefreshCw aria-hidden="true" className="size-4" />
             </button>
           )}
         </div>
@@ -138,11 +138,11 @@ export function PracticeSandbox({ state, onRetry }: PracticeSandboxProps) {
       <div className="mt-5 border-t border-slate-100 pt-4">
         <Link
           href="/student/exams"
-          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50/70 px-4 text-xs font-bold text-slate-700 shadow-2xs transition-colors duration-150 hover:-translate-y-0.5 hover:bg-slate-100 hover:shadow-elevated-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50/70 px-4 text-xs font-bold text-slate-700 shadow-2xs transition-colors duration-150 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
         >
-          <Cpu aria-hidden="true" className="h-4 w-4 text-blue-600" />
+          <Cpu aria-hidden="true" className="size-4 text-blue-600" />
           <span>Xem bài tập & bài thi</span>
-          <ArrowRight aria-hidden="true" className="ml-auto h-3.5 w-3.5 text-slate-400" />
+          <ArrowRight aria-hidden="true" className="ml-auto size-3.5 text-slate-400" />
         </Link>
       </div>
     </section>

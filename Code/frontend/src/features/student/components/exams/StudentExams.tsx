@@ -53,9 +53,9 @@ export function StudentExams() {
             onClick={exams.refresh}
             disabled={refreshBusy}
             aria-label="Làm mới danh sách bài thi"
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition-colors duration-200 hover:bg-slate-50 hover:shadow hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:cursor-wait disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-sm"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition-colors duration-200 hover:bg-slate-50 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:cursor-wait disabled:opacity-60 disabled:hover:translate-y-0 disabled:"
           >
-            <RefreshCw aria-hidden="true" className={`h-4 w-4 ${refreshBusy ? 'animate-spin' : ''}`} />
+            <RefreshCw aria-hidden="true" className={`size-4 ${refreshBusy ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">Làm mới</span>
           </button>
         }
@@ -64,7 +64,7 @@ export function StudentExams() {
       {errorMessage && (
         <div role="alert" className="flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 shadow-elevated-sm sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-2 text-sm text-amber-900">
-            <AlertCircle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
+            <AlertCircle aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
             <p>{errorMessage}</p>
           </div>
           <button

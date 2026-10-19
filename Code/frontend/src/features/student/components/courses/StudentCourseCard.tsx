@@ -42,13 +42,13 @@ export const StudentCourseCard: React.FC<StudentCourseCardProps> = ({
 
           <div className="flex items-center gap-1.5">
             {isEnrolled ? (
-              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700">
-                <CheckCircle2 className="h-3 w-3" />
+              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700">
+                <CheckCircle2 className="size-3" />
                 <span>Đã tham gia</span>
               </span>
             ) : (
               <span
-                className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                   course.isActive
                     ? 'border border-slate-200 bg-slate-50 text-slate-600'
                     : 'border border-amber-200 bg-amber-50 text-amber-700'
@@ -68,15 +68,15 @@ export const StudentCourseCard: React.FC<StudentCourseCardProps> = ({
         {/* Giảng viên phụ trách */}
         <div className="mt-3 rounded-xl border border-slate-100 bg-slate-50/70 p-3 text-xs">
           <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 ring-1 ring-indigo-100">
-              <User className="h-4 w-4" />
+            <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 ring-1 ring-indigo-100">
+              <User className="size-4" />
             </span>
             <div className="min-w-0 flex-1">
               <p className="font-semibold text-slate-800 truncate">
                 {course.lecturer?.fullName || 'Giảng viên khoa CNTT'}
               </p>
               {course.lecturer?.email && (
-                <p className="text-[11px] text-slate-500 truncate">
+                <p className="text-xs text-slate-500 truncate">
                   {course.lecturer.email}
                 </p>
               )}
@@ -85,19 +85,19 @@ export const StudentCourseCard: React.FC<StudentCourseCardProps> = ({
         </div>
 
         {/* Meta Chips */}
-        <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
           <span className="rounded-md bg-slate-100 px-2 py-0.5 font-medium text-slate-700">
             Học kỳ: {course.semester}
           </span>
           {typeof course.enrollmentCount === 'number' && (
             <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-slate-600">
-              <Users className="h-3 w-3" />
+              <Users className="size-3" />
               <span>{course.enrollmentCount} SV</span>
             </span>
           )}
           {typeof course.assignmentCount === 'number' && (
             <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-slate-600">
-              <FileCode2 className="h-3 w-3" />
+              <FileCode2 className="size-3" />
               <span>{course.assignmentCount} bài thi</span>
             </span>
           )}
@@ -108,8 +108,8 @@ export const StudentCourseCard: React.FC<StudentCourseCardProps> = ({
       <div className="mt-5 border-t border-slate-100 pt-3.5">
         {isEnrolled ? (
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-medium text-emerald-700 inline-flex items-center gap-1">
-              <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
+            <span className="text-xs font-medium text-emerald-700 inline-flex items-center gap-1">
+              <Sparkles className="size-3.5 text-emerald-600" />
               Đã sẵn sàng thi
             </span>
             <Button
@@ -120,7 +120,7 @@ export const StudentCourseCard: React.FC<StudentCourseCardProps> = ({
             >
               <Link href="/student/exams">
                 <span>Xem bài thi</span>
-                <ArrowRight className="ml-1 h-3 w-3" />
+                <ArrowRight className="ml-1 size-3" />
               </Link>
             </Button>
           </div>
@@ -133,7 +133,7 @@ export const StudentCourseCard: React.FC<StudentCourseCardProps> = ({
             }}
             className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-3 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-blue-700 hover:shadow-sm active:translate-y-0"
           >
-            <KeyRound className="h-3.5 w-3.5" />
+            <KeyRound className="size-3.5" />
             <span>Tham gia lớp học này</span>
           </button>
         )}

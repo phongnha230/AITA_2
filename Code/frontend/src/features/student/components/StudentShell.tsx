@@ -53,7 +53,7 @@ function StudentShellContent({ children }: StudentShellProps) {
 
   return (
     <div
-      className="min-h-screen bg-[#F6F8FC] lg:pl-[264px]"
+      className="min-h-dvh bg-[#F6F8FC] lg:pl-[264px]"
       style={{ fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif' }}
     >
       <StudentSidebar />
@@ -70,7 +70,7 @@ function StudentShellContent({ children }: StudentShellProps) {
         </>
       )}
 
-      <div className="min-h-screen min-w-0">
+      <div className="min-h-dvh min-w-0">
         <StudentHeader
           user={profile}
           isLoading={profileStatus === 'loading'}

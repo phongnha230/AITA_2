@@ -18,19 +18,19 @@ export function ExamEnvironmentSummary({ exams, available }: ExamEnvironmentSumm
       </div>
       {available ? (
         <dl className="mt-4 space-y-3">
-          <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/80 p-3.5 shadow-2xs">
+          <div className="flex items-center justify-between gap-3 bg-slate-50/80 p-3.5">
             <dt className="flex items-center gap-2.5 text-xs font-semibold text-slate-700">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
-                <Code2 aria-hidden="true" className="h-4 w-4" />
+              <div className="flex size-8 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
+                <Code2 aria-hidden="true" className="size-4" />
               </div>
               <span>C / GCC 11 (Linux)</span>
             </dt>
             <dd className="text-sm font-bold tabular-nums text-slate-900">{gccCount}</dd>
           </div>
-          <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/80 p-3.5 shadow-2xs">
+          <div className="flex items-center justify-between gap-3 bg-slate-50/80 p-3.5">
             <dt className="flex items-center gap-2.5 text-xs font-semibold text-slate-700">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700">
-                <Cpu aria-hidden="true" className="h-4 w-4" />
+              <div className="flex size-8 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700">
+                <Cpu aria-hidden="true" className="size-4" />
               </div>
               <span>Java 17 / OpenJDK</span>
             </dt>

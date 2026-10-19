@@ -6,6 +6,7 @@ import {
   UserRound,
   type LucideIcon,
 } from 'lucide-react';
+import { ROUTES } from '@/config/routes';
 
 export interface StudentNavItem {
   href: string;
@@ -15,27 +16,27 @@ export interface StudentNavItem {
 
 export const STUDENT_NAV_ITEMS = [
   {
-    href: '/student/dashboard',
+    href: ROUTES.STUDENT.DASHBOARD,
     label: 'Tổng quan & Lớp học',
     icon: LayoutDashboard,
   },
   {
-    href: '/student/courses',
+    href: ROUTES.STUDENT.COURSES,
     label: 'Khám phá lớp học',
     icon: GraduationCap,
   },
   {
-    href: '/student/exams',
+    href: ROUTES.STUDENT.EXAMS,
     label: 'Bài thi PE của tôi',
     icon: FileCode2,
   },
   {
-    href: '/student/results',
+    href: ROUTES.STUDENT.RESULTS,
     label: 'Kết quả & Đánh giá AI',
     icon: Sparkles,
   },
   {
-    href: '/student/profile',
+    href: ROUTES.STUDENT.PROFILE,
     label: 'Hồ sơ cá nhân',
     icon: UserRound,
   },

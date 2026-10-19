@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState, type FormEvent } from 'react';
+import { Suspense, useEffect, useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -21,6 +21,49 @@ import { RecentSubmissionsList } from './RecentSubmissionsList';
 import { studentService } from '../../services/student.service';
 import type { GradingRun } from '@/features/grading/types/grading-history.types';
 import { GradingHistoryDetails } from './GradingHistoryDetails';
+import type { StudentSubmissionDetail } from '../../types/student.types';
+
+function SubmissionMetadata({ submission }: { submission: StudentSubmissionDetail }) {
+  if (!submission.attemptNo && !submission.deployedUrl && !submission.gitCommitHash) return null;
+  return <section className="rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-600 shadow-elevated-sm">
+    <div className="flex flex-wrap gap-x-6 gap-y-2">
+      <span>Attempt: <strong>#{submission.attemptNo ?? 1}</strong></span>
+      {submission.gitCommitHash && <span>Commit: <code className="font-mono text-indigo-700">{submission.gitCommitHash}</code></span>}
+      {submission.deployedUrl && <a className="font-semibold text-indigo-600 hover:underline" href={submission.deployedUrl} target="_blank" rel="noreferrer">Mở website đã chấm</a>}
+    </div>
+    {submission.gitContributors && submission.gitContributors.length > 0 && <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      {submission.gitContributors.map((contributor) => <div key={contributor.id} className="bg-slate-50 p-2.5">
+        <p className="font-bold text-slate-800">{contributor.authorName} {!contributor.matchedUserId && <span className="text-amber-600">(chưa match)</span>}</p>
+        <p>{contributor.contributionPct}% · {contributor.commitCount} commits · +{contributor.linesAdded}/-{contributor.linesDeleted}</p>
+      </div>)}
+    </div>}
+  </section>;
+}
+
+function SubmissionResultDetails({ submission, gradingJob, isPolling, isStreaming, gradingHistory, historyError, evidenceUrl, onShowEvidence }: {
+  submission: StudentSubmissionDetail;
+  gradingJob: ReturnType<typeof useStudentSubmission>['gradingJob'];
+  isPolling: boolean;
+  isStreaming: boolean;
+  gradingHistory: GradingRun[];
+  historyError: string | null;
+  evidenceUrl: string | null;
+  onShowEvidence: (runId: string, evidenceId: string) => void;
+}) {
+  return <div className="space-y-6">
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white px-5 py-3.5 text-xs shadow-elevated-sm text-slate-600">
+      <div className="flex flex-wrap items-center gap-2.5"><span className="font-bold text-slate-900 sm:text-sm">{submission.assignment?.title || 'Bài thi PE'}</span><span className="text-slate-300">•</span><span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 font-mono text-slate-600">ID: {submission.id}</span></div>
+      <span className="font-medium text-slate-500">Phương thức nộp: <strong className="text-slate-700">{submission.submissionChannel}</strong></span>
+    </div>
+    <SubmissionMetadata submission={submission} />
+    {submission.status === 'REVIEW_PENDING' && <div role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Hệ thống đã chấm xong và đang chờ giảng viên xem xét, công bố điểm. Điểm đề xuất và testcase ẩn sẽ chưa hiển thị trong thời gian này.</div>}
+    <GradingLifecycleProgress gradingJob={gradingJob} submissionStatus={submission.status} isPolling={isPolling} isStreaming={isStreaming} />
+    <SubmissionScoreOverview submission={submission} />
+    <TestCaseResultsList testResults={submission.testResults ?? []} />
+    {historyError && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{historyError}</p>}
+    <GradingHistoryDetails runs={gradingHistory} onShowEvidence={onShowEvidence} evidenceUrl={evidenceUrl} />
+  </div>;
+}
 
 function StudentResultsContent() {
   const router = useRouter();
@@ -31,6 +74,7 @@ function StudentResultsContent() {
   const [gradingHistory, setGradingHistory] = useState<GradingRun[]>([]);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [evidenceUrl, setEvidenceUrl] = useState<string | null>(null);
+  const mountedRef = useRef(true);
   const { submission, gradingJob, isPolling, isStreaming, refetch } = useStudentSubmission(currentSubmissionId);
 
   const handleLookup = (e: FormEvent) => {
@@ -55,11 +99,28 @@ function StudentResultsContent() {
     return () => { cancelled = true; };
   }, [currentSubmissionId]);
 
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!evidenceUrl) return;
+    return () => URL.revokeObjectURL(evidenceUrl);
+  }, [evidenceUrl]);
+
   const showEvidence = async (runId: string, evidenceId: string) => {
     if (!currentSubmissionId) return;
     try {
       const blob = await studentService.getGradingEvidence(currentSubmissionId, runId, evidenceId);
-      setEvidenceUrl((current) => { if (current) URL.revokeObjectURL(current); return URL.createObjectURL(blob); });
+      const nextUrl = URL.createObjectURL(blob);
+      if (!mountedRef.current) {
+        URL.revokeObjectURL(nextUrl);
+        return;
+      }
+      setEvidenceUrl(nextUrl);
     } catch (error) {
       setHistoryError(error instanceof Error ? error.message : 'Không mở được ảnh bằng chứng.');
     }
@@ -78,9 +139,9 @@ function StudentResultsContent() {
               onClick={refetch}
               disabled={submission.status === 'loading'}
               aria-label="Làm mới kết quả bài nộp"
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition-colors duration-200 hover:bg-slate-50 hover:shadow hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:opacity-60 disabled:hover:translate-y-0"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition-colors duration-200 hover:bg-slate-50 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:opacity-60 disabled:hover:translate-y-0"
             >
-              <RefreshCw aria-hidden="true" className={`h-4 w-4 ${submission.status === 'loading' ? 'animate-spin' : ''}`} />
+              <RefreshCw aria-hidden="true" className={`size-4 ${submission.status === 'loading' ? 'animate-spin' : ''}`} />
               <span>Làm mới</span>
             </button>
           ) : undefined
@@ -91,22 +152,22 @@ function StudentResultsContent() {
       <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-elevated">
         <form onSubmit={handleLookup} className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative min-w-0 flex-1">
-            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Search className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               aria-label="Mã bài nộp (Submission ID)"
               value={inputVal}
               onChange={(e) => setInputVal(e.target.value)}
               placeholder="Nhập mã bài nộp (Submission ID)..."
-              className="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-11 pr-4 font-mono text-xs text-slate-900 shadow-inner outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100 sm:text-sm"
+              className="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-11 pr-4 font-mono text-base text-slate-900 shadow-inner outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100 sm:text-base"
             />
           </div>
           <button
             type="submit"
             disabled={!inputVal.trim()}
-            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-sm"
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:"
           >
-            <FileSearch className="h-4.5 w-4.5" />
+            <FileSearch className="size-4.5" />
             <span>Tra cứu kết quả</span>
           </button>
         </form>
@@ -116,7 +177,7 @@ function StudentResultsContent() {
       {submission.status === 'error' && (
         <div role="alert" className="flex flex-col gap-3 rounded-2xl border border-rose-200 bg-rose-50/80 p-4 shadow-elevated-sm sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-2.5 text-xs sm:text-sm text-rose-900">
-            <AlertCircle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
+            <AlertCircle aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
             <p>{submission.error || 'Không tìm thấy thông tin bài nộp.'}</p>
           </div>
           <button
@@ -143,65 +204,16 @@ function StudentResultsContent() {
       )}
 
       {/* Loaded Submission Details */}
-      {submission.status === 'success' && hasSubmission && submission.data && (
-        <div className="space-y-6">
-          {/* Submission Info Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white px-5 py-3.5 text-xs shadow-elevated-sm text-slate-600">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className="font-bold text-slate-900 sm:text-sm">
-                {submission.data.assignment?.title || 'Bài thi PE'}
-              </span>
-              <span className="text-slate-300">•</span>
-              <span className="font-mono text-slate-600 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-200">ID: {submission.data.id}</span>
-            </div>
-            <div className="flex items-center gap-2 text-slate-500 font-medium">
-              <span>Phương thức nộp: <strong className="text-slate-700">{submission.data.submissionChannel}</strong></span>
-            </div>
-          </div>
-
-          {(submission.data.attemptNo || submission.data.deployedUrl || submission.data.gitCommitHash) && (
-            <section className="rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-600 shadow-elevated-sm">
-              <div className="flex flex-wrap gap-x-6 gap-y-2">
-                <span>Attempt: <strong>#{submission.data.attemptNo ?? 1}</strong></span>
-                {submission.data.gitCommitHash && <span>Commit: <code className="font-mono text-indigo-700">{submission.data.gitCommitHash}</code></span>}
-                {submission.data.deployedUrl && <a className="font-semibold text-indigo-600 hover:underline" href={submission.data.deployedUrl} target="_blank" rel="noreferrer">Mở website đã chấm</a>}
-              </div>
-              {submission.data.gitContributors && submission.data.gitContributors.length > 0 && (
-                <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  {submission.data.gitContributors.map((contributor) => (
-                    <div key={contributor.id} className="rounded-xl border border-slate-100 bg-slate-50 p-2.5">
-                      <p className="font-bold text-slate-800">{contributor.authorName} {!contributor.matchedUserId && <span className="text-amber-600">(chưa match)</span>}</p>
-                      <p>{contributor.contributionPct}% · {contributor.commitCount} commits · +{contributor.linesAdded}/-{contributor.linesDeleted}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
-          )}
-
-          {submission.data.status === 'REVIEW_PENDING' && <div role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-            Hệ thống đã chấm xong và đang chờ giảng viên xem xét, công bố điểm. Điểm đề xuất và testcase ẩn sẽ chưa hiển thị trong thời gian này.
-          </div>}
-
-          {/* 1. Real Grading Lifecycle Progress */}
-          <GradingLifecycleProgress
-            gradingJob={gradingJob}
-            submissionStatus={submission.data.status}
-            isPolling={isPolling}
-            isStreaming={isStreaming}
-          />
-
-
-          {/* 2. Score Overview */}
-          <SubmissionScoreOverview submission={submission.data} />
-
-          {/* 3. Detailed Testcases */}
-          <TestCaseResultsList testResults={submission.data.testResults ?? []} />
-
-          {historyError && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{historyError}</p>}
-          <GradingHistoryDetails runs={gradingHistory} onShowEvidence={showEvidence} evidenceUrl={evidenceUrl} />
-        </div>
-      )}
+      {submission.status === 'success' && hasSubmission && submission.data && <SubmissionResultDetails
+        submission={submission.data}
+        gradingJob={gradingJob}
+        isPolling={isPolling}
+        isStreaming={isStreaming}
+        gradingHistory={gradingHistory}
+        historyError={historyError}
+        evidenceUrl={evidenceUrl}
+        onShowEvidence={showEvidence}
+      />}
 
       {/* Submissions List & Empty State when no submissionId is selected */}
       {submission.status === 'success' && !currentSubmissionId && (
@@ -221,10 +233,10 @@ function StudentResultsContent() {
               action={
                 <Link
                   href="/student/exams"
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
                 >
                   <span>Xem danh sách bài thi PE</span>
-                  <ArrowRight className="h-4 w-4" />
+                  <ArrowRight className="size-4" />
                 </Link>
               }
             />

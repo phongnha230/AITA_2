@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { uploadService } from '@/lib/upload.service';
+import { getErrorMessage } from '@/lib/errors';
 import { ProfileAvatarSection } from './ProfileAvatarSection';
 import { ProfileFormFields } from './ProfileFormFields';
 
@@ -59,9 +60,9 @@ export function ProfileEditModal({ open, profile, onClose, onSave }: ProfileEdit
       setError(null);
       const result = await uploadService.uploadAvatar(file);
       setAvatarUrl(result.avatarUrl);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Lỗi upload avatar lên Cloudinary:', err);
-      setError(err.response?.data?.message || err.message || 'Không thể tải ảnh lên Cloudinary. Vui lòng thử lại.');
+      setError(getErrorMessage(err, 'Không thể tải ảnh lên Cloudinary. Vui lòng thử lại.'));
     } finally {
       setIsUploadingImage(false);
       if (event.target) event.target.value = '';
@@ -183,7 +184,7 @@ export function ProfileEditModal({ open, profile, onClose, onSave }: ProfileEdit
 
           {saved && (
             <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-700">
-              <CheckCircle2 className="h-4 w-4" />
+              <CheckCircle2 className="size-4" />
               <span>Hồ sơ đã được cập nhật thành công!</span>
             </div>
           )}
@@ -205,12 +206,12 @@ export function ProfileEditModal({ open, profile, onClose, onSave }: ProfileEdit
             >
               {isSaving ? (
                 <>
-                  <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                  <LoaderCircle className="mr-2 size-4 animate-spin" />
                   Đang lưu...
                 </>
               ) : (
                 <>
-                  <Sparkles className="mr-1.5 h-4 w-4" />
+                  <Sparkles className="mr-1.5 size-4" />
                   Lưu thay đổi
                 </>
               )}

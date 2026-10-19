@@ -26,7 +26,7 @@ export const SubmitExamGitChannel: React.FC<SubmitExamGitChannelProps> = ({
           Đường dẫn GitHub Repository <span className="text-rose-500">*</span>
         </label>
         <div className="relative">
-          <Globe className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+          <Globe className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-slate-400" />
           <Input
             id="git-repo-url"
             placeholder="https://github.com/username/project-repo"
@@ -44,7 +44,7 @@ export const SubmitExamGitChannel: React.FC<SubmitExamGitChannelProps> = ({
           Commit Hash (Tùy chọn)
         </label>
         <div className="relative">
-          <GitCommit className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+          <GitCommit className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-slate-400" />
           <Input
             id="git-commit-hash"
             placeholder="VD: 7f8a9b2 (Để trống để lấy commit mới nhất)"
@@ -57,7 +57,7 @@ export const SubmitExamGitChannel: React.FC<SubmitExamGitChannelProps> = ({
         </div>
       </div>
 
-      <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-2.5 text-[11px] text-amber-900 flex items-start gap-2">
+      <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-2.5 text-xs text-amber-900 flex items-start gap-2">
         <Info size={14} className="shrink-0 text-amber-600 mt-0.5" />
         <span>
           Đảm bảo Repository đang ở chế độ <strong>Public</strong> để Sandbox có thể clone mã nguồn và chấm tự động.

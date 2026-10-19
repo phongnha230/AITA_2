@@ -47,7 +47,7 @@ export function ExamFilterToolbar({
           >
             {label}
             <span
-              className={`rounded-md px-1.5 py-0.5 text-[11px] font-bold tabular-nums ${
+              className={`rounded-md px-1.5 py-0.5 text-xs font-bold tabular-nums ${
                 filter === key ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
               }`}
             >
@@ -59,14 +59,14 @@ export function ExamFilterToolbar({
 
       <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_200px]">
         <label className="flex min-h-11 items-center gap-2.5 rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 shadow-inner transition-colors focus-within:border-blue-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-100">
-          <Search aria-hidden="true" className="h-4 w-4 shrink-0 text-slate-400" />
+          <Search aria-hidden="true" className="size-4 shrink-0 text-slate-400" />
           <span className="sr-only">Tìm kiếm bài tập hoặc bài thi</span>
           <input
             type="search"
             value={search}
             onChange={(event) => onSearchChange(event.target.value)}
             placeholder="Tìm kiếm theo tiêu đề bài..."
-            className="min-w-0 flex-1 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
+            className="min-w-0 flex-1 bg-transparent text-base text-slate-900 outline-none placeholder:text-slate-400"
           />
         </label>
         <label className="flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 shadow-inner transition-colors focus-within:border-blue-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-100">
@@ -74,7 +74,7 @@ export function ExamFilterToolbar({
           <select
             value={sort}
             onChange={(event) => onSortChange(event.target.value as ExamSort)}
-            className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-800 outline-none cursor-pointer"
+            className="min-w-0 flex-1 bg-transparent text-base font-semibold text-slate-800 outline-none cursor-pointer"
           >
             <option value="NEAREST">Thời gian gần nhất</option>
             <option value="NEWEST">Mới nhất</option>

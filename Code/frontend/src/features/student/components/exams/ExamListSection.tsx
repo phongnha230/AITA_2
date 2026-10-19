@@ -25,8 +25,8 @@ export function ExamListSection({
           <h2 className="text-base font-bold text-slate-900 sm:text-lg">{title}</h2>
           <p className="mt-0.5 text-xs text-slate-500">{description}</p>
         </div>
-        <span className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700 ring-1 ring-blue-100 sm:flex">
-          <CalendarClock aria-hidden="true" className="h-[18px] w-[18px]" />
+        <span className="hidden size-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700 ring-1 ring-blue-100 sm:flex">
+          <CalendarClock aria-hidden="true" className="size-[18px]" />
         </span>
       </div>
       {exams.length > 0 ? (

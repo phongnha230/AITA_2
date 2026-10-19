@@ -86,8 +86,8 @@ export function CourseJoinModal({
       <DialogContent className="sm:max-w-md rounded-2xl border-slate-200 bg-white p-6 shadow-2xl sm:p-7">
         <DialogHeader className="text-left space-y-1.5">
           <div className="flex items-center gap-2.5">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700 ring-1 ring-blue-100">
-              <KeyRound className="h-5 w-5" />
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700 ring-1 ring-blue-100">
+              <KeyRound className="size-5" />
             </span>
             <div>
               <DialogTitle className="text-lg font-bold text-slate-900">
@@ -107,7 +107,7 @@ export function CourseJoinModal({
               <span className="font-mono text-xs font-bold text-blue-700 bg-white px-2 py-0.5 rounded-md border border-blue-200">
                 {targetCourse.code}
               </span>
-              <span className="text-[11px] font-semibold text-slate-500">
+              <span className="text-xs font-semibold text-slate-500">
                 Học kỳ: <strong className="text-slate-700">{targetCourse.semester}</strong>
               </span>
             </div>
@@ -118,8 +118,8 @@ export function CourseJoinModal({
 
             {targetCourse.lecturer && (
               <div className="flex items-center gap-2 pt-1 text-xs text-slate-600">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 text-blue-700">
-                  <User className="h-3 w-3" />
+                <span className="flex size-5 items-center justify-center rounded-full bg-blue-100 text-blue-700">
+                  <User className="size-3" />
                 </span>
                 <span className="truncate">
                   Giảng viên: <strong className="text-slate-800">{targetCourse.lecturer.fullName}</strong>
@@ -132,7 +132,7 @@ export function CourseJoinModal({
         {/* Form nhập mã */}
         {feedback?.type === 'success' ? (
           <div className="py-4 text-center space-y-4">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+            <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
               <CheckCircle2 size={32} />
             </div>
             <div>
@@ -156,7 +156,7 @@ export function CourseJoinModal({
               >
                 <Link href="/student/exams">
                   <span>Xem bài thi môn học</span>
-                  <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                  <ArrowRight className="ml-1.5 size-3.5" />
                 </Link>
               </Button>
             </div>
@@ -181,7 +181,7 @@ export function CourseJoinModal({
                 disabled={isSubmitting}
                 className="h-11 rounded-xl bg-slate-50 font-mono text-sm tracking-wider uppercase focus-visible:ring-blue-600 focus-visible:bg-white"
               />
-              <p className="mt-1 text-[11px] text-slate-500">
+              <p className="mt-1 text-xs text-slate-500">
                 Mã lớp do Giảng viên phụ trách cung cấp trực tiếp trên lớp học hoặc qua thông báo.
               </p>
             </div>
@@ -212,12 +212,12 @@ export function CourseJoinModal({
               >
                 {isSubmitting ? (
                   <>
-                    <LoaderCircle className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    <LoaderCircle className="mr-1.5 size-3.5 animate-spin" />
                     <span>Đang kiểm tra & ghi danh...</span>
                   </>
                 ) : (
                   <>
-                    <GraduationCap className="mr-1.5 h-3.5 w-3.5" />
+                    <GraduationCap className="mr-1.5 size-3.5" />
                     <span>Xác nhận tham gia</span>
                   </>
                 )}

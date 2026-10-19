@@ -32,11 +32,11 @@ export function StudentDashboard() {
       {/* Page Title & Greeting */}
       <section className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <p className="text-xs font-bold uppercase tracking-wider text-blue-700">Không gian học tập &amp; Khảo thí</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-indigo-700">Không gian học tập &amp; Khảo thí</p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-            {dashboard.profile?.fullName ? `Xin chào, ${dashboard.profile.fullName}! 👋` : 'Tổng quan &amp; Lớp học'}
+            {dashboard.profile?.fullName ? `Xin chào, ${dashboard.profile.fullName}` : 'Tổng quan & Lớp học'}
           </h1>
-          <p className="mt-1 text-xs text-slate-500 sm:text-sm">
+          <p className="mt-1 text-sm text-slate-600">
             Theo dõi lớp học, lịch bài tập và thi, cùng trạng thái bài nộp tự động.
           </p>
         </div>

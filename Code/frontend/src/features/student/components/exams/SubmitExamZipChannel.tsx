@@ -6,7 +6,7 @@ import { FileArchive, Paperclip, X } from 'lucide-react';
 interface SubmitExamZipChannelProps {
   selectedFile: File | null;
   onClearFile: () => void;
-  fileInputRef: React.RefObject<HTMLInputElement>;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
   onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   isDragging: boolean;
   onDragOver: (e: React.DragEvent<HTMLButtonElement>) => void;
@@ -51,7 +51,7 @@ export const SubmitExamZipChannel: React.FC<SubmitExamZipChannelProps> = ({
               <p className="text-xs font-semibold text-slate-900 truncate">
                 {selectedFile.name}
               </p>
-              <p className="text-[10px] text-slate-500">
+              <p className="text-xs text-slate-500">
                 {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
               </p>
             </div>
@@ -79,11 +79,11 @@ export const SubmitExamZipChannel: React.FC<SubmitExamZipChannelProps> = ({
               : 'border-slate-200 hover:border-indigo-400 hover:bg-slate-50/70'
           }`}
         >
-          <Paperclip className="h-6 w-6 text-slate-400 mb-2" />
+          <Paperclip className="size-6 text-slate-400 mb-2" />
           <p className="text-xs font-semibold text-slate-700">
             Kéo &amp; thả file .zip bài làm vào đây
           </p>
-          <p className="text-[11px] text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-400 mt-0.5">
             hoặc bấm để duyệt file từ máy tính (Tối đa 50MB)
           </p>
         </button>

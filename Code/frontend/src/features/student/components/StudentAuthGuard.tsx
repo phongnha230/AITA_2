@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { GraduationCap, LoaderCircle, ShieldAlert } from 'lucide-react';
 import { authService } from '@/features/auth/services/auth.service';
+import { ROUTES } from '@/config/routes';
 
 interface StudentAuthGuardProps {
   children: ReactNode;
@@ -23,7 +24,7 @@ export function StudentAuthGuard({ children }: StudentAuthGuardProps) {
     const checkAuth = async () => {
       if (typeof window !== 'undefined' && !localStorage.getItem('token') && !localStorage.getItem('user')) {
         // Unauthenticated -> redirect to login
-        window.location.replace(`/login?redirectTo=${encodeURIComponent(pathname)}`);
+        window.location.replace(`${ROUTES.AUTH.LOGIN}?redirectTo=${encodeURIComponent(pathname)}`);
         return;
       }
 
@@ -41,7 +42,7 @@ export function StudentAuthGuard({ children }: StudentAuthGuardProps) {
           localStorage.removeItem('user');
           localStorage.removeItem('token');
         }
-        window.location.replace(`/login?redirectTo=${encodeURIComponent(pathname)}`);
+        window.location.replace(`${ROUTES.AUTH.LOGIN}?redirectTo=${encodeURIComponent(pathname)}`);
         return;
       }
 
@@ -53,7 +54,7 @@ export function StudentAuthGuard({ children }: StudentAuthGuardProps) {
         setIsChecking(false);
         redirectTimer = setTimeout(() => {
           if (active) {
-            window.location.replace('/dashboard');
+            window.location.replace(ROUTES.LECTURER.DASHBOARD);
           }
         }, 2000);
         return;
@@ -73,9 +74,9 @@ export function StudentAuthGuard({ children }: StudentAuthGuardProps) {
 
   if (isChecking) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-4">
+      <div className="flex min-h-dvh flex-col items-center justify-center bg-slate-50 px-4">
         <div className="flex flex-col items-center gap-3 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-md shadow-blue-200">
+          <div className="flex size-12 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-md shadow-blue-200">
             <GraduationCap size={26} />
           </div>
           <p className="text-sm font-semibold text-slate-800">Đang xác thực quyền Sinh viên...</p>
@@ -90,14 +91,14 @@ export function StudentAuthGuard({ children }: StudentAuthGuardProps) {
 
   if (unauthorizedMessage) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-4">
+      <div className="flex min-h-dvh flex-col items-center justify-center bg-slate-50 px-4">
         <div className="max-w-md rounded-2xl border border-amber-200 bg-white p-6 text-center shadow-lg space-y-3">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+          <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-amber-100 text-amber-600">
             <ShieldAlert size={24} />
           </div>
           <h2 className="text-base font-bold text-slate-900">Không có quyền truy cập</h2>
           <p className="text-xs text-slate-600 leading-relaxed">{unauthorizedMessage}</p>
-          <p className="text-[11px] text-slate-400">Đang tự động chuyển hướng về Cổng Giảng viên...</p>
+          <p className="text-xs text-slate-400">Đang tự động chuyển hướng về Cổng Giảng viên...</p>
         </div>
       </div>
     );

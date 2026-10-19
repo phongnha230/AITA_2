@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Check, GraduationCap, Headphones, X } from 'lucide-react';
 import { STUDENT_NAV_ITEMS } from './student-navigation';
+import { ROUTES } from '@/config/routes';
 
 interface StudentSidebarProps {
   mobile?: boolean;
@@ -31,12 +32,12 @@ export function StudentSidebar({
     >
       <div className="flex h-14 items-center justify-between border-b border-slate-100 px-2 pb-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-white shadow-sm ring-2 ring-indigo-600/20">
-            <GraduationCap aria-hidden="true" className="h-5 w-5" />
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-white shadow-sm ring-2 ring-indigo-600/20">
+            <GraduationCap aria-hidden="true" className="size-5" />
           </div>
           <div className="min-w-0">
             <p className="text-base font-bold tracking-tight text-slate-900">AITA EXAM</p>
-            <p className="text-[10px] font-semibold tracking-wider uppercase text-indigo-600">Assessment Portal</p>
+            <p className="text-xs font-semibold text-indigo-600">Assessment Portal</p>
           </div>
         </div>
         {mobile && (
@@ -44,15 +45,15 @@ export function StudentSidebar({
             type="button"
             onClick={onNavigate}
             aria-label="Đóng menu điều hướng"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
+            className="inline-flex size-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
           >
-            <X aria-hidden="true" className="h-5 w-5" />
+            <X aria-hidden="true" className="size-5" />
           </button>
         )}
       </div>
 
       <div className="mt-6">
-        <p className="px-3 text-[10px] font-bold tracking-wider uppercase text-slate-400">
+        <p className="px-3 text-xs font-bold text-slate-400">
           Menu Đào tạo &amp; Khảo thí
         </p>
         <nav aria-label="Điều hướng sinh viên" className="mt-2.5 space-y-1.5">
@@ -73,14 +74,14 @@ export function StudentSidebar({
               >
                 <Icon
                   aria-hidden="true"
-                  className={`h-[18px] w-[18px] shrink-0 transition-colors ${
+                  className={`size-[18px] shrink-0 transition-colors ${
                     isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'
                   }`}
                 />
                 <span className="min-w-0 flex-1 truncate">{label}</span>
                 {isActive && (
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/20 text-white">
-                    <Check aria-hidden="true" className="h-3 w-3" />
+                  <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-white/20 text-white">
+                    <Check aria-hidden="true" className="size-3" />
                     <span className="sr-only">Trang hiện tại</span>
                   </span>
                 )}
@@ -92,22 +93,22 @@ export function StudentSidebar({
 
       <div className="mt-auto space-y-1.5 border-t border-slate-100 pt-3">
         <Link
-          href="/student/regulations"
+          href={ROUTES.STUDENT.REGULATIONS}
           onClick={onNavigate}
           className={`flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 ${
-            pathname === '/student/regulations'
+            pathname === ROUTES.STUDENT.REGULATIONS
               ? 'bg-indigo-50 font-bold text-indigo-700 shadow-2xs'
               : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
           }`}
         >
           <Headphones
             aria-hidden="true"
-            className={`h-4 w-4 ${pathname === '/student/regulations' ? 'text-indigo-600' : 'text-slate-400'}`}
+            className={`size-4 ${pathname === ROUTES.STUDENT.REGULATIONS ? 'text-indigo-600' : 'text-slate-400'}`}
           />
           <span>Quy chế thi PE &amp; Hỗ trợ</span>
         </Link>
-        <div className="flex items-center gap-2 px-2.5 py-1 text-[11px] font-medium text-slate-400">
-          <span aria-hidden="true" className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+        <div className="flex items-center gap-2 px-2.5 py-1 text-xs font-medium text-slate-400">
+          <span aria-hidden="true" className="size-2 rounded-full bg-emerald-500 animate-pulse" />
           <span>Hệ thống PE trực tuyến</span>
         </div>
       </div>

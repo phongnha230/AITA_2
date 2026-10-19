@@ -62,7 +62,7 @@ export function TestCaseResultsList({ testResults }: TestCaseResultsListProps) {
         </div>
         <div className="flex items-center gap-2">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 shadow-2xs">
-            <CheckCircle2 className="h-3.5 w-3.5" />
+            <CheckCircle2 className="size-3.5" />
             Đạt: {passedCount} / {testResults.length} ({passRate}%)
           </span>
         </div>
@@ -83,7 +83,7 @@ export function TestCaseResultsList({ testResults }: TestCaseResultsListProps) {
               <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-3">
                   <span
-                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold shadow-2xs ${
+                    className={`flex size-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold shadow-2xs ${
                       vInfo.tone === 'emerald'
                         ? 'bg-emerald-100 text-emerald-800'
                         : vInfo.tone === 'rose'
@@ -99,7 +99,7 @@ export function TestCaseResultsList({ testResults }: TestCaseResultsListProps) {
                         {tc.testCase?.label || `Testcase ${index + 1}`}
                       </span>
                       <span
-                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold ${
                           vInfo.tone === 'emerald'
                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                             : vInfo.tone === 'rose'
@@ -107,7 +107,7 @@ export function TestCaseResultsList({ testResults }: TestCaseResultsListProps) {
                               : 'bg-amber-50 text-amber-700 border border-amber-200'
                         }`}
                       >
-                        <Icon className="h-3 w-3" />
+                        <Icon className="size-3" />
                         {vInfo.label}
                       </span>
                     </div>
@@ -116,11 +116,11 @@ export function TestCaseResultsList({ testResults }: TestCaseResultsListProps) {
 
                 <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
                   <span className="inline-flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5 text-slate-400" />
+                    <Clock className="size-3.5 text-slate-400" />
                     {tc.executionTimeMs} ms
                   </span>
                   <span className="inline-flex items-center gap-1">
-                    <Cpu className="h-3.5 w-3.5 text-slate-400" />
+                    <Cpu className="size-3.5 text-slate-400" />
                     {(tc.memoryUsedKb / 1024).toFixed(1)} MB
                   </span>
                   <span className="font-semibold text-slate-800 tabular-nums">
@@ -136,7 +136,7 @@ export function TestCaseResultsList({ testResults }: TestCaseResultsListProps) {
                       className="inline-flex items-center gap-1 font-semibold text-blue-600 hover:text-blue-700 transition-colors"
                     >
                       <span>{isExpanded ? 'Ẩn chi tiết' : 'Chi tiết'}</span>
-                      {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                      {isExpanded ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
                     </button>
                   )}
                 </div>
@@ -144,7 +144,7 @@ export function TestCaseResultsList({ testResults }: TestCaseResultsListProps) {
 
               {/* Detailed Output and Diff */}
               {isExpanded && hasDetails && (
-                <div className="mt-3 space-y-2 rounded-xl border border-slate-200 bg-slate-50/80 p-3.5 text-xs font-mono shadow-inner">
+                <div className="mt-3 space-y-2 bg-slate-50/80 p-3.5 text-xs font-mono">
                   {tc.actualStdout && (
                     <div>
                       <p className="font-sans font-semibold text-slate-600">Output thực tế (stdout):</p>

@@ -103,8 +103,8 @@ export function AiTutorFloatingButton() {
 
   // Lắng nghe sự kiện mở AI Tutor từ các trang khác (ví dụ: trang kết quả bài thi)
   useEffect(() => {
-    const handleOpenTutor = (e: any) => {
-      const detail = e.detail || {};
+    const handleOpenTutor = (event: Event) => {
+      const detail = (event as CustomEvent<{ submissionId?: string; prompt?: string }>).detail ?? {};
       setIsOpen(true);
       if (detail.submissionId && detail.submissionId !== activeSubmissionId) {
         setActiveSubmissionId(detail.submissionId);
@@ -128,30 +128,31 @@ export function AiTutorFloatingButton() {
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex items-center gap-2.5 rounded-full bg-indigo-600 px-4 py-3 text-white shadow-xl shadow-indigo-600/30 transition-colors hover:bg-indigo-700 hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
+          aria-label="Mở trợ giảng Socratic AI"
+          className="fixed bottom-4 right-4 z-50 flex size-12 items-center justify-center rounded-full bg-indigo-600 text-white shadow-xl shadow-indigo-600/30 transition-colors hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 sm:bottom-6 sm:right-6 sm:h-auto sm:w-auto sm:gap-2.5 sm:px-4 sm:py-3"
         >
-          <Sparkles className="h-5 w-5 animate-pulse text-amber-300" />
-          <span className="text-xs font-bold tracking-wide">Trợ giảng Socratic AI</span>
+          <Sparkles aria-hidden="true" className="size-5 motion-safe:animate-pulse text-amber-300" />
+          <span className="hidden text-xs font-bold tracking-wide sm:inline">Trợ giảng Socratic AI</span>
         </button>
       )}
 
       {/* Floating Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-4 right-4 left-4 sm:left-auto sm:right-6 sm:bottom-6 z-50 flex h-[540px] max-h-[82vh] sm:max-h-[580px] w-auto sm:w-[400px] flex-col overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-2xl animate-in slide-in-from-bottom-5">
+        <div className="fixed bottom-4 right-4 left-4 sm:left-auto sm:right-6 sm:bottom-6 z-50 flex h-[540px] max-h-[82vh] sm:max-h-[580px] w-auto sm:w-[400px] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl animate-in slide-in-from-bottom-5">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-slate-100 bg-slate-900 px-4 py-3 text-white">
             <div className="flex items-center gap-2.5">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white shadow-xs">
+              <span className="flex size-8 items-center justify-center rounded-lg bg-indigo-600 text-white shadow-xs">
                 <Brain size={18} />
               </span>
               <div>
                 <p className="text-xs font-bold text-slate-100 flex items-center gap-1.5">
                   Socratic AI Tutor
-                  <span className="rounded-full bg-emerald-500/20 px-1.5 py-0.2 text-[9px] font-semibold text-emerald-300">
+                  <span className="rounded-full bg-emerald-500/20 px-1.5 py-0.2 text-xs font-semibold text-emerald-300">
                     Online
                   </span>
                 </p>
-                <p className="text-[10px] text-slate-400">Gợi ý tư duy • Không giải bài hộ</p>
+                <p className="text-xs text-slate-400">Gợi ý tư duy • Không giải bài hộ</p>
               </div>
             </div>
             <button
@@ -172,7 +173,7 @@ export function AiTutorFloatingButton() {
                 className={`flex gap-2.5 ${msg.role === 'USER' ? 'justify-end' : 'justify-start'}`}
               >
                 {msg.role === 'ASSISTANT' && (
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 mt-0.5">
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 mt-0.5">
                     <Bot size={13} />
                   </span>
                 )}
@@ -200,13 +201,13 @@ export function AiTutorFloatingButton() {
           {/* Quick Prompts (if only welcome message) */}
           {messages.length <= 1 && (
             <div className="p-3 border-t border-slate-100 bg-white space-y-1.5">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Gợi ý câu hỏi nhanh:</p>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Gợi ý câu hỏi nhanh:</p>
               {QUICK_PROMPTS.map((prompt) => (
                 <button
                   key={prompt}
                   type="button"
                   onClick={() => handleSendMessage(prompt)}
-                  className="block w-full text-left rounded-lg bg-slate-50 hover:bg-indigo-50 border border-slate-200/60 hover:border-indigo-200 px-2.5 py-1.5 text-[11px] text-slate-700 hover:text-indigo-700 transition-colors truncate"
+                  className="block w-full text-left rounded-lg bg-slate-50 hover:bg-indigo-50 border border-slate-200/60 hover:border-indigo-200 px-2.5 py-1.5 text-xs text-slate-700 hover:text-indigo-700 transition-colors truncate"
                 >
                   {prompt}
                 </button>
@@ -230,14 +231,14 @@ export function AiTutorFloatingButton() {
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 disabled={isLoading}
-                className="flex-1 h-9 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs outline-none focus:border-indigo-600 focus:bg-white focus:ring-1 focus:ring-indigo-600"
+                className="flex-1 h-9 rounded-xl border border-slate-200 bg-slate-50 px-3 text-base outline-none focus:border-indigo-600 focus:bg-white focus:ring-1 focus:ring-indigo-600"
               />
               <Button
                 type="submit"
                 size="sm"
                 aria-label="Gửi câu hỏi"
                 disabled={isLoading || !inputValue.trim()}
-                className="h-9 w-9 p-0 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shrink-0"
+                className="size-9 p-0 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shrink-0"
               >
                 <Send size={14} />
               </Button>

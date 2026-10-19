@@ -26,15 +26,15 @@ export function StudentStatCard({
   loading = false,
 }: StudentStatCardProps) {
   return (
-    <article className="group flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 shadow-elevated-sm transition-colors duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-elevated">
+    <article className="group flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 shadow-elevated-sm transition-colors duration-200 hover:border-slate-300">
       <div className="flex items-start justify-between gap-3">
-        <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 leading-tight">
+        <p className="text-xs font-bold uppercase tracking-wider text-slate-500 leading-tight">
           {label}
         </p>
         <span
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-105 ${toneClasses[tone]}`}
+          className={`flex size-10 shrink-0 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-105 ${toneClasses[tone]}`}
         >
-          <Icon aria-hidden="true" className="h-5 w-5" />
+          <Icon aria-hidden="true" className="size-5" />
         </span>
       </div>
 

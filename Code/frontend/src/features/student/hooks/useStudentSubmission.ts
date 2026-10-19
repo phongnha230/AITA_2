@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { API_BASE_URL } from '@/lib/api';
 import { getStudentServiceErrorMessage, studentService } from '../services/student.service';
 import type {
   GradingJobInfo,
@@ -106,7 +107,7 @@ export function useStudentSubmission(submissionId: string | null): UseStudentSub
     }
 
     let active = true;
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5003/api/v1';
+    const baseUrl = API_BASE_URL;
     const sseUrl = `${baseUrl}/jobs/${encodeURIComponent(cleanId)}/events`;
 
     let es: EventSource | null = null;

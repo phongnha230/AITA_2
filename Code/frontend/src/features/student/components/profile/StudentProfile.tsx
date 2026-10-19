@@ -72,7 +72,7 @@ export function StudentProfile() {
       {status === 'error' && (
         <div role="alert" className="flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 shadow-elevated-sm sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-2.5 text-sm text-amber-900">
-            <AlertCircle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
+            <AlertCircle aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
             <p>{error || 'Không thể tải thông tin hồ sơ.'}</p>
           </div>
           <button
@@ -87,7 +87,7 @@ export function StudentProfile() {
 
       {status === 'loading' && (
         <section role="status" aria-label="Đang tải hồ sơ" className="flex items-center gap-5 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-elevated sm:p-7">
-          <span className="h-20 w-20 shrink-0 animate-pulse rounded-2xl bg-slate-100" />
+          <span className="size-20 shrink-0 animate-pulse rounded-2xl bg-slate-100" />
           <div className="w-full space-y-3">
             <span className="block h-6 w-56 max-w-full animate-pulse rounded-lg bg-slate-100" />
             <span className="block h-4 w-72 max-w-full animate-pulse rounded-lg bg-slate-100" />

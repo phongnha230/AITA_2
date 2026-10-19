@@ -6,12 +6,12 @@ export function ExamRegulationsCard() {
   return (
     <section className="rounded-2xl border border-blue-100/90 bg-gradient-to-b from-blue-50/50 via-white to-white p-6 shadow-elevated">
       <div className="flex items-center gap-2.5">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm shadow-blue-600/30">
-          <ShieldCheck aria-hidden="true" className="h-4.5 w-4.5" />
+        <div className="flex size-9 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm shadow-blue-600/30">
+          <ShieldCheck aria-hidden="true" className="size-4.5" />
         </div>
         <div>
           <h3 className="text-sm font-bold text-slate-900">Quy chế làm bài thi PE</h3>
-          <p className="text-[11px] text-slate-500">Khảo thí &amp; Đảm bảo chất lượng</p>
+          <p className="text-xs text-slate-500">Khảo thí &amp; Đảm bảo chất lượng</p>
         </div>
       </div>
       <p className="mt-3 text-xs leading-relaxed text-slate-600">
@@ -20,7 +20,7 @@ export function ExamRegulationsCard() {
 
       <ol className="mt-4 space-y-3.5 text-xs leading-relaxed text-slate-700">
         <li className="flex items-start gap-2.5">
-          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-100 text-[11px] font-bold text-blue-700">
+          <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700">
             1
           </span>
           <div>
@@ -30,7 +30,7 @@ export function ExamRegulationsCard() {
         </li>
 
         <li className="flex items-start gap-2.5">
-          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-100 text-[11px] font-bold text-blue-700">
+          <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700">
             2
           </span>
           <div>
@@ -40,7 +40,7 @@ export function ExamRegulationsCard() {
         </li>
 
         <li className="flex items-start gap-2.5">
-          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-100 text-[11px] font-bold text-blue-700">
+          <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700">
             3
           </span>
           <div>
@@ -50,12 +50,12 @@ export function ExamRegulationsCard() {
         </li>
       </ol>
 
-      <div className="mt-5 rounded-xl border border-blue-100 bg-blue-50/50 p-3.5 text-xs shadow-2xs">
+      <div className="mt-5 bg-blue-50/50 p-3.5 text-xs">
         <div className="flex items-center gap-2 font-semibold text-slate-800">
-          <Headphones className="h-4 w-4 text-blue-600" />
+          <Headphones className="size-4 text-blue-600" />
           <span>Cần hỗ trợ trong ca thi?</span>
         </div>
-        <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
+        <p className="mt-1 text-xs leading-relaxed text-slate-500">
           Báo ngay cán bộ coi thi hoặc liên hệ ban hỗ trợ kỹ thuật khảo thí để được hướng dẫn xử lý sự cố.
         </p>
       </div>

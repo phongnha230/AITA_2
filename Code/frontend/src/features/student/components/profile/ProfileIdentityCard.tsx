@@ -20,6 +20,7 @@ import {
 import type { StudentProfile } from '../../types/student.types';
 import { StudentAvatar } from '../shared/StudentAvatar';
 import { uploadService } from '@/lib/upload.service';
+import { getErrorMessage } from '@/lib/errors';
 
 interface ProfileIdentityCardProps {
   profile: StudentProfile;
@@ -78,9 +79,9 @@ export function ProfileIdentityCard({
       if (res?.avatarUrl && onAvatarUpdated) {
         onAvatarUpdated(res.avatarUrl);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Lỗi khi tải ảnh đại diện:', err);
-      setUploadError(err.response?.data?.message || err.message || 'Không thể tải ảnh lên Cloudinary');
+      setUploadError(getErrorMessage(err, 'Không thể tải ảnh lên Cloudinary'));
     } finally {
       setIsUploading(false);
       // Reset input để chọn lại cùng file nếu muốn
@@ -112,7 +113,7 @@ export function ProfileIdentityCard({
             <button
               type="button"
               onClick={handleAvatarClick}
-              className={`relative cursor-pointer transition-transform group-hover:scale-105 text-left p-0 border-0 bg-transparent ${
+              className={`relative cursor-pointer rounded-2xl border-0 bg-transparent p-0 text-left transition-transform group-hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 ${
                 isUploading ? 'opacity-80 pointer-events-none' : ''
               }`}
               title="Nhấp để thay đổi ảnh đại diện (Tải lên Cloudinary)"
@@ -125,30 +126,30 @@ export function ProfileIdentityCard({
               />
 
               {/* Upload overlay hover / loading spinner */}
-              <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+              <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
                 {isUploading ? (
-                  <Loader2 className="h-6 w-6 animate-spin text-white" />
+                  <Loader2 className="size-6 animate-spin text-white" />
                 ) : (
                   <div className="flex flex-col items-center text-white">
-                    <Camera className="h-5 w-5" />
-                    <span className="text-[10px] font-medium mt-0.5">Đổi ảnh</span>
+                    <Camera className="size-5" />
+                    <span className="text-xs font-medium mt-0.5">Đổi ảnh</span>
                   </div>
                 )}
               </div>
 
               {isUploading && (
                 <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/50">
-                  <Loader2 className="h-7 w-7 animate-spin text-white" />
+                  <Loader2 className="size-7 animate-spin text-white" />
                 </div>
               )}
             </button>
 
             {/* Verified badge */}
             <span
-              className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-white ring-2 ring-white shadow-xs"
+              className="absolute -bottom-1 -right-1 flex size-6 items-center justify-center rounded-full bg-emerald-500 text-white ring-2 ring-white shadow-xs"
               title="Tài khoản đã xác thực"
             >
-              <CheckCircle2 className="h-4 w-4" />
+              <CheckCircle2 className="size-4" />
             </span>
           </div>
 
@@ -171,7 +172,7 @@ export function ProfileIdentityCard({
             {/* Liên hệ & Thông tin cá nhân */}
             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-600 sm:text-sm">
               <span className="inline-flex items-center gap-1.5 text-slate-600">
-                <Mail className="h-3.5 w-3.5 text-slate-400" />
+                <Mail className="size-3.5 text-slate-400" />
                 {profile.email}
               </span>
 
@@ -179,7 +180,7 @@ export function ProfileIdentityCard({
                 <>
                   <span className="hidden text-slate-300 sm:inline">•</span>
                   <span className="inline-flex items-center gap-1.5 font-mono text-xs text-slate-600">
-                    <Phone className="h-3.5 w-3.5 text-slate-400" />
+                    <Phone className="size-3.5 text-slate-400" />
                     {profile.phoneNumber}
                   </span>
                 </>
@@ -189,7 +190,7 @@ export function ProfileIdentityCard({
                 <>
                   <span className="hidden text-slate-300 sm:inline">•</span>
                   <span className="inline-flex items-center gap-1.5 text-slate-700 font-medium text-xs sm:text-sm">
-                    <GraduationCap className="h-4 w-4 text-indigo-500" />
+                    <GraduationCap className="size-4 text-indigo-500" />
                     {academicInfo}
                   </span>
                 </>
@@ -204,9 +205,9 @@ export function ProfileIdentityCard({
                     rel="noreferrer noopener"
                     className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-700 hover:text-blue-600 hover:underline transition-colors"
                   >
-                    <Github className="h-3.5 w-3.5 text-slate-700" />
+                    <Github className="size-3.5 text-slate-700" />
                     GitHub
-                    <ExternalLink className="h-3 w-3 text-slate-400" />
+                    <ExternalLink className="size-3 text-slate-400" />
                   </a>
                 </>
               )}
@@ -222,11 +223,11 @@ export function ProfileIdentityCard({
             {/* Trạng thái & Vai trò */}
             <div className="mt-3.5 flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200/90 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-2xs">
-                <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+                <ShieldCheck className="size-3.5 text-emerald-600" />
                 Trạng thái: <span className="font-semibold">{statusLabels[profile.status]}</span>
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-xl border border-blue-100 bg-blue-50/80 px-3 py-1.5 text-xs font-medium text-blue-700 shadow-2xs">
-                <User className="h-3.5 w-3.5 text-blue-600" />
+                <User className="size-3.5 text-blue-600" />
                 Vai trò: <span className="font-semibold">{roleLabels[profile.role]}</span>
               </span>
             </div>
@@ -247,16 +248,16 @@ export function ProfileIdentityCard({
               onClick={onChangePassword}
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-xs transition-colors hover:bg-slate-50 hover:border-slate-300 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
             >
-              <KeyRound className="h-4 w-4 text-indigo-600" />
+              <KeyRound className="size-4 text-indigo-600" />
               <span>Đổi mật khẩu</span>
             </button>
           )}
           <button
             type="button"
             onClick={onEdit}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2"
           >
-            <PencilLine className="h-4 w-4" />
+            <PencilLine className="size-4" />
             <span>Chỉnh sửa hồ sơ</span>
           </button>
         </div>
