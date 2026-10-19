@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "doctor": "npx react-doctor@latest"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.24",
@@ -30,9 +31,9 @@
     "clsx": "^2.1.1",
     "jszip": "^3.10.2",
     "lucide-react": "^0.460.0",
-    "next": "^14.2.18",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "next": "^15.5.18",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "react-google-recaptcha": "^3.1.0",
     "tailwind-merge": "^2.5.4",
     "tailwindcss-animate": "^1.0.7"
@@ -40,13 +41,14 @@
   "devDependencies": {
     "@types/jszip": "^3.4.0",
     "@types/node": "^22.9.0",
-    "@types/react": "^18.3.12",
-    "@types/react-dom": "^18.3.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "@types/react-google-recaptcha": "^2.1.9",
     "autoprefixer": "^10.6.1",
     "eslint": "^8.57.1",
-    "eslint-config-next": "^14.2.18",
+    "eslint-config-next": "^15.5.18",
     "postcss": "^8.4.49",
+    "react-doctor": "^0.9.18",
     "tailwindcss": "^3.4.15",
     "typescript": "^5.6.3",
     "vitest": "^5.0.4"

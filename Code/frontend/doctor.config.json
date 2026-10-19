@@ -1,8 +1,3 @@
 {
-  "$schema": "https://react.doctor/schema/config.json",
-  "ignore": {
-    "rules": [
-      "react-doctor/no-vulnerable-react-server-components"
-    ]
-  }
+  "$schema": "https://react.doctor/schema/config.json"
 }
