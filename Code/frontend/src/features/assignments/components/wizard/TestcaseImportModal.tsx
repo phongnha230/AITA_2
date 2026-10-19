@@ -75,10 +75,10 @@ export const TestcaseImportModal: React.FC<TestcaseImportModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-3xl w-full border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <div className="bg-white rounded-2xl max-w-3xl w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
           <div className="flex items-center gap-2">
-            <FileSpreadsheet className="w-4 h-4 text-blue-600" />
+            <FileSpreadsheet className="size-4 text-blue-600" />
             <span className="font-extrabold text-sm text-slate-900">
               Import Testcase Hàng Loạt & Xem Trước Dữ Liệu
             </span>
@@ -89,7 +89,7 @@ export const TestcaseImportModal: React.FC<TestcaseImportModalProps> = ({
             onClick={onClose}
             className="p-1 rounded-lg text-slate-400 hover:text-slate-700 transition"
           >
-            <X className="w-5 h-5" />
+            <X className="size-5" />
           </button>
         </div>
 
@@ -120,8 +120,8 @@ export const TestcaseImportModal: React.FC<TestcaseImportModalProps> = ({
               <div className="flex items-center justify-between mb-1.5 text-xs">
                 <span className="font-bold text-slate-700">Tải file hoặc dán JSON testcases:</span>
                 <div className="flex items-center gap-2">
-                  <label className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-blue-50 hover:bg-blue-100 text-blue-700 cursor-pointer inline-flex items-center gap-1 border border-blue-200">
-                    <Upload className="w-3 h-3" />
+                  <label className="px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-50 hover:bg-blue-100 text-blue-700 cursor-pointer inline-flex items-center gap-1 border border-blue-200">
+                    <Upload className="size-3" />
                     <span>Chọn file .json</span>
                     <input
                       type="file"
@@ -143,7 +143,7 @@ export const TestcaseImportModal: React.FC<TestcaseImportModalProps> = ({
                   <button
                     type="button"
                     onClick={handleLoadSampleJson}
-                    className="text-[11px] font-bold text-blue-600 hover:underline"
+                    className="text-xs font-bold text-blue-600 hover:underline"
                   >
                     ⚡ Nạp JSON mẫu theo Câu hỏi (Chuẩn 10.0đ)
                   </button>
@@ -158,7 +158,7 @@ export const TestcaseImportModal: React.FC<TestcaseImportModalProps> = ({
                 }}
                 placeholder='[ { "label": "TC1", "stdinInput": "...", "expectedStdout": "...", "points": 2.0, "isHidden": false } ]'
                 aria-label="Nội dung JSON testcase hàng loạt"
-                className="w-full p-2.5 font-mono text-[11px] rounded-xl border border-slate-200 bg-slate-900 text-slate-100 focus:outline-none"
+                className="w-full p-2.5 font-mono text-base rounded-xl border border-slate-200 bg-slate-900 text-slate-100 focus:outline-none"
               />
             </div>
           ) : (
@@ -168,7 +168,7 @@ export const TestcaseImportModal: React.FC<TestcaseImportModalProps> = ({
                 <code>label, stdinInput, expectedStdout, points, isHidden</code>
               </div>
               <label className="cursor-pointer block p-6 border-2 border-dashed border-slate-300 hover:border-blue-400 rounded-xl text-center bg-slate-50 transition">
-                <Upload className="w-6 h-6 text-slate-400 mx-auto mb-1" />
+                <Upload className="size-6 text-slate-400 mx-auto mb-1" />
                 <span className="text-xs font-bold text-slate-700">Bấm để chọn file .csv từ máy tính</span>
                 <input
                   type="file"
@@ -191,8 +191,8 @@ export const TestcaseImportModal: React.FC<TestcaseImportModalProps> = ({
           )}
 
           {importError && (
-            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+            <div className="p-3 bg-rose-50 text-rose-800 text-xs font-semibold flex items-center gap-2">
+              <AlertCircle className="size-4 text-rose-600 shrink-0" />
               <span>{importError}</span>
             </div>
           )}
@@ -201,17 +201,17 @@ export const TestcaseImportModal: React.FC<TestcaseImportModalProps> = ({
             <div className="space-y-2 pt-2">
               <div className="flex items-center justify-between text-xs font-bold text-slate-700">
                 <span className="flex items-center gap-1.5 text-emerald-700">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <CheckCircle2 className="size-4 text-emerald-600" />
                   Tìm thấy {previewTestCases.length} testcases hợp lệ:
                 </span>
-                <span className="text-slate-500 font-normal text-[11px]">
+                <span className="text-slate-500 font-normal text-xs">
                   Tổng điểm: <strong>{previewTestCases.reduce((s, c) => s + (Number(c.points) || 0), 0)} pts</strong>
                 </span>
               </div>
 
               <div className="max-h-48 overflow-y-auto border border-slate-200 rounded-xl">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold text-[10px] uppercase sticky top-0">
+                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold text-xs uppercase sticky top-0">
                     <tr>
                       <th className="py-2 px-2.5">#</th>
                       <th className="py-2 px-2.5">Tên Test</th>
@@ -230,7 +230,7 @@ export const TestcaseImportModal: React.FC<TestcaseImportModalProps> = ({
                         </td>
                         <td className="py-1.5 px-2.5">
                           <span
-                            className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                            className={`px-1.5 py-0.5 rounded text-xs font-bold ${
                               tc.isHidden ? 'bg-purple-50 text-purple-700' : 'bg-emerald-50 text-emerald-700'
                             }`}
                           >
@@ -238,10 +238,10 @@ export const TestcaseImportModal: React.FC<TestcaseImportModalProps> = ({
                           </span>
                         </td>
                         <td className="py-1.5 px-2.5 font-bold text-blue-700">{tc.points} pts</td>
-                        <td className="py-1.5 px-2.5 font-mono text-[11px] text-slate-600 truncate max-w-[120px]">
+                        <td className="py-1.5 px-2.5 font-mono text-xs text-slate-600 truncate max-w-[120px]">
                           {tc.stdinInput?.replace(/\n/g, ' ↵ ')}
                         </td>
-                        <td className="py-1.5 px-2.5 font-mono text-[11px] text-slate-600 truncate max-w-[120px]">
+                        <td className="py-1.5 px-2.5 font-mono text-xs text-slate-600 truncate max-w-[120px]">
                           {tc.expectedStdout?.replace(/\n/g, ' ↵ ')}
                         </td>
                       </tr>

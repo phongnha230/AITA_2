@@ -101,7 +101,7 @@ export function WebTestcaseBuilder({
   if (testCases.length === 0) {
     return (
       <div className="rounded-2xl border-2 border-dashed border-indigo-200 bg-indigo-50/40 p-8 text-center">
-        <WandSparkles className="mx-auto mb-2 h-9 w-9 text-indigo-400" />
+        <WandSparkles className="mx-auto mb-2 size-9 text-indigo-400" />
         <p className="text-sm font-bold text-slate-800">Chưa có kịch bản Playwright</p>
         <p className="mx-auto mt-1 max-w-xl text-xs text-slate-500">
           Tạo từng luồng như đăng nhập, thêm sản phẩm, lọc danh sách hoặc checkout. Playwright chỉ chạy đúng các bước bạn cấu hình.
@@ -120,7 +120,7 @@ export function WebTestcaseBuilder({
   return (
     <div className="space-y-4">
       <div className="flex gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-        <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
+        <ShieldAlert className="mt-0.5 size-4 shrink-0" />
         <p>
           Dùng tài khoản test riêng và bật <strong>Test ẩn</strong> cho kịch bản chứa mật khẩu. Runner không ghi giá trị của bước Điền input vào log.
         </p>
@@ -147,20 +147,22 @@ export function WebTestcaseBuilder({
           <section key={testCase.id ?? `web-test-${testCaseIndex}`} className="rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="grid gap-3 border-b border-slate-100 p-4 lg:grid-cols-[1fr_130px_130px_auto]">
               <div>
-                <label className="mb-1 block text-[11px] font-bold text-slate-600">Tên luồng kiểm thử</label>
+                <label htmlFor={`web-testcase-${testCaseIndex}-label`} className="mb-1 block text-xs font-bold text-slate-600">Tên luồng kiểm thử</label>
                 <input
+                  id={`web-testcase-${testCaseIndex}-label`}
                   value={testCase.label}
                   onChange={(event) => updateTestCase(testCaseIndex, { label: event.target.value })}
                   placeholder="Ví dụ: Đăng nhập thành công"
-                  className="h-9 w-full rounded-lg border border-slate-200 px-3 text-xs font-semibold focus:border-indigo-500 focus:outline-none"
+                  className="h-9 w-full rounded-lg border border-slate-200 px-3 text-base font-semibold focus:border-indigo-500 focus:outline-none"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-[11px] font-bold text-slate-600">Phân loại</label>
+                <label htmlFor={`web-testcase-${testCaseIndex}-rationale`} className="mb-1 block text-xs font-bold text-slate-600">Phân loại</label>
                 <select
+                  id={`web-testcase-${testCaseIndex}-rationale`}
                   value={testCase.rationaleTag}
                   onChange={(event) => updateTestCase(testCaseIndex, { rationaleTag: event.target.value as RationaleTag })}
-                  className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-xs"
+                  className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-base"
                 >
                   <option value="FUNCTIONAL">Functional</option>
                   <option value="BOUNDARY">Boundary</option>
@@ -170,43 +172,44 @@ export function WebTestcaseBuilder({
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-[11px] font-bold text-slate-600">Điểm</label>
+                <label htmlFor={`web-testcase-${testCaseIndex}-points`} className="mb-1 block text-xs font-bold text-slate-600">Điểm</label>
                 <input
+                  id={`web-testcase-${testCaseIndex}-points`}
                   type="number"
                   min="0.1"
                   max="7"
                   step="0.1"
                   value={testCase.points}
                   onChange={(event) => updateTestCase(testCaseIndex, { points: Math.max(0, Number(event.target.value) || 0) })}
-                  className="h-9 w-full rounded-lg border border-slate-200 px-3 text-xs font-bold text-indigo-700"
+                  className="h-9 w-full rounded-lg border border-slate-200 px-3 text-base font-bold text-indigo-700"
                 />
               </div>
               <div className="flex items-end gap-2">
                 <button
                   type="button"
                   onClick={() => updateTestCase(testCaseIndex, { isHidden: !testCase.isHidden })}
-                  className={`flex h-9 items-center gap-1 rounded-lg border px-3 text-[11px] font-bold ${
+                  className={`flex h-9 items-center gap-1 rounded-lg border px-3 text-xs font-bold ${
                     testCase.isHidden
                       ? 'border-purple-200 bg-purple-50 text-purple-700'
                       : 'border-slate-200 bg-white text-slate-600'
                   }`}
                 >
-                  <EyeOff className="h-3.5 w-3.5" />
+                  <EyeOff className="size-3.5" />
                   {testCase.isHidden ? 'Test ẩn' : 'Công khai'}
                 </button>
                 <button
                   type="button"
                   aria-label="Xóa kịch bản"
                   onClick={() => onDeleteTestCase(testCaseIndex)}
-                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-rose-100 text-rose-500 hover:bg-rose-50"
+                  className="flex size-9 items-center justify-center rounded-lg border border-rose-100 text-rose-500 hover:bg-rose-50"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="size-4" />
                 </button>
               </div>
             </div>
 
             <div className="space-y-2 p-4">
-              <p className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-[11px] text-blue-800">
+              <p className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-800">
                 {assertionCount > 0
                   ? `Luồng này có ${assertionCount} bước kiểm tra; điểm ${baseAssertionPoints.toFixed(2)}đ mỗi bước (bước cuối ${getAssertionAward(lastAssertionIndex).toFixed(2)}đ) / ${Number(testCase.points).toFixed(2)}đ. Thao tác mở trang/nhập liệu không tính điểm.`
                   : 'Thêm ít nhất một bước “Kiểm tra” để luồng có thể được chấm điểm.'}
@@ -217,7 +220,7 @@ export function WebTestcaseBuilder({
                 </p>
               )}
               {steps.map((step, stepIndex) => (
-                <div key={`${testCaseIndex}-${stepIndex}`} className="grid gap-2 rounded-xl border border-slate-100 bg-slate-50 p-2 lg:grid-cols-[34px_165px_1fr_1fr_90px_92px]">
+                <div key={`${testCaseIndex}-${stepIndex}`} className="grid gap-2 bg-slate-50 p-2 lg:grid-cols-[34px_165px_1fr_1fr_90px_92px]">
                   <span className="flex h-9 items-center justify-center rounded-lg bg-white font-mono text-xs font-bold text-slate-400">
                     {stepIndex + 1}
                   </span>
@@ -227,7 +230,7 @@ export function WebTestcaseBuilder({
                     onChange={(event) => updateSteps(testCaseIndex, (current) => current.map((item, itemIndex) => (
                       itemIndex === stepIndex ? { action: event.target.value as WebTestAction } : item
                     )))}
-                    className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs font-semibold"
+                    className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-base font-semibold"
                   >
                     {actionOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                   </select>
@@ -240,7 +243,7 @@ export function WebTestcaseBuilder({
                         itemIndex === stepIndex ? { ...item, target: event.target.value } : item
                       )))}
                       placeholder={getTargetPlaceholder(step.action)}
-                      className="h-9 rounded-lg border border-slate-200 bg-white px-3 font-mono text-[11px]"
+                      className="h-9 rounded-lg border border-slate-200 bg-white px-3 font-mono text-base"
                     />
                   ) : <span className="hidden lg:block" />}
 
@@ -263,7 +266,7 @@ export function WebTestcaseBuilder({
                         itemIndex === stepIndex ? { ...item, expected: event.target.value } : item
                       )))}
                       placeholder="Kết quả mong đợi"
-                      className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs"
+                      className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-base"
                     />
                   ) : <span className="hidden lg:block" />}
 
@@ -277,13 +280,13 @@ export function WebTestcaseBuilder({
                     onChange={(event) => updateSteps(testCaseIndex, (current) => current.map((item, itemIndex) => (
                       itemIndex === stepIndex ? { ...item, timeoutMs: Number(event.target.value) || 10_000 } : item
                     )))}
-                    className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs"
+                    className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-base"
                     title="Timeout (ms)"
                   />
 
                   <div className="flex items-center justify-end gap-1">
                     {assertionActions.has(step.action) && (
-                      <span className="whitespace-nowrap rounded bg-emerald-50 px-1.5 py-1 text-[10px] font-bold text-emerald-700" title="Điểm nhận nếu assertion này đạt">
+                      <span className="whitespace-nowrap rounded bg-emerald-50 px-1.5 py-1 text-xs font-bold text-emerald-700" title="Điểm nhận nếu assertion này đạt">
                         +{getAssertionAward(stepIndex).toFixed(2)}đ
                       </span>
                     )}
@@ -297,7 +300,7 @@ export function WebTestcaseBuilder({
                         return next;
                       })}
                       className="rounded p-1.5 text-slate-400 hover:bg-white disabled:opacity-30"
-                    ><ArrowUp className="h-3.5 w-3.5" /></button>
+                    ><ArrowUp className="size-3.5" /></button>
                     <button
                       type="button"
                       aria-label="Đưa bước xuống"
@@ -308,13 +311,13 @@ export function WebTestcaseBuilder({
                         return next;
                       })}
                       className="rounded p-1.5 text-slate-400 hover:bg-white disabled:opacity-30"
-                    ><ArrowDown className="h-3.5 w-3.5" /></button>
+                    ><ArrowDown className="size-3.5" /></button>
                     <button
                       type="button"
                       aria-label="Xóa bước"
                       onClick={() => updateSteps(testCaseIndex, (current) => current.filter((_, itemIndex) => itemIndex !== stepIndex))}
                       className="rounded p-1.5 text-rose-400 hover:bg-rose-50"
-                    ><Trash2 className="h-3.5 w-3.5" /></button>
+                    ><Trash2 className="size-3.5" /></button>
                   </div>
                 </div>
               ))}
@@ -323,9 +326,9 @@ export function WebTestcaseBuilder({
                 <button
                   type="button"
                   onClick={() => updateSteps(testCaseIndex, (current) => [...current, { action: 'CLICK', target: '' }])}
-                  className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-bold text-slate-700 hover:border-indigo-300"
+                  className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:border-indigo-300"
                 >
-                  <Plus className="h-3.5 w-3.5" /> Thêm bước
+                  <Plus className="size-3.5" /> Thêm bước
                 </button>
                 <button
                   type="button"
@@ -336,9 +339,9 @@ export function WebTestcaseBuilder({
                       stdinInput: serializeScript(loginTemplate),
                     });
                   }}
-                  className="flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-[11px] font-bold text-indigo-700 hover:bg-indigo-100"
+                  className="flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-100"
                 >
-                  <WandSparkles className="h-3.5 w-3.5" /> Dùng mẫu đăng nhập
+                  <WandSparkles className="size-3.5" /> Dùng mẫu đăng nhập
                 </button>
               </div>
             </div>

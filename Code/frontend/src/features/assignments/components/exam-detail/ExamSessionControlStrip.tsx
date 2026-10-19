@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Clock, Plus, StopCircle, Radio, Users, Terminal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ROUTES } from '@/config/routes';
 import { assignmentService } from '../../services/assignment.service';
 import type { Assignment } from '../../types/assignment.types';
 
@@ -85,21 +86,21 @@ export const ExamSessionControlStrip: React.FC<ExamSessionControlStripProps> = (
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         {/* Left: Timer & Status */}
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/10 text-indigo-300">
+          <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-white/10 text-indigo-300">
             {isLive ? (
-              <Radio className="h-5 w-5 text-emerald-400 animate-pulse" />
+              <Radio className="size-5 text-emerald-400 animate-pulse" />
             ) : (
-              <Clock className="h-5 w-5 text-slate-400" />
+              <Clock className="size-5 text-slate-400" />
             )}
           </div>
 
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-black uppercase tracking-wider text-indigo-300">
+              <span className="text-xs font-black uppercase tracking-wider text-indigo-300">
                 {isLive ? 'Ca thi đang diễn ra (LIVE)' : isClosed ? 'Ca thi đã kết thúc' : 'Ca thi sắp bắt đầu'}
               </span>
               {feedback && (
-                <span className="rounded-md bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-300">
+                <span className="rounded-md bg-emerald-500/20 px-2 py-0.5 text-xs font-bold text-emerald-300">
                   {feedback}
                 </span>
               )}
@@ -108,7 +109,7 @@ export const ExamSessionControlStrip: React.FC<ExamSessionControlStripProps> = (
               <span className="font-mono text-2xl font-black tracking-widest text-white">
                 {formatTimer(secondsLeft)}
               </span>
-              <span className="text-[11px] text-slate-400">
+              <span className="text-xs text-slate-400">
                 (Thời lượng: {assignment.durationMinutes || 90} phút)
               </span>
             </div>
@@ -124,7 +125,7 @@ export const ExamSessionControlStrip: React.FC<ExamSessionControlStripProps> = (
             onClick={() => handleAdjustTime(5)}
             className="h-9 rounded-xl border-white/20 bg-white/10 hover:bg-white/20 text-white font-bold text-xs"
           >
-            <Plus className="mr-1 h-3.5 w-3.5 text-indigo-300" />
+            <Plus className="mr-1 size-3.5 text-indigo-300" />
             +5 Phút
           </Button>
 
@@ -135,7 +136,7 @@ export const ExamSessionControlStrip: React.FC<ExamSessionControlStripProps> = (
             onClick={() => handleAdjustTime(10)}
             className="h-9 rounded-xl border-white/20 bg-white/10 hover:bg-white/20 text-white font-bold text-xs"
           >
-            <Plus className="mr-1 h-3.5 w-3.5 text-indigo-300" />
+            <Plus className="mr-1 size-3.5 text-indigo-300" />
             +10 Phút
           </Button>
 
@@ -147,7 +148,7 @@ export const ExamSessionControlStrip: React.FC<ExamSessionControlStripProps> = (
               onClick={handleCloseSession}
               className="h-9 rounded-xl border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 font-bold text-xs"
             >
-              <StopCircle className="mr-1 h-3.5 w-3.5 text-rose-400" />
+              <StopCircle className="mr-1 size-3.5 text-rose-400" />
               Thu bài ngay
             </Button>
           )}
@@ -157,8 +158,8 @@ export const ExamSessionControlStrip: React.FC<ExamSessionControlStripProps> = (
             size="sm"
             className="h-9 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-sm"
           >
-            <Link href={`/live-proctoring/${assignment.id}`}>
-              <Users className="mr-1.5 h-3.5 w-3.5" />
+            <Link href={ROUTES.LECTURER.LIVE_PROCTORING_ROOM(assignment.id)}>
+              <Users className="mr-1.5 size-3.5" />
               Sơ đồ máy thi
             </Link>
           </Button>
@@ -168,8 +169,8 @@ export const ExamSessionControlStrip: React.FC<ExamSessionControlStripProps> = (
             size="sm"
             className="h-9 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-sm"
           >
-            <Link href={`/exam-bank/${assignment.id}/submissions`}>
-              <Terminal className="mr-1.5 h-3.5 w-3.5" />
+            <Link href={ROUTES.LECTURER.EXAM_BANK_SUBMISSIONS(assignment.id)}>
+              <Terminal className="mr-1.5 size-3.5" />
               Log Docker Sandbox
             </Link>
           </Button>

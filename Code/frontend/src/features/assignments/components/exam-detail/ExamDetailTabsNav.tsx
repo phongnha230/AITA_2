@@ -18,7 +18,7 @@ export const ExamDetailTabsNav: React.FC<ExamDetailTabsNavProps> = ({
   solutionsCount,
 }) => {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-1.5 shadow-2xs flex items-center gap-2">
+    <div className="bg-white rounded-2xl border border-slate-200 p-2 shadow-2xs flex items-center gap-2">
       <Button
         variant={activeTab === 'testcases' ? 'default' : 'ghost'}
         onClick={() => onSelectTab('testcases')}
@@ -28,7 +28,7 @@ export const ExamDetailTabsNav: React.FC<ExamDetailTabsNavProps> = ({
             : 'text-slate-600 hover:bg-slate-100'
         }`}
       >
-        <Layers className="w-4 h-4" />
+        <Layers className="size-4" />
         <span>Bộ Testcase Tự Động ({testCasesCount})</span>
       </Button>
 
@@ -41,7 +41,7 @@ export const ExamDetailTabsNav: React.FC<ExamDetailTabsNavProps> = ({
             : 'text-slate-600 hover:bg-slate-100'
         }`}
       >
-        <FileText className="w-4 h-4" />
+        <FileText className="size-4" />
         <span>Thông Tin Đề & Starter Code</span>
       </Button>
 
@@ -54,7 +54,7 @@ export const ExamDetailTabsNav: React.FC<ExamDetailTabsNavProps> = ({
             : 'text-slate-600 hover:bg-slate-100'
         }`}
       >
-        <Code2 className="w-4 h-4" />
+        <Code2 className="size-4" />
         <span>Bài Giải Mẫu & Chuẩn RAG ({solutionsCount})</span>
       </Button>
     </div>

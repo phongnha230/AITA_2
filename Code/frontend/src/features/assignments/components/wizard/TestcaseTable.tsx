@@ -33,26 +33,28 @@ export const TestcaseTable: React.FC<TestcaseTableProps> = ({
 
   if (testCases.length === 0) {
     return (
-      <div className="p-8 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50">
-        <Terminal className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-        <div className="text-xs font-bold text-slate-700">Chưa có testcase nào trong đề thi</div>
-        <p className="text-[11px] text-slate-400 mt-1 mb-4">
-          Bấm <strong>Import Testcase (JSON/CSV)</strong> để nạp từ file có sẵn, hoặc bấm <strong>⚡ Nạp dữ liệu mẫu PRF192</strong> ở đầu trang.
+      <div className="p-8 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+        <div className="size-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-3 text-slate-400">
+          <Terminal className="size-6" />
+        </div>
+        <div className="text-sm font-bold text-slate-800">Chưa có testcase nào trong đề thi</div>
+        <p className="text-xs text-slate-500 mt-1 mb-4 max-w-md mx-auto">
+          Nạp bộ testcase từ file có sẵn hoặc bấm <strong>⚡ Nạp dữ liệu mẫu PRF192</strong> ở thanh công cụ phía trên.
         </p>
         <div className="flex items-center justify-center gap-3">
           <button
             type="button"
             onClick={onAddBlankTestCase}
-            className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 shadow-sm"
+            className="px-3.5 py-2 rounded-xl text-xs font-bold bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-sm transition"
           >
-            Thêm thủ công
+            + Thêm thủ công
           </button>
           <button
             type="button"
             onClick={onOpenImportModal}
-            className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-amber-500 text-white hover:bg-amber-600 shadow-sm flex items-center gap-1.5"
+            className="px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-500 text-white hover:bg-amber-600 shadow-sm flex items-center gap-1.5 transition"
           >
-            <Upload className="w-3.5 h-3.5" />
+            <Upload className="size-3.5" />
             <span>Import từ file JSON / CSV</span>
           </button>
         </div>
@@ -63,7 +65,7 @@ export const TestcaseTable: React.FC<TestcaseTableProps> = ({
   return (
     <div className="overflow-x-auto border border-slate-200 rounded-xl">
       <table className="w-full text-left text-xs">
-        <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-extrabold uppercase text-[10px]">
+        <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-extrabold uppercase text-xs">
           <tr>
             <th className="py-2.5 px-3">#</th>
             <th className="py-2.5 px-3">Câu hỏi (Q)</th>
@@ -92,7 +94,7 @@ export const TestcaseTable: React.FC<TestcaseTableProps> = ({
                     setTestCases(copy);
                   }}
                   placeholder="Q1, Q2..."
-                  className="w-14 rounded-md border border-slate-200 bg-white px-2 py-1 font-mono text-[11px] font-bold text-indigo-700 text-center uppercase focus:border-indigo-500 focus:outline-none"
+                  className="w-14 rounded-md border border-slate-200 bg-white px-2 py-1 font-mono text-xs font-bold text-indigo-700 text-center uppercase focus:border-indigo-500 focus:outline-none"
                 />
               </td>
               <td className="py-2.5 px-3 font-semibold text-slate-800">
@@ -105,7 +107,7 @@ export const TestcaseTable: React.FC<TestcaseTableProps> = ({
                     copy[idx].label = e.target.value;
                     setTestCases(copy);
                   }}
-                  className="bg-transparent border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none w-44"
+                  className="bg-transparent border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none w-44 text-xs font-semibold"
                 />
               </td>
               <td className="py-2.5 px-3">
@@ -117,7 +119,7 @@ export const TestcaseTable: React.FC<TestcaseTableProps> = ({
                     copy[idx].rationaleTag = e.target.value as RationaleTag;
                     setTestCases(copy);
                   }}
-                  className="bg-transparent text-[11px] font-semibold text-slate-600"
+                  className="bg-transparent text-xs font-semibold text-slate-600 focus:outline-none"
                 >
                   <option value="FUNCTIONAL">Functional</option>
                   <option value="BOUNDARY">Boundary</option>
@@ -134,7 +136,7 @@ export const TestcaseTable: React.FC<TestcaseTableProps> = ({
                     copy[idx].isHidden = !copy[idx].isHidden;
                     setTestCases(copy);
                   }}
-                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  className={`px-2 py-0.5 rounded-full text-xs font-bold ${
                     tc.isHidden
                       ? 'bg-purple-50 text-purple-700 border border-purple-200'
                       : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
@@ -157,10 +159,10 @@ export const TestcaseTable: React.FC<TestcaseTableProps> = ({
                   className="w-12 bg-transparent text-center font-bold text-blue-700 focus:outline-none border-b border-slate-200"
                 />
               </td>
-              <td className="py-2.5 px-3 text-slate-500 font-mono text-[11px]">
+              <td className="py-2.5 px-3 text-slate-500 font-mono text-xs">
                 {tc.timeLimitMs}ms
               </td>
-              <td className="py-2.5 px-3 font-mono text-[11px] text-slate-700">
+              <td className="py-2.5 px-3 font-mono text-xs text-slate-700">
                 <input
                   type="text"
                   aria-label="Dữ liệu đầu vào (Stdin)"
@@ -173,7 +175,7 @@ export const TestcaseTable: React.FC<TestcaseTableProps> = ({
                   className="bg-transparent border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none w-36 truncate"
                 />
               </td>
-              <td className="py-2.5 px-3 font-mono text-[11px] text-slate-700">
+              <td className="py-2.5 px-3 font-mono text-xs text-slate-700">
                 <input
                   type="text"
                   aria-label="Kết quả mong đợi (Stdout)"
@@ -193,7 +195,7 @@ export const TestcaseTable: React.FC<TestcaseTableProps> = ({
                   onClick={() => onDeleteTestCase(idx)}
                   className="p-1 text-slate-300 hover:text-rose-600 transition"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Trash2 className="size-3.5" />
                 </button>
               </td>
             </tr>

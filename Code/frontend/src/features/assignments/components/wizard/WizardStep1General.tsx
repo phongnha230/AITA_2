@@ -51,12 +51,12 @@ export const WizardStep1General: React.FC<WizardStep1GeneralProps> = ({
     <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5 animate-in fade-in duration-200">
       <div className="flex items-center justify-between pb-3 border-b border-slate-100">
         <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+          <span className="size-2.5 rounded-full bg-blue-600"></span>
           <h2 className="font-extrabold text-sm text-slate-900">
             {flowType === 'PE_EXAM' ? 'Bước 1: Cấu hình ca thi PE' : 'Bước 1: Thông tin Assignment'}
           </h2>
         </div>
-        <span className="text-[11px] font-semibold text-slate-400">Bước 1 trên 4</span>
+        <span className="text-xs font-semibold text-slate-600">Bước 1 trên 4</span>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
@@ -78,7 +78,7 @@ export const WizardStep1General: React.FC<WizardStep1GeneralProps> = ({
               </option>
             ))}
           </select>
-          {courseLoadError && <p role="alert" className="mt-1 text-[11px] font-semibold text-rose-700">{courseLoadError}</p>}
+          {courseLoadError && <p role="alert" className="mt-1 text-xs font-semibold text-rose-700">{courseLoadError}</p>}
         </div>
 
         <div>
@@ -188,16 +188,16 @@ export const WizardStep1General: React.FC<WizardStep1GeneralProps> = ({
         </div>
 
         {/* CHUẨN KHẢO THÍ: STRICT PE HYBRID GRADING (8.0đ + 2.0đ) */}
-        <div className="md:col-span-2 p-3.5 rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-50/70 via-white to-white space-y-2 shadow-2xs">
+        <div className="md:col-span-2 p-3.5 bg-gradient-to-br from-indigo-50/70 via-white to-white space-y-2">
           <div className="flex items-center justify-between">
             <span className="font-extrabold text-xs text-slate-900 flex items-center gap-1.5">
               ⚖ Cơ chế Khảo thí Chuẩn: Strict PE (Hybrid Grading)
             </span>
-            <span className="text-[10px] font-bold text-indigo-700 bg-indigo-100/90 px-2.5 py-0.5 rounded-full border border-indigo-200">
+            <span className="text-xs font-bold text-indigo-700 bg-indigo-100/90 px-2.5 py-0.5 rounded-full border border-indigo-200">
               7.0đ Chức năng + 2.0đ Thuật toán + 1.0đ Clean Code = 10.0đ
             </span>
           </div>
-          <p className="text-[11px] text-slate-500 leading-relaxed">
+          <p className="text-xs text-slate-500 leading-relaxed">
             Sandbox chấm độ chính xác; AI đánh giá thuật toán và Clean Code theo rubric của đề.
           </p>
         </div>
@@ -206,21 +206,11 @@ export const WizardStep1General: React.FC<WizardStep1GeneralProps> = ({
       <div className="pt-3 border-t border-slate-100 flex justify-end">
         <button
           type="button"
-          onClick={() => {
-            if (!courseId) {
-              alert('Vui lòng chọn khóa học trước khi tiếp tục.');
-              return;
-            }
-            if (!title.trim()) {
-              alert('Vui lòng nhập tiêu đề trước khi tiếp tục!');
-              return;
-            }
-            onNext();
-          }}
+          onClick={onNext}
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-500/20 transition"
         >
           <span>Tiếp tục: Tải Đề PDF &amp; Starter ZIP</span>
-          <ArrowRight className="w-4 h-4" />
+          <ArrowRight className="size-4" />
         </button>
       </div>
     </div>

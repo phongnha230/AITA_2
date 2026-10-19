@@ -15,11 +15,13 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { assignmentService } from '../services/assignment.service';
+import { getErrorMessage } from '@/lib/errors';
 import { Assignment, Course } from '../types/assignment.types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { ROUTES } from '@/config/routes';
 
 export const ExamBankList: React.FC = () => {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
@@ -55,8 +57,9 @@ export const ExamBankList: React.FC = () => {
     try {
       await assignmentService.deleteAssignment(id);
       setAssignments((prev) => prev.filter((a) => a.id !== id));
-    } catch (err: any) {
-      alert(`Lỗi khi xóa đề thi: ${err.message || err}`);
+    } catch (err: unknown) {
+      console.error('Không thể xóa đề thi:', err);
+      alert(`Lỗi khi xóa đề thi: ${getErrorMessage(err)}`);
     } finally {
       setDeletingId(null);
     }
@@ -95,8 +98,8 @@ export const ExamBankList: React.FC = () => {
         </div>
 
         <Button asChild className="h-10 px-4 rounded-xl font-bold text-xs bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs shrink-0">
-          <Link href="/exam-bank/create?type=PE_EXAM">
-            <Plus className="w-4 h-4 mr-1.5 shrink-0" />
+          <Link href={`${ROUTES.LECTURER.EXAM_BANK_CREATE}?type=PE_EXAM`}>
+            <Plus className="size-4 mr-1.5 shrink-0" />
             <span>Tạo đề thi PE mới</span>
           </Link>
         </Button>
@@ -106,7 +109,7 @@ export const ExamBankList: React.FC = () => {
       <Card className="rounded-2xl border-slate-200 shadow-2xs p-4 bg-white space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <Search className="size-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
             <Input
               type="text"
               value={searchTerm}
@@ -124,7 +127,7 @@ export const ExamBankList: React.FC = () => {
               disabled={loading}
               className="h-9 px-3 rounded-xl text-xs font-semibold border-slate-200 hover:bg-slate-50 text-slate-700"
             >
-              <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`size-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
               <span>Làm mới danh sách</span>
             </Button>
           </div>
@@ -132,7 +135,7 @@ export const ExamBankList: React.FC = () => {
 
         {/* Course Filter Pills */}
         <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-100 text-xs">
-          <span className="text-slate-400 font-semibold mr-1 text-[11px]">Lọc theo môn:</span>
+          <span className="text-slate-600 font-semibold mr-1 text-xs">Lọc theo môn:</span>
           <Button
             variant={selectedCourseFilter === 'ALL' ? 'default' : 'secondary'}
             size="sm"
@@ -170,19 +173,19 @@ export const ExamBankList: React.FC = () => {
       {/* 3. ASSIGNMENT CARDS LIST */}
       {loading ? (
         <Card className="rounded-2xl border-slate-200 shadow-2xs p-16 text-center text-slate-400 text-xs flex flex-col items-center justify-center gap-2">
-          <RefreshCw className="w-6 h-6 animate-spin text-indigo-600" />
+          <RefreshCw className="size-6 animate-spin text-indigo-600" />
           <span>Đang tải danh sách đề thi từ CSDL...</span>
         </Card>
       ) : filtered.length === 0 ? (
         <Card className="rounded-2xl border-2 border-dashed border-slate-200 p-12 text-center text-slate-500 shadow-2xs flex flex-col items-center justify-center">
-          <FileCode className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-          <h3 className="font-extrabold text-sm text-slate-800">Chưa có đề thi nào trong ngân hàng</h3>
-          <p className="text-xs text-slate-400 mt-1 mb-4">
+          <FileCode className="size-12 text-slate-300 mx-auto mb-3" />
+          <h2 className="font-extrabold text-sm text-slate-800">Chưa có đề thi nào trong ngân hàng</h2>
+          <p className="text-xs text-slate-600 mt-1 mb-4">
             Hãy tạo đề thi đầu tiên với file PDF đề, starter code và bộ testcase để bắt đầu!
           </p>
           <Button asChild className="h-9 px-4 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs">
             <Link href="/exam-bank/create?type=PE_EXAM">
-              <Plus className="w-4 h-4 mr-1.5" /> Tạo đề thi PE ngay
+              <Plus className="size-4 mr-1.5" /> Tạo đề thi PE ngay
             </Link>
           </Button>
         </Card>
@@ -210,8 +213,8 @@ export const ExamBankList: React.FC = () => {
                       variant={isPublished ? 'default' : 'secondary'}
                       className={
                         isPublished
-                          ? 'bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[10px]'
-                          : 'bg-slate-100 text-slate-600 font-bold text-[10px]'
+                          ? 'bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs'
+                          : 'bg-slate-100 text-slate-600 font-bold text-xs'
                       }
                     >
                       {isPublished ? '● ĐÃ XUẤT BẢN' : 'BẢN NHÁP'}
@@ -229,31 +232,31 @@ export const ExamBankList: React.FC = () => {
 
                   <div className="mt-4 p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs space-y-1.5">
                     <div className="flex items-center justify-between text-slate-600">
-                      <span className="flex items-center gap-1.5 text-slate-500 text-[11px]">
-                        <Terminal className="w-3.5 h-3.5 text-indigo-600" />
+                      <span className="flex items-center gap-1.5 text-slate-500 text-xs">
+                        <Terminal className="size-3.5 text-indigo-600" />
                         <span>Môi trường Sandbox:</span>
                       </span>
-                      <span className="font-bold text-slate-800 text-[11px]">
+                      <span className="font-bold text-slate-800 text-xs">
                         {isJava ? 'Java JDK 21' : 'C GCC 11'}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between text-slate-600">
-                      <span className="flex items-center gap-1.5 text-slate-500 text-[11px]">
-                        <Layers className="w-3.5 h-3.5 text-amber-500" />
+                      <span className="flex items-center gap-1.5 text-slate-500 text-xs">
+                        <Layers className="size-3.5 text-amber-500" />
                         <span>Bộ Testcase tự động:</span>
                       </span>
-                      <span className="font-bold text-slate-800 text-[11px]">
+                      <span className="font-bold text-slate-800 text-xs">
                         {testcaseCount} testcases đã lưu
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between text-slate-600">
-                      <span className="flex items-center gap-1.5 text-slate-500 text-[11px]">
-                        <Clock className="w-3.5 h-3.5 text-emerald-600" />
+                      <span className="flex items-center gap-1.5 text-slate-500 text-xs">
+                        <Clock className="size-3.5 text-emerald-600" />
                         <span>Thời lượng nộp bài:</span>
                       </span>
-                      <span className="font-bold text-slate-800 text-[11px]">
+                      <span className="font-bold text-slate-800 text-xs">
                         120 phút
                       </span>
                     </div>
@@ -261,7 +264,7 @@ export const ExamBankList: React.FC = () => {
                 </div>
 
                 <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-between bg-slate-50/50">
-                  <span className="text-[10px] text-slate-400 font-mono">
+                  <span className="text-xs text-slate-400 font-mono">
                     ID: {item.id.substring(0, 8)}...
                   </span>
 
@@ -272,9 +275,9 @@ export const ExamBankList: React.FC = () => {
                       onClick={() => handleDelete(item.id, item.title)}
                       disabled={deletingId === item.id}
                       title="Xóa đề thi khỏi CSDL"
-                      className="h-8 w-8 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-xl"
+                      className="size-8 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-xl"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="size-4" />
                     </Button>
 
                     <Button
@@ -283,8 +286,8 @@ export const ExamBankList: React.FC = () => {
                       size="sm"
                       className="h-8 px-3 rounded-xl text-xs font-bold bg-white hover:bg-indigo-50 text-indigo-700 border-indigo-200 transition shadow-2xs"
                     >
-                      <Link href={`/exam-bank/${item.id}`}>
-                        <Eye className="w-3.5 h-3.5 mr-1" />
+                      <Link href={ROUTES.LECTURER.EXAM_BANK_DETAIL(item.id)}>
+                        <Eye className="size-3.5 mr-1" />
                         <span>Chi tiết</span>
                       </Link>
                     </Button>

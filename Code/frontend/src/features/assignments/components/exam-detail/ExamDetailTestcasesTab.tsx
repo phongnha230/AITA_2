@@ -44,37 +44,37 @@ export const ExamDetailTestcasesTab: React.FC<ExamDetailTestcasesTabProps> = ({
     switch (tag) {
       case 'FUNCTIONAL':
         return (
-          <Badge variant="outline" className="text-[11px] font-bold bg-indigo-50 text-indigo-700 border-indigo-200">
+          <Badge variant="outline" className="text-xs font-bold bg-indigo-50 text-indigo-700 border-indigo-200">
             FUNCTIONAL (Chức năng)
           </Badge>
         );
       case 'BOUNDARY':
         return (
-          <Badge variant="outline" className="text-[11px] font-bold bg-purple-50 text-purple-700 border-purple-200">
+          <Badge variant="outline" className="text-xs font-bold bg-purple-50 text-purple-700 border-purple-200">
             BOUNDARY (Biên)
           </Badge>
         );
       case 'EDGE':
         return (
-          <Badge variant="outline" className="text-[11px] font-bold bg-amber-50 text-amber-700 border-amber-200">
+          <Badge variant="outline" className="text-xs font-bold bg-amber-50 text-amber-700 border-amber-200">
             EDGE (Ngoại lệ)
           </Badge>
         );
       case 'PERFORMANCE':
         return (
-          <Badge variant="outline" className="text-[11px] font-bold bg-emerald-50 text-emerald-700 border-emerald-200">
+          <Badge variant="outline" className="text-xs font-bold bg-emerald-50 text-emerald-700 border-emerald-200">
             PERFORMANCE (Tối ưu)
           </Badge>
         );
       case 'SECURITY':
         return (
-          <Badge variant="outline" className="text-[11px] font-bold bg-rose-50 text-rose-700 border-rose-200">
+          <Badge variant="outline" className="text-xs font-bold bg-rose-50 text-rose-700 border-rose-200">
             SECURITY (Bảo mật)
           </Badge>
         );
       default:
         return (
-          <Badge variant="secondary" className="text-[11px] font-bold">
+          <Badge variant="secondary" className="text-xs font-bold">
             {tag}
           </Badge>
         );
@@ -87,29 +87,29 @@ export const ExamDetailTestcasesTab: React.FC<ExamDetailTestcasesTabProps> = ({
       <Card className="rounded-2xl border-slate-200 shadow-2xs p-4 md:p-6 bg-white flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="flex flex-wrap items-center gap-4 text-xs font-semibold text-slate-600">
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+            <span className="size-2.5 rounded-full bg-emerald-500" />
             <span>Công khai cho SV: <strong>{publicCount} testcases</strong></span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+            <span className="size-2.5 rounded-full bg-rose-500" />
             <span>Testcase ẩn (Hidden): <strong>{hiddenCount} testcases</strong></span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
+            <span className="size-2.5 rounded-full bg-indigo-500" />
             <span>Tổng thang điểm: <strong>{totalPoints.toFixed(1)} / {Number(functionalMaxScore).toFixed(1)} pts</strong></span>
           </div>
         </div>
 
         {/* Filter by Rationale Tag */}
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-[11px] font-semibold text-slate-400 mr-1">Lọc nhãn:</span>
+          <span className="text-xs font-semibold text-slate-400 mr-1">Lọc nhãn:</span>
           {['ALL', 'FUNCTIONAL', 'BOUNDARY', 'EDGE', 'PERFORMANCE', 'SECURITY'].map((tag) => (
             <Button
               key={tag}
               variant={selectedTagFilter === tag ? 'default' : 'secondary'}
               size="sm"
               onClick={() => onSelectTagFilter(tag)}
-              className={`h-7 px-2.5 rounded-lg text-[11px] font-bold transition ${
+              className={`h-7 px-2.5 rounded-lg text-xs font-bold transition ${
                 selectedTagFilter === tag
                   ? 'bg-slate-900 hover:bg-slate-800 text-white'
                   : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
@@ -149,15 +149,15 @@ export const ExamDetailTestcasesTab: React.FC<ExamDetailTestcasesTabProps> = ({
                     <h3 className="text-sm font-black text-slate-900">{tc.label}</h3>
                     {renderRationaleBadge(tc.rationaleTag)}
                     {tc.isHidden ? (
-                      <Badge variant="outline" className="text-[10px] font-bold bg-rose-50 text-rose-700 border-rose-200">
+                      <Badge variant="outline" className="text-xs font-bold bg-rose-50 text-rose-700 border-rose-200">
                         🔒 Ẩn với SV
                       </Badge>
                     ) : (
-                      <Badge variant="outline" className="text-[10px] font-bold bg-emerald-50 text-emerald-700 border-emerald-200">
+                      <Badge variant="outline" className="text-xs font-bold bg-emerald-50 text-emerald-700 border-emerald-200">
                         👁️ Công khai
                       </Badge>
                     )}
-                    <Badge variant="secondary" className="text-[10px] font-bold">
+                    <Badge variant="secondary" className="text-xs font-bold">
                       {tc.comparisonMode === 'FILE_TO_FILE' ? '📁 I/O File' : '⌨️ STDIO'}
                     </Badge>
                   </div>
@@ -167,13 +167,13 @@ export const ExamDetailTestcasesTab: React.FC<ExamDetailTestcasesTabProps> = ({
                       Điểm: <strong className="text-indigo-700 font-mono text-sm">{tc.points.toFixed(1)}</strong> pts
                     </span>
                     <span className="text-slate-300">•</span>
-                    <span className="text-slate-500 font-mono text-[11px] flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-slate-400" />
+                    <span className="text-slate-500 font-mono text-xs flex items-center gap-1">
+                      <Clock className="size-3 text-slate-400" />
                       {tc.timeLimitMs}ms
                     </span>
                     <span className="text-slate-300">•</span>
-                    <span className="text-slate-500 font-mono text-[11px] flex items-center gap-1">
-                      <Cpu className="w-3 h-3 text-slate-400" />
+                    <span className="text-slate-500 font-mono text-xs flex items-center gap-1">
+                      <Cpu className="size-3 text-slate-400" />
                       {tc.memoryLimitKb} KB
                     </span>
                   </div>
@@ -185,7 +185,7 @@ export const ExamDetailTestcasesTab: React.FC<ExamDetailTestcasesTabProps> = ({
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between text-xs font-bold text-slate-700">
                       <span className="flex items-center gap-1.5">
-                        <Terminal className="w-3.5 h-3.5 text-indigo-600" />
+                        <Terminal className="size-3.5 text-indigo-600" />
                         <span>
                           {tc.comparisonMode === 'FILE_TO_FILE'
                             ? `Tệp Input (${tc.inputFileName || 'data.txt'}):`
@@ -196,16 +196,16 @@ export const ExamDetailTestcasesTab: React.FC<ExamDetailTestcasesTabProps> = ({
                         variant="ghost"
                         size="sm"
                         onClick={() => onCopy(inputContent, inputKey)}
-                        className="h-7 px-2 text-[11px] font-semibold text-slate-500 hover:text-indigo-600"
+                        className="h-7 px-2 text-xs font-semibold text-slate-500 hover:text-indigo-600"
                       >
                         {copiedKey === inputKey ? (
                           <>
-                            <Check className="w-3 h-3 mr-1 text-emerald-600" />
+                            <Check className="size-3 mr-1 text-emerald-600" />
                             <span className="text-emerald-600">Đã chép</span>
                           </>
                         ) : (
                           <>
-                            <Copy className="w-3 h-3 mr-1" />
+                            <Copy className="size-3 mr-1" />
                             <span>Sao chép</span>
                           </>
                         )}
@@ -220,7 +220,7 @@ export const ExamDetailTestcasesTab: React.FC<ExamDetailTestcasesTabProps> = ({
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between text-xs font-bold text-slate-700">
                       <span className="flex items-center gap-1.5">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <CheckCircle2 className="size-3.5 text-emerald-600" />
                         <span>
                           {tc.comparisonMode === 'FILE_TO_FILE'
                             ? `Tệp Expected Output (${tc.expectedFileName || 'f1.txt'}):`
@@ -231,16 +231,16 @@ export const ExamDetailTestcasesTab: React.FC<ExamDetailTestcasesTabProps> = ({
                         variant="ghost"
                         size="sm"
                         onClick={() => onCopy(expectedContent, expectedKey)}
-                        className="h-7 px-2 text-[11px] font-semibold text-slate-500 hover:text-emerald-600"
+                        className="h-7 px-2 text-xs font-semibold text-slate-500 hover:text-emerald-600"
                       >
                         {copiedKey === expectedKey ? (
                           <>
-                            <Check className="w-3 h-3 mr-1 text-emerald-600" />
+                            <Check className="size-3 mr-1 text-emerald-600" />
                             <span className="text-emerald-600">Đã chép</span>
                           </>
                         ) : (
                           <>
-                            <Copy className="w-3 h-3 mr-1" />
+                            <Copy className="size-3 mr-1" />
                             <span>Sao chép</span>
                           </>
                         )}

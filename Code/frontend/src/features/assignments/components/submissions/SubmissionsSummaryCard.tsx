@@ -45,33 +45,33 @@ export const SubmissionsSummaryCard: React.FC<SubmissionsSummaryCardProps> = ({
       {/* Quick KPI Strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 mt-6 pt-6 border-t border-slate-100">
         <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
-          <div className="text-[11px] font-semibold text-slate-400">Tổng bài nộp</div>
+          <div className="text-xs font-semibold text-slate-400">Tổng bài nộp</div>
           <div className="text-lg font-black text-slate-900 mt-0.5 flex items-center gap-2">
-            <Users className="w-4 h-4 text-indigo-600" />
+            <Users className="size-4 text-indigo-600" />
             <span>{stats.total} bài</span>
           </div>
         </div>
 
         <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
-          <div className="text-[11px] font-semibold text-slate-400">Đã hoàn thành chấm</div>
+          <div className="text-xs font-semibold text-slate-400">Đã hoàn thành chấm</div>
           <div className="text-lg font-black text-slate-900 mt-0.5 flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            <CheckCircle2 className="size-4 text-emerald-600" />
             <span>{stats.graded} bài</span>
           </div>
         </div>
 
         <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
-          <div className="text-[11px] font-semibold text-slate-400">Chờ chấm / Đang chạy</div>
+          <div className="text-xs font-semibold text-slate-400">Chờ chấm / Đang chạy</div>
           <div className="text-lg font-black text-slate-900 mt-0.5 flex items-center gap-2">
-            <Clock className="w-4 h-4 text-amber-600" />
+            <Clock className="size-4 text-amber-600" />
             <span>{stats.pending} bài</span>
           </div>
         </div>
 
         <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
-          <div className="text-[11px] font-semibold text-slate-400">Điểm trung bình</div>
+          <div className="text-xs font-semibold text-slate-400">Điểm trung bình</div>
           <div className="text-lg font-black text-slate-900 mt-0.5 flex items-center gap-2">
-            <Award className="w-4 h-4 text-indigo-600" />
+            <Award className="size-4 text-indigo-600" />
             <span>{stats.avgScore}/10</span>
           </div>
         </div>

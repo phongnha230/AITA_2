@@ -18,10 +18,31 @@ import { useTestcaseImport } from './useTestcaseImport';
 
 const defaultReactStructureRequirements = 'Đánh giá cách tổ chức component, sử dụng props/state, hooks và dependency của effect; routing/context/store phải phù hợp phạm vi bài, có xử lý loading, error và empty state khi cần.';
 const defaultReactCleanCodeRequirements = 'Đánh giá naming, khả năng đọc hiểu, component không ôm quá nhiều trách nhiệm, tránh lặp logic, tránh hardcode không cần thiết và bảo đảm accessibility cơ bản.';
+const solutionFileMarker = '// === AITA SOLUTION FILE: ';
+const serializeSolutionFiles = (files: Array<{ path: string; content: string }>): string => files
+  .map(({ path: filePath, content }) => `${solutionFileMarker}${filePath} ===\n${content}`)
+  .join('\n\n');
+const parseSolutionFiles = (sourceCode: string): Array<{ path: string; content: string }> => {
+  const markerPattern = /^\/\/ === AITA SOLUTION FILE: (.+) ===$/gm;
+  const markers = [...sourceCode.matchAll(markerPattern)];
+  return markers.map((marker, index) => {
+    const contentStart = (marker.index ?? 0) + marker[0].length + 1;
+    const contentEnd = markers[index + 1]?.index ?? sourceCode.length;
+    return { path: marker[1], content: sourceCode.slice(contentStart, contentEnd).replace(/\n+$/, '') };
+  });
+};
 const toLocalDateTimeInput = (value: string): string => {
   const date = new Date(value);
   date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
   return date.toISOString().slice(0, 16);
+};
+
+const getExpectedEnvironment = (courseCode: string): AssignmentEnv | undefined => {
+  const normalizedCode = courseCode.trim().toUpperCase();
+  if (/^PRF192(?:_|$)/.test(normalizedCode)) return 'C_GCC';
+  if (/^(?:PRO192|CSD201)(?:_|$)/.test(normalizedCode)) return 'JAVA_JDK';
+  if (/^FER201(?:_|$)/.test(normalizedCode)) return 'REACT_JS';
+  return undefined;
 };
 
 const hasWebTestSteps = (testCase: TestCase): boolean => {
@@ -52,6 +73,7 @@ export function useCreateExamWizard() {
 
   // Active Step (1 to 4)
   const [activeStep, setActiveStep] = useState<1 | 2 | 3 | 4>(1);
+  const [navigationError, setNavigationError] = useState<string | null>(null);
 
   // 1. General Info State
   const [courses, setCourses] = useState<Course[]>([]);
@@ -93,7 +115,9 @@ export function useCreateExamWizard() {
   // 4. Solution Code State
   const [solutionTitle, setSolutionTitle] = useState('');
   const [solutionCode, setSolutionCode] = useState('');
-  const [expectedComplexity, setExpectedComplexity] = useState('O(n log n)');
+  const [solutionFiles, setSolutionFiles] = useState<Array<{ path: string; content: string }>>([]);
+  const [solutionZipName, setSolutionZipName] = useState('');
+  const [expectedComplexity, setExpectedComplexity] = useState('');
   const [expectedSpaceComplexity, setExpectedSpaceComplexity] = useState('');
   const [acceptedStrategiesText, setAcceptedStrategiesText] = useState('');
   const [algorithmNotes, setAlgorithmNotes] = useState('');
@@ -121,6 +145,10 @@ export function useCreateExamWizard() {
     if (nextEnvironment !== environment) {
       setTestCases([]);
       setDryRunResult(null);
+      setSolutionFiles([]);
+      setSolutionZipName('');
+      setSolutionCode('');
+      setSolutionTitle('');
     }
     setEnvironment(nextEnvironment);
   };
@@ -158,7 +186,11 @@ export function useCreateExamWizard() {
         setCourses(courseList);
         if (requestedCourseId && !editId) {
           const requestedCourse = courseList.find((course) => course.id === requestedCourseId);
-          if (requestedCourse) setCourseId(requestedCourse.id);
+          if (requestedCourse) {
+            setCourseId(requestedCourse.id);
+            const expectedEnvironment = getExpectedEnvironment(requestedCourse.code);
+            if (expectedEnvironment) setEnvironment(expectedEnvironment);
+          }
           else {
             setCourseId('');
             setCourseLoadError('Khóa học được yêu cầu không tồn tại hoặc bạn không có quyền tạo đề trong khóa học đó.');
@@ -206,6 +238,9 @@ export function useCreateExamWizard() {
         if (data.solutions && data.solutions.length > 0) {
           setSolutionTitle(data.solutions[0].title || '');
           setSolutionCode(data.solutions[0].sourceCode || '');
+          const savedSources = parseSolutionFiles(data.solutions[0].sourceCode || '');
+          setSolutionFiles(savedSources);
+          setSolutionZipName(savedSources.length > 0 ? 'ZIP đáp án đã lưu' : '');
           setExpectedComplexity(data.solutions[0].expectedTimeComplexity || '');
           setExpectedSpaceComplexity(data.solutions[0].expectedSpaceComplexity || '');
           setAcceptedStrategiesText((data.solutions[0].acceptedStrategies || []).join(', '));
@@ -272,9 +307,9 @@ export function useCreateExamWizard() {
       setMacJunkDetected(junkFound);
       setZipEntries(entries.sort());
       setZipFilesContent(contents);
-    } catch (err: any) {
-      console.error(err);
-      alert('Không thể đọc cấu trúc file ZIP: ' + err.message);
+    } catch (err: unknown) {
+      console.error('Không thể đọc cấu trúc file ZIP:', err);
+      alert(`Không thể đọc cấu trúc file ZIP: ${err instanceof Error ? err.message : 'lỗi không xác định'}`);
     } finally {
       setIsReadingZip(false);
     }
@@ -282,15 +317,53 @@ export function useCreateExamWizard() {
 
   // Handler: Real Solution File Upload
   const handleSolutionFileUpload = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const code = (e.target?.result as string) || '';
-      setSolutionCode(code);
-      if (!solutionTitle) {
-        setSolutionTitle(`Bài giải mẫu: ${file.name}`);
+    void (async () => {
+      try {
+        if (!file.name.toLowerCase().endsWith('.zip') || file.size > 25 * 1024 * 1024) {
+          throw new Error('Chọn file ZIP đáp án nhỏ hơn 25 MiB.');
+        }
+        const zip = await JSZip.loadAsync(file, { checkCRC32: true });
+        const allowedExtensions = environment === 'JAVA_JDK' ? ['.java'] : ['.c', '.h'];
+        const sources: Array<{ path: string; content: string }> = [];
+        let totalBytes = 0;
+        const zipEntries = Object.values(zip.files);
+        if (zipEntries.length > 5_000) throw new Error('ZIP đáp án không được vượt quá 5.000 file và thư mục.');
+        for (const entry of zipEntries) {
+          if (entry.dir) continue;
+          const normalizedPath = entry.name.replace(/\\/g, '/');
+          const segments = normalizedPath.split('/');
+          if (normalizedPath.startsWith('/') || /^[a-z]:/i.test(normalizedPath) || segments.includes('..')) {
+            throw new Error(`Đường dẫn file không hợp lệ trong ZIP: ${entry.name}`);
+          }
+          if (segments.some((segment) => segment === '__MACOSX' || segment === '.DS_Store' || segment.startsWith('._'))) continue;
+          const extension = normalizedPath.slice(normalizedPath.lastIndexOf('.')).toLowerCase();
+          if (!allowedExtensions.includes(extension)) continue;
+          const content = await entry.async('string');
+          totalBytes += new TextEncoder().encode(content).byteLength;
+          if (totalBytes > 1024 * 1024) throw new Error('Tổng mã nguồn trong ZIP không được vượt quá 1 MiB.');
+          sources.push({ path: normalizedPath, content });
+          if (sources.length > 100) throw new Error('ZIP đáp án không được vượt quá 100 file mã nguồn.');
+        }
+        if (sources.length === 0) {
+          throw new Error(`ZIP không có file ${allowedExtensions.join(', ')} phù hợp với môi trường ${environment}.`);
+        }
+        sources.sort((first, second) => first.path.localeCompare(second.path));
+        setSolutionFiles(sources);
+        setSolutionZipName(file.name);
+        setSolutionCode(serializeSolutionFiles(sources));
+        setSolutionTitle((current) => current || `Bài giải mẫu: ${file.name}`);
+      } catch (error) {
+        console.error('[CreateExamWizard] Failed to read reference solution ZIP', { fileName: file.name, error });
+        window.alert(error instanceof Error ? error.message : 'Không thể đọc ZIP đáp án.');
       }
-    };
-    reader.readAsText(file);
+    })();
+  };
+
+  const handleRemoveSolutionZip = () => {
+    setSolutionFiles([]);
+    setSolutionZipName('');
+    setSolutionCode('');
+    setSolutionTitle('');
   };
 
   // Handler: 1-Click Load Sample PRF192 Demo Data
@@ -311,6 +384,8 @@ export function useCreateExamWizard() {
     setZipFilesContent(samplePrf192Template.zipFilesContent);
     setSolutionTitle(samplePrf192Template.solutionTitle);
     setSolutionCode(samplePrf192Template.solutionCode);
+    setSolutionFiles([]);
+    setSolutionZipName('');
     setExpectedComplexity(samplePrf192Template.expectedComplexity || '');
     setExpectedSpaceComplexity(samplePrf192Template.expectedSpaceComplexity || '');
     setAcceptedStrategiesText((samplePrf192Template.acceptedStrategies || []).join(', '));
@@ -319,7 +394,7 @@ export function useCreateExamWizard() {
   };
 
   const applyJavaTemplate = (template: SampleExamTemplate, requiredCourseCode: 'PRO192' | 'CSD201') => {
-    const course = courses.find((candidate) => candidate.code.trim().toUpperCase() === requiredCourseCode);
+    const course = courses.find((candidate) => new RegExp(`^${requiredCourseCode}(?:_|$)`).test(candidate.code.trim().toUpperCase()));
     if (!course) {
       window.alert(`Không tìm thấy khóa học ${requiredCourseCode}. Hãy tạo/chọn khóa học đúng mã trước khi áp dụng template.`);
       return;
@@ -342,6 +417,8 @@ export function useCreateExamWizard() {
     setZipFilesContent(template.zipFilesContent);
     setSolutionTitle(template.solutionTitle);
     setSolutionCode(template.solutionCode);
+    setSolutionFiles([]);
+    setSolutionZipName('');
     setExpectedComplexity(template.expectedComplexity || '');
     setExpectedSpaceComplexity(template.expectedSpaceComplexity || '');
     setAcceptedStrategiesText((template.acceptedStrategies || []).join(', '));
@@ -384,8 +461,98 @@ export function useCreateExamWizard() {
   };
 
   const selectedCourse = courses.find((course) => course.id === courseId);
+  const handleCourseChange = (nextCourseId: string) => {
+    setCourseId(nextCourseId);
+    setCourseLoadError(null);
+    setNavigationError(null);
+    const nextCourse = courses.find((course) => course.id === nextCourseId);
+    const expectedEnvironment = nextCourse ? getExpectedEnvironment(nextCourse.code) : undefined;
+    if (expectedEnvironment && expectedEnvironment !== environment) handleEnvironmentChange(expectedEnvironment);
+  };
+
+  const validateStep = (step: 1 | 2 | 3): string | null => {
+    if (step === 1) {
+      if (courseLoadError) return courseLoadError;
+      if (!selectedCourse) return 'Chọn khóa học do bạn phụ trách trước khi sang bước tiếp theo.';
+      if (!title.trim()) return 'Nhập tiêu đề đề thi/bài tập trước khi tiếp tục.';
+      const expectedEnvironment = getExpectedEnvironment(selectedCourse.code);
+      if (expectedEnvironment && environment !== expectedEnvironment) {
+        return `Môn ${selectedCourse.code} cần môi trường ${expectedEnvironment}. Hãy chọn đúng môi trường chấm.`;
+      }
+      if (!Number.isInteger(durationMinutes) || durationMinutes < 1) {
+        return 'Thời lượng phải là số nguyên lớn hơn 0.';
+      }
+      if (!startTime || Number.isNaN(new Date(startTime).getTime())) return 'Chọn thời gian bắt đầu hợp lệ.';
+      if (accessCode.trim().length < 4) return 'Mã đề cần có ít nhất 4 ký tự.';
+      return null;
+    }
+
+    if (step === 2) {
+      if (!pdfUploadFile && !(existingPdfPath && !removeExistingPdf)) {
+        return 'Tải PDF đề bài lên trước khi tiếp tục. Starter ZIP là tùy chọn.';
+      }
+      if (isReadingZip) return 'Đợi hệ thống đọc xong Starter ZIP rồi tiếp tục.';
+      return null;
+    }
+
+    if (environment !== 'REACT_JS' && !solutionCode.trim()) {
+      return 'Tải ZIP đáp án chuẩn có mã nguồn C/Java trước khi tiếp tục.';
+    }
+    if (testCases.length === 0) return 'Thêm hoặc import ít nhất một testcase trước khi tiếp tục.';
+    const invalidLabel = testCases.findIndex((testCase) => !testCase.label.trim());
+    if (invalidLabel >= 0) return `Testcase ${invalidLabel + 1} chưa có tên.`;
+    if (testCases.some((testCase) => !Number.isFinite(Number(testCase.points)) || Number(testCase.points) <= 0)) {
+      return 'Mỗi testcase cần có điểm lớn hơn 0.';
+    }
+    const functionalPoints = testCases.reduce((sum, testCase) => sum + Number(testCase.points), 0);
+    if (Math.abs(functionalPoints - 7) >= 0.01) {
+      return `Tổng điểm testcase phải bằng 7.0; hiện tại là ${functionalPoints.toFixed(2)}.`;
+    }
+    if (environment === 'C_GCC' && testCases.some((testCase) => testCase.comparisonMode !== 'STDIO')) {
+      return 'Testcase C hiện chỉ hỗ trợ so sánh STDIO.';
+    }
+    if (environment === 'JAVA_JDK' && testCases.some(
+      (testCase) => testCase.comparisonMode === 'FILE_TO_FILE' && !testCase.expectedFileName?.trim()
+    )) {
+      return 'Testcase Java dạng file cần có tên file kết quả.';
+    }
+    if (environment === 'REACT_JS') {
+      if (testCases.some((testCase) => !hasWebTestSteps(testCase))) return 'Mỗi luồng React cần có ít nhất một bước Playwright hợp lệ.';
+      if (testCases.some((testCase) => !hasWebAssertions(testCase))) return 'Mỗi luồng React cần ít nhất một bước kiểm tra để được tính điểm.';
+      if (reactStructureRequirements.trim().length < 20 || reactCleanCodeRequirements.trim().length < 20) {
+        return 'Mô tả tiêu chí cấu trúc React và Clean Code ít nhất 20 ký tự.';
+      }
+    }
+    return null;
+  };
+
+  const navigateToStep = (targetStep: 1 | 2 | 3 | 4) => {
+    setNavigationError(null);
+    if (targetStep <= activeStep) {
+      setActiveStep(targetStep);
+      return;
+    }
+    if (targetStep !== activeStep + 1) {
+      setNavigationError('Hãy hoàn thành từng bước theo thứ tự trước khi mở bước sau.');
+      return;
+    }
+    const validationError = validateStep(activeStep as 1 | 2 | 3);
+    if (validationError) {
+      setNavigationError(validationError);
+      return;
+    }
+    setActiveStep(targetStep);
+  };
+
+  const canNavigateToStep = (targetStep: 1 | 2 | 3 | 4): boolean =>
+    targetStep <= activeStep || (targetStep === activeStep + 1 && !validateStep(activeStep as 1 | 2 | 3));
 
   const handleDryRun = async () => {
+    const validationError = validateStep(3);
+    if (validationError) {
+      setDryRunError(validationError);
+      return;
+    }
     setDryRunRunning(true);
     setDryRunResult(null);
     setDryRunError(null);
@@ -395,13 +562,14 @@ export function useCreateExamWizard() {
         return;
       }
       if (!courseId || !solutionCode.trim()) {
-        setDryRunError('Hãy chọn khóa học và nhập mã nguồn bài giải chuẩn trước khi chạy thử.');
+        setDryRunError('Hãy chọn khóa học và tải ZIP mã nguồn bài giải chuẩn trước khi chạy thử.');
         return;
       }
       const result = await assignmentService.runDryRun({
         courseId,
         language: environment,
-        sourceCode: solutionCode,
+        sourceCode: solutionFiles.length > 0 ? undefined : solutionCode,
+        sourceFiles: solutionFiles.length > 0 ? solutionFiles : undefined,
         testCases: testCases.map((testCase, index) => ({
           id: testCase.id,
           questionNo: String(testCase.questionNumber ?? 'Q1'),
@@ -426,6 +594,12 @@ export function useCreateExamWizard() {
 
   // Handler: Save Exam, Testcases & Solution to Database
   const handleSaveToDatabase = async () => {
+    const firstIncompleteStep = ([1, 2, 3] as const).find((step) => validateStep(step));
+    if (firstIncompleteStep) {
+      setNavigationError(validateStep(firstIncompleteStep));
+      setActiveStep(firstIncompleteStep);
+      return;
+    }
     if (!title.trim()) {
       alert('Vui lòng nhập tiêu đề đề thi tại Bước 1!');
       setActiveStep(1);
@@ -568,11 +742,13 @@ export function useCreateExamWizard() {
     flowType,
     loadingEdit,
     activeStep,
-    setActiveStep,
+    setActiveStep: navigateToStep,
+    canNavigateToStep,
+    navigationError,
     courses,
     courseId,
     courseLoadError,
-    setCourseId,
+    setCourseId: handleCourseChange,
     selectedCourse,
     title,
     setTitle,
@@ -615,6 +791,9 @@ export function useCreateExamWizard() {
     setSolutionTitle,
     solutionCode,
     setSolutionCode,
+    solutionFiles,
+    solutionZipName,
+    handleRemoveSolutionZip,
     expectedComplexity,
     setExpectedComplexity,
     expectedSpaceComplexity,

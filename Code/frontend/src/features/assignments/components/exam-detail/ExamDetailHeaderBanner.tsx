@@ -54,34 +54,34 @@ export const ExamDetailHeaderBanner: React.FC<ExamDetailHeaderBannerProps> = ({ 
       {/* Quick Highlights Strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-slate-100">
         <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
-          <div className="text-[11px] font-semibold text-slate-400">Thời lượng làm bài</div>
+          <div className="text-xs font-semibold text-slate-400">Thời lượng làm bài</div>
           <div className="text-sm font-black text-slate-900 mt-0.5 flex items-center gap-1.5">
-            <Clock className="w-4 h-4 text-emerald-600" />
+            <Clock className="size-4 text-emerald-600" />
             <span>{assignment.durationMinutes ? `${assignment.durationMinutes} phút` : '90 phút'}</span>
           </div>
 
         </div>
 
         <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
-          <div className="text-[11px] font-semibold text-slate-400">Quy mô Testcase</div>
+          <div className="text-xs font-semibold text-slate-400">Quy mô Testcase</div>
           <div className="text-sm font-black text-slate-900 mt-0.5 flex items-center gap-1.5">
-            <Layers className="w-4 h-4 text-indigo-600" />
+            <Layers className="size-4 text-indigo-600" />
             <span>{testCases.length} Testcases • {totalPoints.toFixed(1)} pts</span>
           </div>
         </div>
 
         <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
-          <div className="text-[11px] font-semibold text-slate-400">Môi trường Chấm</div>
+          <div className="text-xs font-semibold text-slate-400">Môi trường Chấm</div>
           <div className="text-sm font-black text-slate-900 mt-0.5 flex items-center gap-1.5">
-            <Terminal className="w-4 h-4 text-purple-600" />
+            <Terminal className="size-4 text-purple-600" />
             <span>Docker Sandbox {isJava ? 'Java' : 'C'}</span>
           </div>
         </div>
 
         <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
-          <div className="text-[11px] font-semibold text-slate-400">Hình thức nộp bài</div>
+          <div className="text-xs font-semibold text-slate-400">Hình thức nộp bài</div>
           <div className="text-sm font-black text-slate-900 mt-0.5 flex items-center gap-1.5">
-            <FileCode className="w-4 h-4 text-amber-600" />
+            <FileCode className="size-4 text-amber-600" />
             <span>Cá nhân (ZIP / Source)</span>
           </div>
         </div>

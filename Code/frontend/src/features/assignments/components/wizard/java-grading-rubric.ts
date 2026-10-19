@@ -6,9 +6,12 @@ export const buildJavaGradingRubric = (
   expectedSpaceComplexity: string
 ): RubricRuleInput[] => {
   const normalizedCourseCode = courseCode?.trim().toUpperCase();
+  const isProCourse = normalizedCourseCode === 'PRO192';
   const algorithmDescription = normalizedCourseCode === 'CSD201'
     ? `Đánh giá lựa chọn cấu trúc dữ liệu, tính đúng và độ phức tạp thời gian ${expectedTimeComplexity || 'chưa cấu hình'} / bộ nhớ ${expectedSpaceComplexity || 'chưa cấu hình'}; chấp nhận chiến lược tương đương đã nêu, không yêu cầu code giống đáp án.`
-    : `Đánh giá chiến lược thuật toán theo độ phức tạp thời gian ${expectedTimeComplexity || 'chưa cấu hình'} và bộ nhớ ${expectedSpaceComplexity || 'chưa cấu hình'}, có xét các cách giải hợp lệ khác đáp án tham chiếu.`;
+    : isProCourse
+      ? 'Đánh giá theo rubric thiết kế hướng đối tượng PRO192 và yêu cầu cụ thể của đề; chỉ xét độ phức tạp nếu đề có phần thuật toán.'
+      : `Đánh giá chiến lược thuật toán theo độ phức tạp thời gian ${expectedTimeComplexity || 'chưa cấu hình'} và bộ nhớ ${expectedSpaceComplexity || 'chưa cấu hình'}, có xét các cách giải hợp lệ khác đáp án tham chiếu.`;
   const cleanCodeCriterionName = normalizedCourseCode === 'PRO192'
     ? 'Thiết kế OOP & Clean Code'
     : normalizedCourseCode === 'CSD201'
@@ -22,7 +25,7 @@ export const buildJavaGradingRubric = (
 
   return [
     {
-      criterionName: 'Độ phức tạp thuật toán kỳ vọng',
+      criterionName: isProCourse ? 'Thiết kế hướng đối tượng & giải pháp' : 'Độ phức tạp thuật toán kỳ vọng',
       description: algorithmDescription,
       maxPoints: 2,
       weight: 1,

@@ -34,14 +34,14 @@ export const ExamDetailSolutionTab: React.FC<ExamDetailSolutionTabProps> = ({
         >
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-100">
             <div className="flex items-center gap-2.5">
-              <span className="w-8 h-8 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center font-bold text-xs">
+              <span className="size-8 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center font-bold text-xs">
                 #{idx + 1}
               </span>
               <div>
                 <h3 className="text-sm font-black text-slate-900">
                   {sol.title || 'Bài Giải Mẫu Chuẩn Của Giảng Viên'}
                 </h3>
-                <span className="text-[11px] text-slate-400">
+                <span className="text-xs text-slate-400">
                   Tri thức chuẩn phục vụ chấm tự động & đối chiếu RAG
                 </span>
               </div>
@@ -55,12 +55,12 @@ export const ExamDetailSolutionTab: React.FC<ExamDetailSolutionTabProps> = ({
             >
               {copiedKey === `solution-${idx}` ? (
                 <>
-                  <Check className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+                  <Check className="size-3.5 mr-1 text-emerald-600" />
                   <span className="text-emerald-600">Đã sao chép</span>
                 </>
               ) : (
                 <>
-                  <Copy className="w-3.5 h-3.5 mr-1" />
+                  <Copy className="size-3.5 mr-1" />
                   <span>Sao chép mã nguồn</span>
                 </>
               )}
@@ -70,7 +70,7 @@ export const ExamDetailSolutionTab: React.FC<ExamDetailSolutionTabProps> = ({
           {sol.explanation && (
             <div className="p-4 rounded-xl bg-purple-50/70 border border-purple-200/80 text-xs text-purple-950 space-y-1.5">
               <div className="font-bold flex items-center gap-1.5 text-purple-800">
-                <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                <Sparkles className="size-3.5 text-purple-600" />
                 <span>Giải Thích Thuật Toán & Chuẩn Độ Phức Tạp (RAG Ground-Truth):</span>
               </div>
               <p className="leading-relaxed whitespace-pre-wrap">{sol.explanation}</p>
@@ -79,7 +79,7 @@ export const ExamDetailSolutionTab: React.FC<ExamDetailSolutionTabProps> = ({
 
           <div className="space-y-1.5">
             <div className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-              <Code2 className="w-3.5 h-3.5 text-indigo-600" />
+              <Code2 className="size-3.5 text-indigo-600" />
               <span>Mã nguồn chuẩn của Giảng viên:</span>
             </div>
             <pre className="p-4 rounded-2xl bg-slate-950 text-slate-100 font-mono text-xs overflow-x-auto max-h-[500px] border border-slate-800 leading-relaxed whitespace-pre-wrap">

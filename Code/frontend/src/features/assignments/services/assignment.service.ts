@@ -113,7 +113,8 @@ export const assignmentService = {
   async runDryRun(payload: {
     courseId: string;
     language: 'C_GCC' | 'JAVA_JDK';
-    sourceCode: string;
+    sourceCode?: string;
+    sourceFiles?: Array<{ path: string; content: string }>;
     testCases: Array<{
       id?: string;
       questionNo?: string;
@@ -312,7 +313,7 @@ export const assignmentService = {
   /**
    * Kích hoạt chấm lại qua Docker Sandbox
    */
-  async reGradeWithSandbox(submissionId: string): Promise<any> {
+  async reGradeWithSandbox(submissionId: string): Promise<unknown> {
     await this.ensureLecturerAuth();
     const res = await api.post(`/sandbox/grade/${submissionId}`);
     return res.data?.data;
@@ -321,7 +322,7 @@ export const assignmentService = {
   /**
    * Kích hoạt chấm lại qua AI Rubrics
    */
-  async reGradeWithAi(submissionId: string): Promise<any> {
+  async reGradeWithAi(submissionId: string): Promise<unknown> {
     await this.ensureLecturerAuth();
     const res = await api.post(`/ai/grade/${submissionId}`);
     return res.data?.data;

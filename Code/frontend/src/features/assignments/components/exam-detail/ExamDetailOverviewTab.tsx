@@ -16,7 +16,7 @@ export const ExamDetailOverviewTab: React.FC<ExamDetailOverviewTabProps> = ({ as
     <div className="space-y-6">
       <Card className="rounded-2xl border-slate-200 shadow-2xs p-6 bg-white space-y-4">
         <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-          <FileText className="w-5 h-5 text-indigo-600" />
+          <FileText className="size-5 text-indigo-600" />
           <span>Yêu Cầu Đề Bài & Hướng Dẫn Kỹ Thuật</span>
         </h3>
         <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-700 leading-relaxed space-y-2">
@@ -35,7 +35,7 @@ export const ExamDetailOverviewTab: React.FC<ExamDetailOverviewTabProps> = ({ as
       <Card className="rounded-2xl border-slate-200 shadow-2xs p-6 bg-white space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-            <FileCode className="w-5 h-5 text-purple-600" />
+            <FileCode className="size-5 text-purple-600" />
             <span>Khung Mã Nguồn Khởi Tạo Cho Sinh Viên (Starter Code)</span>
           </h3>
           {assignment.starterCodePath && (

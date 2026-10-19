@@ -1,6 +1,46 @@
 import { useState } from 'react';
 import { TestCase } from '../types/assignment.types';
 
+type JsonRecord = Record<string, unknown>;
+
+const isRecord = (value: unknown): value is JsonRecord =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const getText = (record: JsonRecord, ...keys: string[]): string | undefined => {
+  const value = keys.map((key) => record[key]).find((item) => typeof item === 'string' || typeof item === 'number');
+  return value === undefined ? undefined : String(value);
+};
+
+const getNumber = (record: JsonRecord, ...keys: string[]): number | undefined => {
+  const value = keys.map((key) => record[key]).find((item) => item !== undefined && item !== null && item !== '');
+  if (value === undefined) return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+};
+
+const toTestCase = (item: JsonRecord, index: number, questionNumber: string | number, questionTitle: string): TestCase => {
+  const isHidden = Boolean(item.isHidden);
+  const rationaleTag = item.rationaleTag;
+  const allowedTags = ['FUNCTIONAL', 'BOUNDARY', 'EDGE', 'PERFORMANCE', 'SECURITY'] as const;
+  const tag = typeof rationaleTag === 'string' && allowedTags.includes(rationaleTag as (typeof allowedTags)[number])
+    ? rationaleTag as TestCase['rationaleTag']
+    : isHidden ? 'EDGE' : 'FUNCTIONAL';
+  return {
+    orderIndex: index,
+    questionNumber,
+    questionTitle,
+    label: getText(item, 'label', 'name') ?? `${questionNumber}_TC_${index}`,
+    rationaleTag: tag,
+    isHidden,
+    timeLimitMs: getNumber(item, 'timeLimitMs') || 1500,
+    memoryLimitKb: 262144,
+    points: getNumber(item, 'points', 'score') ?? 1,
+    comparisonMode: 'STDIO',
+    stdinInput: getText(item, 'stdinInput', 'stdin', 'input') ?? '',
+    expectedStdout: getText(item, 'expectedStdout', 'expected', 'expectedOutput') ?? '',
+  };
+};
+
 export function useTestcaseImport(
   testCases: TestCase[],
   setTestCases: React.Dispatch<React.SetStateAction<TestCase[]>>
@@ -48,53 +88,31 @@ export function useTestcaseImport(
   const handleParseJsonForPreview = (jsonString: string) => {
     setImportError(null);
     try {
-      const parsed = JSON.parse(jsonString);
+      const parsed: unknown = JSON.parse(jsonString);
       let formatted: TestCase[] = [];
 
       if (Array.isArray(parsed)) {
         // Check if elements are Question containers (e.g. { question: "Q1", testCases: [...] })
-        const hasQuestionContainers = parsed.some((item) => item && (Array.isArray(item.testCases) || Array.isArray(item.tests)));
+        const rows = parsed.filter(isRecord);
+        const hasQuestionContainers = rows.some((item) => Array.isArray(item.testCases) || Array.isArray(item.tests));
 
         if (hasQuestionContainers) {
           let globalIdx = 1;
-          parsed.forEach((qItem: any, qIdx: number) => {
-            const qNum = qItem.questionNumber || qItem.question || `Q${qIdx + 1}`;
-            const qTitle = qItem.questionTitle || qItem.title || `Câu hỏi ${qNum}`;
-            const casesList = Array.isArray(qItem.testCases) ? qItem.testCases : (Array.isArray(qItem.tests) ? qItem.tests : []);
+          rows.forEach((qItem, qIdx) => {
+            const qNum = getText(qItem, 'questionNumber', 'question') ?? `Q${qIdx + 1}`;
+            const qTitle = getText(qItem, 'questionTitle', 'title') ?? `Câu hỏi ${qNum}`;
+            const casesList = Array.isArray(qItem.testCases) ? qItem.testCases : Array.isArray(qItem.tests) ? qItem.tests : [];
 
-            casesList.forEach((item: any, tcIdx: number) => {
-              formatted.push({
-                orderIndex: globalIdx++,
-                questionNumber: qNum,
-                questionTitle: qTitle,
-                label: item.label || item.name || `${qNum}_TC_${tcIdx + 1}`,
-                rationaleTag: item.rationaleTag || (item.isHidden ? 'EDGE' : 'FUNCTIONAL'),
-                isHidden: Boolean(item.isHidden),
-                timeLimitMs: Number(item.timeLimitMs) || 1500,
-                memoryLimitKb: 262144,
-                points: Number(item.points !== undefined ? item.points : (item.score !== undefined ? item.score : 1.0)),
-                comparisonMode: 'STDIO',
-                stdinInput: item.stdinInput || item.stdin || item.input || '',
-                expectedStdout: item.expectedStdout || item.expected || item.expectedOutput || '',
-              });
+            casesList.filter(isRecord).forEach((item, tcIdx) => {
+              formatted.push(toTestCase(item, globalIdx++, qNum, qTitle || `Câu hỏi ${qNum}`));
             });
           });
         } else {
           // Flat list of testcases
-          formatted = parsed.map((item, idx) => ({
-            orderIndex: idx + 1,
-            questionNumber: item.questionNumber || item.question || `Q${Math.floor(idx / 3) + 1}`,
-            questionTitle: item.questionTitle || `Câu hỏi ${item.questionNumber || Math.floor(idx / 3) + 1}`,
-            label: item.label || item.name || `TC_${idx + 1}`,
-            rationaleTag: item.rationaleTag || 'FUNCTIONAL',
-            isHidden: Boolean(item.isHidden),
-            timeLimitMs: Number(item.timeLimitMs) || 1500,
-            memoryLimitKb: 262144,
-            points: Number(item.points !== undefined ? item.points : (item.score !== undefined ? item.score : 2.0)),
-            comparisonMode: 'STDIO',
-            stdinInput: item.stdinInput || item.stdin || item.input || '',
-            expectedStdout: item.expectedStdout || item.expected || item.expectedOutput || '',
-          }));
+          formatted = rows.map((item, idx) => {
+            const questionNumber = getText(item, 'questionNumber', 'question') ?? `Q${Math.floor(idx / 3) + 1}`;
+            return toTestCase(item, idx + 1, questionNumber, getText(item, 'questionTitle') ?? `Câu hỏi ${questionNumber}`);
+          });
         }
 
         setPreviewTestCases(formatted);
@@ -102,8 +120,9 @@ export function useTestcaseImport(
         setImportError('Dữ liệu JSON phải là một mảng [] danh sách các câu hỏi hoặc testcase!');
         setPreviewTestCases([]);
       }
-    } catch (err: any) {
-      setImportError(`Định dạng JSON không hợp lệ: ${err.message}`);
+    } catch (err: unknown) {
+      console.error('Không thể phân tích dữ liệu testcase JSON:', err);
+      setImportError(`Định dạng JSON không hợp lệ: ${err instanceof Error ? err.message : 'dữ liệu không hợp lệ'}`);
       setPreviewTestCases([]);
     }
   };

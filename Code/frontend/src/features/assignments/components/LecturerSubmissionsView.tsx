@@ -12,11 +12,13 @@ import {
   Bot,
 } from 'lucide-react';
 import { assignmentService } from '../services/assignment.service';
+import { getErrorMessage } from '@/lib/errors';
 import { Assignment, LecturerSubmission } from '../types/assignment.types';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { ROUTES } from '@/config/routes';
 import { SubmissionsSummaryCard } from './submissions/SubmissionsSummaryCard';
 import { SubmissionsTable } from './submissions/SubmissionsTable';
 import { SubmissionDetailModal } from './submissions/SubmissionDetailModal';
@@ -50,8 +52,9 @@ export const LecturerSubmissionsView: React.FC<LecturerSubmissionsViewProps> = (
       ]);
       setAssignment(assignData);
       setSubmissions(subsData);
-    } catch (err: any) {
-      showToast(err?.message || 'Không thể tải danh sách bài nộp');
+    } catch (err: unknown) {
+      console.error('Không tải được danh sách bài nộp:', err);
+      showToast(getErrorMessage(err, 'Không thể tải danh sách bài nộp'));
     } finally {
       setLoading(false);
     }
@@ -70,8 +73,9 @@ export const LecturerSubmissionsView: React.FC<LecturerSubmissionsViewProps> = (
       await assignmentService.reGradeWithSandbox(subId);
       showToast('Đã kích hoạt chấm lại Sandbox thành công!');
       loadData();
-    } catch (err: any) {
-      showToast(err?.response?.data?.message || 'Kích hoạt Sandbox thất bại');
+    } catch (err: unknown) {
+      console.error('Không kích hoạt được chấm Sandbox:', err);
+      showToast(getErrorMessage(err, 'Kích hoạt Sandbox thất bại'));
     } finally {
       setActionLoadingId(null);
     }
@@ -84,8 +88,9 @@ export const LecturerSubmissionsView: React.FC<LecturerSubmissionsViewProps> = (
       await assignmentService.reGradeWithAi(subId);
       showToast('Đã kích hoạt chấm lại AI Rubrics thành công!');
       loadData();
-    } catch (err: any) {
-      showToast(err?.response?.data?.message || 'Kích hoạt AI thất bại');
+    } catch (err: unknown) {
+      console.error('Không kích hoạt được chấm AI:', err);
+      showToast(getErrorMessage(err, 'Kích hoạt AI thất bại'));
     } finally {
       setActionLoadingId(null);
     }
@@ -127,21 +132,21 @@ export const LecturerSubmissionsView: React.FC<LecturerSubmissionsViewProps> = (
       case 'GRADED':
         return (
           <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs font-bold">
-            <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+            <CheckCircle2 className="size-3.5 mr-1 text-emerald-600" />
             Đã chấm điểm
           </Badge>
         );
       case 'RUNNING_SANDBOX':
         return (
-          <Badge className="bg-amber-50 text-amber-700 border-amber-200 text-xs font-bold animate-pulse">
-            <RefreshCw className="w-3.5 h-3.5 mr-1 text-amber-600 animate-spin" />
+          <Badge className="bg-amber-50 text-amber-700 border-amber-200 text-xs font-bold">
+            <RefreshCw className="size-3.5 mr-1 text-amber-600 animate-spin" />
             Đang chạy Sandbox
           </Badge>
         );
       case 'RUNNING_AI':
         return (
-          <Badge className="bg-purple-50 text-purple-700 border-purple-200 text-xs font-bold animate-pulse">
-            <Bot className="w-3.5 h-3.5 mr-1 text-purple-600 animate-spin" />
+          <Badge className="bg-purple-50 text-purple-700 border-purple-200 text-xs font-bold">
+            <Bot className="size-3.5 mr-1 text-purple-600 animate-spin" />
             Đang chấm AI
           </Badge>
         );
@@ -149,14 +154,14 @@ export const LecturerSubmissionsView: React.FC<LecturerSubmissionsViewProps> = (
       case 'PENDING':
         return (
           <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200 text-xs font-bold">
-            <Clock className="w-3.5 h-3.5 mr-1 text-slate-500" />
+            <Clock className="size-3.5 mr-1 text-slate-500" />
             Chờ xử lý
           </Badge>
         );
       case 'FAILED':
         return (
           <Badge className="bg-rose-50 text-rose-700 border-rose-200 text-xs font-bold">
-            <AlertTriangle className="w-3.5 h-3.5 mr-1 text-rose-600" />
+            <AlertTriangle className="size-3.5 mr-1 text-rose-600" />
             Lỗi thực thi
           </Badge>
         );
@@ -168,7 +173,7 @@ export const LecturerSubmissionsView: React.FC<LecturerSubmissionsViewProps> = (
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto py-24 text-center">
-        <RefreshCw className="w-10 h-10 animate-spin text-indigo-600 mx-auto mb-4" />
+        <RefreshCw className="size-10 animate-spin text-indigo-600 mx-auto mb-4" />
         <h3 className="text-base font-bold text-slate-800">Đang tải danh sách bài nộp...</h3>
         <p className="text-xs text-slate-500 mt-1">Đang kết nối hệ thống chấm bài AITA</p>
       </div>
@@ -179,8 +184,8 @@ export const LecturerSubmissionsView: React.FC<LecturerSubmissionsViewProps> = (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto font-sans pb-24">
       {/* Toast Feedback */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3 border border-slate-700 animate-in slide-in-from-bottom-5">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3 animate-in slide-in-from-bottom-5">
+          <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
           <span className="text-xs font-semibold">{toastMessage}</span>
         </div>
       )}
@@ -188,8 +193,8 @@ export const LecturerSubmissionsView: React.FC<LecturerSubmissionsViewProps> = (
       {/* Top Header & Breadcrumb */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <Button asChild variant="ghost" className="h-9 px-3 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-white w-fit shadow-2xs border border-slate-200/60">
-          <Link href={`/exam-bank/${assignmentId}`}>
-            <ArrowLeft className="w-4 h-4 mr-1.5" />
+          <Link href={ROUTES.LECTURER.EXAM_BANK_DETAIL(assignmentId)}>
+            <ArrowLeft className="size-4 mr-1.5" />
             <span>Quay lại Chi tiết đề thi</span>
           </Link>
         </Button>
@@ -201,12 +206,12 @@ export const LecturerSubmissionsView: React.FC<LecturerSubmissionsViewProps> = (
             onClick={loadData}
             className="h-9 px-3.5 rounded-xl text-xs font-bold border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs"
           >
-            <RefreshCw className="w-3.5 h-3.5 mr-1.5 text-slate-500" />
+            <RefreshCw className="size-3.5 mr-1.5 text-slate-500" />
             <span>Làm mới</span>
           </Button>
 
           <Button asChild size="sm" className="h-9 px-3.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs">
-            <Link href="/live-proctoring">
+            <Link href={ROUTES.LECTURER.LIVE_PROCTORING}>
               <span>Phòng thi trực tiếp</span>
             </Link>
           </Button>
@@ -219,7 +224,7 @@ export const LecturerSubmissionsView: React.FC<LecturerSubmissionsViewProps> = (
       {/* Filter and Search Bar */}
       <Card className="rounded-2xl border-slate-200/90 shadow-2xs p-4 bg-white flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search className="size-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <Input
             placeholder="Tìm theo tên SV, email, mã đề..."
             aria-label="Tìm theo tên SV, email, mã đề..."
@@ -236,7 +241,7 @@ export const LecturerSubmissionsView: React.FC<LecturerSubmissionsViewProps> = (
             aria-label="Lọc trạng thái"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-10 px-3 rounded-xl border border-slate-200 bg-slate-50/50 text-xs font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 w-full sm:w-auto"
+            className="h-10 px-3 rounded-xl border border-slate-200 bg-slate-50/50 text-base font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 w-full sm:w-auto"
           >
             <option value="ALL">Tất cả ({submissions.length})</option>
             <option value="GRADED">Đã có điểm</option>

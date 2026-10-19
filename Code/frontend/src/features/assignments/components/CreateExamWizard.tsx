@@ -32,7 +32,14 @@ export const CreateExamWizard: React.FC = () => {
       <WizardStepper
         activeStep={wizard.activeStep}
         setActiveStep={wizard.setActiveStep}
+        canNavigateToStep={wizard.canNavigateToStep}
       />
+
+      {wizard.navigationError && (
+        <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800">
+          {wizard.navigationError}
+        </div>
+      )}
 
       {/* BƯỚC 1: THÔNG TIN CHUNG & CẤU HÌNH CA THI */}
       {wizard.activeStep === 1 && (
@@ -97,10 +104,13 @@ export const CreateExamWizard: React.FC = () => {
       {wizard.activeStep === 3 && (
         <WizardStep3Solution
           environment={wizard.environment}
+          courseCode={wizard.selectedCourse?.code ?? ''}
           solutionTitle={wizard.solutionTitle}
           setSolutionTitle={wizard.setSolutionTitle}
           solutionCode={wizard.solutionCode}
-          setSolutionCode={wizard.setSolutionCode}
+          solutionZipName={wizard.solutionZipName}
+          solutionFiles={wizard.solutionFiles}
+          onRemoveSolutionZip={wizard.handleRemoveSolutionZip}
           expectedComplexity={wizard.expectedComplexity}
           setExpectedComplexity={wizard.setExpectedComplexity}
           expectedSpaceComplexity={wizard.expectedSpaceComplexity}

@@ -52,6 +52,19 @@ export const WizardStep2Files: React.FC<WizardStep2FilesProps> = ({
 }) => {
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
+      {/* Role Banner clarifying Step 2 purpose */}
+      <div className="flex items-center gap-3 p-3.5 bg-blue-50/80 border border-blue-200/80 rounded-2xl text-xs text-blue-900 shadow-2xs">
+        <div className="size-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-xs">
+          🎓
+        </div>
+        <div>
+          <span className="font-bold">Tài liệu bàn giao cho Thí sinh khi mở ca thi:</span>
+            <p className="text-blue-700/90 text-xs mt-0.5">
+            PDF đề bài là bắt buộc. Starter ZIP là tùy chọn; nếu có, sinh viên sẽ tải được khi ca thi bắt đầu.
+          </p>
+        </div>
+      </div>
+
       <WizardPdfSection
         pdfFile={pdfFile}
         onSelectPdf={onSelectPdf}

@@ -48,7 +48,7 @@ export function ReactGradingStep({
     <div className="space-y-6 animate-in fade-in duration-200">
       <section className="rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-5 shadow-sm">
         <div className="flex items-start gap-3">
-          <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
+          <Sparkles className="mt-0.5 size-5 shrink-0 text-indigo-600" />
           <div>
             <h2 className="text-sm font-extrabold text-slate-900">Grading profile riêng cho FER201</h2>
             <p className="mt-1 text-xs leading-5 text-slate-600">
@@ -58,20 +58,20 @@ export function ReactGradingStep({
           </div>
         </div>
         <div className="mt-4 grid gap-3 sm:grid-cols-3">
-          <div className="rounded-xl border border-blue-200 bg-white p-3">
-            <PlayCircle className="h-4 w-4 text-blue-600" />
+          <div className="bg-white p-3">
+            <PlayCircle className="size-4 text-blue-600" />
             <p className="mt-2 text-xs font-bold text-slate-900">7 điểm chức năng</p>
-            <p className="mt-1 text-[11px] text-slate-500">Playwright chạy URL deploy theo form bên dưới.</p>
+            <p className="mt-1 text-xs text-slate-500">Playwright chạy URL deploy theo form bên dưới.</p>
           </div>
-          <div className="rounded-xl border border-violet-200 bg-white p-3">
-            <Braces className="h-4 w-4 text-violet-600" />
+          <div className="bg-white p-3">
+            <Braces className="size-4 text-violet-600" />
             <p className="mt-2 text-xs font-bold text-slate-900">2 điểm cấu trúc React</p>
-            <p className="mt-1 text-[11px] text-slate-500">Hooks, state, component boundaries, routing/context.</p>
+            <p className="mt-1 text-xs text-slate-500">Hooks, state, component boundaries, routing/context.</p>
           </div>
-          <div className="rounded-xl border border-emerald-200 bg-white p-3">
-            <CodeXml className="h-4 w-4 text-emerald-600" />
+          <div className="bg-white p-3">
+            <CodeXml className="size-4 text-emerald-600" />
             <p className="mt-2 text-xs font-bold text-slate-900">1 điểm Clean Code</p>
-            <p className="mt-1 text-[11px] text-slate-500">Naming, duplication, readability và maintainability.</p>
+            <p className="mt-1 text-xs text-slate-500">Naming, duplication, readability và maintainability.</p>
           </div>
         </div>
       </section>
@@ -80,7 +80,7 @@ export function ReactGradingStep({
         <div className="flex flex-col justify-between gap-3 border-b border-slate-100 pb-3 sm:flex-row sm:items-center">
           <div>
             <h2 className="text-sm font-extrabold text-slate-900">1. Luồng chức năng trên URL deploy</h2>
-            <p className="mt-1 text-[11px] text-slate-500">
+            <p className="mt-1 text-xs text-slate-500">
               Giảng viên quyết định Playwright phải mở trang nào, điền gì, click gì và kiểm tra kết quả nào.
             </p>
           </div>
@@ -99,7 +99,7 @@ export function ReactGradingStep({
             : 'border-amber-200 bg-amber-50 text-amber-800'
         }`}>
           <span className="font-bold">Tổng điểm Playwright: {functionalPoints.toFixed(1)} / 7.0</span>
-          {hasExactFunctionalScore && <CheckCircle2 className="h-4 w-4" />}
+          {hasExactFunctionalScore && <CheckCircle2 className="size-4" />}
         </div>
 
         <WebTestcaseBuilder
@@ -113,7 +113,7 @@ export function ReactGradingStep({
       <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div>
           <h2 className="text-sm font-extrabold text-slate-900">2. Tiêu chí đọc source có giới hạn</h2>
-          <p className="mt-1 text-[11px] text-slate-500">
+          <p className="mt-1 text-xs text-slate-500">
             AI ưu tiên package.json, entry point, router, context/store, hooks, pages/features và component chính; không gửi toàn bộ repository.
           </p>
         </div>
@@ -129,7 +129,7 @@ export function ReactGradingStep({
               value={structureRequirements}
               onChange={(event) => setStructureRequirements(event.target.value)}
               placeholder="Ví dụ: dùng hooks đúng dependency, tách component hợp lý, quản lý state và routing rõ ràng..."
-              className="w-full rounded-xl border border-violet-200 bg-violet-50/40 p-3 text-xs leading-5 focus:border-violet-500 focus:outline-none"
+              className="w-full rounded-xl border border-violet-200 bg-violet-50/40 p-3 text-base leading-5 focus:border-violet-500 focus:outline-none"
             />
           </div>
           <div>
@@ -143,7 +143,7 @@ export function ReactGradingStep({
               value={cleanCodeRequirements}
               onChange={(event) => setCleanCodeRequirements(event.target.value)}
               placeholder="Ví dụ: naming rõ ràng, tránh component quá lớn, không lặp logic, xử lý loading/error/empty state..."
-              className="w-full rounded-xl border border-emerald-200 bg-emerald-50/40 p-3 text-xs leading-5 focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-xl border border-emerald-200 bg-emerald-50/40 p-3 text-base leading-5 focus:border-emerald-500 focus:outline-none"
             />
           </div>
         </div>

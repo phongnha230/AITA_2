@@ -21,7 +21,7 @@ export const WizardNavFooter: React.FC<WizardNavFooterProps> = ({
         onClick={onBack}
         className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition"
       >
-        <ArrowLeft className="w-4 h-4" />
+        <ArrowLeft className="size-4" />
         <span>{backLabel}</span>
       </button>
       <button
@@ -30,7 +30,7 @@ export const WizardNavFooter: React.FC<WizardNavFooterProps> = ({
         className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-500/20 transition"
       >
         <span>{nextLabel}</span>
-        <ArrowRight className="w-4 h-4" />
+        <ArrowRight className="size-4" />
       </button>
     </div>
   );
