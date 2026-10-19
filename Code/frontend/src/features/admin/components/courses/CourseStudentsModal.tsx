@@ -59,7 +59,7 @@ export const CourseStudentsModal: React.FC<CourseStudentsModalProps> = ({
                   className="h-8 px-2 text-rose-600 hover:bg-rose-50 hover:text-rose-700 text-xs"
                   onClick={() => onRemoveStudent(enr.studentId, enr.student.fullName)}
                 >
-                  <UserX className="h-3.5 w-3.5 mr-1" /> Gỡ khỏi lớp
+                  <UserX className="size-3.5 mr-1" /> Gỡ khỏi lớp
                 </Button>
               </div>
             ))}

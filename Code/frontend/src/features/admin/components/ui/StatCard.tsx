@@ -37,14 +37,14 @@ export const StatCard: React.FC<StatCardProps> = ({
     <div className="space-y-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{label}</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{label}</p>
           <div className="mt-1 flex flex-wrap items-baseline gap-x-2">
             <span className="text-3xl font-bold tracking-tight text-slate-900">{value}</span>
             {suffix && <span className="text-sm font-semibold text-slate-500">{suffix}</span>}
           </div>
         </div>
-        <div className={cn('flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-blue-600', iconClassName)}>
-          <Icon className="h-5 w-5" />
+        <div className={cn('flex size-11 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-blue-600', iconClassName)}>
+          <Icon className="size-5" />
         </div>
       </div>
 
@@ -54,7 +54,7 @@ export const StatCard: React.FC<StatCardProps> = ({
             <div className="flex items-center gap-1.5 text-xs">
               <span
                 className={cn(
-                  'inline-flex items-center font-bold px-1.5 py-0.5 rounded text-[11px]',
+                  'inline-flex items-center font-bold px-1.5 py-0.5 rounded text-xs',
                   trend.positive
                     ? 'bg-emerald-50 text-emerald-700'
                     : 'bg-rose-50 text-rose-700',
@@ -62,7 +62,7 @@ export const StatCard: React.FC<StatCardProps> = ({
               >
                 {trend.positive ? '↑' : '↓'} {trend.value}
               </span>
-              {trend.label && <span className="text-[11px] text-slate-400">{trend.label}</span>}
+              {trend.label && <span className="text-xs text-slate-600">{trend.label}</span>}
             </div>
           ) : <div />}
 

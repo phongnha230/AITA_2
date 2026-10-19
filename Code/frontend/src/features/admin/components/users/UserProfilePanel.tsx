@@ -6,7 +6,7 @@ import { AlertBox } from '../../../../components/feedback/AlertBox';
 import { adminUserService } from '../../services/admin-user.service';
 import { Card } from '../ui/Card';
 import { useToast } from '../ui/Toast';
-import type { AdminUser, UpdateUserPayload, UserRole } from '../../types/admin.types';
+import type { AdminUser, AdminUserDetails, UpdateUserPayload, UserRole } from '../../types/admin.types';
 import { generatePassword } from '../../../../lib/password';
 import { TempPasswordModal, type TempCredentials } from './TempPasswordModal';
 import { AdminView, LecturerView, StudentView } from './ProfileViews';
@@ -24,7 +24,7 @@ export const UserProfilePanel: React.FC<UserProfilePanelProps> = ({ user, onUpda
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [credentials, setCredentials] = useState<TempCredentials | null>(null);
-  const [detailedUser, setDetailedUser] = useState<any>(null);
+  const [detailedUser, setDetailedUser] = useState<AdminUserDetails | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -76,9 +76,9 @@ export const UserProfilePanel: React.FC<UserProfilePanelProps> = ({ user, onUpda
       {error && <AlertBox message={error} />}
 
       {user.role === 'LECTURER' && (
-        <LecturerView user={user} detailedUser={detailedUser} />
+        <LecturerView user={user} detailedUser={detailedUser ?? undefined} />
       )}
-      {user.role === 'STUDENT' && <StudentView user={user} detailedUser={detailedUser} />}
+      {user.role === 'STUDENT' && <StudentView user={user} detailedUser={detailedUser ?? undefined} />}
       {user.role === 'ADMIN' && <AdminView />}
 
       <UserPrivilegedActions

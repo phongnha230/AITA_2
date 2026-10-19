@@ -23,8 +23,8 @@ export const RoomMatrixModal: React.FC<{ open: boolean; onClose: () => void }> =
       {ROOMS.map((r) => (
         <div key={r.room} className={cn('rounded-xl border p-3', STYLE[r.state])}>
           <p className="text-sm font-bold">{r.room}</p>
-          <p className="text-[11px] font-semibold">{LABEL[r.state]}</p>
-          <p className="mt-1 font-mono text-[11px]">{r.seats} máy</p>
+          <p className="text-xs font-semibold">{LABEL[r.state]}</p>
+          <p className="mt-1 font-mono text-xs">{r.seats} máy</p>
         </div>
       ))}
     </div>

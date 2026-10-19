@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { authService, type User } from '../../../auth/services/auth.service';
 import { LoadingSpinner } from '../../../../components/feedback/LoadingSpinner';
@@ -8,12 +8,14 @@ import { ToastProvider } from '../ui/Toast';
 import { Button } from '../ui/Button';
 import { AdminSidebar } from './AdminSidebar';
 import { AdminTopbar } from './AdminTopbar';
+import { ROUTES } from '@/config/routes';
 
 /** Client-side RBAC guard + chrome. Real enforcement still happens on the API (authorizeRoles('ADMIN')). */
 export const AdminShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
   const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -44,7 +46,7 @@ export const AdminShell: React.FC<{ children: React.ReactNode }> = ({ children }
       }
 
       // Unauthenticated -> redirect to real login
-      window.location.replace('/login?redirectTo=/admin/dashboard&error=unauthenticated');
+      window.location.replace(`${ROUTES.AUTH.LOGIN}?redirectTo=${encodeURIComponent(ROUTES.ADMIN.DASHBOARD)}&error=unauthenticated`);
     };
 
     verifyAdmin();
@@ -56,9 +58,9 @@ export const AdminShell: React.FC<{ children: React.ReactNode }> = ({ children }
 
   if (authError) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 font-sans">
-        <div className="max-w-md w-full rounded-3xl border border-rose-200 bg-white p-8 text-center shadow-xl space-y-4">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-50 text-rose-600 border border-rose-100">
+      <div className="flex min-h-dvh items-center justify-center bg-slate-50 px-4 font-sans">
+        <div className="max-w-md w-full rounded-3xl border border-rose-200 bg-white p-8 text-center space-y-4">
+          <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-rose-50 text-rose-600 border border-rose-100">
             <span className="text-2xl font-black">!</span>
           </div>
           <h2 className="text-lg font-black text-slate-900 tracking-tight">403 - Quyền Truy Cập Bị Từ Chối</h2>
@@ -66,14 +68,14 @@ export const AdminShell: React.FC<{ children: React.ReactNode }> = ({ children }
           <div className="pt-2 flex flex-col gap-2">
             <Button
               variant="primary"
-              onClick={() => router.replace('/login')}
+              onClick={() => router.replace(ROUTES.AUTH.LOGIN)}
               className="w-full h-10 rounded-xl"
             >
               Đăng nhập tài khoản khác
             </Button>
             <Button
               variant="outline"
-              onClick={() => router.replace('/dashboard')}
+              onClick={() => router.replace(ROUTES.LECTURER.DASHBOARD)}
               className="w-full h-10 rounded-xl"
             >
               Quay lại Bảng điều khiển
@@ -86,7 +88,7 @@ export const AdminShell: React.FC<{ children: React.ReactNode }> = ({ children }
 
   if (!user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+      <div className="flex min-h-dvh items-center justify-center bg-slate-50">
         <LoadingSpinner label="Đang xác thực quyền quản trị AITA..." />
       </div>
     );
@@ -94,10 +96,10 @@ export const AdminShell: React.FC<{ children: React.ReactNode }> = ({ children }
 
   return (
     <ToastProvider>
-      <div className="min-h-screen bg-slate-50 text-slate-900">
-        <AdminSidebar open={menuOpen} onNavigate={() => setMenuOpen(false)} />
+      <div className="min-h-dvh bg-slate-50 text-slate-900">
+        <AdminSidebar open={menuOpen} onNavigate={() => setMenuOpen(false)} menuButtonRef={menuButtonRef} />
         <div className="lg:pl-72">
-          <AdminTopbar user={user} onMenuClick={() => setMenuOpen(true)} />
+          <AdminTopbar user={user} onMenuClick={() => setMenuOpen(true)} menuButtonRef={menuButtonRef} />
           <main className="mx-auto w-full max-w-[1440px] space-y-6 px-4 pb-10 pt-24 sm:px-6 lg:px-8">{children}</main>
         </div>
       </div>

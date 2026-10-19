@@ -29,7 +29,7 @@ interface UsersTableProps {
 }
 
 const codeColor = (u: AdminUser) =>
-  u.status === 'SUSPENDED' || u.role === 'ADMIN' ? 'text-rose-600' : u.role === 'LECTURER' ? 'text-blue-600' : 'text-emerald-600';
+  u.status === 'SUSPENDED' || u.role === 'ADMIN' ? 'text-rose-700' : u.role === 'LECTURER' ? 'text-blue-700' : 'text-emerald-800';
 
 const pageList = (page: number, total: number): (number | '…')[] => {
   if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
@@ -43,9 +43,9 @@ export const UsersTable: React.FC<UsersTableProps> = ({ users, meta, selectedId,
     <div className="flex flex-col justify-between gap-2 border-b border-slate-100 px-6 py-4 sm:flex-row sm:items-center">
       <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900">
         Danh bạ Người dùng &amp; Ủy quyền
-        <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-600">{(meta?.total ?? 0).toLocaleString('en-US')} hồ sơ</span>
+        <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">{(meta?.total ?? 0).toLocaleString('en-US')} hồ sơ</span>
       </h2>
-      <p className="flex items-center gap-1.5 text-xs text-slate-500"><ShieldCheck className="h-4 w-4" /> Đồng bộ FAP lúc 10:45 AM</p>
+      <p className="flex items-center gap-1.5 text-xs text-slate-500"><ShieldCheck className="size-4" /> Đồng bộ FAP lúc 10:45 AM</p>
     </div>
     {users.length === 0 ? (
       <EmptyState message="Không có người dùng khớp bộ lọc." />
@@ -78,7 +78,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({ users, meta, selectedId,
                     selectedId === u.id && !locked && 'bg-blue-50/50',
                   )}
                 >
-                  <TableCell className="font-mono text-xs text-slate-400">
+                  <TableCell className="font-mono text-xs text-slate-600">
                     {String(((meta?.page ?? 1) - 1) * (meta?.limit ?? users.length) + i + 1).padStart(2, '0')}
                   </TableCell>
                   <TableCell className={cn('font-mono text-xs font-bold', codeColor(u))}>
@@ -86,7 +86,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({ users, meta, selectedId,
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-9 w-9">
+                      <Avatar className="size-9">
                         <AvatarFallback
                           className={cn(
                             'text-xs font-bold',
@@ -98,7 +98,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({ users, meta, selectedId,
                       </Avatar>
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-slate-900">{u.fullName}</p>
-                        {u.subtitle && <p className={cn('text-[11px]', locked ? 'font-medium text-rose-600' : 'text-slate-500')}>{u.subtitle}</p>}
+                        {u.subtitle && <p className={cn('text-xs', locked ? 'font-medium text-rose-700' : 'text-slate-600')}>{u.subtitle}</p>}
                       </div>
                     </div>
                   </TableCell>
@@ -118,22 +118,22 @@ export const UsersTable: React.FC<UsersTableProps> = ({ users, meta, selectedId,
                   </TableCell>
                   <TableCell>
                     <p className="text-sm text-slate-800">{u.department ?? '—'}</p>
-                    {u.departmentNote && <p className="text-[11px] text-slate-500">{u.departmentNote}</p>}
+                    {u.departmentNote && <p className="text-xs text-slate-500">{u.departmentNote}</p>}
                   </TableCell>
                   <TableCell>
                     <span className={cn('inline-flex items-center gap-1.5 text-xs font-semibold', STATUS_TEXT_CLASS[u.status])}>
-                      <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                      <span className="size-1.5 rounded-full bg-current" />
                       {locked ? 'Locked' : u.status === 'ACTIVE' ? 'Active' : STATUS_LABEL[u.status]}
                     </span>
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-end gap-1">
-                      <button type="button" onClick={() => onSelect(u)} title="Xem hồ sơ" aria-label="Xem hồ sơ" className="rounded-lg p-2 text-blue-600 hover:bg-blue-50"><Eye className="h-4 w-4" /></button>
+                      <button type="button" onClick={() => onSelect(u)} title="Xem hồ sơ" aria-label="Xem hồ sơ" className="rounded-lg p-2 text-blue-600 hover:bg-blue-50"><Eye className="size-4" /></button>
                       {isAdmin ? (
-                        <span className="rounded-lg p-2 text-slate-400" title="Tài khoản quản trị được bảo vệ"><BadgeCheck className="h-4 w-4" /></span>
+                        <span className="rounded-lg p-2 text-slate-400" title="Tài khoản quản trị được bảo vệ"><BadgeCheck className="size-4" /></span>
                       ) : (
                         <>
-                          <button type="button" onClick={() => onSelect(u)} title="Phân quyền" aria-label="Phân quyền" className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"><ListChecks className="h-4 w-4" /></button>
+                          <button type="button" onClick={() => onSelect(u)} title="Phân quyền" aria-label="Phân quyền" className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"><ListChecks className="size-4" /></button>
                           <button
                             type="button"
                             disabled={busyId === u.id}
@@ -142,7 +142,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({ users, meta, selectedId,
                             aria-label={locked ? 'Mở khóa tài khoản' : 'Khóa tài khoản'}
                             className={cn('rounded-lg p-2 disabled:opacity-50', locked ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'text-slate-400 hover:bg-rose-50 hover:text-rose-600')}
                           >
-                            {locked ? <LockOpen className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+                            {locked ? <LockOpen className="size-4" /> : <Lock className="size-4" />}
                           </button>
                         </>
                       )}
@@ -161,7 +161,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({ users, meta, selectedId,
           Hiển thị {users.length ? (meta.page - 1) * meta.limit + 1 : 0} - {(meta.page - 1) * meta.limit + users.length} trong số {meta.total.toLocaleString('en-US')} bản ghi
         </span>
         <div className="flex items-center gap-1">
-          <button type="button" disabled={meta.page <= 1} onClick={() => onPage(meta.page - 1)} aria-label="Trang trước" className="rounded-lg p-2 hover:bg-slate-100 disabled:opacity-40"><ChevronLeft className="h-4 w-4" /></button>
+          <button type="button" disabled={meta.page <= 1} onClick={() => onPage(meta.page - 1)} aria-label="Trang trước" className="rounded-lg p-2 hover:bg-slate-100 disabled:opacity-40"><ChevronLeft className="size-4" /></button>
           {pageList(meta.page, meta.totalPages).map((p, i) =>
             p === '…' ? (
               <span key={`gap-${i}`} className="px-1">…</span>
@@ -169,7 +169,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({ users, meta, selectedId,
               <button key={p} type="button" onClick={() => onPage(p)} className={cn('h-8 min-w-8 rounded-lg px-2 font-semibold', p === meta.page ? 'bg-blue-600 text-white' : 'hover:bg-slate-100')}>{p}</button>
             ),
           )}
-          <button type="button" disabled={meta.page >= meta.totalPages} onClick={() => onPage(meta.page + 1)} aria-label="Trang sau" className="rounded-lg p-2 hover:bg-slate-100 disabled:opacity-40"><ChevronRight className="h-4 w-4" /></button>
+          <button type="button" disabled={meta.page >= meta.totalPages} onClick={() => onPage(meta.page + 1)} aria-label="Trang sau" className="rounded-lg p-2 hover:bg-slate-100 disabled:opacity-40"><ChevronRight className="size-4" /></button>
         </div>
       </div>
     )}

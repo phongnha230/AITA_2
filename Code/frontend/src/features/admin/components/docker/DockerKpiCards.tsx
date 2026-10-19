@@ -4,10 +4,11 @@ import * as React from 'react';
 import { Boxes, Cpu, MemoryStick, Server } from 'lucide-react';
 import { StatCard } from '../ui/StatCard';
 import { ProgressBar } from '../ui/ProgressBar';
+import type { DockerNodeItem } from './NodesTable';
 
 interface DockerKpiCardsProps {
   sandboxStatus: {
-    nodes?: any[];
+    nodes?: DockerNodeItem[];
     activeExecutions?: number;
     totalGradedCount?: number;
     failedExecutions?: number;
@@ -25,11 +26,11 @@ export const DockerKpiCards: React.FC<DockerKpiCardsProps> = ({ sandboxStatus })
         value={`${sandboxStatus?.nodes?.length ?? 2} Nodes`}
         footer={
           <>
-            <p className="flex justify-between text-[11px] font-medium">
+            <p className="flex justify-between text-xs font-medium">
               <span className="text-emerald-600">100% online</span>
               <span className="text-slate-500">0 degraded</span>
             </p>
-            <ProgressBar value={100} color="bg-emerald-600" />
+            <ProgressBar value={100} label="Tỷ lệ node đang hoạt động" color="bg-emerald-600" />
           </>
         }
       />
@@ -40,11 +41,11 @@ export const DockerKpiCards: React.FC<DockerKpiCardsProps> = ({ sandboxStatus })
         suffix="Active"
         footer={
           <>
-            <p className="flex justify-between text-[11px] font-medium">
+            <p className="flex justify-between text-xs font-medium">
               <span className="text-slate-600">Sức chứa tối đa: 50/node</span>
               <span className="text-blue-600">{sandboxStatus?.activeExecutions ? 'Đang chấm' : 'Sẵn sàng'}</span>
             </p>
-            <ProgressBar value={activePercent} />
+            <ProgressBar value={activePercent} label="Tỷ lệ container đang chạy" />
           </>
         }
       />
@@ -54,7 +55,7 @@ export const DockerKpiCards: React.FC<DockerKpiCardsProps> = ({ sandboxStatus })
         value={sandboxStatus?.totalGradedCount ?? 0}
         suffix="Bài thi"
         footer={
-          <p className="flex justify-between text-[11px] font-medium">
+          <p className="flex justify-between text-xs font-medium">
             <span className="text-slate-600">Hệ thống tự động</span>
             <span className="text-emerald-600">Đã cập nhật DB</span>
           </p>
@@ -67,13 +68,13 @@ export const DockerKpiCards: React.FC<DockerKpiCardsProps> = ({ sandboxStatus })
         suffix="Lỗi"
         footer={
           <>
-            <p className="flex justify-between text-[11px] font-medium">
+            <p className="flex justify-between text-xs font-medium">
               <span className="text-slate-600">Timeout / Segfault</span>
               <span className={sandboxStatus?.failedExecutions ? 'text-rose-600' : 'text-emerald-600'}>
                 {sandboxStatus?.failedExecutions ? 'Cần xem xét' : 'Không có lỗi'}
               </span>
             </p>
-            <ProgressBar value={sandboxStatus?.failedExecutions ? 15 : 0} color="bg-rose-500" />
+            <ProgressBar value={sandboxStatus?.failedExecutions ? 15 : 0} label="Tỷ lệ lỗi sandbox" color="bg-rose-500" />
           </>
         }
       />

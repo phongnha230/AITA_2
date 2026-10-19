@@ -68,9 +68,9 @@ export const QueuePage: React.FC = () => {
         actions={
           <>
             <Button variant="danger" disabled={failed === 0} onClick={() => void run(async () => toast.success(`Đã retry ${await retryAllFailed()} job lỗi.`))}>
-              <RotateCcw className="h-4 w-4" /> Retry toàn bộ Failed Jobs
+              <RotateCcw className="size-4" /> Retry toàn bộ Failed Jobs
             </Button>
-            <Button variant="primary" onClick={() => void run(async () => { await reload(); await fetchMetrics(); }, 'Đã làm mới dữ liệu hàng đợi.')}><RefreshCw className="h-4 w-4" /> Làm mới tức thì</Button>
+            <Button variant="primary" onClick={() => void run(async () => { await reload(); await fetchMetrics(); }, 'Đã làm mới dữ liệu hàng đợi.')}><RefreshCw className="size-4" /> Làm mới tức thì</Button>
           </>
         }
       />
@@ -78,9 +78,9 @@ export const QueuePage: React.FC = () => {
       {metricsError ? <AlertBox message={metricsError} onRetry={() => void fetchMetrics()} /> : null}
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard accent="border-l-amber-400" label="Đang chờ" value={queued} icon={Hourglass} iconClassName="bg-amber-50 text-amber-600" footer={<p className="text-[11px] text-slate-600">Jobs waiting trong hàng đợi.</p>} />
-        <StatCard accent="border-l-blue-500" label="Đang xử lý" value={sandbox} icon={SquareTerminal} iconClassName="bg-blue-50 text-blue-600" footer={<p className="text-[11px] text-slate-600">Jobs đang chạy.</p>} />
-        <StatCard accent="border-l-violet-500" label="Đang chấm AI" value={ai} icon={BrainCircuit} iconClassName="bg-violet-50 text-violet-600" footer={<p className="text-[11px] text-slate-600">Trạng thái từ bản ghi grading job.</p>} />
+        <StatCard accent="border-l-amber-400" label="Đang chờ" value={queued} icon={Hourglass} iconClassName="bg-amber-50 text-amber-600" footer={<p className="text-xs text-slate-600">Jobs waiting trong hàng đợi.</p>} />
+        <StatCard accent="border-l-blue-500" label="Đang xử lý" value={sandbox} icon={SquareTerminal} iconClassName="bg-blue-50 text-blue-600" footer={<p className="text-xs text-slate-600">Jobs đang chạy.</p>} />
+        <StatCard accent="border-l-violet-500" label="Đang chấm AI" value={ai} icon={BrainCircuit} iconClassName="bg-violet-50 text-violet-600" footer={<p className="text-xs text-slate-600">Trạng thái từ bản ghi grading job.</p>} />
         <StatCard
           accent="border-l-rose-500"
           label="FAILED (cần retry)"
@@ -88,7 +88,7 @@ export const QueuePage: React.FC = () => {
           icon={CircleAlert}
           iconClassName="bg-rose-50 text-rose-600"
           footer={
-            <p className="flex justify-between text-[11px] text-slate-600">
+            <p className="flex justify-between text-xs text-slate-600">
               <span>Bản ghi chấm thất bại</span>
               <button type="button" onClick={() => setForcedState({ value: 'Failed', nonce: Date.now() })} className="font-semibold text-rose-600 hover:underline">Chi tiết lỗi →</button>
             </p>

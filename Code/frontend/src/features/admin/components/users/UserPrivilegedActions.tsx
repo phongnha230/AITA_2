@@ -26,7 +26,7 @@ export const UserPrivilegedActions: React.FC<UserPrivilegedActionsProps> = ({
 
   return (
     <div className="space-y-3">
-      <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+      <p className="text-xs font-bold uppercase tracking-wider text-slate-600">
         Hành động quản trị đặc quyền
       </p>
       <div className="flex flex-wrap items-center gap-2">
@@ -46,10 +46,10 @@ export const UserPrivilegedActions: React.FC<UserPrivilegedActionsProps> = ({
           disabled={busy || user.role === 'ADMIN'}
           onClick={onToggleLock}
         >
-          {locked ? <LockOpen className="h-4 w-4" /> : <Lock className="h-4 w-4" />} {locked ? 'Mở khóa' : 'Khóa tài khoản'}
+          {locked ? <LockOpen className="size-4" /> : <Lock className="size-4" />} {locked ? 'Mở khóa' : 'Khóa tài khoản'}
         </Button>
         <Button disabled={busy} onClick={onResetPassword}>
-          <KeyRound className="h-4 w-4" /> Reset mật khẩu
+          <KeyRound className="size-4" /> Reset mật khẩu
         </Button>
       </div>
     </div>

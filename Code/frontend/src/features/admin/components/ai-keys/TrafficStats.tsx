@@ -33,7 +33,7 @@ export const TrafficStats: React.FC<TrafficStatsProps> = ({ keys = [] }) => {
     <Card className="space-y-5">
       <div className="flex items-center justify-between">
         <h2 className="text-base font-semibold text-slate-900">Thống kê lưu lượng</h2>
-        <BarChart3 className="h-5 w-5 text-slate-400" />
+        <BarChart3 className="size-5 text-slate-400" />
       </div>
       <div className="flex h-36 items-end justify-around gap-3 rounded-xl bg-slate-50 p-4">
         {providerStats.map((b) => {
@@ -48,7 +48,7 @@ export const TrafficStats: React.FC<TrafficStatsProps> = ({ keys = [] }) => {
                 style={{ height: `${heightPct}%` }}
                 title={`${b.label}: ${b.reqCount} requests (${b.activeCount} keys active)`}
               />
-              <span className="text-[10px] font-medium text-slate-500">{b.label}</span>
+              <span className="text-xs font-medium text-slate-500">{b.label}</span>
             </div>
           );
         })}
@@ -69,8 +69,8 @@ export const TrafficStats: React.FC<TrafficStatsProps> = ({ keys = [] }) => {
           </dd>
         </div>
       </dl>
-      <p className="flex items-start gap-2 rounded-xl bg-emerald-50 p-3 text-[11px] text-emerald-800">
-        <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
+      <p className="flex items-start gap-2 rounded-xl bg-emerald-50 p-3 text-xs text-emerald-800">
+        <ShieldCheck className="mt-0.5 size-4 shrink-0" />
         <span>
           <strong>Tự động xáo trộn chữ ký &amp; Failover</strong>
           <br />Mã hóa AES-256 an toàn và luân chuyển khóa theo least-loaded.

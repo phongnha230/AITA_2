@@ -25,6 +25,34 @@ export interface AdminUser {
   updatedAt: string;
 }
 
+export interface AdminUserDetails extends AdminUser {
+  studentCode?: string | null;
+  major?: string | null;
+  coursesTaught?: Array<{
+    id: string;
+    code: string;
+    name: string;
+    enrollments?: Array<{ id: string }>;
+    assignments?: Array<{ id: string }>;
+  }>;
+  enrollments?: Array<{
+    id: string;
+    course?: {
+      code?: string | null;
+      name?: string | null;
+      lecturer?: { fullName?: string | null } | null;
+    } | null;
+  }>;
+  submissions?: Array<{
+    id: string;
+    assignment?: { course?: { code?: string | null } | null; title?: string | null } | null;
+    paperCode?: string | null;
+    finalScore?: number | null;
+    sandboxScore?: number | null;
+    aiScore?: number | null;
+  }>;
+}
+
 export interface PageMeta {
   page: number;
   limit: number;

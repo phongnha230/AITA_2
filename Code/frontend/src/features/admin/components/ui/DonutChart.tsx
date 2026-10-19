@@ -81,7 +81,7 @@ export const DonutChart: React.FC<DonutChartProps> = ({
             {centerValue !== undefined ? centerValue : total.toLocaleString('en-US')}
           </span>
           {centerLabel && (
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
               {centerLabel}
             </span>
           )}
@@ -95,14 +95,14 @@ export const DonutChart: React.FC<DonutChartProps> = ({
             <div key={item.name} className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 min-w-0">
                 <span
-                  className="h-3 w-3 shrink-0 rounded-sm"
+                  className="size-3 shrink-0 rounded-sm"
                   style={{ backgroundColor: item.color }}
                 />
                 <span className="truncate font-medium text-slate-700">{item.name}</span>
               </div>
               <div className="flex items-center gap-2 font-semibold">
                 <span className="text-slate-900">{item.value.toLocaleString('en-US')}</span>
-                <span className="text-slate-400 font-mono text-[11px]">({pct}%)</span>
+                <span className="text-slate-400 font-mono text-xs">({pct}%)</span>
               </div>
             </div>
           );

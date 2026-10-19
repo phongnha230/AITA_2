@@ -50,17 +50,17 @@ export const LiveSessions: React.FC<{ sessions?: LiveSession[] }> = ({ sessions:
                 <div className="min-w-0">
                   <p className="flex flex-wrap items-center gap-2 text-sm font-bold text-slate-900">
                     {s.code}
-                    <span className="rounded bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-600">{s.subject}</span>
+                    <span className="rounded bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-600">{s.subject}</span>
                   </p>
                   <p className="text-xs text-slate-500">Phòng: <strong>{s.room}</strong> • CBCT: {s.proctor}</p>
                 </div>
                 <Badge tone={s.badgeTone}>{s.badge}</Badge>
               </div>
-              <p className="flex justify-between gap-2 text-[11px] font-semibold"><span className="text-slate-600">{s.progressLabel}</span><span className="text-blue-600">{s.progressValue}</span></p>
-              <ProgressBar value={s.percent} color={s.barColor} className="h-2 bg-slate-200" />
+              <p className="flex justify-between gap-2 text-xs font-semibold"><span className="text-slate-600">{s.progressLabel}</span><span className="text-blue-600">{s.progressValue}</span></p>
+              <ProgressBar value={s.percent} label={`Tiến độ ${s.code}`} color={s.barColor} className="h-2 bg-slate-200" />
               <p className="flex justify-end text-xs font-semibold text-blue-600">
                 <button type="button" onClick={() => (waiting ? activate(s) : setDetail(s))} className="inline-flex items-center gap-1 hover:underline">
-                  {waiting ? `Kích hoạt phòng ${s.room}` : `Chi tiết phòng ${s.room}`} <ArrowRight className="h-3.5 w-3.5" />
+                  {waiting ? `Kích hoạt phòng ${s.room}` : `Chi tiết phòng ${s.room}`} <ArrowRight className="size-3.5" />
                 </button>
               </p>
             </li>
@@ -68,7 +68,7 @@ export const LiveSessions: React.FC<{ sessions?: LiveSession[] }> = ({ sessions:
         })}
       </ul>
       <button type="button" onClick={() => setMatrixOpen(true)} className="mt-auto flex w-full items-center justify-center gap-2 rounded-xl bg-slate-100 py-2.5 text-xs font-semibold text-blue-600 transition-colors hover:bg-slate-200">
-        <LayoutGrid className="h-4 w-4" /> Xem ma trận tất cả 12 phòng máy thi
+        <LayoutGrid className="size-4" /> Xem ma trận tất cả 12 phòng máy thi
       </button>
 
       <Modal open={Boolean(detail)} title={detail ? `Chi tiết phòng ${detail.room}` : ''} onClose={() => setDetail(null)}>
@@ -81,7 +81,7 @@ export const LiveSessions: React.FC<{ sessions?: LiveSession[] }> = ({ sessions:
               <div><dt className="text-slate-500">Trạng thái</dt><dd className="font-bold text-slate-900">{detail.badge}</dd></div>
             </dl>
             <p className="text-slate-600">{detail.progressLabel} — <strong>{detail.progressValue}</strong></p>
-            <ProgressBar value={detail.percent} color={detail.barColor} className="h-2" />
+            <ProgressBar value={detail.percent} label={`Tiến độ phòng ${detail.room}`} color={detail.barColor} className="h-2" />
             <div className="flex justify-end"><Button onClick={() => setDetail(null)}>Đóng</Button></div>
           </div>
         )}

@@ -21,15 +21,15 @@ export const DashboardFooterLinks: React.FC = () => {
           className="group flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-colors hover:shadow-md"
         >
           <span className="flex min-w-0 items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-blue-600 transition-colors group-hover:bg-blue-600 group-hover:text-white">
-              <Icon className="h-5 w-5" />
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-blue-600 transition-colors group-hover:bg-blue-600 group-hover:text-white">
+              <Icon className="size-5" />
             </span>
             <span className="min-w-0">
               <span className="block truncate text-sm font-bold text-slate-900">{title}</span>
               <span className="block truncate text-xs text-slate-500">{sub}</span>
             </span>
           </span>
-          <ArrowRight className="h-5 w-5 shrink-0 text-slate-400 transition-colors group-hover:translate-x-1 group-hover:text-blue-600" />
+          <ArrowRight className="size-5 shrink-0 text-slate-400 transition-colors group-hover:translate-x-1 group-hover:text-blue-600" />
         </Link>
       ))}
     </footer>

@@ -59,7 +59,7 @@ export const AreaChart: React.FC<AreaChartProps> = ({ series, labels, height = 2
       </svg>
       {threshold && <p className="mt-1 text-xs font-medium text-rose-600">{threshold.label}</p>}
       {labels && (
-        <div className="mt-2 flex justify-between text-[11px] font-medium text-slate-400">
+        <div className="mt-2 flex justify-between text-xs font-medium text-slate-400">
           {labels.map((l) => (
             <span key={l}>{l}</span>
           ))}

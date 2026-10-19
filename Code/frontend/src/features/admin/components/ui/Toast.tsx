@@ -51,7 +51,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           const Icon = ICONS[t.tone];
           return (
             <div key={t.id} className={cn('pointer-events-auto flex items-start gap-2.5 rounded-xl border bg-white p-3.5 text-sm font-medium shadow-lg', TONES[t.tone])}>
-              <Icon className="mt-0.5 h-4 w-4 shrink-0" />
+              <Icon className="mt-0.5 size-4 shrink-0" />
               <span className="min-w-0 text-slate-800">{t.message}</span>
             </div>
           );

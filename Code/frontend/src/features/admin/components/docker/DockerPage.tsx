@@ -47,10 +47,10 @@ export const DockerPage: React.FC = () => {
   return (
     <>
       <PageHeader
-        eyebrow={<span className="inline-flex items-center gap-2"><Server className="h-4 w-4" /> Trạng thái Sandbox từ backend</span>}
+        eyebrow={<span className="inline-flex items-center gap-2"><Server className="size-4" /> Trạng thái Sandbox từ backend</span>}
         title="Giám sát Docker Sandbox"
         description="Thông tin daemon, chế độ thực thi và số liệu chấm do API Sandbox cung cấp."
-        actions={<Button onClick={() => void loadStatus()}><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Làm mới</Button>}
+        actions={<Button onClick={() => void loadStatus()}><RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} /> Làm mới</Button>}
       />
 
       {error ? <AlertBox message={error} onRetry={() => void loadStatus()} /> : null}

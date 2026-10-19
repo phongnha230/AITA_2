@@ -1,16 +1,35 @@
 import api from '../../../lib/api';
-import type { AdminUser, CreateUserPayload, PageMeta, UpdateUserPayload, UserQuery, UserStats } from '../types/admin.types';
+import type { AdminUser, AdminUserDetails, CreateUserPayload, PageMeta, UpdateUserPayload, UserQuery, UserStats } from '../types/admin.types';
 
-function normalizeUser(raw: any): AdminUser {
+interface RawAdminUser {
+  id: string;
+  email: string;
+  fullName: string;
+  role: AdminUser['role'];
+  status: AdminUser['status'];
+  avatarUrl?: string | null;
+  studentCode?: string | null;
+  department?: string | null;
+  departmentNote?: string | null;
+  assignedClasses?: string[];
+  sandboxAiEnabled?: boolean;
+  mustChangePassword?: boolean;
+  lastLoginAt?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+function normalizeUser(raw: RawAdminUser): AdminUser {
+  const role = raw.role;
   return {
     id: raw.id,
     email: raw.email,
     fullName: raw.fullName,
     avatarUrl: raw.avatarUrl ?? null,
-    role: raw.role,
+    role,
     status: raw.status,
     userCode: raw.studentCode ?? null,
-    subtitle: raw.role === 'LECTURER' ? 'Giảng viên' : raw.role === 'ADMIN' ? 'Quản trị viên' : 'Sinh viên',
+    subtitle: role === 'LECTURER' ? 'Giảng viên' : role === 'ADMIN' ? 'Quản trị viên' : 'Sinh viên',
     department: raw.department ?? null,
     departmentNote: raw.departmentNote ?? null,
     assignedClasses: raw.assignedClasses ?? [],
@@ -93,7 +112,7 @@ export const adminUserService = {
   /**
    * Lấy chi tiết tài khoản người dùng kèm lớp học & bài nộp thực tế từ Backend
    */
-  async getById(id: string): Promise<any> {
+  async getById(id: string): Promise<AdminUserDetails> {
     const res = await api.get(`/users/${id}`);
     return res.data?.data;
   },

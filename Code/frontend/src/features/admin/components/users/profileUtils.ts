@@ -1,8 +1,14 @@
-import type { AdminUser } from '../../types/admin.types';
+import type { AdminUser, AdminUserDetails } from '../../types/admin.types';
 
-export const lecturerClasses = (user: AdminUser, detailedUser?: any) => {
+export interface LecturerClassSummary {
+  code: string;
+  title: string;
+  students: number;
+}
+
+export const lecturerClasses = (user: AdminUser, detailedUser?: AdminUserDetails): LecturerClassSummary[] => {
   if (detailedUser?.coursesTaught && Array.isArray(detailedUser.coursesTaught)) {
-    return detailedUser.coursesTaught.map((c: any) => ({
+    return detailedUser.coursesTaught.map((c) => ({
       code: c.code,
       title: c.name,
       students: c.enrollments?.length || 0,

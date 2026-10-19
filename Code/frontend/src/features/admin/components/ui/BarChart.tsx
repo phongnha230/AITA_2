@@ -38,12 +38,12 @@ export const BarChart: React.FC<BarChartProps> = ({
       {(primaryLabel || secondaryLabel) && (
         <div className="flex items-center justify-end gap-4 text-xs font-semibold">
           <div className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: primaryColor }} />
+            <span className="size-2.5 rounded-sm" style={{ backgroundColor: primaryColor }} />
             <span className="text-slate-600">{primaryLabel}</span>
           </div>
           {secondaryLabel && (
             <div className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: secondaryColor }} />
+              <span className="size-2.5 rounded-sm" style={{ backgroundColor: secondaryColor }} />
               <span className="text-slate-600">{secondaryLabel}</span>
             </div>
           )}
@@ -70,9 +70,14 @@ export const BarChart: React.FC<BarChartProps> = ({
             : 0;
 
           return (
-            <div key={item.label} className="group relative flex-1 flex flex-col items-center h-full justify-end">
-              {/* Tooltip on hover */}
-              <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-8 bg-slate-900 text-white text-[10px] py-1 px-2 rounded font-semibold whitespace-nowrap pointer-events-none z-10 shadow-lg">
+            <div
+              key={item.label}
+              role="img"
+              tabIndex={0}
+              aria-label={`${item.label}: ${item.value}${item.secondaryValue !== undefined ? ` / ${item.secondaryValue}%` : ''}`}
+              className="group relative flex h-full flex-1 flex-col items-center justify-end rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+            >
+              <div aria-hidden="true" className="pointer-events-none absolute -top-8 z-10 whitespace-nowrap rounded bg-slate-900 p-2 text-xs font-semibold text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus:opacity-100">
                 {item.label}: {item.value}
                 {item.secondaryValue !== undefined && ` / ${item.secondaryValue}%`}
               </div>
@@ -98,11 +103,11 @@ export const BarChart: React.FC<BarChartProps> = ({
                 )}
               </div>
 
-              <span className="mt-2 block truncate text-[11px] font-semibold text-slate-600 w-full text-center">
+              <span className="mt-2 block truncate text-xs font-semibold text-slate-600 w-full text-center">
                 {item.label}
               </span>
               {item.subLabel && (
-                <span className="block text-[10px] text-slate-400 truncate">
+                <span className="block text-xs text-slate-400 truncate">
                   {item.subLabel}
                 </span>
               )}

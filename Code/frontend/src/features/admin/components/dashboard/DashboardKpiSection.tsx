@@ -46,11 +46,11 @@ export const DashboardKpiSection: React.FC<DashboardKpiSectionProps> = ({ realDa
         }}
         footer={
           <>
-            <p className="flex justify-between text-[11px] font-medium">
+            <p className="flex justify-between text-xs font-medium">
               <span className="text-slate-600">Tài khoản đã ghi nhận</span>
               <span className="text-slate-600">{k.totalUsers}</span>
             </p>
-            <ProgressBar value={usersProgress} />
+            <ProgressBar value={usersProgress} label="Tỷ lệ sinh viên trong tổng số người dùng" />
           </>
         }
       />
@@ -64,11 +64,11 @@ export const DashboardKpiSection: React.FC<DashboardKpiSectionProps> = ({ realDa
         trend={{ value: `${k.totalAssignments} bài`, positive: true, label: 'đã tạo' }}
         footer={
           <>
-            <p className="flex justify-between text-[11px] font-medium">
+            <p className="flex justify-between text-xs font-medium">
               <span className="text-slate-600">Khóa học trong hệ thống</span>
               <span className="text-slate-600">{k.totalCourses}</span>
             </p>
-            <ProgressBar value={100} color="bg-emerald-600" />
+            <ProgressBar value={100} label="Khóa học trong hệ thống" color="bg-emerald-600" />
           </>
         }
       />
@@ -85,11 +85,11 @@ export const DashboardKpiSection: React.FC<DashboardKpiSectionProps> = ({ realDa
         }}
         footer={
           <>
-            <p className="flex justify-between text-[11px] font-medium">
+            <p className="flex justify-between text-xs font-medium">
               <span className="text-blue-600">{k.pendingSubmissions} jobs đang chạy</span>
               <span className="text-rose-600">{k.failedSubmissions} lỗi</span>
             </p>
-            <ProgressBar value={submissionsProgress} />
+            <ProgressBar value={submissionsProgress} label="Tỷ lệ bài nộp đã chấm" />
           </>
         }
       />
@@ -102,11 +102,11 @@ export const DashboardKpiSection: React.FC<DashboardKpiSectionProps> = ({ realDa
         trend={{ value: `${k.activeAiKeys}`, positive: k.activeAiKeys > 0, label: 'đang bật' }}
         footer={
           <>
-            <p className="flex justify-between text-[11px] font-medium">
+            <p className="flex justify-between text-xs font-medium">
               <span className="text-slate-600">API keys đang bật</span>
               <span className="text-slate-600">{k.activeAiKeys} / {k.totalAiKeys}</span>
             </p>
-            <ProgressBar value={aiKeysProgress} />
+            <ProgressBar value={aiKeysProgress} label="Tỷ lệ khóa AI đang bật" />
           </>
         }
       />

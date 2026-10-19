@@ -126,7 +126,7 @@ export const AdminSubmissionsPage: React.FC = () => {
         eyebrow={
           <>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 px-2.5 py-0.5 font-semibold text-purple-700">
-              <ClipboardCheck className="h-3.5 w-3.5" /> Giám sát Khảo thí
+              <ClipboardCheck className="size-3.5" /> Giám sát Khảo thí
             </span>
             <span>Hệ thống theo dõi bài nộp &amp; chấm thi toàn cơ sở</span>
           </>
@@ -135,7 +135,7 @@ export const AdminSubmissionsPage: React.FC = () => {
         description="Theo dõi toàn bộ bài thi thực hành nộp vào hệ thống, kiểm soát điểm số Docker Sandbox, AI Rubric và quyền kích hoạt chấm lại theo yêu cầu."
         actions={
           <Button onClick={loadData}>
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Làm mới
+            <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} /> Làm mới
           </Button>
         }
       />
@@ -143,7 +143,7 @@ export const AdminSubmissionsPage: React.FC = () => {
       {/* Filter and Search Bar */}
       <Card className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative flex-1 max-w-md">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 z-10" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400 z-10" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -269,7 +269,7 @@ export const AdminSubmissionsPage: React.FC = () => {
                           className="h-8 text-xs font-semibold gap-1 text-slate-700 hover:text-blue-600"
                           title="Chấm lại bằng Docker Sandbox"
                         >
-                          <Cpu className="h-3.5 w-3.5 text-blue-600" />
+                          <Cpu className="size-3.5 text-blue-600" />
                           Sandbox
                         </Button>
                         <Button
@@ -280,7 +280,7 @@ export const AdminSubmissionsPage: React.FC = () => {
                           className="h-8 text-xs font-semibold gap-1 text-slate-700 hover:text-purple-600"
                           title="Chấm lại bằng AI Rubric"
                         >
-                          <Bot className="h-3.5 w-3.5 text-purple-600" />
+                          <Bot className="size-3.5 text-purple-600" />
                           AI
                         </Button>
                       </div>

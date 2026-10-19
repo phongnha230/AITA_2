@@ -5,6 +5,7 @@ import { ArrowRight, PieChart as PieIcon } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { DonutChart } from '../ui/DonutChart';
 import type { AdminDashboardData } from '../../services/admin-dashboard.service';
+import { formatDateTime } from '@/lib/formatDate';
 
 interface DashboardChartsSectionProps {
   realData: AdminDashboardData;
@@ -15,7 +16,7 @@ export const DashboardChartsSection: React.FC<DashboardChartsSectionProps> = ({ 
     <Card className="space-y-4">
       <div>
         <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900">
-          <PieIcon className="h-4 w-4 text-purple-600" /> Trạng thái bài nộp
+          <PieIcon className="size-4 text-purple-600" /> Trạng thái bài nộp
         </h2>
         <p className="text-xs text-slate-500">Thống kê từ dữ liệu submission hiện có.</p>
       </div>
@@ -35,7 +36,7 @@ export const DashboardChartsSection: React.FC<DashboardChartsSectionProps> = ({ 
           <p className="text-xs text-slate-500">Tối đa 10 bài mới nhất từ backend.</p>
         </div>
         <Link href="/admin/submissions" className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:underline">
-          Xem tất cả <ArrowRight className="h-3.5 w-3.5" />
+          Xem tất cả <ArrowRight className="size-3.5" />
         </Link>
       </div>
       {realData.recentSubmissions.length === 0 ? (
@@ -46,7 +47,7 @@ export const DashboardChartsSection: React.FC<DashboardChartsSectionProps> = ({ 
             <li key={submission.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold text-slate-800">{submission.assignmentTitle}</p>
-                <p className="truncate text-xs text-slate-500">{submission.studentName} · {submission.courseCode} · {new Date(submission.submittedAt).toLocaleString('vi-VN')}</p>
+                <p className="truncate text-xs text-slate-500">{submission.studentName} · {submission.courseCode} · {formatDateTime(submission.submittedAt)}</p>
               </div>
               <span className="shrink-0 text-xs font-semibold text-slate-600">{submission.status === 'GRADED' ? `${submission.finalScore} điểm` : submission.status}</span>
             </li>

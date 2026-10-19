@@ -53,6 +53,17 @@ const mapPercent = (status: string): number => {
   return status?.toUpperCase() === 'COMPLETED' ? 100 : 0;
 };
 
+interface QueueJobApiRecord extends Record<string, unknown> {
+  id: string;
+  submissionId?: string;
+  status: string;
+  errorStage?: string;
+  submission?: {
+    user?: { fullName?: string; studentCode?: string; email?: string };
+    assignment?: { course?: { code?: string }; title?: string };
+  };
+}
+
 export const adminQueueService = {
   /**
    * Lấy danh sách jobs từ Backend BullMQ / DB
@@ -62,7 +73,7 @@ export const adminQueueService = {
       const rawJobs = response.data?.data;
 
       if (Array.isArray(rawJobs)) {
-        return rawJobs.map((j: any) => {
+        return rawJobs.map((j: QueueJobApiRecord) => {
           const studentName = j.submission?.user?.fullName || 'Sinh viên';
           const studentCode = j.submission?.user?.studentCode || (j.submission?.user?.email ? j.submission.user.email.split('@')[0] : '');
           const courseCode = j.submission?.assignment?.course?.code || 'PE';

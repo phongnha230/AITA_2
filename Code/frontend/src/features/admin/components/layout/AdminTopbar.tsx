@@ -11,9 +11,10 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 interface AdminTopbarProps {
   user: User;
   onMenuClick: () => void;
+  menuButtonRef: React.RefObject<HTMLButtonElement | null>;
 }
 
-export const AdminTopbar: React.FC<AdminTopbarProps> = ({ user, onMenuClick }) => {
+export const AdminTopbar: React.FC<AdminTopbarProps> = ({ user, onMenuClick, menuButtonRef }) => {
   const pathname = usePathname();
   const current = ADMIN_NAV.find((n) => n.href === pathname);
 
@@ -21,24 +22,24 @@ export const AdminTopbar: React.FC<AdminTopbarProps> = ({ user, onMenuClick }) =
     <header className="fixed left-0 right-0 top-0 z-30 h-16 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl lg:left-72">
       <div className="flex h-full items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <div className="flex min-w-0 items-center gap-4">
-          <button type="button" onClick={onMenuClick} aria-label="Mở menu" className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 lg:hidden">
-            <Menu className="h-5 w-5" />
+          <button ref={menuButtonRef} type="button" onClick={onMenuClick} aria-label="Mở menu" className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 lg:hidden">
+            <Menu className="size-5" />
           </button>
           <nav className="flex items-center gap-1.5 whitespace-nowrap text-xs font-medium text-slate-500" aria-label="Breadcrumb">
-            <Home className="h-4 w-4" />
+            <Home className="size-4" />
             <span className="hidden sm:inline">Quản trị</span>
-            <ChevronRight className="hidden h-3.5 w-3.5 sm:inline" />
+            <ChevronRight className="hidden size-3.5 sm:inline" />
             <span className="font-semibold text-slate-900">{current?.breadcrumb ?? 'Bảng quản trị'}</span>
           </nav>
         </div>
         <div className="flex items-center gap-3">
           <div className="hidden text-right leading-tight md:block">
             <p className="text-sm font-semibold text-slate-900">{user.fullName}</p>
-            <p className="text-[11px] text-slate-500">{user.email}</p>
+            <p className="text-xs text-slate-500">{user.email}</p>
           </div>
-          <Avatar className="h-8 w-8">
+          <Avatar className="size-8">
             <AvatarFallback className="bg-blue-600 text-white text-xs font-bold">
-              {user.fullName ? user.fullName.charAt(0).toUpperCase() : <UserIcon className="h-4 w-4" />}
+              {user.fullName ? user.fullName.charAt(0).toUpperCase() : <UserIcon className="size-4" />}
             </AvatarFallback>
           </Avatar>
           <button
@@ -54,9 +55,9 @@ export const AdminTopbar: React.FC<AdminTopbarProps> = ({ user, onMenuClick }) =
             }}
             title="Đăng xuất"
             aria-label="Đăng xuất"
-            className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-500 transition-colors hover:bg-rose-50 hover:text-rose-600"
+            className="flex size-8 items-center justify-center rounded-lg bg-slate-100 text-slate-500 transition-colors hover:bg-rose-50 hover:text-rose-600"
           >
-            <LogOut className="h-4 w-4" />
+            <LogOut className="size-4" />
           </button>
         </div>
       </div>

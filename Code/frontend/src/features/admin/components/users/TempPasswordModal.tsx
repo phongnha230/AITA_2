@@ -39,13 +39,13 @@ export const TempPasswordModal: React.FC<TempPasswordModalProps> = ({ credential
           <dl className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm">
             <div><dt className="text-xs text-slate-500">Email đăng nhập</dt><dd className="font-mono text-slate-900">{credentials.email}</dd></div>
             <div>
-              <dt className="flex items-center gap-1.5 text-xs text-slate-500"><KeyRound className="h-3.5 w-3.5" /> Mật khẩu tạm thời</dt>
+              <dt className="flex items-center gap-1.5 text-xs text-slate-500"><KeyRound className="size-3.5" /> Mật khẩu tạm thời</dt>
               <dd className="select-all font-mono text-lg font-bold tracking-wider text-blue-700">{credentials.password}</dd>
             </div>
           </dl>
           <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700">Mật khẩu chỉ hiển thị một lần. Hãy sao chép trước khi đóng cửa sổ này.</p>
           <div className="flex justify-end gap-2">
-            <Button onClick={() => void copy()}><Copy className="h-4 w-4" /> Sao chép</Button>
+            <Button onClick={() => void copy()}><Copy className="size-4" /> Sao chép</Button>
             <Button variant="primary" onClick={onClose}>Đã lưu, đóng</Button>
           </div>
         </div>

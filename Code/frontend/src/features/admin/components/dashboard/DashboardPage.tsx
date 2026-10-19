@@ -53,7 +53,7 @@ export const DashboardPage: React.FC = () => {
         eyebrow={
           <>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-0.5 font-semibold uppercase tracking-wider text-blue-700">
-              <span className="h-1.5 w-1.5 rounded-full bg-blue-600" /> Dữ liệu hệ thống
+              <span className="size-1.5 rounded-full bg-blue-600" /> Dữ liệu hệ thống
             </span>
             <span>Số liệu tổng hợp từ cơ sở dữ liệu hiện tại</span>
           </>
@@ -62,7 +62,7 @@ export const DashboardPage: React.FC = () => {
         description="Thống kê người dùng, khóa học và bài nộp hiện có trong hệ thống."
         actions={
           <Button variant="primary" onClick={refresh}>
-              Làm mới <RefreshCw className={`h-4 w-4 ${spinning ? 'animate-spin' : ''}`} />
+              Làm mới <RefreshCw className={`size-4 ${spinning ? 'animate-spin' : ''}`} />
           </Button>
         }
       />

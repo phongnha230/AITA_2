@@ -63,13 +63,13 @@ export const JobsTable: React.FC<JobsTableProps> = ({ jobs, onRetry, onTerminal,
       <div className="flex flex-col justify-between gap-3 px-6 pt-6 xl:flex-row xl:items-center">
         <div>
           <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900">
-            Bảng điều phối jobs thời gian thực <span className="h-2 w-2 rounded-full bg-emerald-600" />
+            Bảng điều phối jobs thời gian thực <span className="size-2 rounded-full bg-emerald-600" />
           </h2>
           <p className="text-xs text-slate-500">Danh sách job và trạng thái thực lấy từ backend.</p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
             <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tìm Job ID, sinh viên, mã bài..." aria-label="Tìm Job ID, sinh viên, mã bài..." className={cn(inputClass, 'pl-9 sm:w-64')} />
           </div>
           <select value={queue} onChange={(e) => setQueue(e.target.value)} className={cn(inputClass, 'sm:w-52')} aria-label="Lọc hàng đợi">
@@ -105,21 +105,21 @@ export const JobsTable: React.FC<JobsTableProps> = ({ jobs, onRetry, onTerminal,
               {rows.map((j) => (
                 <TableRow key={j.id} className={cn(j.state === 'Failed' && 'bg-rose-50/50')}>
                   <TableCell><span className="block max-w-[120px] truncate font-mono text-xs font-semibold text-blue-600">{j.id}</span></TableCell>
-                  <TableCell><p className="font-mono text-xs font-semibold text-slate-900">{j.name}</p><p className="text-[11px] text-slate-500">{j.detail}</p></TableCell>
-                  <TableCell><p className="text-sm font-semibold text-slate-900">{j.student}</p><p className="text-[11px] text-slate-500">{j.course}</p></TableCell>
+                  <TableCell><p className="font-mono text-xs font-semibold text-slate-900">{j.name}</p><p className="text-xs text-slate-500">{j.detail}</p></TableCell>
+                  <TableCell><p className="text-sm font-semibold text-slate-900">{j.student}</p><p className="text-xs text-slate-500">{j.course}</p></TableCell>
                   <TableCell><Badge tone="info">{j.queue}</Badge></TableCell>
                   <TableCell className="w-52">
-                    <p className="mb-1 flex justify-between text-[11px] font-semibold text-slate-600"><span>{j.progressLabel}</span>{j.percent === 100 ? <span>Hoàn tất</span> : null}</p>
-                    <ProgressBar value={j.percent} color={BAR_COLOR[j.state]} />
+                    <p className="mb-1 flex justify-between text-xs font-semibold text-slate-600"><span>{j.progressLabel}</span>{j.percent === 100 ? <span>Hoàn tất</span> : null}</p>
+                    <ProgressBar value={j.percent} label={`Tiến độ ${j.name}`} color={BAR_COLOR[j.state]} />
                   </TableCell>
                   <TableCell className="whitespace-nowrap font-mono text-xs text-slate-600">{j.duration}</TableCell>
                   <TableCell><Badge tone={STATE_TONE[j.state]} dot>{j.state}</Badge></TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1 text-slate-400">
-                      <button type="button" onClick={() => onTerminal(j)} aria-label="Xem log terminal" title="Xem log terminal" className="rounded-lg p-2 hover:bg-slate-100 hover:text-slate-700"><SquareTerminal className="h-4 w-4" /></button>
+                      <button type="button" onClick={() => onTerminal(j)} aria-label="Xem log terminal" title="Xem log terminal" className="rounded-lg p-2 hover:bg-slate-100 hover:text-slate-700"><SquareTerminal className="size-4" /></button>
                       {j.state === 'Failed' && (
                         <button type="button" onClick={() => onRetry(j.id)} aria-label="Retry job" title="Retry job" className="rounded-lg bg-blue-50 p-2 text-blue-600 hover:bg-blue-100">
-                          <RotateCcw className="h-4 w-4" />
+                          <RotateCcw className="size-4" />
                         </button>
                       )}
                     </div>

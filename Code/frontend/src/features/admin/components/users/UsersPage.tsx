@@ -78,15 +78,15 @@ export const UsersPage: React.FC = () => {
       <header className="flex flex-col justify-between gap-4 xl:flex-row xl:items-center">
         <div className="min-w-0 space-y-1.5">
           <h1 className="flex items-center gap-3 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600"><UserCog className="h-5 w-5" /></span>
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600"><UserCog className="size-5" /></span>
             Quản lý Người dùng &amp; Phân quyền RBAC
           </h1>
           <p className="max-w-3xl text-sm leading-relaxed text-slate-600">Kiểm soát danh tính số, vai trò truy cập thực tế theo bộ môn và cấu hình Sandbox cho toàn cơ sở FPT Education.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button onClick={() => void exportCsv()}><Download className="h-4 w-4" /> Xuất báo cáo</Button>
-          <Button className="text-blue-700" onClick={() => setImporting(true)}><FileSpreadsheet className="h-4 w-4" /> Nạp danh sách từ FAP Excel</Button>
-          <Button variant="primary" onClick={() => setCreating(true)}><UserPlus className="h-4 w-4" /> + Tạo tài khoản mới</Button>
+          <Button onClick={() => void exportCsv()}><Download className="size-4" /> Xuất báo cáo</Button>
+          <Button className="text-blue-700" onClick={() => setImporting(true)}><FileSpreadsheet className="size-4" /> Nạp danh sách từ FAP Excel</Button>
+          <Button variant="primary" onClick={() => setCreating(true)}><UserPlus className="size-4" /> + Tạo tài khoản mới</Button>
         </div>
       </header>
 

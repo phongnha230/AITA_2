@@ -19,7 +19,7 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({ user, onPi
     <>
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
         <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900">
-          <span className="h-2.5 w-2.5 rounded-full bg-blue-600" /> Chi tiết Hồ sơ &amp; Phân quyền RBAC
+          <span className="size-2.5 rounded-full bg-blue-600" /> Chi tiết Hồ sơ &amp; Phân quyền RBAC
         </h2>
         <div className="flex gap-1 rounded-lg bg-slate-100 p-1">
           {(['LECTURER', 'STUDENT'] as const).map((r) => (
@@ -39,7 +39,7 @@ export const UserProfileHeader: React.FC<UserProfileHeaderProps> = ({ user, onPi
       </div>
 
       <div className="flex flex-col gap-4 rounded-xl bg-blue-50/60 p-5 sm:flex-row sm:items-center">
-        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-xl font-bold text-white">
+        <span className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-xl font-bold text-white">
           {initials(user.fullName)}
         </span>
         <div className="min-w-0 flex-1">

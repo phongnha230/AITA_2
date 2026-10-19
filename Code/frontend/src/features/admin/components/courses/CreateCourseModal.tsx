@@ -72,7 +72,7 @@ export const CreateCourseModal: React.FC<CreateCourseModalProps> = ({
 
         {isEditing ? (
           <FormField label="Trạng thái khóa học">
-            <select value={isActive ? 'active' : 'inactive'} onChange={(event) => onChangeIsActive?.(event.target.value === 'active')} className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm">
+            <select value={isActive ? 'active' : 'inactive'} onChange={(event) => onChangeIsActive?.(event.target.value === 'active')} className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-base">
               <option value="active">Đang mở</option>
               <option value="inactive">Đã đóng</option>
             </select>
@@ -81,7 +81,7 @@ export const CreateCourseModal: React.FC<CreateCourseModalProps> = ({
 
         {!isEditing ? <div className="grid grid-cols-2 gap-4">
           <FormField label="Giảng viên phụ trách">
-            <select required value={lecturerId} onChange={(event) => onChangeLecturerId(event.target.value)} className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm">
+            <select required value={lecturerId} onChange={(event) => onChangeLecturerId(event.target.value)} className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-base">
               <option value="">Chọn giảng viên</option>
               {lecturers.map((lecturer) => <option key={lecturer.id} value={lecturer.id}>{lecturer.fullName} · {lecturer.email}</option>)}
             </select>

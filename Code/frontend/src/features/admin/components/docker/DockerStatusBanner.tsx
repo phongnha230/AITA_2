@@ -21,14 +21,14 @@ export const DockerStatusBanner: React.FC<DockerStatusBannerProps> = ({ sandboxS
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200/80 text-xs text-indigo-950">
       <div className="flex flex-wrap items-center gap-2.5">
-        <span className="relative flex h-2.5 w-2.5">
+        <span className="relative flex size-2.5">
           <span
             className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
               sandboxStatus.dockerDaemonRunning ? 'bg-emerald-400' : 'bg-amber-400'
             }`}
           />
           <span
-            className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
+            className={`relative inline-flex rounded-full size-2.5 ${
               sandboxStatus.dockerDaemonRunning ? 'bg-emerald-600' : 'bg-amber-600'
             }`}
           />
@@ -44,7 +44,7 @@ export const DockerStatusBanner: React.FC<DockerStatusBannerProps> = ({ sandboxS
           {sandboxStatus.localJavaVersion || 'JDK Ready'}
         </span>
       </div>
-      <div className="flex flex-wrap items-center gap-3 text-[11px] font-medium text-slate-600">
+      <div className="flex flex-wrap items-center gap-3 text-xs font-medium text-slate-600">
         <span>
           Timeout: <strong className="text-slate-800">{sandboxStatus.limits?.defaultTimeoutMs ?? 2000}ms</strong>
         </span>

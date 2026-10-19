@@ -28,11 +28,11 @@ export const HealthMatrix: React.FC = () => (
       {SUBSYSTEMS.map(({ name, badge, tone, desc, footIcon: Icon, foot }) => (
         <Card key={name} className="space-y-2 p-4">
           <div className="flex items-center justify-between gap-2">
-            <span className="flex items-center gap-2 text-sm font-bold text-slate-900"><span className="h-2.5 w-2.5 rounded-full bg-emerald-600" />{name}</span>
+            <span className="flex items-center gap-2 text-sm font-bold text-slate-900"><span className="size-2.5 rounded-full bg-emerald-600" />{name}</span>
             <Badge tone={tone}>{badge}</Badge>
           </div>
           <p className="text-xs text-slate-600">{desc}</p>
-          <p className="flex items-center gap-1.5 pt-1 text-[11px] text-slate-500"><Icon className="h-3.5 w-3.5 text-blue-600" />{foot}</p>
+          <p className="flex items-center gap-1.5 pt-1 text-xs text-slate-500"><Icon className="size-3.5 text-blue-600" />{foot}</p>
         </Card>
       ))}
     </div>

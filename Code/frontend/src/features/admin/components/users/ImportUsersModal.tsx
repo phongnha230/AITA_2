@@ -61,8 +61,8 @@ export const ImportUsersModal: React.FC<ImportUsersModalProps> = ({ open, onClos
         {error && <AlertBox message={error} />}
         <input ref={input} type="file" accept=".csv,text/csv" hidden onChange={(e) => e.target.files?.[0] && void handleFile(e.target.files[0])} />
         <div className="flex flex-wrap gap-2">
-          <Button variant="primary" disabled={busy} onClick={() => input.current?.click()}><Upload className="h-4 w-4" /> {busy ? 'Đang nạp...' : 'Chọn file CSV'}</Button>
-          <Button onClick={() => downloadFile('aita-users-template.csv', TEMPLATE, 'text/csv;charset=utf-8')}><FileSpreadsheet className="h-4 w-4" /> Tải file mẫu</Button>
+          <Button variant="primary" disabled={busy} onClick={() => input.current?.click()}><Upload className="size-4" /> {busy ? 'Đang nạp...' : 'Chọn file CSV'}</Button>
+          <Button onClick={() => downloadFile('aita-users-template.csv', TEMPLATE, 'text/csv;charset=utf-8')}><FileSpreadsheet className="size-4" /> Tải file mẫu</Button>
         </div>
       </div>
     </Modal>

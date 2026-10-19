@@ -83,7 +83,7 @@ export const AdminCoursesTable: React.FC<AdminCoursesTableProps> = ({
                       className="inline-flex items-center gap-1.5 font-bold text-xs text-blue-600 hover:underline"
                       title="Xem danh sách sinh viên"
                     >
-                      <Users className="h-3.5 w-3.5" />
+                      <Users className="size-3.5" />
                       {c.enrollmentCount ?? c._count?.enrollments ?? c.enrollments?.length ?? 0} / {c.capacity ?? '—'} SV
                     </button>
                   </TableCell>
@@ -97,7 +97,7 @@ export const AdminCoursesTable: React.FC<AdminCoursesTableProps> = ({
                           type="button"
                           onClick={() => onRevokeCode(c)}
                           title="Khóa mã vào lớp"
-                          className="text-slate-400 hover:text-rose-600 p-1"
+                          className="text-slate-400 hover:text-rose-600 min-h-11 min-w-11 px-2 py-1"
                         >
                           ×
                         </button>
@@ -108,7 +108,7 @@ export const AdminCoursesTable: React.FC<AdminCoursesTableProps> = ({
                         className="h-7 px-2 text-xs text-slate-500 hover:text-blue-600"
                         onClick={() => onGenerateCode(c)}
                       >
-                        <KeyRound className="h-3 w-3 mr-1" /> Tạo mã
+                        <KeyRound className="size-3 mr-1" /> Tạo mã
                       </Button>
                     )}
                   </TableCell>
@@ -121,27 +121,27 @@ export const AdminCoursesTable: React.FC<AdminCoursesTableProps> = ({
                     <div className="flex items-center justify-end gap-1">
                       <Button
                         variant="ghost"
-                        className="h-8 w-8 p-0 text-slate-400 hover:text-blue-600"
+                        className="size-8 p-0 text-slate-400 hover:text-blue-600"
                         title="Sửa khóa học"
                         onClick={() => onEditCourse(c)}
                       >
-                        <Pencil className="h-4 w-4" />
+                        <Pencil className="size-4" />
                       </Button>
                       <Button
                         variant="ghost"
-                        className="h-8 w-8 p-0 text-slate-400 hover:text-blue-600"
+                        className="size-8 p-0 text-slate-400 hover:text-blue-600"
                         title="Xem danh sách sinh viên"
                         onClick={() => onSelectCourseForStudents(c)}
                       >
-                        <Users className="h-4 w-4" />
+                        <Users className="size-4" />
                       </Button>
                       <Button
                         variant="ghost"
-                        className="h-8 w-8 p-0 text-slate-400 hover:text-rose-600"
+                        className="size-8 p-0 text-slate-400 hover:text-rose-600"
                         title="Xóa khóa học"
                         onClick={() => onDeleteCourse(c)}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="size-4" />
                       </Button>
                     </div>
                   </TableCell>

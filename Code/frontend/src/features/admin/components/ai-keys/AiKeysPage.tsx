@@ -27,10 +27,10 @@ const MiniStat: React.FC<{ label: string; icon: React.ReactNode; iconClass: stri
   <Card interactive className="flex flex-col justify-between gap-4">
     <div className="flex items-start justify-between gap-2">
       <div className="min-w-0">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{label}</p>
+        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{label}</p>
         <div className="mt-1">{children}</div>
       </div>
-      <span className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', iconClass)}>{icon}</span>
+      <span className={cn('flex size-10 shrink-0 items-center justify-center rounded-xl', iconClass)}>{icon}</span>
     </div>
   </Card>
 );
@@ -108,40 +108,40 @@ export const AiKeysPage: React.FC = () => {
       <section className="relative overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 via-blue-100 to-blue-600 p-6 sm:p-8">
         <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
           <div className="max-w-xl space-y-3">
-            <p className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-slate-700">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" /> AI Router Engine Active <span className="text-blue-700">• Smart Load Balance 4.2</span>
+            <p className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-2 text-xs font-semibold text-slate-700">
+              <span className="size-1.5 rounded-full bg-emerald-600" /> AI Router Engine Active <span className="text-blue-700">• Smart Load Balance 4.2</span>
             </p>
             <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">Kho Khóa AI Keys &amp; Rate Limit</h1>
             <p className="text-sm leading-relaxed text-slate-700">Quản trị phân bổ API Key (OpenAI, Gemini Pro, Anthropic Claude, DeepSeek) phục vụ AI Rubric và AI Socratic Tutor. Hệ thống tự cách ly Key, chuyển vùng (Failover) và cân bằng tải khi chạm ngưỡng.</p>
           </div>
           <div className="flex flex-wrap gap-3">
             <Button className="bg-white" disabled={checking} onClick={() => void healthCheck()}>
-              <ShieldCheck className={cn('h-4 w-4 text-blue-600', checking && 'animate-pulse')} /> {checking ? 'Đang kiểm tra...' : 'Kiểm tra sức khỏe toàn bộ'}
+              <ShieldCheck className={cn('size-4 text-blue-600', checking && 'animate-pulse')} /> {checking ? 'Đang kiểm tra...' : 'Kiểm tra sức khỏe toàn bộ'}
             </Button>
-            <Button variant="primary" onClick={() => setAdding(true)}><PlusCircle className="h-4 w-4" /> Thêm Khóa API mới</Button>
+            <Button variant="primary" onClick={() => setAdding(true)}><PlusCircle className="size-4" /> Thêm Khóa API mới</Button>
           </div>
         </div>
       </section>
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MiniStat label="API Keys kích hoạt" iconClass="bg-blue-50 text-blue-600" icon={<KeyRound className="h-5 w-5" />}>
+        <MiniStat label="API Keys kích hoạt" iconClass="bg-blue-50 text-blue-600" icon={<KeyRound className="size-5" />}>
           <p className="text-3xl font-bold text-slate-900">{active} <span className="text-base font-medium text-slate-500">/ {keys.length} Keys</span></p>
-          <ProgressBar className="mt-3" value={keys.length ? (active / keys.length) * 100 : 0} />
-          <p className="mt-1.5 flex justify-between text-[11px] font-semibold"><span className="text-emerald-600">{keys.length ? Math.round((active / keys.length) * 100) : 0}% đang hoạt động</span><span className="text-slate-500">{keys.length - active} Keys dự phòng</span></p>
+          <ProgressBar className="mt-3" value={keys.length ? (active / keys.length) * 100 : 0} label="Tỷ lệ API keys đang hoạt động" />
+          <p className="mt-1.5 flex justify-between text-xs font-semibold"><span className="text-emerald-600">{keys.length ? Math.round((active / keys.length) * 100) : 0}% đang hoạt động</span><span className="text-slate-500">{keys.length - active} Keys dự phòng</span></p>
         </MiniStat>
-        <MiniStat label="Latency trung bình đo được" iconClass="bg-emerald-50 text-emerald-600" icon={<Activity className="h-5 w-5" />}>
+        <MiniStat label="Latency trung bình đo được" iconClass="bg-emerald-50 text-emerald-600" icon={<Activity className="size-5" />}>
           <p className="text-3xl font-bold text-emerald-600">{avgLatency === null ? '—' : `${avgLatency} ms`}</p>
-          <p className="mt-3 text-[11px] font-semibold text-slate-600">{keysWithLatency.length} khóa có dữ liệu latency</p>
+          <p className="mt-3 text-xs font-semibold text-slate-600">{keysWithLatency.length} khóa có dữ liệu latency</p>
         </MiniStat>
-        <MiniStat label="Lượt gọi API hôm nay" iconClass="bg-blue-50 text-blue-600" icon={<Wallet className="h-5 w-5" />}>
+        <MiniStat label="Lượt gọi API hôm nay" iconClass="bg-blue-50 text-blue-600" icon={<Wallet className="size-5" />}>
           <p className="text-3xl font-bold text-slate-900">{used} <span className="text-sm font-medium text-slate-500">/ {limit} lượt</span></p>
-          <ProgressBar className="mt-3" value={limit > 0 ? Math.min(100, (used / limit) * 100) : 0} />
-          <p className="mt-1.5 text-[11px] font-semibold text-slate-600">Tổng quota ngày của các khóa</p>
+          <ProgressBar className="mt-3" value={limit > 0 ? Math.min(100, (used / limit) * 100) : 0} label="Tỷ lệ lượt gọi API đã dùng hôm nay" />
+          <p className="mt-1.5 text-xs font-semibold text-slate-600">Tổng quota ngày của các khóa</p>
         </MiniStat>
-        <MiniStat label="Cảnh báo Rate Limit" iconClass="bg-emerald-50 text-emerald-600" icon={<CheckCircle2 className="h-5 w-5" />}>
+        <MiniStat label="Cảnh báo Rate Limit" iconClass="bg-emerald-50 text-emerald-600" icon={<CheckCircle2 className="size-5" />}>
           <p className="text-3xl font-bold text-slate-900">{throttled} <span className="text-base font-medium text-slate-500">Key</span></p>
-          <p className="mt-3 text-[11px] font-semibold text-slate-600">Khóa có ít nhất 3 lỗi liên tiếp.</p>
-          <p className="text-[11px] text-slate-400">{used.toLocaleString('en-US')} / {limit.toLocaleString('en-US')} req hôm nay</p>
+          <p className="mt-3 text-xs font-semibold text-slate-600">Khóa có ít nhất 3 lỗi liên tiếp.</p>
+          <p className="text-xs text-slate-400">{used.toLocaleString('en-US')} / {limit.toLocaleString('en-US')} req hôm nay</p>
         </MiniStat>
       </section>
 
@@ -155,7 +155,7 @@ export const AiKeysPage: React.FC = () => {
         </div>
         <div className="flex items-center gap-2">
           <div className="relative min-w-0 flex-1 lg:w-72">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 z-10" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400 z-10" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -163,8 +163,8 @@ export const AiKeysPage: React.FC = () => {
               className="h-10 w-full rounded-lg border-slate-200 bg-slate-50 pl-9 pr-3 text-sm focus:border-blue-600 focus:bg-white"
             />
           </div>
-          <Button variant="outline" size="icon" onClick={reload} aria-label="Làm mới" className="h-10 w-10 shrink-0">
-            <RefreshCw className="h-4 w-4" />
+          <Button variant="outline" size="icon" onClick={reload} aria-label="Làm mới" className="size-10 shrink-0">
+            <RefreshCw className="size-4" />
           </Button>
         </div>
       </Card>

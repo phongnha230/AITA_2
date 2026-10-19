@@ -56,6 +56,7 @@ export interface DockerNode {
   cpu: number;
   ramGb: number;
   policies: string[];
+  status?: string;
 }
 
 export const DOCKER_NODES: DockerNode[] = [

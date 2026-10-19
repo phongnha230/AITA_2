@@ -72,15 +72,15 @@ export const AuditLog: React.FC<{ pulse: number; initialLogs?: DockerLogLine[] }
     <Card className="space-y-4">
       <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
         <h2 className="flex flex-wrap items-center gap-2 text-base font-semibold text-slate-900">
-          <SquareTerminal className="h-5 w-5 text-blue-600" /> Live Docker daemon audit log (thời gian thực)
+          <SquareTerminal className="size-5 text-blue-600" /> Live Docker daemon audit log (thời gian thực)
           <Badge tone={streaming ? 'student' : 'neutral'}>{streaming ? 'Stream connected' : 'Stream paused'}</Badge>
         </h2>
         <div className="flex items-center gap-4 text-xs font-semibold text-blue-600">
           <button type="button" onClick={() => setStreaming((s) => !s)} className="inline-flex items-center gap-1.5 hover:underline">
-            {streaming ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />} {streaming ? 'Tạm dừng' : 'Tiếp tục'}
+            {streaming ? <Pause className="size-4" /> : <Play className="size-4" />} {streaming ? 'Tạm dừng' : 'Tiếp tục'}
           </button>
           <button type="button" onClick={exportLog} className="inline-flex items-center gap-1.5 hover:underline">
-            <Download className="h-4 w-4" /> Xuất file raw log (.jsonl)
+            <Download className="size-4" /> Xuất file raw log (.jsonl)
           </button>
         </div>
       </div>
@@ -88,7 +88,7 @@ export const AuditLog: React.FC<{ pulse: number; initialLogs?: DockerLogLine[] }
         {lines.map((l: DockerLogLine) => (
           <li key={`${l.time}-${l.tag}-${l.text}`} className="flex flex-col gap-1 sm:flex-row sm:gap-3">
             <span className="shrink-0 text-slate-500">{l.time}</span>
-            <span className={cn('h-fit w-fit shrink-0 rounded px-2 py-0.5 text-[10px] font-bold', TAG_CLASS[l.tag])}>{l.tag}</span>
+            <span className={cn('h-fit w-fit shrink-0 rounded px-2 py-0.5 text-xs font-bold', TAG_CLASS[l.tag])}>{l.tag}</span>
             <span className="min-w-0 break-words">{l.text}</span>
           </li>
         ))}

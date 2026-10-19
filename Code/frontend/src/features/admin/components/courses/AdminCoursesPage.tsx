@@ -128,7 +128,7 @@ export const AdminCoursesPage: React.FC = () => {
   const handleEdit = (course: Course) => {
     setEditingCourse(course);
     setEditingIsActive(course.isActive);
-    setCreateForm({ code: course.code, name: course.name, semester: course.semester, capacity: course.capacity });
+    setCreateForm({ code: course.code, name: course.name, semester: course.semester, capacity: course.capacity ?? 40 });
     setCreateOpen(true);
   };
 
@@ -183,7 +183,7 @@ export const AdminCoursesPage: React.FC = () => {
         eyebrow={
           <>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-0.5 font-semibold text-blue-700">
-              <BookOpen className="h-3.5 w-3.5" /> Quản trị Đào tạo
+              <BookOpen className="size-3.5" /> Quản trị Đào tạo
             </span>
             <span>Hệ thống quản lý lớp học &amp; giảng viên</span>
           </>
@@ -193,10 +193,10 @@ export const AdminCoursesPage: React.FC = () => {
         actions={
           <>
             <Button onClick={loadCourses}>
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Làm mới
+              <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} /> Làm mới
             </Button>
             <Button variant="primary" onClick={() => { setEditingCourse(null); setLecturerId(''); setCreateForm({ code: '', name: '', semester: 'Fall 2026', capacity: 40 }); setCreateOpen(true); }}>
-              <Plus className="h-4 w-4" /> Tạo lớp học mới
+              <Plus className="size-4" /> Tạo lớp học mới
             </Button>
           </>
         }
@@ -205,7 +205,7 @@ export const AdminCoursesPage: React.FC = () => {
       {/* Filter and Search Bar */}
       <Card className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative flex-1 max-w-md">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 z-10" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400 z-10" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}

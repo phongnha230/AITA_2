@@ -26,6 +26,25 @@ export interface QuerySubmissionsParams {
   assignmentId?: string;
 }
 
+interface SubmissionApiRecord {
+  id: string;
+  user?: { fullName?: string; email?: string };
+  assignment?: {
+    course?: { code?: string; name?: string };
+    courseId?: string;
+    title?: string;
+  };
+  paperCode?: string | null;
+  submittedAt?: string;
+  status?: string;
+  sandboxScore?: number | string | null;
+  aiScore?: number | string | null;
+  finalScore?: number | string | null;
+  submissionChannel?: string;
+  gitRepoUrl?: string;
+  gitCommitHash?: string;
+}
+
 export const adminSubmissionService = {
   /** Lấy danh sách bài nộp thực từ backend. */
   async getSubmissions(
@@ -36,7 +55,7 @@ export const adminSubmissionService = {
       const rawList = res.data?.data || [];
       const total = res.data?.meta?.total ?? rawList.length;
 
-      const submissions: AdminSubmissionItem[] = rawList.map((s: any) => ({
+      const submissions: AdminSubmissionItem[] = rawList.map((s: SubmissionApiRecord) => ({
         id: s.id,
         studentName: s.user?.fullName || 'Sinh viên',
         studentEmail: s.user?.email || 'N/A',
