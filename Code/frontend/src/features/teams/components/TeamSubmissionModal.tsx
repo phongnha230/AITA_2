@@ -61,7 +61,8 @@ export function TeamSubmissionModal({ team, onClose, onSubmitted }: TeamSubmissi
             <p><strong>GitHub snapshot:</strong> {team?.gitRepoUrl || 'Chưa cập nhật'}</p>
             <p><strong>Deploy snapshot:</strong> {team?.deployedUrl || 'Chưa cập nhật'}</p>
           </div>
-          <select value={assignmentId} onChange={(event) => setAssignmentId(event.target.value)} className="w-full rounded-lg border border-slate-200 p-2.5 text-sm" required>
+          <label htmlFor="team-submission-assignment" className="sr-only">Assignment cần nộp</label>
+          <select id="team-submission-assignment" value={assignmentId} onChange={(event) => setAssignmentId(event.target.value)} className="w-full rounded-lg border border-slate-200 p-2.5 text-base" required>
             <option value="">Chọn assignment nhóm FER201</option>
             {assignments.map((assignment) => <option key={assignment.id} value={assignment.id}>{assignment.title}</option>)}
           </select>
