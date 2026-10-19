@@ -49,6 +49,27 @@
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .animate-spin,
+  .animate-pulse,
+  .animate-ping,
+  .animate-bounce,
+  .animate-in,
+  .animate-out {
+    animation: none !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 120ms !important;
+  }
+}
+
 @layer base {
   * {
     @apply border-border;

@@ -3,6 +3,7 @@
 import React from 'react';
 import { Menu, ChevronRight, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ROUTES } from '@/config/routes';
 
 interface LecturerHeaderProps {
   onOpenMobileSidebar: () => void;
@@ -16,9 +17,15 @@ export const LecturerHeader: React.FC<LecturerHeaderProps> = ({
   onShowToast,
 }) => {
   const isOverviewActive =
-    pathname === '/dashboard' || pathname === '/courses' || pathname === '/';
-  const isExamBankActive = pathname.startsWith('/exam-bank');
-  const isLiveProctoringActive = pathname.startsWith('/live-proctoring');
+    pathname === ROUTES.LECTURER.DASHBOARD ||
+    pathname === ROUTES.LECTURER.COURSES ||
+    pathname === '/dashboard' ||
+    pathname === '/courses' ||
+    pathname === '/';
+  const isExamBankActive =
+    pathname.startsWith(ROUTES.LECTURER.EXAM_BANK) || pathname.startsWith('/exam-bank');
+  const isLiveProctoringActive =
+    pathname.startsWith(ROUTES.LECTURER.LIVE_PROCTORING) || pathname.startsWith('/live-proctoring');
 
   const getBreadcrumbTitle = () => {
     if (isOverviewActive) return 'Tổng quan khóa học';
@@ -35,13 +42,13 @@ export const LecturerHeader: React.FC<LecturerHeaderProps> = ({
           onClick={onOpenMobileSidebar}
           className="lg:hidden p-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100"
         >
-          <Menu className="w-5 h-5" />
+          <Menu className="size-5" />
         </button>
 
         {/* Breadcrumb Indicator */}
         <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
           <span>AITA Portal</span>
-          <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+          <ChevronRight className="size-3.5 text-slate-400" />
           <span className="font-bold text-slate-800">
             {getBreadcrumbTitle()}
           </span>
@@ -49,7 +56,7 @@ export const LecturerHeader: React.FC<LecturerHeaderProps> = ({
       </div>
 
       <div className="flex items-center gap-3">
-        <div className="hidden sm:flex items-center gap-2 bg-slate-50 px-3 py-1 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600">
+        <div className="hidden sm:flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600">
           <span>Học kỳ:</span>
           <strong className="text-slate-900">Fall 2026</strong>
         </div>
@@ -58,11 +65,11 @@ export const LecturerHeader: React.FC<LecturerHeaderProps> = ({
           variant="ghost"
           size="icon"
           onClick={() => onShowToast('Bạn không có thông báo mới nào')}
-          className="h-8 w-8 text-slate-500 hover:text-slate-800 rounded-xl hover:bg-slate-100 transition relative"
+          className="size-8 text-slate-500 hover:text-slate-800 rounded-xl hover:bg-slate-100 transition relative"
           title="Thông báo"
         >
-          <Bell className="w-4 h-4" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500" />
+          <Bell className="size-4" />
+          <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-rose-500" />
         </Button>
       </div>
     </header>

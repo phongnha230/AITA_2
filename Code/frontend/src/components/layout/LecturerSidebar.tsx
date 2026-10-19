@@ -15,6 +15,7 @@ import {
 import { type User } from '@/features/auth/services/auth.service';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { ROUTES } from '@/config/routes';
 
 interface LecturerSidebarProps {
   isOpen: boolean;
@@ -36,9 +37,15 @@ export const LecturerSidebar: React.FC<LecturerSidebarProps> = ({
   onLogout,
 }) => {
   const isOverviewActive =
-    pathname === '/dashboard' || pathname === '/courses' || pathname === '/';
-  const isExamBankActive = pathname.startsWith('/exam-bank');
-  const isLiveProctoringActive = pathname.startsWith('/live-proctoring');
+    pathname === ROUTES.LECTURER.DASHBOARD ||
+    pathname === ROUTES.LECTURER.COURSES ||
+    pathname === '/dashboard' ||
+    pathname === '/courses' ||
+    pathname === ROUTES.PUBLIC.HOME;
+  const isExamBankActive =
+    pathname.startsWith(ROUTES.LECTURER.EXAM_BANK) || pathname.startsWith('/exam-bank');
+  const isLiveProctoringActive =
+    pathname.startsWith(ROUTES.LECTURER.LIVE_PROCTORING) || pathname.startsWith('/live-proctoring');
 
   const userInitials =
     (currentUser?.fullName || 'Giảng Viên')
@@ -71,18 +78,18 @@ export const LecturerSidebar: React.FC<LecturerSidebarProps> = ({
           {/* Logo Brand */}
           <div className="flex items-center justify-between pb-6 border-b border-slate-800">
             <Link
-              href="/dashboard"
+              href={ROUTES.LECTURER.DASHBOARD}
               className="flex items-center gap-3 group"
               onClick={onClose}
             >
-              <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center font-black text-white text-base shadow-lg shadow-indigo-500/20 group-hover:bg-indigo-500 transition">
+              <div className="size-9 rounded-xl bg-indigo-600 flex items-center justify-center font-black text-white text-base shadow-lg shadow-indigo-500/20 group-hover:bg-indigo-500 transition">
                 AI
               </div>
               <div>
                 <span className="font-extrabold text-base tracking-tight text-white block group-hover:text-indigo-200 transition">
                   AITA System
                 </span>
-                <span className="text-[11px] text-slate-400 font-medium">Cổng giảng viên</span>
+                <span className="text-xs text-slate-400 font-medium">Cổng giảng viên</span>
               </div>
             </Link>
             <button
@@ -90,22 +97,22 @@ export const LecturerSidebar: React.FC<LecturerSidebarProps> = ({
               onClick={onClose}
               className="lg:hidden text-slate-400 hover:text-white p-1 rounded-lg"
             >
-              <X className="w-5 h-5" />
+              <X className="size-5" />
             </button>
           </div>
 
           {/* Role Pill */}
-          <div className="my-4 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700 flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">
+          <div className="my-4 px-3 py-2 rounded-lg bg-slate-800/80 border border-slate-700 flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-300">
               Lecturer Portal
             </span>
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
           </div>
 
           {/* Navigation Links */}
           <nav className="space-y-1.5 text-xs overflow-y-auto pr-1">
             <Link
-              href="/dashboard"
+              href={ROUTES.LECTURER.DASHBOARD}
               onClick={onClose}
               className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl font-semibold transition text-left ${
                 isOverviewActive
@@ -113,12 +120,12 @@ export const LecturerSidebar: React.FC<LecturerSidebarProps> = ({
                   : 'text-slate-300 hover:text-white hover:bg-slate-800'
               }`}
             >
-              <LayoutDashboard className="w-4 h-4 shrink-0" />
+              <LayoutDashboard className="size-4 shrink-0" />
               <span>Tổng quan khóa học</span>
             </Link>
 
             <Link
-              href="/exam-bank"
+              href={ROUTES.LECTURER.EXAM_BANK}
               onClick={onClose}
               className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl font-semibold transition text-left ${
                 isExamBankActive
@@ -127,16 +134,16 @@ export const LecturerSidebar: React.FC<LecturerSidebarProps> = ({
               }`}
             >
               <div className="flex items-center gap-3">
-                <FileCode className="w-4 h-4 shrink-0" />
+                <FileCode className="size-4 shrink-0" />
                 <span>Ngân hàng đề & Testcase PE</span>
               </div>
-              <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-indigo-500/20 text-indigo-300">
+              <span className="px-1.5 py-0.5 rounded text-xs font-mono bg-indigo-500/20 text-indigo-300">
                 DB
               </span>
             </Link>
 
             <Link
-              href="/live-proctoring"
+              href={ROUTES.LECTURER.LIVE_PROCTORING}
               onClick={onClose}
               className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl font-semibold transition text-left group ${
                 isLiveProctoringActive
@@ -146,7 +153,7 @@ export const LecturerSidebar: React.FC<LecturerSidebarProps> = ({
             >
               <div className="flex items-center gap-3">
                 <Radio
-                  className={`w-4 h-4 shrink-0 ${
+                  className={`size-4 shrink-0 ${
                   isLiveProctoringActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'
                   }`}
                 />
@@ -158,7 +165,7 @@ export const LecturerSidebar: React.FC<LecturerSidebarProps> = ({
               onClick={onOpenAiConfig}
               className="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition text-left group"
             >
-              <Bot className="w-4 h-4 shrink-0 text-indigo-400 group-hover:scale-110 transition" />
+              <Bot className="size-4 shrink-0 text-indigo-400 group-hover:scale-110 transition" />
               <span>Cấu hình AI Tutor</span>
             </button>
           </nav>
@@ -170,14 +177,14 @@ export const LecturerSidebar: React.FC<LecturerSidebarProps> = ({
           <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/60">
             <div className="flex items-center justify-between mb-1.5">
               <div className="flex items-center gap-1.5 text-xs font-bold text-slate-200">
-                <Cpu className="w-3.5 h-3.5 text-emerald-400" />
+                <Cpu className="size-3.5 text-emerald-400" />
                 <span>Docker Sandbox</span>
               </div>
-              <span className="text-[10px] font-bold text-slate-300 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-700/60">
+              <span className="text-xs font-bold text-slate-300 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-700/60">
                 Chưa kiểm tra
               </span>
             </div>
-            <div className="flex items-center justify-between text-[10px] text-slate-400">
+            <div className="flex items-center justify-between text-xs text-slate-400">
               <span>Chưa có trạng thái Docker trực tiếp</span>
             </div>
           </div>
@@ -185,7 +192,7 @@ export const LecturerSidebar: React.FC<LecturerSidebarProps> = ({
           {/* User Profile Box */}
           <div className="flex items-center justify-between pt-1">
             <div className="flex items-center gap-3 min-w-0">
-              <Avatar className="w-9 h-9 rounded-xl bg-indigo-600 text-white font-black text-xs shrink-0 shadow">
+              <Avatar className="size-9 rounded-xl bg-indigo-600 text-white font-black text-xs shrink-0 shadow">
                 <AvatarFallback className="bg-indigo-600 text-white font-black text-xs rounded-xl">
                   {userInitials}
                 </AvatarFallback>
@@ -194,7 +201,7 @@ export const LecturerSidebar: React.FC<LecturerSidebarProps> = ({
                 <p className="text-xs font-bold text-white truncate">
                   {currentUser?.fullName || 'Giảng viên AITA'}
                 </p>
-                <p className="text-[11px] text-slate-400 font-mono truncate">
+                <p className="text-xs text-slate-400 font-mono truncate">
                   {currentUser?.email || 'Chưa cập nhật email'}
                 </p>
               </div>
@@ -204,19 +211,19 @@ export const LecturerSidebar: React.FC<LecturerSidebarProps> = ({
                 variant="ghost"
                 size="icon"
                 onClick={onOpenChangePassword}
-                className="h-8 w-8 text-slate-400 hover:text-indigo-400 hover:bg-slate-800/80 transition"
+                className="size-8 text-slate-400 hover:text-indigo-400 hover:bg-slate-800/80 transition"
                 title="Đổi mật khẩu"
               >
-                <KeyRound className="w-4 h-4" />
+                <KeyRound className="size-4" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={onLogout}
-                className="h-8 w-8 text-slate-400 hover:text-rose-400 hover:bg-slate-800/80 transition"
+                className="size-8 text-slate-400 hover:text-rose-400 hover:bg-slate-800/80 transition"
                 title="Đăng xuất"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="size-4" />
               </Button>
             </div>
           </div>

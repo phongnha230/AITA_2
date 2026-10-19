@@ -1,5 +1,7 @@
 import { redirect } from 'next/navigation';
+import { ROUTES } from '@/config/routes';
 
 export default function RootPage() {
-  redirect('/login');
+  redirect(ROUTES.AUTH.LOGIN);
 }
+

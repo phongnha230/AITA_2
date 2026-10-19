@@ -49,18 +49,18 @@ export const LecturerShell: React.FC<LecturerShellProps> = ({ children }) => {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-100 font-sans antialiased text-slate-800">
+    <div className="flex h-dvh overflow-hidden bg-slate-100 font-sans antialiased text-slate-800">
       {/* Toast Notification */}
       {notificationToast && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3 border border-slate-700 animate-in slide-in-from-bottom-5">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3 animate-in slide-in-from-bottom-5">
+          <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
           <span className="text-xs font-semibold">{notificationToast}</span>
           <button
             aria-label="Đóng thông báo"
             onClick={() => setNotificationToast(null)}
             className="text-slate-400 hover:text-white p-1 rounded-lg"
           >
-            <X className="w-3.5 h-3.5" />
+            <X className="size-3.5" />
           </button>
         </div>
       )}
@@ -77,7 +77,7 @@ export const LecturerShell: React.FC<LecturerShellProps> = ({ children }) => {
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden bg-slate-100">
+      <div className="flex-1 flex flex-col min-w-0 h-dvh overflow-hidden bg-slate-100">
         <LecturerHeader
           onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
           pathname={pathname}

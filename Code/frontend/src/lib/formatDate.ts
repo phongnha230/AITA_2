@@ -1,20 +1,25 @@
-/**
- * Deterministic date and time formatting utilities to prevent SSR/CSR hydration mismatches
- * and avoid direct locale formatting during render.
- */
+/** Format date and time consistently on servers and clients in the project's timezone. */
+
+const DATE_FORMATTER = new Intl.DateTimeFormat('en-GB', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  timeZone: 'Asia/Ho_Chi_Minh',
+});
+
+const TIME_FORMATTER = new Intl.DateTimeFormat('en-GB', {
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+  timeZone: 'Asia/Ho_Chi_Minh',
+});
 
 export function formatDateTime(value?: string | number | Date | null): string {
   if (!value) return 'Chưa cập nhật';
   const date = typeof value === 'string' || typeof value === 'number' ? new Date(value) : value;
   if (!Number.isFinite(date.getTime())) return 'Chưa cập nhật';
 
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const year = date.getFullYear();
-  const hours = String(date.getHours()).padStart(2, '0');
-  const mins = String(date.getMinutes()).padStart(2, '0');
-
-  return `${hours}:${mins} • ${day}/${month}/${year}`;
+  return `${TIME_FORMATTER.format(date)} • ${DATE_FORMATTER.format(date)}`;
 }
 
 export function formatDate(value?: string | number | Date | null): string {
@@ -22,11 +27,7 @@ export function formatDate(value?: string | number | Date | null): string {
   const date = typeof value === 'string' || typeof value === 'number' ? new Date(value) : value;
   if (!Number.isFinite(date.getTime())) return 'Chưa cập nhật';
 
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const year = date.getFullYear();
-
-  return `${day}/${month}/${year}`;
+  return DATE_FORMATTER.format(date);
 }
 
 export function formatTime(value?: string | number | Date | null): string {
@@ -34,8 +35,5 @@ export function formatTime(value?: string | number | Date | null): string {
   const date = typeof value === 'string' || typeof value === 'number' ? new Date(value) : value;
   if (!Number.isFinite(date.getTime())) return '--:--';
 
-  const hours = String(date.getHours()).padStart(2, '0');
-  const mins = String(date.getMinutes()).padStart(2, '0');
-
-  return `${hours}:${mins}`;
+  return TIME_FORMATTER.format(date);
 }
