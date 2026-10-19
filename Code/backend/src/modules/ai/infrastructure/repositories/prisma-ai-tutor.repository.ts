@@ -8,7 +8,9 @@ import {
   CreateConversationData,
   AddMessageData,
   AddMessagePairData,
+  SaveAiTutorConfigData,
 } from '../../domain/repositories/ai-tutor.repository.interface.js';
+import { AiTutorConfig } from '../../domain/ai-tutor-config.js';
 import {
   AiTutorConversation,
   AiTutorMessage,
@@ -17,6 +19,64 @@ import {
 
 export class PrismaAiTutorRepository implements IAiTutorRepository {
   constructor(private readonly prisma: PrismaClient) {}
+
+  async getCourseLecturerId(courseId: string): Promise<string | null> {
+    const course = await this.prisma.course.findUnique({ where: { id: courseId }, select: { lecturerId: true } });
+    return course?.lecturerId ?? null;
+  }
+
+  async getCourseTutorConfig(courseId: string): Promise<AiTutorConfig | null> {
+    const config = await this.prisma.aiTutorCourseConfig.findUnique({ where: { courseId } });
+    return config ? {
+      courseId: config.courseId,
+      socraticMode: config.socraticMode as AiTutorConfig['socraticMode'],
+      customPrompt: config.customPrompt,
+      temperature: config.temperature,
+      enableContext: config.enableContext,
+      updatedAt: config.updatedAt,
+    } : null;
+  }
+
+  async saveCourseTutorConfig(data: SaveAiTutorConfigData): Promise<AiTutorConfig> {
+    const config = await this.prisma.aiTutorCourseConfig.upsert({
+      where: { courseId: data.courseId },
+      create: data,
+      update: {
+        socraticMode: data.socraticMode,
+        customPrompt: data.customPrompt,
+        temperature: data.temperature,
+        enableContext: data.enableContext,
+        updatedById: data.updatedById,
+      },
+    });
+    return {
+      courseId: config.courseId,
+      socraticMode: config.socraticMode as AiTutorConfig['socraticMode'],
+      customPrompt: config.customPrompt,
+      temperature: config.temperature,
+      enableContext: config.enableContext,
+      updatedAt: config.updatedAt,
+    };
+  }
+
+  async getTutorAssignmentContext(assignmentId: string, courseId: string) {
+    const assignment = await this.prisma.assignment.findFirst({
+      where: { id: assignmentId, courseId },
+      select: {
+        title: true,
+        description: true,
+        rubricRules: {
+          orderBy: { orderIndex: 'asc' },
+          select: { criterionName: true, description: true, maxPoints: true },
+        },
+      },
+    });
+    return assignment ? {
+      title: assignment.title,
+      description: assignment.description,
+      rubricRules: assignment.rubricRules.map((rule) => ({ ...rule, maxPoints: Number(rule.maxPoints) })),
+    } : null;
+  }
 
   private toMessageDomain(raw: PrismaAiTutorMessage): AiTutorMessage {
     return new AiTutorMessage({

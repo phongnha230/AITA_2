@@ -4,20 +4,11 @@ import { IAiGenerationService } from '../services/ai-generation.service.interfac
 import { SocraticTutorPrompt } from '../../infrastructure/prompts/socratic-tutor.prompt.js';
 import { NotFoundError, ForbiddenError, ValidationError } from '../../../../shared/domain/exceptions/app.error.js';
 import { SourceCollector } from '../services/source-collector.service.js';
+import { DEFAULT_AI_TUTOR_CONFIG } from '../../domain/ai-tutor-config.js';
 
 const MAX_USER_MESSAGE_LENGTH = 4_000;
 const MAX_HISTORY_MESSAGES = 20;
 const MAX_HISTORY_CHARACTERS = 24_000;
-
-interface TutorTestResult {
-  verdict: string;
-  diffLog?: string | null;
-  testCaseId?: string;
-  testCase?: {
-    label?: string;
-    rationaleTag?: string;
-  } | null;
-}
 
 function selectBoundedHistory(
   messages: Array<{ senderRole: string; content: string }>
@@ -62,28 +53,34 @@ export class SendTutorMessageUseCase {
       if (collectedSource.files.length > 0) studentCode = collectedSource.combinedSource;
     }
 
-    const testResults = (submission?.testResults ?? []) as TutorTestResult[];
-    const failedTests = testResults.filter((result) => result.verdict !== 'PASSED');
-    const failedTestsText = failedTests.length > 0
-      ? failedTests.map((result) =>
-          `- Test ${result.testCase?.label ?? result.testCaseId ?? 'unknown'} ` +
-          `(${result.testCase?.rationaleTag ?? 'TEST'}): ${result.verdict}. ${result.diffLog ?? ''}`
-        ).join('\n')
-      : 'Không có testcase lỗi.';
+    const testResults = (submission?.testResults ?? []) as Array<{ verdict: string }>;
+    const passedCount = testResults.filter((result) => result.verdict === 'PASSED').length;
+    const failedCount = testResults.length - passedCount;
+    const testSummary = testResults.length === 0
+      ? 'Chưa có kết quả chạy testcase.'
+      : `Tổng ${testResults.length} testcase; ${passedCount} đạt, ${failedCount} chưa đạt. Không cung cấp tên, input, expected output hoặc log testcase.`;
+    const courseId = submission?.assignment?.courseId;
+    const config = courseId
+      ? (await this.aiTutorRepository.getCourseTutorConfig(courseId) ?? { ...DEFAULT_AI_TUTOR_CONFIG, courseId })
+      : DEFAULT_AI_TUTOR_CONFIG;
+    const assignmentContext = config.enableContext && submission?.assignment
+      ? await this.aiTutorRepository.getTutorAssignmentContext(submission.assignment.id, courseId ?? '')
+      : null;
 
     const allMessages = await this.aiTutorRepository.getMessages(conversationId);
     const history = selectBoundedHistory(allMessages);
     const llmResponse = await this.aiGenerationService.executeWithKeyRotation(
       SocraticTutorPrompt.buildConversationPrompt(
         studentCode,
-        failedTestsText,
+        testSummary,
         history,
-        userMessageContent
+        userMessageContent,
+        assignmentContext
       ),
       {
         operation: 'CHAT_GENERATION',
-        systemInstruction: SocraticTutorPrompt.buildSystemInstruction(),
-        temperature: 0.7,
+        systemInstruction: SocraticTutorPrompt.buildSystemInstruction(config),
+        temperature: config.temperature,
         jsonMode: false,
       }
     );

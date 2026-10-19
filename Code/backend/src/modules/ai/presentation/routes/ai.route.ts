@@ -7,6 +7,7 @@ import {
   SendTutorMessageSchema,
 } from '../../application/dtos/ai-tutor.dto.js';
 import { CreateAiApiKeySchema } from '../../application/dtos/ai-api-key.dto.js';
+import { UpdateAiTutorConfigSchema } from '../../application/dtos/ai-tutor-config.dto.js';
 
 
 const router = Router();
@@ -24,6 +25,19 @@ router.post(
 );
 
 // 2. Socratic AI Tutor Endpoints
+router.get(
+  '/tutor/config/:courseId',
+  authenticateJWT,
+  authorizeRoles('ADMIN', 'LECTURER'),
+  aiTutorController.getConfig
+);
+router.put(
+  '/tutor/config/:courseId',
+  authenticateJWT,
+  authorizeRoles('ADMIN', 'LECTURER'),
+  validateBody(UpdateAiTutorConfigSchema),
+  aiTutorController.saveConfig
+);
 router.post(
   '/tutor/conversations',
   authenticateJWT,

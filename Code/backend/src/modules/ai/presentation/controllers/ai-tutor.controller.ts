@@ -4,13 +4,37 @@ import { SendTutorMessageUseCase } from '../../application/use-cases/send-tutor-
 import { GetTutorConversationUseCase } from '../../application/use-cases/get-tutor-conversation.use-case.js';
 import { sendSuccess } from '../../../../shared/presentation/utils/api-response.util.js';
 import { UnauthorizedError } from '../../../../shared/domain/exceptions/app.error.js';
+import { ManageAiTutorConfigUseCase } from '../../application/use-cases/manage-ai-tutor-config.use-case.js';
 
 export class AiTutorController {
   constructor(
     private readonly startTutorConversationUseCase: StartTutorConversationUseCase,
     private readonly sendTutorMessageUseCase: SendTutorMessageUseCase,
-    private readonly getTutorConversationUseCase: GetTutorConversationUseCase
+    private readonly getTutorConversationUseCase: GetTutorConversationUseCase,
+    private readonly manageAiTutorConfigUseCase: ManageAiTutorConfigUseCase
   ) {}
+
+  getConfig = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const user = req.user;
+      if (!user) throw new UnauthorizedError('Cần đăng nhập để cấu hình AI Tutor.');
+      const config = await this.manageAiTutorConfigUseCase.get(req.params.courseId, user.userId, user.role);
+      sendSuccess(res, config, 'Lấy cấu hình AI Tutor thành công.');
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  saveConfig = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const user = req.user;
+      if (!user) throw new UnauthorizedError('Cần đăng nhập để cấu hình AI Tutor.');
+      const config = await this.manageAiTutorConfigUseCase.save(req.params.courseId, user.userId, user.role, req.body);
+      sendSuccess(res, config, 'Lưu cấu hình AI Tutor thành công.');
+    } catch (error) {
+      next(error);
+    }
+  };
 
   startConversation = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {

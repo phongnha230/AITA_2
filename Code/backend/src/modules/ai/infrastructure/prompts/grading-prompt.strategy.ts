@@ -39,9 +39,11 @@ export const buildTestPerformancePayload = (context: RagContext) => context.test
   memoryUsedKb: test.memoryUsedKb,
 }));
 
-export const buildCommonOutputContract = (): string[] => [
+export const buildCommonOutputContract = (oopProfile = false): string[] => [
   'Không tiết lộ, sao chép hoặc tái tạo lời giải tham chiếu. Chỉ nêu nhận xét ngắn và gợi ý khái niệm.',
-  'Đánh giá thuật toán theo độ phức tạp kỳ vọng và các chiến lược được chấp nhận. Lời giải tương đương hợp lệ vẫn đạt điểm dù không giống code tham chiếu.',
+  oopProfile
+    ? 'Chấm theo rubric PRO192 về thiết kế hướng đối tượng. Chỉ đánh giá độ phức tạp thuật toán khi rubric/đề bài yêu cầu rõ; các hướng giải được chấp nhận là gợi ý, không bắt buộc code giống tham chiếu.'
+    : 'Đánh giá thuật toán theo độ phức tạp kỳ vọng và các chiến lược được chấp nhận. Lời giải tương đương hợp lệ vẫn đạt điểm dù không giống code tham chiếu.',
   'Nếu có đáp án tham chiếu, nêu ngắn gọn cách tiếp cận và khác biệt có ý nghĩa trong answerComparison; không yêu cầu code giống mẫu và không chép lại đáp án.',
   'Chỉ trả JSON đúng schema, không markdown:',
   '{"answerComparison":"text","rubricBreakdown":[{"rubricId":"id","earnedPoints":0,"feedback":"text"}],"detectedTimeComplexity":"O(n)","detectedSpaceComplexity":"O(1)","codeQualityFeedback":"text"}',

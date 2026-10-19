@@ -30,6 +30,7 @@ model User {
   assignmentsCreated             Assignment[]                 @relation("AssignmentCreator")
   enrollments                    CourseEnrollment[]
   coursesTaught                  Course[]                     @relation("LecturerCourses")
+  updatedAiTutorConfigs          AiTutorCourseConfig[]         @relation("AiTutorConfigUpdater")
   submissions                    Submission[]
   examAccessGrants               AssignmentExamAccess[]
   teamMemberships                TeamMember[]
@@ -60,6 +61,7 @@ model Course {
   enrollments    CourseEnrollment[]
   lecturer       User               @relation("LecturerCourses", fields: [lecturerId], references: [id])
   teams          Team[]
+  aiTutorConfig  AiTutorCourseConfig?
 
   @@unique([code, semester], name: "uk_course_code_semester")
   @@index([lecturerId], map: "idx_courses_lecturer")
@@ -421,6 +423,22 @@ model AiTutorConversation {
   @@index([submissionId, studentId], map: "idx_tutor_conv_sub_student")
   @@index([studentId], map: "ai_tutor_conversations_student_id_fkey")
   @@map("ai_tutor_conversations")
+}
+
+model AiTutorCourseConfig {
+  id             String   @id @default(uuid()) @db.Char(36)
+  courseId       String   @unique @map("course_id") @db.Char(36)
+  socraticMode   String   @default("BALANCED") @map("socratic_mode") @db.VarChar(20)
+  customPrompt   String   @map("custom_prompt") @db.Text
+  temperature    Float    @default(0.7)
+  enableContext  Boolean  @default(true) @map("enable_context")
+  updatedById    String?  @map("updated_by_id") @db.Char(36)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  course         Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  updatedBy      User?    @relation("AiTutorConfigUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@map("ai_tutor_course_configs")
 }
 
 model AiTutorMessage {

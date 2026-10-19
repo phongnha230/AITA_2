@@ -86,6 +86,7 @@ import { GradeSubmissionAiUseCase } from '../../modules/ai/application/use-cases
 import { StartTutorConversationUseCase } from '../../modules/ai/application/use-cases/start-tutor-conversation.use-case.js';
 import { SendTutorMessageUseCase } from '../../modules/ai/application/use-cases/send-tutor-message.use-case.js';
 import { GetTutorConversationUseCase } from '../../modules/ai/application/use-cases/get-tutor-conversation.use-case.js';
+import { ManageAiTutorConfigUseCase } from '../../modules/ai/application/use-cases/manage-ai-tutor-config.use-case.js';
 import { ManageApiKeysUseCase } from '../../modules/ai/application/use-cases/manage-api-keys.use-case.js';
 import { AuthController } from '../../modules/auth/presentation/controllers/auth.controller.js';
 import { UserController } from '../../modules/user/presentation/controllers/user.controller.js';
@@ -289,6 +290,7 @@ class ServiceContainer {
     this.apiKeyRotatorFacade
   );
   public readonly getTutorConversationUseCase = new GetTutorConversationUseCase(this.aiTutorRepository);
+  public readonly manageAiTutorConfigUseCase = new ManageAiTutorConfigUseCase(this.aiTutorRepository);
   public readonly manageApiKeysUseCase = new ManageApiKeysUseCase(
     this.aiApiKeyRepository,
     this.apiKeyCipher
@@ -358,7 +360,8 @@ class ServiceContainer {
   public readonly aiTutorController = new AiTutorController(
     this.startTutorConversationUseCase,
     this.sendTutorMessageUseCase,
-    this.getTutorConversationUseCase
+    this.getTutorConversationUseCase,
+    this.manageAiTutorConfigUseCase
   );
   public readonly aiApiKeyController = new AiApiKeyController(this.manageApiKeysUseCase);
   public readonly sandboxController = new SandboxController(this.sandboxService, this.sandboxRepository, this.courseRepository);
