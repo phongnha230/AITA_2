@@ -53,7 +53,7 @@ export interface Course {
   updatedAt: string;
   lecturer?: Lecturer;
   room?: string;
-  capacity?: number;
+  capacity?: number | null;
   syllabusProgress?: number;
   currentGpaAvg?: number;
   enrollmentCount?: number;

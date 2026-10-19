@@ -7,7 +7,7 @@ import { Progress } from '@/components/ui/progress';
 
 interface CourseTelemetryStatsProps {
   enrolledCount: number;
-  capacity?: number;
+  capacity?: number | null;
 }
 
 export const CourseTelemetryStats: React.FC<CourseTelemetryStatsProps> = ({

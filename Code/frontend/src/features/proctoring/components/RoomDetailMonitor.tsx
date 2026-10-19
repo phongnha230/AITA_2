@@ -6,10 +6,11 @@ import { ArrowLeft, CheckCircle2, Clock3, Play, Pause, RefreshCw, Users, XCircle
 import { Button } from '@/components/ui/button';
 import { assignmentService } from '@/features/assignments/services/assignment.service';
 import type { ExamSession, ExamSessionStudentAccess, ExamSessionSubmission } from '../types/proctoring.types';
+import { formatDate, formatDateTime } from '@/lib/formatDate';
+import { ROUTES } from '@/config/routes';
 
 interface RoomDetailMonitorProps { roomId: string }
 interface SessionDetails { session: ExamSession; submissions: ExamSessionSubmission[]; unlockedStudents: ExamSessionStudentAccess[] }
-const formatDate = (value: string) => new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
 const stateLabel: Record<ExamSession['status'], string> = { LIVE: 'Đang diễn ra', UPCOMING: 'Sắp diễn ra', PAUSED: 'Đang tạm dừng', COMPLETED: 'Đã kết thúc' };
 
 export function RoomDetailMonitor({ roomId }: RoomDetailMonitorProps) {
@@ -59,16 +60,16 @@ export function RoomDetailMonitor({ roomId }: RoomDetailMonitorProps) {
 
   return (
     <main className="mx-auto max-w-6xl space-y-6 p-4 pb-24 sm:p-6 lg:p-8">
-      <Link href="/live-proctoring" className="inline-flex items-center gap-2 text-sm font-medium text-indigo-700"><ArrowLeft className="h-4 w-4" />Danh sách ca thi</Link>
+      <Link href={ROUTES.LECTURER.LIVE_PROCTORING} className="inline-flex items-center gap-2 text-sm font-medium text-indigo-700"><ArrowLeft className="size-4" />Danh sách ca thi</Link>
       <header className="flex flex-col justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-6 md:flex-row md:items-start">
-        <div><p className="text-xs font-bold text-indigo-700">{session.courseCode} · {session.courseName} · {session.semester}</p><h1 className="mt-1 text-2xl font-extrabold text-slate-900">{session.title}</h1><p className="mt-3 text-sm text-slate-600">Bắt đầu: {formatDate(session.startTime)} · Hạn nộp: {formatDate(session.deadline)} · {session.durationMinutes ?? '—'} phút</p><span className="mt-3 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">{stateLabel[session.status]}</span></div>
+        <div><p className="text-xs font-bold text-indigo-700">{session.courseCode} · {session.courseName} · {session.semester}</p><h1 className="mt-1 text-2xl font-extrabold text-slate-900">{session.title}</h1><p className="mt-3 text-sm text-slate-600">Bắt đầu: {formatDateTime(session.startTime)} · Hạn nộp: {formatDateTime(session.deadline)} · {session.durationMinutes ?? '—'} phút</p><span className="mt-3 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">{stateLabel[session.status]}</span></div>
         <div className="flex flex-wrap gap-2">
-          {session.status === 'UPCOMING' && session.assignmentStatus === 'PUBLISHED' ? <Button disabled={saving} onClick={() => void control('START')}><Play className="mr-2 h-4 w-4" />Bắt đầu sớm</Button> : null}
-          {isActive ? <Button variant="outline" disabled={saving} onClick={() => void control('PAUSE')}><Pause className="mr-2 h-4 w-4" />Tạm dừng</Button> : null}
-          {session.status === 'PAUSED' ? <Button disabled={saving} onClick={() => void control('RESUME')}><Play className="mr-2 h-4 w-4" />Tiếp tục</Button> : null}
-          {session.status !== 'COMPLETED' ? <Button variant="outline" disabled={saving} onClick={() => void control('EXTEND')}><Clock3 className="mr-2 h-4 w-4" />Gia hạn 5 phút</Button> : null}
-          {session.status !== 'COMPLETED' ? <Button variant="destructive" disabled={saving} onClick={() => void control('CLOSE')}><XCircle className="mr-2 h-4 w-4" />Đóng ca</Button> : null}
-          <Button variant="ghost" disabled={saving} onClick={() => { setLoading(true); void load(); }} aria-label="Tải lại"><RefreshCw className="h-4 w-4" /></Button>
+          {session.status === 'UPCOMING' && session.assignmentStatus === 'PUBLISHED' ? <Button disabled={saving} onClick={() => void control('START')}><Play className="mr-2 size-4" />Bắt đầu sớm</Button> : null}
+          {isActive ? <Button variant="outline" disabled={saving} onClick={() => void control('PAUSE')}><Pause className="mr-2 size-4" />Tạm dừng</Button> : null}
+          {session.status === 'PAUSED' ? <Button disabled={saving} onClick={() => void control('RESUME')}><Play className="mr-2 size-4" />Tiếp tục</Button> : null}
+          {session.status !== 'COMPLETED' ? <Button variant="outline" disabled={saving} onClick={() => void control('EXTEND')}><Clock3 className="mr-2 size-4" />Gia hạn 5 phút</Button> : null}
+          {session.status !== 'COMPLETED' ? <Button variant="destructive" disabled={saving} onClick={() => void control('CLOSE')}><XCircle className="mr-2 size-4" />Đóng ca</Button> : null}
+          <Button variant="ghost" disabled={saving} onClick={() => { setLoading(true); void load(); }} aria-label="Tải lại"><RefreshCw className="size-4" /></Button>
         </div>
       </header>
       {message ? <p role="status" className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">{message}</p> : null}

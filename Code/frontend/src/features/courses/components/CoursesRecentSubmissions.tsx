@@ -22,11 +22,11 @@ export const CoursesRecentSubmissions: React.FC<CoursesRecentSubmissionsProps> =
           <h3 className="text-sm font-extrabold text-slate-900 tracking-tight">
             Hoạt Động Nộp Bài Gần Đây (Toàn bộ lớp học)
           </h3>
-          <p className="text-[11px] text-slate-500">
+          <p className="text-xs text-slate-500">
             Dữ liệu bài làm thí sinh nộp vào Sandbox Docker thời gian thực
           </p>
         </div>
-        <Badge variant="outline" className="text-[10px] bg-slate-50 text-slate-600 border-slate-200">
+        <Badge variant="outline" className="text-xs bg-slate-50 text-slate-600 border-slate-200">
           {recentSubmissions.length} bài nộp mới nhất
         </Badge>
       </div>
@@ -59,8 +59,8 @@ export const CoursesRecentSubmissions: React.FC<CoursesRecentSubmissionsProps> =
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <Avatar className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 shrink-0">
-                    <AvatarFallback className="text-[11px] font-bold text-indigo-700 bg-indigo-50">
+                  <Avatar className="size-8 rounded-lg bg-indigo-50 border border-indigo-100 shrink-0">
+                    <AvatarFallback className="text-xs font-bold text-indigo-700 bg-indigo-50">
                       {studentInitials}
                     </AvatarFallback>
                   </Avatar>
@@ -68,7 +68,7 @@ export const CoursesRecentSubmissions: React.FC<CoursesRecentSubmissionsProps> =
                     <p className="text-xs font-bold text-slate-900 truncate">
                       {sub.studentName}
                     </p>
-                    <p className="text-[10px] text-slate-400 font-mono truncate">
+                    <p className="text-xs text-slate-400 font-mono truncate">
                       {sub.studentEmail || sub.assignmentTitle}
                     </p>
                   </div>
@@ -81,7 +81,7 @@ export const CoursesRecentSubmissions: React.FC<CoursesRecentSubmissionsProps> =
                 </div>
               </div>
 
-              <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-500">
+              <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
                 <span className="truncate max-w-[160px] font-medium text-slate-600">
                   {sub.assignmentTitle}
                 </span>

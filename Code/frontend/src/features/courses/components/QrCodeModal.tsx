@@ -41,7 +41,7 @@ export const QrCodeModal: React.FC<QrCodeModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-sm rounded-3xl p-6 sm:p-8 bg-white border border-slate-100 shadow-2xl flex flex-col items-center text-center">
+      <DialogContent className="sm:max-w-sm rounded-3xl p-6 sm:p-8 bg-white shadow-2xl flex flex-col items-center text-center">
         <DialogHeader className="items-center text-center space-y-1">
           <Badge
             variant="outline"
@@ -58,9 +58,9 @@ export const QrCodeModal: React.FC<QrCodeModalProps> = ({
         </DialogHeader>
 
         <div className="my-5 flex w-full flex-col items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-6 text-slate-500">
-          <QrCode className="h-9 w-9 text-slate-400" aria-hidden="true" />
+          <QrCode className="size-9 text-slate-400" aria-hidden="true" />
           <span className="text-xs font-semibold">QR chưa được cấu hình. Hãy nhập mã tham gia thủ công.</span>
-          <span className="text-[11px] font-mono">{joinCode && formattedCountdown !== 'Đã hết hạn' ? `Mã có hiệu lực thêm ${formattedCountdown}` : 'Mã hiện không hoạt động'}</span>
+          <span className="text-xs font-mono">{joinCode && formattedCountdown !== 'Đã hết hạn' ? `Mã có hiệu lực thêm ${formattedCountdown}` : 'Mã hiện không hoạt động'}</span>
         </div>
 
         {/* Big OTP Code Display */}
@@ -71,10 +71,10 @@ export const QrCodeModal: React.FC<QrCodeModalProps> = ({
           <Button
             size="icon"
             onClick={handleCopy}
-            className="h-11 w-11 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-xs transition"
+            className="size-11 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-xs transition"
             title="Sao chép mã"
           >
-            {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
+            {copied ? <Check className="size-5" /> : <Copy className="size-5" />}
           </Button>
         </div>
 

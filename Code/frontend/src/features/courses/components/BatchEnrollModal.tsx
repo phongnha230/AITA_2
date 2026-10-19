@@ -108,13 +108,13 @@ export const BatchEnrollModal: React.FC<BatchEnrollModalProps> = ({
       <dialog
         open
         aria-labelledby="batch-enroll-title"
-        className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl border border-slate-200/90 transition-colors duration-200 animate-in fade-in zoom-in-95 sm:p-7 block m-0 text-slate-900"
+        className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl transition-colors duration-200 animate-in fade-in zoom-in-95 sm:p-7 block m-0 text-slate-900"
       >
         {/* Header */}
         <div className="flex items-start justify-between pb-4 border-b border-slate-100">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 ring-1 ring-indigo-500/20">
-              <UserPlus className="h-5 w-5" />
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 ring-1 ring-indigo-500/20">
+              <UserPlus className="size-5" />
             </div>
             <div>
               <h3 id="batch-enroll-title" className="text-base font-bold text-slate-900 sm:text-lg">
@@ -132,14 +132,14 @@ export const BatchEnrollModal: React.FC<BatchEnrollModalProps> = ({
             aria-label="Đóng"
             className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
           >
-            <X className="h-4 w-4" />
+            <X className="size-4" />
           </button>
         </div>
 
         {/* Success Alert */}
         {success && (
           <div className="mt-4 flex items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50/90 p-3.5 text-xs text-emerald-800 animate-in fade-in">
-            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+            <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />
             <span className="font-semibold">{success}</span>
           </div>
         )}
@@ -147,7 +147,7 @@ export const BatchEnrollModal: React.FC<BatchEnrollModalProps> = ({
         {/* Error Alert */}
         {error && (
           <div className="mt-4 flex items-center gap-2.5 rounded-xl border border-rose-200 bg-rose-50/90 p-3.5 text-xs text-rose-800 animate-in fade-in">
-            <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" />
+            <AlertCircle className="size-4 shrink-0 text-rose-600" />
             <span className="font-medium">{error}</span>
           </div>
         )}
@@ -157,10 +157,10 @@ export const BatchEnrollModal: React.FC<BatchEnrollModalProps> = ({
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label htmlFor="student-uuids-input" className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                <FileText className="h-3.5 w-3.5 text-indigo-600" />
+                <FileText className="size-3.5 text-indigo-600" />
                 Danh sách Student UUIDs
               </label>
-              <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+              <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
                 {validIds.length} mã hợp lệ
               </span>
             </div>
@@ -172,7 +172,7 @@ export const BatchEnrollModal: React.FC<BatchEnrollModalProps> = ({
               placeholder="Dán danh sách ID sinh viên (mỗi mã một dòng hoặc cách nhau bằng dấu phẩy)&#10;Ví dụ:&#10;8f9d0c24-4f01-419b-a05e-88c227b9c9d1&#10;7b2c1a10-2e33-4f11-9a99-99a112c3d4e5"
               aria-label="Danh sách Student UUIDs"
               disabled={loading}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50/60 p-3.5 font-mono text-xs text-slate-800 outline-none transition focus:border-indigo-600 focus:bg-white focus:ring-2 focus:ring-indigo-100 placeholder:text-slate-400"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50/60 p-3.5 font-mono text-base text-slate-800 outline-none transition focus:border-indigo-600 focus:bg-white focus:ring-2 focus:ring-indigo-100 placeholder:text-slate-400"
             />
           </div>
 
@@ -180,7 +180,7 @@ export const BatchEnrollModal: React.FC<BatchEnrollModalProps> = ({
           {invalidTokens.length > 0 && (
             <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-3 text-xs text-amber-900">
               <p className="font-semibold">Lưu ý: Có {invalidTokens.length} mã chưa đúng chuẩn UUID (sẽ bị bỏ qua):</p>
-              <p className="mt-1 font-mono text-[11px] text-amber-700 truncate">
+              <p className="mt-1 font-mono text-xs text-amber-700 truncate">
                 {invalidTokens.slice(0, 3).join(', ')}{invalidTokens.length > 3 ? ` và ${invalidTokens.length - 3} mã khác...` : ''}
               </p>
             </div>
@@ -203,12 +203,12 @@ export const BatchEnrollModal: React.FC<BatchEnrollModalProps> = ({
             >
               {loading ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="size-4 animate-spin" />
                   <span>Đang ghi danh...</span>
                 </>
               ) : (
                 <>
-                  <UserCheck className="h-4 w-4" />
+                  <UserCheck className="size-4" />
                   <span>Ghi danh {validIds.length > 0 ? `(${validIds.length})` : ''} học viên</span>
                 </>
               )}

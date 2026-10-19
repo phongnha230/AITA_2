@@ -71,7 +71,7 @@ export const CoursesOverview: React.FC<CoursesOverviewProps> = ({
         {/* Search & Select Controls */}
         <div className="flex flex-wrap items-center gap-2.5">
           <div className="relative min-w-[200px]">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <Search className="size-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
             <Input
               type="text"
               placeholder="Tìm tên môn hoặc mã môn..."
@@ -85,7 +85,7 @@ export const CoursesOverview: React.FC<CoursesOverviewProps> = ({
             aria-label="Chọn học kỳ"
             value={selectedSemester}
             onChange={(e) => onSemesterChange(e.target.value)}
-            className="h-9 bg-white border border-slate-200 px-3 rounded-xl text-xs font-semibold text-slate-700 outline-none cursor-pointer hover:border-slate-300 shadow-2xs"
+            className="h-9 bg-white border border-slate-200 px-3 rounded-xl text-base font-semibold text-slate-700 outline-none cursor-pointer hover:border-slate-300 shadow-2xs"
           >
             <option value="All">Tất cả học kỳ</option>
             {semesters.map((sem) => (
@@ -98,8 +98,8 @@ export const CoursesOverview: React.FC<CoursesOverviewProps> = ({
           <select
             aria-label="Lọc trạng thái khóa học"
             value={statusFilter}
-            onChange={(e) => onStatusFilterChange(e.target.value as any)}
-            className="h-9 bg-white border border-slate-200 px-3 rounded-xl text-xs font-semibold text-slate-700 outline-none cursor-pointer hover:border-slate-300 shadow-2xs"
+            onChange={(e) => onStatusFilterChange(e.target.value as 'ALL' | 'ACTIVE' | 'ARCHIVED')}
+            className="h-9 bg-white border border-slate-200 px-3 rounded-xl text-base font-semibold text-slate-700 outline-none cursor-pointer hover:border-slate-300 shadow-2xs"
           >
             <option value="ALL">Tất cả trạng thái</option>
             <option value="ACTIVE">Đang mở (Active)</option>
@@ -110,7 +110,7 @@ export const CoursesOverview: React.FC<CoursesOverviewProps> = ({
             onClick={onOpenCreateModal}
             className="h-9 px-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition shadow-xs flex items-center gap-1.5 whitespace-nowrap active:scale-95"
           >
-            <Plus className="w-4 h-4 shrink-0" />
+            <Plus className="size-4 shrink-0" />
             <span>Tạo Khóa Học</span>
           </Button>
         </div>
@@ -130,8 +130,8 @@ export const CoursesOverview: React.FC<CoursesOverviewProps> = ({
           ))}
         </section>
       ) : (
-        <Card className="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-12 text-center flex flex-col items-center justify-center space-y-3">
-          <BookOpen className="w-10 h-10 text-slate-300" />
+        <Card className="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-12 text-center flex flex-col items-center justify-center gap-3">
+          <BookOpen className="size-10 text-slate-300" />
           <h4 className="text-sm font-bold text-slate-700">Không tìm thấy khóa học phù hợp</h4>
           <p className="text-xs text-slate-400">
             Hãy thử tìm kiếm với từ khóa khác hoặc tạo mới khóa học.
@@ -140,7 +140,7 @@ export const CoursesOverview: React.FC<CoursesOverviewProps> = ({
             onClick={onOpenCreateModal}
             className="mt-2 h-9 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="size-4" />
             <span>Tạo Khóa Học Ngay</span>
           </Button>
         </Card>

@@ -124,15 +124,15 @@ export const LecturerDashboard: React.FC<LecturerDashboardProps> = ({ initialCou
     <div className="w-full min-h-full font-sans antialiased text-slate-800">
       {/* Toast Notification */}
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3 border border-slate-700 animate-in slide-in-from-bottom-5">
-          <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3 animate-in slide-in-from-bottom-5">
+          <Sparkles className="size-4 text-emerald-400 shrink-0" />
           <span className="text-xs font-semibold">{toast}</span>
           <button
             aria-label="Đóng thông báo"
             onClick={() => setToast(null)}
             className="text-slate-400 hover:text-white p-1 rounded-lg"
           >
-            <X className="w-3.5 h-3.5" />
+            <X className="size-3.5" />
           </button>
         </div>
       )}
@@ -179,7 +179,7 @@ export const LecturerDashboard: React.FC<LecturerDashboardProps> = ({ initialCou
       <Dialog open={Boolean(courseBeingEdited)} onOpenChange={(open) => !open && setCourseBeingEdited(null)}>
         <DialogContent className="sm:max-w-md rounded-3xl bg-white p-6">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><Pencil className="h-4 w-4 text-indigo-600" /> Sửa khóa học</DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><Pencil className="size-4 text-indigo-600" /> Sửa khóa học</DialogTitle>
             <DialogDescription>Mã môn {courseBeingEdited?.code} không thể thay đổi.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSaveEdit} className="space-y-4">

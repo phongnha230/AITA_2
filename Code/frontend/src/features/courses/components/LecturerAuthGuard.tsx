@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { LoaderCircle, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { authService, type User } from '@/features/auth/services/auth.service';
+import { ROUTES } from '@/config/routes';
 
 interface LecturerAuthGuardProps {
   children: ReactNode;
@@ -30,12 +31,12 @@ export function LecturerAuthGuard({ children }: LecturerAuthGuardProps) {
 
       if (!currentUser) {
         localStorage.removeItem('user');
-        window.location.replace(`/login?redirectTo=${encodeURIComponent(pathname)}`);
+        window.location.replace(`${ROUTES.AUTH.LOGIN}?redirectTo=${encodeURIComponent(pathname)}`);
         return;
       }
 
       if (currentUser.role === 'ADMIN') {
-        window.location.replace('/admin/dashboard');
+        window.location.replace(ROUTES.ADMIN.DASHBOARD);
         return;
       }
 
@@ -44,7 +45,7 @@ export function LecturerAuthGuard({ children }: LecturerAuthGuardProps) {
         setIsChecking(false);
         redirectTimer = setTimeout(() => {
           if (active) {
-            window.location.replace('/student/dashboard');
+            window.location.replace(ROUTES.STUDENT.DASHBOARD);
           }
         }, 2000);
         return;
@@ -64,9 +65,9 @@ export function LecturerAuthGuard({ children }: LecturerAuthGuardProps) {
 
   if (isChecking) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-4">
+      <div className="flex min-h-dvh flex-col items-center justify-center bg-slate-50 px-4">
         <div className="flex flex-col items-center gap-3 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-md shadow-indigo-200">
+          <div className="flex size-12 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-md shadow-indigo-200">
             <ShieldCheck size={26} />
           </div>
           <p className="text-sm font-semibold text-slate-800">Đang xác thực quyền Giảng viên...</p>
@@ -81,14 +82,14 @@ export function LecturerAuthGuard({ children }: LecturerAuthGuardProps) {
 
   if (unauthorizedMessage) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-4">
+      <div className="flex min-h-dvh flex-col items-center justify-center bg-slate-50 px-4">
         <div className="max-w-md rounded-2xl border border-rose-200 bg-white p-6 text-center shadow-lg space-y-3">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-rose-100 text-rose-600">
+          <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-rose-100 text-rose-600">
             <ShieldAlert size={24} />
           </div>
           <h2 className="text-base font-bold text-slate-900">Không có quyền truy cập</h2>
           <p className="text-xs text-slate-600 leading-relaxed">{unauthorizedMessage}</p>
-          <p className="text-[11px] text-slate-400">Đang tự động chuyển hướng về Cổng Sinh viên...</p>
+          <p className="text-xs text-slate-400">Đang tự động chuyển hướng về Cổng Sinh viên...</p>
         </div>
       </div>
     );

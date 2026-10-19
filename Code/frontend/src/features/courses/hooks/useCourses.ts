@@ -7,6 +7,7 @@ import {
   LecturerDashboardResponse,
 } from '../types/course.types';
 import { courseService } from '../services/course.service';
+import { getErrorMessage } from '@/lib/errors';
 
 export function useCourses() {
   const [courses, setCourses] = useState<Course[]>([]);
@@ -103,8 +104,9 @@ export function useCourses() {
       const created = await courseService.createCourse(payload);
       await fetchCoursesAndDashboard();
       return created;
-    } catch (err: any) {
-      throw new Error(err?.response?.data?.message || err?.message || 'Lỗi tạo khóa học');
+    } catch (err: unknown) {
+      console.error('Không tạo được khóa học:', err);
+      throw new Error(getErrorMessage(err, 'Lỗi tạo khóa học'));
     }
   };
 

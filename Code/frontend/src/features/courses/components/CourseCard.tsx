@@ -44,12 +44,12 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, onSelectCourse, 
             variant={course.isActive ? 'default' : 'secondary'}
             className={
               course.isActive
-                ? 'bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[11px]'
-                : 'bg-slate-200 text-slate-800 font-bold text-[11px]'
+                ? 'bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs'
+                : 'bg-slate-200 text-slate-800 font-bold text-xs'
             }
           >
             <span
-              className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
+              className={`size-1.5 rounded-full mr-1.5 ${
                 course.isActive ? 'bg-white' : 'bg-slate-500'
               }`}
             />
@@ -65,7 +65,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, onSelectCourse, 
       </div>
 
       {/* Body Stats */}
-      <CardContent className="p-5 space-y-4 flex-1 flex flex-col justify-between">
+      <CardContent className="p-5 gap-4 flex-1 flex flex-col justify-between">
         <div className="space-y-3.5">
           {/* Progress */}
           <div>
@@ -79,13 +79,13 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, onSelectCourse, 
           {/* Sĩ số & Điểm TB */}
           <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 text-xs">
             <div className="flex items-center gap-2 text-slate-600">
-              <Users className="w-4 h-4 text-slate-400 shrink-0" />
+              <Users className="size-4 text-slate-400 shrink-0" />
               <span>
-                Sĩ số: <strong className="text-slate-900">{capacity === undefined ? enrolled : `${enrolled}/${capacity}`}</strong>
+                Sĩ số: <strong className="text-slate-900">{capacity == null ? enrolled : `${enrolled}/${capacity}`}</strong>
               </span>
             </div>
             <div className="flex items-center gap-2 text-slate-600 justify-end">
-              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+              <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
               <span>GPA TB: <strong className="text-slate-900">{gpa === undefined ? 'Chưa có' : gpa}</strong></span>
             </div>
           </div>
@@ -97,16 +97,16 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, onSelectCourse, 
           onClick={() => onSelectCourse(course)}
           className="w-full mt-4 h-10 bg-slate-50 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 font-bold text-xs rounded-xl border-slate-200 hover:border-indigo-200 transition flex items-center justify-center gap-2 group/btn"
         >
-          <BookOpen className="w-4 h-4 text-slate-500 group-hover/btn:text-indigo-600" />
+          <BookOpen className="size-4 text-slate-500 group-hover/btn:text-indigo-600" />
           <span>Quản Lý Lớp Học</span>
-          <ChevronRight className="w-3.5 h-3.5 group-hover/btn:translate-x-0.5 transition" />
+          <ChevronRight className="size-3.5 group-hover/btn:translate-x-0.5 transition" />
         </Button>
         <div className="grid grid-cols-2 gap-2 mt-2">
           <Button type="button" variant="outline" onClick={() => onEditCourse(course)} className="h-9 rounded-xl text-xs font-semibold">
-            <Pencil className="mr-1.5 h-3.5 w-3.5" /> Sửa khóa học
+            <Pencil className="mr-1.5 size-3.5" /> Sửa khóa học
           </Button>
           <Button type="button" variant="outline" onClick={() => onDeleteCourse(course)} className="h-9 rounded-xl border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-800 text-xs font-semibold">
-            <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Xóa khóa học
+            <Trash2 className="mr-1.5 size-3.5" /> Xóa khóa học
           </Button>
         </div>
       </CardContent>

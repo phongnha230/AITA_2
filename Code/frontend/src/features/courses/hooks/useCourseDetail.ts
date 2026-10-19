@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Course, CourseEnrollment } from '../types/course.types';
 import { courseService } from '../services/course.service';
+import { getErrorMessage } from '@/lib/errors';
 
 interface UseCourseDetailOptions {
   courseId: string;
@@ -20,7 +21,7 @@ export function useCourseDetail({ courseId, initialCourse }: UseCourseDetailOpti
 
   // Dynamic Join Code states
   const [joinCode, setJoinCode] = useState<string>(initialCourse?.enrollmentCode || '');
-  const [secondsLeft, setSecondsLeft] = useState<number>(secondsUntil(initialCourse?.codeExpiresAt));
+  const [secondsLeft, setSecondsLeft] = useState<number>(() => secondsUntil(initialCourse?.codeExpiresAt));
   const [isEnrollOpen, setIsEnrollOpen] = useState<boolean>(
     Boolean(initialCourse?.enrollmentCode && secondsUntil(initialCourse.codeExpiresAt) > 0)
   );
@@ -55,8 +56,9 @@ export function useCourseDetail({ courseId, initialCourse }: UseCourseDetailOpti
       setJoinCode(activeCodeSeconds > 0 ? data.enrollmentCode || '' : '');
       setSecondsLeft(activeCodeSeconds);
       setIsEnrollOpen(Boolean(data.enrollmentCode && activeCodeSeconds > 0));
-    } catch (err: any) {
-      setError(err?.message || 'Không thể tải chi tiết lớp học');
+    } catch (err: unknown) {
+      console.error('Không tải được chi tiết lớp học:', err);
+      setError(getErrorMessage(err, 'Không thể tải chi tiết lớp học'));
     } finally {
       setLoading(false);
     }
@@ -169,7 +171,8 @@ export function useCourseDetail({ courseId, initialCourse }: UseCourseDetailOpti
         };
       });
       showToast(`Đã xóa sinh viên ${studentName} khỏi lớp`);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      console.error(`Không thể xóa sinh viên ${studentId} khỏi lớp:`, err);
       showToast('Lỗi khi xóa sinh viên');
     }
   };

@@ -33,7 +33,7 @@ export const DynamicJoinCodeCard: React.FC<DynamicJoinCodeCardProps> = ({
         <div className="flex flex-wrap items-center gap-4 sm:gap-6 min-w-0">
           {/* Code Box */}
           <div className="min-w-0">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-700 block">
+            <span className="text-xs font-bold uppercase tracking-wider text-indigo-700 block">
               Mã tham gia động (OTP)
             </span>
             <div className="flex items-center gap-2 mt-1">
@@ -45,19 +45,19 @@ export const DynamicJoinCodeCard: React.FC<DynamicJoinCodeCardProps> = ({
                 size="icon"
                 onClick={onCopyCode}
                 disabled={!joinCode}
-                className="h-10 w-10 text-indigo-600 hover:text-indigo-800 bg-white hover:bg-indigo-50 rounded-xl border-indigo-200 shadow-2xs shrink-0"
+                className="size-10 text-indigo-600 hover:text-indigo-800 bg-white hover:bg-indigo-50 rounded-xl border-indigo-200 shadow-2xs shrink-0"
                 title="Sao chép mã"
               >
-                <Copy className="w-4 h-4 shrink-0" />
+                <Copy className="size-4 shrink-0" />
               </Button>
             </div>
           </div>
 
           {/* Countdown Timer */}
           <div className="sm:border-l sm:border-indigo-200 sm:pl-5 min-w-0">
-            <span className="text-[11px] font-semibold text-slate-500 block">Hiệu lực mã:</span>
+            <span className="text-xs font-semibold text-slate-500 block">Hiệu lực mã:</span>
             <div className="flex items-center gap-2 mt-1">
-              <span className={`w-2 h-2 rounded-full shrink-0 ${isEnrollOpen ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+              <span className={`size-2 rounded-full shrink-0 ${isEnrollOpen ? 'bg-emerald-500' : 'bg-slate-300'}`} />
               <Badge
                 variant="outline"
                 className="text-xs font-bold text-rose-700 bg-rose-50 px-2.5 py-1.5 rounded-xl border-rose-200 font-mono whitespace-nowrap"
@@ -77,7 +77,7 @@ export const DynamicJoinCodeCard: React.FC<DynamicJoinCodeCardProps> = ({
             className="h-9 px-3 rounded-xl bg-white hover:bg-indigo-50 text-indigo-700 text-xs font-bold border-indigo-200 shadow-2xs inline-flex items-center gap-1.5 whitespace-nowrap"
             title={joinCode ? 'Tạo mã tham gia mới' : 'Tạo mã tham gia'}
           >
-            <RefreshCw className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+            <RefreshCw className="size-3.5 text-indigo-600 shrink-0" />
             <span>{joinCode ? 'Tạo mã mới' : 'Tạo mã tham gia'}</span>
           </Button>
 
@@ -89,7 +89,7 @@ export const DynamicJoinCodeCard: React.FC<DynamicJoinCodeCardProps> = ({
             className="h-9 px-3 rounded-xl bg-white hover:bg-indigo-50 text-indigo-700 text-xs font-bold border-indigo-200 shadow-2xs inline-flex items-center gap-1.5 whitespace-nowrap"
             title="Xem mã QR"
           >
-            <QrCode className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+            <QrCode className="size-3.5 text-indigo-600 shrink-0" />
             <span>Xem mã tham gia</span>
           </Button>
 

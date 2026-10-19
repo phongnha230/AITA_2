@@ -2,9 +2,9 @@ import { Metadata } from 'next';
 import { RoomDetailMonitor } from '@/features/proctoring/components/RoomDetailMonitor';
 
 interface Props {
-  params: {
+  params: Promise<{
     roomId: string;
-  };
+  }>;
 }
 
 export const metadata: Metadata = {
@@ -12,6 +12,7 @@ export const metadata: Metadata = {
   description: 'Theo dõi sinh viên làm bài và danh sách bài thi đã được nộp thành công.',
 };
 
-export default function RoomDetailPage({ params }: Props) {
-  return <RoomDetailMonitor roomId={params.roomId} />;
+export default async function RoomDetailPage({ params }: Props) {
+  const { roomId } = await params;
+  return <RoomDetailMonitor roomId={roomId} />;
 }
