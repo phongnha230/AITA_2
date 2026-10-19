@@ -46,7 +46,7 @@ export const ExamDetailOverviewTab: React.FC<ExamDetailOverviewTabProps> = ({ as
         </div>
 
         <pre className="p-4 rounded-2xl bg-slate-950 text-slate-100 font-mono text-xs overflow-x-auto max-h-[400px] border border-slate-800 leading-relaxed">
-          {isJava
+          {assignment.environment === 'JAVA_JDK'
             ? `// Khung mã nguồn phát cho sinh viên Java OOP (PRO192 / CSD201)
 public interface ICar {
     public int f1(List<Car> t);
@@ -71,7 +71,19 @@ public class MyCar implements ICar {
         // Sinh viên hoàn thiện code câu 3 ở đây
     }
 }`
-            : `// Khung mã nguồn phát cho sinh viên môn C (PRF192)
+            : assignment.environment === 'REACT_JS'
+            ? `// Khung mã nguồn phát cho sinh viên React.js (Frontend UI)
+import React, { useState } from 'react';
+
+export default function App() {
+    // Sinh viên phát triển component và xử lý state tại đây
+    return (
+        <main className="container mx-auto p-4">
+            <h1 className="text-xl font-bold">AITA Practical Exam</h1>
+        </main>
+    );
+}`
+            : `// Khung mã nguồn phát cho sinh viên môn C / C++ (PRF192)
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>

@@ -184,7 +184,7 @@ export const ExamBankList: React.FC = () => {
             Hãy tạo đề thi đầu tiên với file PDF đề, starter code và bộ testcase để bắt đầu!
           </p>
           <Button asChild className="h-9 px-4 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs">
-            <Link href="/exam-bank/create?type=PE_EXAM">
+            <Link href={`${ROUTES.LECTURER.EXAM_BANK_CREATE}?type=PE_EXAM`}>
               <Plus className="size-4 mr-1.5" /> Tạo đề thi PE ngay
             </Link>
           </Button>
@@ -221,7 +221,7 @@ export const ExamBankList: React.FC = () => {
                     </Badge>
                   </div>
 
-                  <Link href={`/exam-bank/${item.id}`} className="hover:text-indigo-600 transition block">
+                  <Link href={ROUTES.LECTURER.EXAM_BANK_DETAIL(item.id)} className="hover:text-indigo-600 transition block">
                     <h3 className="font-extrabold text-sm text-slate-900 line-clamp-2 leading-snug hover:text-indigo-600">
                       {item.title}
                     </h3>

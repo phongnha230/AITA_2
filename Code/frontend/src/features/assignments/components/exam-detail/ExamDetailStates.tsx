@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, RefreshCw, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { ROUTES } from '@/config/routes';
 
 export const ExamDetailLoading: React.FC = () => (
   <div className="max-w-7xl mx-auto py-20 text-center font-sans">
@@ -25,7 +26,7 @@ export const ExamDetailErrorView: React.FC<ExamDetailErrorProps> = ({ error }) =
       <h2 className="text-lg font-black text-slate-900">Không thể hiển thị đề thi</h2>
       <p className="text-xs text-slate-500 mt-2 mb-6">{error || 'Không tìm thấy dữ liệu đề thi tương ứng.'}</p>
       <Button asChild className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs">
-        <Link href="/exam-bank">
+        <Link href={ROUTES.LECTURER.EXAM_BANK}>
           <ArrowLeft className="size-4 mr-2" />
           <span>Quay lại Ngân hàng đề thi</span>
         </Link>
