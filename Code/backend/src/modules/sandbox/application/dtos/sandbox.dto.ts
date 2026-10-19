@@ -23,7 +23,11 @@ export type ExecuteSandboxInput = z.infer<typeof executeSandboxSchema>;
 export const instructorDryRunSchema = z.object({
   courseId: z.string().uuid(),
   language: z.enum(['C_GCC', 'JAVA_JDK']),
-  sourceCode: z.string().min(1).max(1024 * 1024),
+  sourceCode: z.string().min(1).max(1024 * 1024).optional(),
+  sourceFiles: z.array(z.object({
+    path: z.string().min(1).max(255),
+    content: z.string().max(1024 * 1024),
+  })).min(1).max(100).optional(),
   testCases: z.array(z.object({
     id: z.string().max(100).optional(),
     questionNo: z.string().max(50).optional(),
@@ -37,6 +41,9 @@ export const instructorDryRunSchema = z.object({
     memoryLimitKb: z.coerce.number().int().min(32_768).max(524_288),
     points: z.coerce.number().finite().min(0).max(100),
   })).min(1).max(100),
+}).refine((input) => Boolean(input.sourceCode || input.sourceFiles?.length), {
+  message: 'Cần cung cấp mã nguồn hoặc danh sách file đáp án.',
+  path: ['sourceCode'],
 });
 
 export type InstructorDryRunInput = z.infer<typeof instructorDryRunSchema>;

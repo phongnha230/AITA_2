@@ -1,4 +1,4 @@
-import { ChildProcess, exec, spawn } from 'child_process';
+import { ChildProcess, exec, execFile, spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import { promisify } from 'util';
@@ -13,6 +13,7 @@ import {
 import { logger } from '../../../../infrastructure/logging/logger.js';
 
 const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 const MAX_OUTPUT_BYTES = 5 * 1024 * 1024; // 5MB max output buffer
 
 function killProcessTree(childProcess: ChildProcess): void {
@@ -60,12 +61,8 @@ export class CDockerRunner implements ISandboxRunner {
     }
 
     // 1. Tìm file mã nguồn .c
-    const files = fs.readdirSync(stagedFolderPath);
-    const mainFile =
-      files.find((f) => f.toLowerCase() === 'main.c') ||
-      files.find((f) => f.endsWith('.c'));
-
-    if (!mainFile) {
+    const sourceFiles = this.getCSourceFiles(stagedFolderPath);
+    if (sourceFiles.length === 0) {
       return {
         success: false,
         compileError:
@@ -79,13 +76,21 @@ export class CDockerRunner implements ISandboxRunner {
     }
 
     // 2. Biên dịch mã nguồn gcc với cờ Clean Code Static Analysis (-Wall -Wextra)
-    const compileCmd = isDocker
-      ? `docker run --rm --network none --cpus 1.0 --pids-limit 50 --cap-drop ALL --security-opt no-new-privileges -v "${path.resolve(stagedFolderPath)}":/app -w /app gcc:alpine gcc -O2 -Wall -Wextra ${mainFile} -o main.out`
-      : `gcc -O2 -Wall -Wextra "${path.join(stagedFolderPath, mainFile)}" -o "${path.join(stagedFolderPath, 'main.out')}"`;
+    const relativeSources = sourceFiles.map((sourceFile) => path.relative(stagedFolderPath, sourceFile));
 
     let compilerWarnings: string | null = null;
     try {
-      const { stderr } = await execAsync(compileCmd, { timeout: 10000 });
+      const { stderr } = await execFileAsync(isDocker ? 'docker' : 'gcc', isDocker
+        ? [
+            'run', '--rm', '--network', 'none', '--cpus', '1.0', '--pids-limit', '50', '--cap-drop', 'ALL',
+            '--security-opt', 'no-new-privileges', '-v', `${path.resolve(stagedFolderPath)}:/app`, '-w', '/app',
+            'gcc:alpine', 'gcc', '-O2', '-Wall', '-Wextra', '-I', '/app',
+            ...relativeSources.map((sourceFile) => `/app/${sourceFile.replace(/\\/g, '/')}`), '-o', '/app/main.out',
+          ]
+        : [
+            '-O2', '-Wall', '-Wextra', '-I', stagedFolderPath,
+            ...sourceFiles, '-o', path.join(stagedFolderPath, 'main.out'),
+          ], { timeout: 10000, windowsHide: true });
       if (stderr && stderr.trim().length > 0) {
         compilerWarnings = stderr.trim();
       }
@@ -132,6 +137,25 @@ export class CDockerRunner implements ISandboxRunner {
       ),
       results,
     };
+  }
+
+  private getCSourceFiles(rootPath: string): string[] {
+    const sourceFiles: string[] = [];
+    const visit = (directoryPath: string): void => {
+      for (const entry of fs.readdirSync(directoryPath, { withFileTypes: true })) {
+        const entryPath = path.join(directoryPath, entry.name);
+        if (entry.isDirectory() && entry.name !== 'bin') visit(entryPath);
+        else if (entry.isFile() && entry.name.toLowerCase().endsWith('.c')) sourceFiles.push(entryPath);
+      }
+    };
+    visit(rootPath);
+    return sourceFiles.sort((first, second) => {
+      const firstName = path.basename(first).toLowerCase();
+      const secondName = path.basename(second).toLowerCase();
+      if (firstName === 'main.c') return -1;
+      if (secondName === 'main.c') return 1;
+      return first.localeCompare(second);
+    });
   }
 
   private async runSingleTestCase(

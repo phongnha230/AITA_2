@@ -1,4 +1,4 @@
-import { ChildProcess, exec, spawn } from 'child_process';
+import { ChildProcess, exec, execFile, spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import { promisify } from 'util';
@@ -13,6 +13,7 @@ import {
 import { logger } from '../../../../infrastructure/logging/logger.js';
 
 const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 const MAX_OUTPUT_BYTES = 5 * 1024 * 1024; // 5MB max output buffer
 const MAX_GENERATED_FILE_BYTES = 10 * 1024 * 1024; // 10MB max generated file size
 
@@ -77,13 +78,22 @@ export class JavaDockerRunner implements ISandboxRunner {
     }
 
     // 2. Biên dịch javac với cờ Clean Code Linting (-Xlint:all)
-    const compileCmd = isDocker
-      ? `docker run --rm --network none --cpus 1.0 --pids-limit 50 --cap-drop ALL --security-opt no-new-privileges -v "${path.resolve(stagedFolderPath)}":/app -w /app openjdk:17-alpine sh -c "javac -Xlint:all -encoding UTF-8 -d ./bin $(find . -name '*.java')"`
-      : `javac -Xlint:all -encoding UTF-8 -d "${binDir}" ${javaFiles.map((f: string) => `"${f}"`).join(' ')}`;
+    const compileArgs = isDocker
+      ? [
+          'run', '--rm', '--network', 'none', '--cpus', '1.0', '--pids-limit', '50', '--cap-drop', 'ALL',
+          '--security-opt', 'no-new-privileges', '-v', `${path.resolve(stagedFolderPath)}:/app`, '-w', '/app',
+          'openjdk:17-alpine', 'javac', '-Xlint:all', '-encoding', 'UTF-8', '-d', './bin',
+          ...javaFiles.map((file) => `/app/${path.relative(stagedFolderPath, file).replace(/\\/g, '/')}`),
+        ]
+      : ['-Xlint:all', '-encoding', 'UTF-8', '-d', binDir, ...javaFiles];
 
     let compilerWarnings: string | null = null;
     try {
-      const { stderr } = await execAsync(compileCmd, { cwd: stagedFolderPath, timeout: 20000 });
+      const { stderr } = await execFileAsync(isDocker ? 'docker' : 'javac', compileArgs, {
+        cwd: stagedFolderPath,
+        timeout: 20000,
+        windowsHide: true,
+      });
       if (stderr && stderr.trim().length > 0) {
         compilerWarnings = stderr.trim();
       }

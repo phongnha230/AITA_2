@@ -11,7 +11,10 @@ export const enforceSandboxPayloadLimits = (
 ): void => {
   try {
     const payloadBytes = Buffer.byteLength(JSON.stringify(req.body), 'utf8');
-    const sourceBytes = Buffer.byteLength(String(req.body?.sourceCode ?? ''), 'utf8');
+    const sourceFiles = Array.isArray(req.body?.sourceFiles) ? req.body.sourceFiles : [];
+    const sourceBytes = Buffer.byteLength(String(req.body?.sourceCode ?? ''), 'utf8')
+      + sourceFiles.reduce((total: number, file: { content?: unknown }) =>
+        total + Buffer.byteLength(String(file?.content ?? ''), 'utf8'), 0);
     if (payloadBytes > MAX_PAYLOAD_BYTES) {
       throw new ValidationError('Payload sandbox vượt quá giới hạn 5 MiB.');
     }

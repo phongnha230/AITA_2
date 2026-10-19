@@ -172,7 +172,30 @@ export class SandboxController {
 
       await fs.mkdir(tempDir, { recursive: true });
       const isJava = input.language === 'JAVA_JDK';
-      await fs.writeFile(path.join(tempDir, isJava ? 'Main.java' : 'main.c'), input.sourceCode, 'utf8');
+      if (input.sourceFiles?.length) {
+        let totalSourceBytes = 0;
+        for (const sourceFile of input.sourceFiles) {
+          const sourcePath = sourceFile.path.replace(/\\/g, '/');
+          const segments = sourcePath.split('/');
+          const extension = path.posix.extname(sourcePath).toLowerCase();
+          const allowedExtensions = isJava ? new Set(['.java']) : new Set(['.c', '.h']);
+          if (
+            sourcePath.startsWith('/') || /^[a-z]:/i.test(sourcePath)
+            || segments.some((segment) => !segment || segment === '.' || segment === '..')
+            || /[\0-\x1f]/.test(sourcePath) || !allowedExtensions.has(extension)
+          ) {
+            throw new ValidationError(`Đường dẫn hoặc loại file mã nguồn không hợp lệ: ${sourceFile.path}`);
+          }
+          totalSourceBytes += Buffer.byteLength(sourceFile.content, 'utf8');
+          if (totalSourceBytes > 1024 * 1024) throw new ValidationError('Tổng mã nguồn không được vượt quá 1 MiB.');
+          const absolutePath = path.resolve(tempDir, ...segments);
+          if (!absolutePath.startsWith(`${tempDir}${path.sep}`)) throw new ValidationError('Đường dẫn source vượt khỏi thư mục chạy thử.');
+          await fs.mkdir(path.dirname(absolutePath), { recursive: true });
+          await fs.writeFile(absolutePath, sourceFile.content, { encoding: 'utf8', flag: 'wx' });
+        }
+      } else {
+        await fs.writeFile(path.join(tempDir, isJava ? 'Main.java' : 'main.c'), input.sourceCode!, 'utf8');
+      }
       const testCases: TestCaseInput[] = input.testCases.map((testCase, index) => ({
         id: testCase.id ?? `dry-run-${index + 1}`,
         questionNo: testCase.questionNo ?? 'Q1',
