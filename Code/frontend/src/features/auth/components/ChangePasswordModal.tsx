@@ -65,7 +65,7 @@ function PasswordInput({
           aria-label={show ? `Ẩn ${label.toLowerCase()}` : `Hiện ${label.toLowerCase()}`}
           className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
         >
-          {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          {show ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
         </button>
       </div>
     </div>
@@ -144,13 +144,13 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
       <dialog
         open
         aria-labelledby="change-password-title"
-        className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-200/90 transition-colors duration-200 animate-in fade-in zoom-in-95 sm:p-7 block m-0 text-slate-900"
+        className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl transition-colors duration-200 animate-in fade-in zoom-in-95 sm:p-7 block m-0 text-slate-900"
       >
         {/* Header */}
         <div className="flex items-start justify-between pb-4 border-b border-slate-100">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 ring-1 ring-indigo-500/20">
-              <KeyRound className="h-5 w-5" />
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 ring-1 ring-indigo-500/20">
+              <KeyRound className="size-5" />
             </div>
             <div>
               <h3 id="change-password-title" className="text-base font-bold text-slate-900 sm:text-lg">
@@ -168,14 +168,14 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
             aria-label="Đóng cửa sổ"
             className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
           >
-            <X className="h-4 w-4" />
+            <X className="size-4" />
           </button>
         </div>
 
         {/* Success Alert */}
         {success && (
           <div className="mt-4 flex items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50/90 p-3.5 text-xs text-emerald-800 animate-in fade-in">
-            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+            <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />
             <span className="font-semibold">{success}</span>
           </div>
         )}
@@ -183,7 +183,7 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
         {/* Error Alert */}
         {error && (
           <div className="mt-4 flex items-center gap-2.5 rounded-xl border border-rose-200 bg-rose-50/90 p-3.5 text-xs text-rose-800 animate-in fade-in">
-            <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" />
+            <AlertCircle className="size-4 shrink-0 text-rose-600" />
             <span className="font-medium">{error}</span>
           </div>
         )}
@@ -235,12 +235,12 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
             >
               {loading ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="size-4 animate-spin" />
                   <span>Đang xử lý...</span>
                 </>
               ) : (
                 <>
-                  <Lock className="h-3.5 w-3.5" />
+                  <Lock className="size-3.5" />
                   <span>Lưu mật khẩu mới</span>
                 </>
               )}

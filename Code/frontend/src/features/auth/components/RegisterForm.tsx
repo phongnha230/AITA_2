@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import ReCAPTCHA from 'react-google-recaptcha';
 import { authService } from '../services/auth.service';
+import { getErrorMessage } from '@/lib/errors';
 
 export default function RegisterForm() {
   const router = useRouter();
@@ -74,9 +75,9 @@ export default function RegisterForm() {
 
       // 3. Điều hướng sang trang OTP
       router.push(`/verify-otp?email=${encodeURIComponent(email.trim())}`);
-    } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi gửi mã OTP. Vui lòng thử lại.';
-      setErrorMessage(msg);
+    } catch (err: unknown) {
+      console.error('Không thể gửi OTP đăng ký:', err);
+      setErrorMessage(getErrorMessage(err, 'Có lỗi xảy ra khi gửi mã OTP. Vui lòng thử lại.'));
       recaptchaRef.current?.reset();
       recaptchaTokenRef.current = null;
     } finally {
@@ -92,11 +93,11 @@ export default function RegisterForm() {
           Họ và tên
         </label>
         <div className="relative">
-          <User className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <User className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
           <Input
             id="reg-fullname"
             autoComplete="name"
-            className="h-11 rounded-lg bg-white pl-10 pr-3 text-sm border-slate-200 focus-visible:ring-indigo-500"
+            className="h-11 rounded-lg bg-white pl-10 pr-3 text-base border-slate-200 focus-visible:ring-indigo-500"
             placeholder="VD: Nguyễn Văn A"
             required
             value={fullName}
@@ -111,12 +112,12 @@ export default function RegisterForm() {
           Địa chỉ Email
         </label>
         <div className="relative">
-          <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <Mail className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
           <Input
             id="reg-email"
             type="email"
             autoComplete="email"
-            className="h-11 rounded-lg bg-white pl-10 pr-3 text-sm border-slate-200 focus-visible:ring-indigo-500"
+            className="h-11 rounded-lg bg-white pl-10 pr-3 text-base border-slate-200 focus-visible:ring-indigo-500"
             placeholder="VD: yourname@gmail.com"
             required
             value={email}
@@ -131,11 +132,11 @@ export default function RegisterForm() {
           Mật khẩu
         </label>
         <div className="relative">
-          <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <Lock className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
           <Input
             id="reg-password"
             autoComplete="new-password"
-            className="h-11 rounded-lg bg-white pl-10 pr-11 text-sm border-slate-200 focus-visible:ring-indigo-500"
+            className="h-11 rounded-lg bg-white pl-10 pr-11 text-base border-slate-200 focus-visible:ring-indigo-500"
             placeholder="Tối thiểu 6 ký tự"
             required
             type={showPassword ? 'text' : 'password'}
@@ -159,11 +160,11 @@ export default function RegisterForm() {
           Xác nhận mật khẩu
         </label>
         <div className="relative">
-          <ShieldCheck className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <ShieldCheck className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
           <Input
             id="reg-confirm-password"
             autoComplete="new-password"
-            className="h-11 rounded-lg bg-white pl-10 pr-3 text-sm border-slate-200 focus-visible:ring-indigo-500"
+            className="h-11 rounded-lg bg-white pl-10 pr-3 text-base border-slate-200 focus-visible:ring-indigo-500"
             placeholder="Nhập lại mật khẩu"
             required
             type={showPassword ? 'text' : 'password'}
@@ -208,7 +209,7 @@ export default function RegisterForm() {
       >
         {isSubmitting ? (
           <>
-            <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+            <LoaderCircle className="mr-2 size-4 animate-spin" />
             <span>Đang chuyển đến xác thực OTP...</span>
           </>
         ) : (

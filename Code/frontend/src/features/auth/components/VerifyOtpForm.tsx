@@ -7,6 +7,7 @@ import { AlertCircle, ArrowRight, CheckCircle2, KeyRound, LoaderCircle, RotateCw
 import { Button } from '@/components/ui/button';
 import { authService } from '../services/auth.service';
 import { isAxiosError } from 'axios';
+import { getErrorMessage } from '@/lib/errors';
 
 export default function VerifyOtpForm() {
   const router = useRouter();
@@ -97,9 +98,9 @@ export default function VerifyOtpForm() {
     try {
       await authService.sendOtp(targetEmail);
       setSuccessMessage('Mã xác thực mới đã được gửi về email của bạn!');
-    } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || 'Không thể gửi lại mã OTP. Vui lòng thử lại sau.';
-      setErrorMessage(msg);
+    } catch (err: unknown) {
+      console.error('Không thể gửi lại OTP:', err);
+      setErrorMessage(getErrorMessage(err, 'Không thể gửi lại mã OTP. Vui lòng thử lại sau.'));
     }
     setTimeout(() => setSuccessMessage(null), 4000);
   };
@@ -229,7 +230,7 @@ export default function VerifyOtpForm() {
       >
         {isSubmitting ? (
           <>
-            <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+            <LoaderCircle className="mr-2 size-4 animate-spin" />
             <span>Đang hoàn tất đăng ký...</span>
           </>
         ) : (
@@ -254,7 +255,7 @@ export default function VerifyOtpForm() {
               Gửi lại mã
             </button>
           ) : (
-            <span className="font-medium text-slate-400">
+            <span className="font-medium text-slate-600">
               Gửi lại sau {countdown}s
             </span>
           )}

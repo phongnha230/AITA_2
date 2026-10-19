@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { isAxiosError } from 'axios';
 import { useRouter } from 'next/navigation';
 import { authService } from '../services/auth.service';
+import { getDashboardRouteByRole } from '@/config/routes';
 import LoginCredentialsForm from './LoginCredentialsForm';
 import GoogleSsoButton from './GoogleSsoButton';
 
@@ -43,17 +44,14 @@ export default function LoginForm() {
     try {
       const response = await authService.login(identifier.trim(), password);
       const role = response.user?.role;
-      let destination = '/student/dashboard';
+      const defaultDashboard = getDashboardRouteByRole(role);
 
-      if (role === 'STUDENT') {
-        destination = '/student/dashboard';
-      } else if (role === 'LECTURER') {
-        destination = '/dashboard';
-      } else if (role === 'ADMIN') {
-        destination = response.redirectTo || '/admin/dashboard';
-      } else if (response.redirectTo?.startsWith('/') && !response.redirectTo.startsWith('//')) {
-        destination = response.redirectTo;
-      }
+      const destination =
+        response.redirectTo &&
+        response.redirectTo.startsWith('/') &&
+        !response.redirectTo.startsWith('//')
+          ? response.redirectTo
+          : defaultDashboard;
 
       router.replace(destination);
     } catch (error: unknown) {
@@ -94,7 +92,7 @@ export default function LoginForm() {
                   setIdentifier(acc.email);
                   setPassword('password123');
                 }}
-                className={`py-1.5 px-2 rounded-md text-xs font-medium transition-all text-center ${
+                className={`min-h-9 px-2 py-2 rounded-md text-xs font-medium transition-all text-center ${
                   isSelected
                     ? 'bg-indigo-600 text-white shadow-xs'
                     : 'bg-white text-slate-700 border border-slate-200 hover:border-slate-300 hover:bg-slate-50'
@@ -116,7 +114,7 @@ export default function LoginForm() {
 
       <div className="relative my-3 flex items-center justify-center">
         <span className="absolute inset-x-0 border-t border-slate-200" />
-        <span className="relative bg-white px-2 text-xs text-slate-400">
+        <span className="relative bg-white px-2 text-xs text-slate-600">
           hoặc đăng nhập bằng tài khoản
         </span>
       </div>

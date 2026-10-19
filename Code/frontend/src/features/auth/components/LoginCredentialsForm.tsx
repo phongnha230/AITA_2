@@ -33,11 +33,11 @@ export default function LoginCredentialsForm({
           Email hoặc Tên đăng nhập
         </label>
         <div className="relative">
-          <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <Mail className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
           <Input
             id="login-identifier"
             autoComplete="username"
-            className="h-11 rounded-lg bg-white pl-10 pr-3 text-sm border-slate-200 focus-visible:ring-indigo-500"
+            className="h-11 rounded-lg bg-white pl-10 pr-3 text-base border-slate-200 focus-visible:ring-indigo-500"
             placeholder="Nhập email hoặc tên tài khoản"
             required
             value={identifier}
@@ -51,11 +51,11 @@ export default function LoginCredentialsForm({
           Mật khẩu
         </label>
         <div className="relative">
-          <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <Lock className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
           <Input
             id="login-password"
             autoComplete="current-password"
-            className="h-11 rounded-lg bg-white pl-10 pr-11 text-sm border-slate-200 focus-visible:ring-indigo-500"
+            className="h-11 rounded-lg bg-white pl-10 pr-11 text-base border-slate-200 focus-visible:ring-indigo-500"
             placeholder="Nhập mật khẩu"
             required
             type={showPassword ? 'text' : 'password'}
@@ -87,7 +87,7 @@ export default function LoginCredentialsForm({
       >
         {isSubmitting ? (
           <>
-            <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+            <LoaderCircle className="mr-2 size-4 animate-spin" />
             <span>Đang đăng nhập...</span>
           </>
         ) : (
