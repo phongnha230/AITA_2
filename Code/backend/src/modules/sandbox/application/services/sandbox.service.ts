@@ -66,16 +66,25 @@ export class SandboxService implements ISandboxService {
         )
       : allTestCases;
     const testCasesToRun = matchedTestCases.length > 0 ? matchedTestCases : allTestCases;
-    const testCases: TestCaseInput[] = testCasesToRun.map((testCase) => ({
-      id: testCase.id,
-      questionNo: testCase.label,
-      inputData: testCase.stdinInput || testCase.inputFileContent || '',
-      expectedOutput: testCase.expectedStdout || testCase.expectedFileContent || '',
-      outputFileName: testCase.expectedFileName,
-      timeLimitMs: Math.min(10_000, Math.max(100, testCase.timeLimitMs)),
-      memoryLimitMb: Math.min(512, Math.max(32, Math.round(testCase.memoryLimitKb / 1024) || 256)),
-      score: testCase.rationaleTag === 'PERFORMANCE' ? 0 : testCase.points,
-    }));
+    const testCases: TestCaseInput[] = testCasesToRun.map((testCase) => {
+      const match = testCase.label.match(/Q\d+/i);
+      const questionNo = match ? match[0].toUpperCase() : testCase.label;
+      const tcAny = testCase as unknown as Record<string, unknown>;
+      return {
+        id: testCase.id,
+        questionNo,
+        inputData: testCase.stdinInput || testCase.inputFileContent || '',
+        stdinInput: testCase.stdinInput,
+        inputFileContent: testCase.inputFileContent,
+        expectedOutput: testCase.expectedStdout || testCase.expectedFileContent || '',
+        outputFileName: testCase.expectedFileName,
+        timeLimitMs: Math.min(10_000, Math.max(100, testCase.timeLimitMs)),
+        memoryLimitMb: Math.min(512, Math.max(32, Math.round(testCase.memoryLimitKb / 1024) || 256)),
+        score: testCase.rationaleTag === 'PERFORMANCE' ? 0 : Number(testCase.points),
+        isHarness: Boolean(tcAny.isHarness || tcAny.kind === 'unit-list'),
+        kind: typeof tcAny.kind === 'string' ? tcAny.kind : undefined,
+      };
+    });
 
     const language = languageOverride || submission.assignment.environment || 'C_GCC';
     const runner = SandboxRunnerFactory.createRunner(language);

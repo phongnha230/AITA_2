@@ -39,6 +39,11 @@ function getProcessError(error: unknown): string {
   return String(error);
 }
 
+interface CompiledBinaryInfo {
+  binaryName: string;
+  compileError?: string;
+}
+
 export class CDockerRunner implements ISandboxRunner {
   private async isDockerDaemonRunning(): Promise<boolean> {
     if (!env.USE_DOCKER_SANDBOX) return false;
@@ -60,13 +65,11 @@ export class CDockerRunner implements ISandboxRunner {
       throw new Error('Docker Sandbox is unavailable; local execution is disabled for this request.');
     }
 
-    // 1. Tìm file mã nguồn .c
-    const sourceFiles = this.getCSourceFiles(stagedFolderPath);
-    if (sourceFiles.length === 0) {
+    const allSourceFiles = this.getAllCSourceFiles(stagedFolderPath);
+    if (allSourceFiles.length === 0) {
       return {
         success: false,
-        compileError:
-          'COMPILE_ERROR: Không tìm thấy file mã nguồn C (.c) trong thư mục bài làm.',
+        compileError: 'COMPILE_ERROR: Không tìm thấy file mã nguồn C (.c) trong thư mục bài làm.',
         totalTests: testCases.length,
         passedTests: 0,
         totalScore: 0,
@@ -75,30 +78,70 @@ export class CDockerRunner implements ISandboxRunner {
       };
     }
 
-    // 2. Biên dịch mã nguồn gcc với cờ Clean Code Static Analysis (-Wall -Wextra)
-    const relativeSources = sourceFiles.map((sourceFile) => path.relative(stagedFolderPath, sourceFile));
+    // 1. Gom nhóm các câu hỏi cần biên dịch
+    const questionNos = Array.from(new Set(testCases.map((tc) => tc.questionNo || 'Q1')));
+    const binaries = new Map<string, CompiledBinaryInfo>();
+    let lastCompilerWarnings: string | null = null;
 
-    let compilerWarnings: string | null = null;
-    try {
-      const { stderr } = await execFileAsync(isDocker ? 'docker' : 'gcc', isDocker
+    for (const qNo of questionNos) {
+      const sourceFile = this.findSourceForQuestion(stagedFolderPath, qNo, allSourceFiles);
+      if (!sourceFile) {
+        binaries.set(qNo, {
+          binaryName: '',
+          compileError: `COMPILE_ERROR: Không tìm thấy file mã nguồn .c phù hợp cho câu hỏi ${qNo}.`,
+        });
+        continue;
+      }
+
+      const outBinaryName = `${qNo.toLowerCase()}.out`;
+      const relSource = path.relative(stagedFolderPath, sourceFile).replace(/\\/g, '/');
+      const relSourceDir = path.relative(stagedFolderPath, path.dirname(sourceFile)).replace(/\\/g, '/');
+
+      const compileArgs = isDocker
         ? [
             'run', '--rm', '--network', 'none', '--cpus', '1.0', '--pids-limit', '50', '--cap-drop', 'ALL',
             '--security-opt', 'no-new-privileges', '-v', `${path.resolve(stagedFolderPath)}:/app`, '-w', '/app',
-            'gcc:alpine', 'gcc', '-O2', '-Wall', '-Wextra', '-I', '/app',
-            ...relativeSources.map((sourceFile) => `/app/${sourceFile.replace(/\\/g, '/')}`), '-o', '/app/main.out',
+            'gcc:alpine', 'gcc', '-O2', '-Wall', '-Wextra',
+            '-I', '/app',
+            '-I', `/app/${relSourceDir}`,
+            `/app/${relSource}`,
+            '-o', `/app/${outBinaryName}`,
+            '-lm',
           ]
         : [
-            '-O2', '-Wall', '-Wextra', '-I', stagedFolderPath,
-            ...sourceFiles, '-o', path.join(stagedFolderPath, 'main.out'),
-          ], { timeout: 10000, windowsHide: true });
-      if (stderr && stderr.trim().length > 0) {
-        compilerWarnings = stderr.trim();
+            '-O2', '-Wall', '-Wextra',
+            '-I', stagedFolderPath,
+            '-I', path.dirname(sourceFile),
+            sourceFile,
+            '-o', path.join(stagedFolderPath, process.platform === 'win32' ? `${qNo.toLowerCase()}.exe` : outBinaryName),
+            '-lm',
+          ];
+
+      try {
+        const { stderr } = await execFileAsync(isDocker ? 'docker' : 'gcc', compileArgs, {
+          cwd: stagedFolderPath,
+          timeout: 10000,
+          windowsHide: true,
+        });
+        if (stderr && stderr.trim().length > 0) {
+          lastCompilerWarnings = stderr.trim();
+        }
+        binaries.set(qNo, { binaryName: outBinaryName });
+      } catch (compileError: unknown) {
+        binaries.set(qNo, {
+          binaryName: '',
+          compileError: getProcessError(compileError),
+        });
       }
-    } catch (compileError: unknown) {
-      const errorMsg = getProcessError(compileError);
+    }
+
+    // Nếu tất cả các câu đều compile lỗi
+    const allFailed = questionNos.every((q) => binaries.get(q)?.compileError);
+    if (allFailed && questionNos.length > 0) {
+      const firstError = binaries.get(questionNos[0])?.compileError || 'COMPILE_ERROR';
       return {
         success: false,
-        compileError: errorMsg,
+        compileError: firstError,
         totalTests: testCases.length,
         passedTests: 0,
         totalScore: 0,
@@ -107,19 +150,38 @@ export class CDockerRunner implements ISandboxRunner {
       };
     }
 
-    // 3. Thực thi từng testcase
+    // 2. Chạy từng testcase
     const results: TestCaseResult[] = [];
     let passedCount = 0;
     let totalScore = 0;
 
     for (const tc of testCases) {
-      const result = await this.runSingleTestCase(
+      const qNo = tc.questionNo || 'Q1';
+      const binaryInfo = binaries.get(qNo);
+
+      if (!binaryInfo || binaryInfo.compileError) {
+        results.push({
+          testCaseId: tc.id,
+          questionNo: tc.questionNo,
+          passed: false,
+          status: 'COMPILE_ERROR',
+          actualOutput: '',
+          expectedOutput: tc.expectedOutput,
+          executionTimeMs: 0,
+          memoryUsedKb: 0,
+          errorMessage: binaryInfo?.compileError || `Không thể biên dịch câu hỏi ${qNo}`,
+        });
+        continue;
+      }
+
+      const res = await this.runSingleTestCase(
         stagedFolderPath,
         tc,
+        binaryInfo.binaryName,
         isDocker
       );
-      results.push(result);
-      if (result.passed) {
+      results.push(res);
+      if (res.passed) {
         passedCount++;
         totalScore += tc.score;
       }
@@ -128,7 +190,7 @@ export class CDockerRunner implements ISandboxRunner {
     return {
       success: true,
       compileError: null,
-      compilerWarnings,
+      compilerWarnings: lastCompilerWarnings,
       totalTests: testCases.length,
       passedTests: passedCount,
       totalScore: Number(totalScore.toFixed(2)),
@@ -139,28 +201,74 @@ export class CDockerRunner implements ISandboxRunner {
     };
   }
 
-  private getCSourceFiles(rootPath: string): string[] {
+  private getAllCSourceFiles(rootPath: string): string[] {
     const sourceFiles: string[] = [];
     const visit = (directoryPath: string): void => {
       for (const entry of fs.readdirSync(directoryPath, { withFileTypes: true })) {
         const entryPath = path.join(directoryPath, entry.name);
-        if (entry.isDirectory() && entry.name !== 'bin') visit(entryPath);
-        else if (entry.isFile() && entry.name.toLowerCase().endsWith('.c')) sourceFiles.push(entryPath);
+        if (entry.isDirectory() && entry.name !== 'bin' && entry.name !== 'run') {
+          visit(entryPath);
+        } else if (entry.isFile() && entry.name.toLowerCase().endsWith('.c')) {
+          sourceFiles.push(entryPath);
+        }
       }
     };
     visit(rootPath);
-    return sourceFiles.sort((first, second) => {
-      const firstName = path.basename(first).toLowerCase();
-      const secondName = path.basename(second).toLowerCase();
-      if (firstName === 'main.c') return -1;
-      if (secondName === 'main.c') return 1;
-      return first.localeCompare(second);
+    return sourceFiles;
+  }
+
+  private findSourceForQuestion(
+    stagedFolderPath: string,
+    questionNo: string,
+    allFiles: string[]
+  ): string | null {
+    const qNum = questionNo.replace(/\D/g, '');
+    const exactTarget = `${questionNo.toLowerCase()}.c`;
+
+    // 1. Khớp chính xác tên file: Q1.c / q1.c
+    const exactMatches = allFiles.filter(
+      (f) => path.basename(f).toLowerCase() === exactTarget
+    );
+    if (exactMatches.length === 1) return exactMatches[0];
+    if (exactMatches.length > 1) {
+      // Ưu tiên file nằm trong thư mục chứa số câu hỏi (ví dụ: 1/src/Q1.c hoặc Q1/Q1.c)
+      const preferred = exactMatches.find((f) => {
+        const parts = f.split(path.sep);
+        return parts.some(
+          (p) => p.toLowerCase() === questionNo.toLowerCase() || p === qNum
+        );
+      });
+      if (preferred) return preferred;
+      return exactMatches[0];
+    }
+
+    // 2. Tìm theo thư mục câu hỏi (ví dụ: staged/1/... hoặc staged/Q1/...)
+    const inQuestionDir = allFiles.filter((f) => {
+      const parts = f.split(path.sep);
+      return parts.some(
+        (p) => p.toLowerCase() === questionNo.toLowerCase() || p === qNum
+      );
     });
+    if (inQuestionDir.length > 0) {
+      const mainMatch = inQuestionDir.find(
+        (f) =>
+          path.basename(f).toLowerCase() === 'main.c' ||
+          path.basename(f).toLowerCase() === exactTarget
+      );
+      if (mainMatch) return mainMatch;
+      return inQuestionDir[0];
+    }
+
+    // 3. Fallback: Nếu chỉ có 1 file duy nhất trong bài nộp
+    if (allFiles.length === 1) return allFiles[0];
+
+    return null;
   }
 
   private async runSingleTestCase(
     stagedFolderPath: string,
     tc: TestCaseInput,
+    binaryName: string,
     isDocker: boolean
   ): Promise<TestCaseResult> {
     const startTime = Date.now();
@@ -194,12 +302,14 @@ export class CDockerRunner implements ISandboxRunner {
           '-w',
           '/app',
           'gcc:alpine',
-          './main.out',
+          `./${binaryName}`,
         ]);
       } else {
         const exePath = path.join(
           stagedFolderPath,
-          process.platform === 'win32' ? 'main.out.exe' : 'main.out'
+          process.platform === 'win32'
+            ? `${binaryName.replace(/\.out$/, '')}.exe`
+            : binaryName
         );
         childProcess = spawn(exePath);
       }
@@ -226,8 +336,9 @@ export class CDockerRunner implements ISandboxRunner {
       });
 
       // Bơm input vào stdin
-      if (tc.inputData) {
-        childProcess.stdin?.write(tc.inputData + '\n');
+      const input = tc.stdinInput ?? tc.inputData ?? '';
+      if (input) {
+        childProcess.stdin?.write(input + '\n');
         childProcess.stdin?.end();
       }
 

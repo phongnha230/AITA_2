@@ -17,6 +17,7 @@ import { StudentPageHeading } from '../shared/StudentPageHeading';
 import { GradingLifecycleProgress } from './GradingLifecycleProgress';
 import { SubmissionScoreOverview } from './SubmissionScoreOverview';
 import { TestCaseResultsList } from './TestCaseResultsList';
+import { AiRubricFeedbackCard } from './AiRubricFeedbackCard';
 import { RecentSubmissionsList } from './RecentSubmissionsList';
 import { studentService } from '../../services/student.service';
 import type { GradingRun } from '@/features/grading/types/grading-history.types';
@@ -60,6 +61,7 @@ function SubmissionResultDetails({ submission, gradingJob, isPolling, isStreamin
     <GradingLifecycleProgress gradingJob={gradingJob} submissionStatus={submission.status} isPolling={isPolling} isStreaming={isStreaming} />
     <SubmissionScoreOverview submission={submission} />
     <TestCaseResultsList testResults={submission.testResults ?? []} />
+    <AiRubricFeedbackCard aiGradingResult={submission.aiGradingResult} submissionId={submission.id} />
     {historyError && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{historyError}</p>}
     <GradingHistoryDetails runs={gradingHistory} onShowEvidence={onShowEvidence} evidenceUrl={evidenceUrl} />
   </div>;

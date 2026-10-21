@@ -25,19 +25,30 @@ const toTestCase = (item: JsonRecord, index: number, questionNumber: string | nu
   const tag = typeof rationaleTag === 'string' && allowedTags.includes(rationaleTag as (typeof allowedTags)[number])
     ? rationaleTag as TestCase['rationaleTag']
     : isHidden ? 'EDGE' : 'FUNCTIONAL';
+
+  const rawMode = getText(item, 'comparisonMode');
+  const expectedFileName = getText(item, 'expectedFileName', 'outputFile');
+  const comparisonMode = rawMode === 'FILE_TO_FILE' || (!rawMode && Boolean(expectedFileName))
+    ? 'FILE_TO_FILE'
+    : 'STDIO';
+
   return {
     orderIndex: index,
     questionNumber,
     questionTitle,
-    label: getText(item, 'label', 'name') ?? `${questionNumber}_TC_${index}`,
+    label: getText(item, 'label', 'name', 'id') ?? `${questionNumber}_TC_${index}`,
     rationaleTag: tag,
     isHidden,
     timeLimitMs: getNumber(item, 'timeLimitMs') || 1500,
     memoryLimitKb: 262144,
     points: getNumber(item, 'points', 'score') ?? 1,
-    comparisonMode: 'STDIO',
+    comparisonMode,
     stdinInput: getText(item, 'stdinInput', 'stdin', 'input') ?? '',
     expectedStdout: getText(item, 'expectedStdout', 'expected', 'expectedOutput') ?? '',
+    inputFileName: getText(item, 'inputFileName') ?? (comparisonMode === 'FILE_TO_FILE' ? 'data.txt' : undefined),
+    inputFileContent: getText(item, 'inputFileContent', 'dataTxt'),
+    expectedFileName: expectedFileName ?? (comparisonMode === 'FILE_TO_FILE' ? 'f1.txt' : undefined),
+    expectedFileContent: getText(item, 'expectedFileContent', 'expected'),
   };
 };
 
@@ -88,8 +99,17 @@ export function useTestcaseImport(
   const handleParseJsonForPreview = (jsonString: string) => {
     setImportError(null);
     try {
-      const parsed: unknown = JSON.parse(jsonString);
+      let parsed: unknown = JSON.parse(jsonString);
       let formatted: TestCase[] = [];
+
+      // If JSON is object with groups (like testcases.json), wrap into question format
+      if (!Array.isArray(parsed) && isRecord(parsed) && Array.isArray(parsed.groups)) {
+        parsed = (parsed.groups as unknown[]).filter(isRecord).map((g, idx) => ({
+          questionNumber: `Q${idx + 1}`,
+          questionTitle: getText(g, 'title') ?? `Câu hỏi Q${idx + 1}`,
+          testCases: Array.isArray(g.cases) ? g.cases : [],
+        }));
+      }
 
       if (Array.isArray(parsed)) {
         // Check if elements are Question containers (e.g. { question: "Q1", testCases: [...] })

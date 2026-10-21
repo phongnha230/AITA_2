@@ -94,13 +94,23 @@ export class GradeSubmissionAiUseCase {
       embeddingModel: chunk.embeddingModel,
       chunkerVersion: chunk.chunkerVersion,
     }));
+
+    const combinedFeedback = [
+      gradingOutput.answerComparison?.trim()
+        ? `### 📌 So sánh với đáp án tham chiếu:\n${gradingOutput.answerComparison.trim()}`
+        : null,
+      `### 💡 Nhận xét mã nguồn & Thuật toán:\n${gradingOutput.codeQualityFeedback.trim()}`,
+    ]
+      .filter(Boolean)
+      .join('\n\n');
+
     const savedResult = await this.aiGradingRepository.save({
       submissionId,
       overallAiScore: gradingOutput.overallAiScore,
       rubricBreakdown: gradingOutput.rubricBreakdown,
       detectedTimeComplexity: gradingOutput.detectedTimeComplexity,
       detectedSpaceComplexity: gradingOutput.detectedSpaceComplexity,
-      codeQualityFeedback: gradingOutput.codeQualityFeedback,
+      codeQualityFeedback: combinedFeedback,
       ragContextUsed,
       tokensConsumed,
     });

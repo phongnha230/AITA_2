@@ -17,6 +17,10 @@ export interface TestCaseInput {
   timeLimitMs: number; // Giới hạn thời gian (mặc định 2000ms = 2s)
   memoryLimitMb: number; // Giới hạn RAM (mặc định 256MB)
   score: number; // Điểm của testcase
+  stdinInput?: string | null;
+  inputFileContent?: string | null;
+  isHarness?: boolean;
+  kind?: string;
 }
 
 export interface TestCaseResult {
