@@ -131,6 +131,10 @@ export class PrismaAssignmentRepository implements IAssignmentRepository {
         rubricRules: {
           orderBy: { orderIndex: 'asc' },
         },
+        solutions: {
+          where: { isActive: true },
+          orderBy: { createdAt: 'desc' },
+        },
         _count: {
           select: {
             submissions: true,

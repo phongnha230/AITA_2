@@ -19,14 +19,20 @@ export class ControlSessionUseCase {
     const now = new Date();
 
     if (action === 'EXTEND') {
-      if (existing.status === 'CLOSED' || existing.status === 'ARCHIVED') {
-        throw new ConflictError('Ca thi đã đóng hoặc lưu trữ.');
+      if (existing.status === 'ARCHIVED') {
+        throw new ConflictError('Ca thi đã lưu trữ, không thể gia hạn.');
       }
-      const newDeadline = new Date(existing.deadline.getTime() + extraMinutes * 60 * 1000);
+      // Điểm mốc gia hạn: nếu deadline đã quá hạn so với hiện tại, tính từ thời điểm hiện tại (now)
+      const baseTimeMs = Math.max(now.getTime(), existing.deadline ? existing.deadline.getTime() : now.getTime());
+      const newDeadline = new Date(baseTimeMs + extraMinutes * 60 * 1000);
+
+      // Nếu ca thi đang ở trạng thái CLOSED hoặc PAUSED, mở lại PUBLISHED để sinh viên có thể tiếp tục nộp bài
+      const updatedStatus = existing.status === 'CLOSED' || existing.status === 'PAUSED' ? 'PUBLISHED' : existing.status;
 
       const updated = await this.assignmentRepository.update(assignmentId, {
         deadline: newDeadline,
-        status: existing.status,
+        status: updatedStatus,
+        pausedAt: null,
       });
 
       const secondsLeft = Math.max(0, Math.round((newDeadline.getTime() - Date.now()) / 1000));

@@ -20,9 +20,18 @@ export class GetAssignmentDetailUseCase {
 
     }
 
-    const { accessCode, pdfFilePath, starterCodePath, ...safeAssignment } = assignment;
+    const { accessCode, pdfFilePath, starterCodePath, testCases, rubricRules, solutions, ...safeAssignment } = assignment;
     return {
       ...safeAssignment,
+      testCases: (testCases || []).map((tc: any) => ({
+        ...tc,
+        points: Number(tc.points),
+      })),
+      rubricRules: (rubricRules || []).map((rr: any) => ({
+        ...rr,
+        maxPoints: Number(rr.maxPoints),
+        weight: Number(rr.weight),
+      })),
       functionalMaxScore: Number(assignment.functionalMaxScore),
       algorithmMaxScore: Number(assignment.algorithmMaxScore),
       cleanCodeMaxScore: Number(assignment.cleanCodeMaxScore),
@@ -30,7 +39,7 @@ export class GetAssignmentDetailUseCase {
       hasPdf: Boolean(pdfFilePath),
       hasStarterCode: Boolean(starterCodePath),
       isLocked: false,
-      ...(isLecturerOrAdmin ? { accessCode, pdfFilePath, starterCodePath } : {}),
+      ...(isLecturerOrAdmin ? { accessCode, pdfFilePath, starterCodePath, solutions: solutions ?? [] } : {}),
     };
   }
 }

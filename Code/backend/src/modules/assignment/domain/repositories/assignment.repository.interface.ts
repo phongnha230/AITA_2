@@ -17,6 +17,7 @@ export type AssignmentDetailRecord = Prisma.AssignmentGetPayload<{
     creator: { select: { id: true; fullName: true; email: true } };
     testCases: true;
     rubricRules: true;
+    solutions: true;
     _count: { select: { submissions: true; testCases: true } };
   };
 }>;
