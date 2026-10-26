@@ -9,6 +9,12 @@ import { env } from './infrastructure/config/env.js';
 import { enforceTrustedOrigin } from './shared/presentation/middlewares/origin.middleware.js';
 import { attachRequestContext } from './shared/presentation/middlewares/request-context.middleware.js';
 
+// Global serialization for BigInt in Prisma entities
+(BigInt.prototype as unknown as { toJSON: () => number | string }).toJSON = function () {
+  const intVal = Number(this);
+  return Number.isSafeInteger(intVal) ? intVal : this.toString();
+};
+
 const app: Express = express();
 app.use(attachRequestContext);
 

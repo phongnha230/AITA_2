@@ -371,14 +371,28 @@ export class JavaDockerRunner implements ISandboxRunner {
 
   private getQuestionDirs(rootPath: string): Map<string, string> {
     const map = new Map<string, string>();
-    for (const entry of fs.readdirSync(rootPath, { withFileTypes: true })) {
-      if (entry.isDirectory()) {
-        const match = entry.name.match(/^Q(\d+)$/i);
-        if (match) {
-          map.set(`Q${match[1]}`, path.join(rootPath, entry.name));
+    const scan = (currentDir: string, depth = 0) => {
+      if (depth > 5) return;
+      try {
+        const entries = fs.readdirSync(currentDir, { withFileTypes: true });
+        for (const entry of entries) {
+          if (entry.isDirectory()) {
+            const entryPath = path.join(currentDir, entry.name);
+            const match = entry.name.match(/^Q?(\d+)$/i);
+            if (match) {
+              const qKey = `Q${match[1]}`;
+              const hasJava = this.getAllFiles(entryPath, '.java').length > 0;
+              if (hasJava && !map.has(qKey)) {
+                map.set(qKey, entryPath);
+              }
+            } else if (entry.name !== 'bin' && entry.name !== 'run' && entry.name !== '.git') {
+              scan(entryPath, depth + 1);
+            }
+          }
         }
-      }
-    }
+      } catch {}
+    };
+    scan(rootPath);
     return map;
   }
 
@@ -474,10 +488,16 @@ export class JavaDockerRunner implements ISandboxRunner {
         );
       }
 
+      // Docker container startup on Windows/WSL2 takes ~1-2.5s overhead.
+      // Watchdog timeout must add container startup padding so valid code isn't killed before execution.
+      const watchdogTimeoutMs = isDocker
+        ? Math.max(tc.timeLimitMs + 8000, 10000)
+        : tc.timeLimitMs;
+
       const timer = setTimeout(() => {
         isTimedOut = true;
         killProcessTree(childProcess);
-      }, tc.timeLimitMs);
+      }, watchdogTimeoutMs);
 
       childProcess.stdout?.on('data', (d: Buffer) => {
         if (stdout.length + d.length > MAX_OUTPUT_BYTES) {

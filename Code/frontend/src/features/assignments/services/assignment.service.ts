@@ -130,7 +130,7 @@ export const assignmentService = {
     }>;
   }): Promise<DryRunExecutionSummary> {
     await this.ensureLecturerAuth();
-    const response = await api.post('/sandbox/dry-run', payload);
+    const response = await api.post('/sandbox/dry-run', payload, { timeout: 180_000 });
     return response.data.data as DryRunExecutionSummary;
   },
 

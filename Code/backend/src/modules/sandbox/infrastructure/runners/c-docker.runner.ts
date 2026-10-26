@@ -314,11 +314,15 @@ export class CDockerRunner implements ISandboxRunner {
         childProcess = spawn(exePath);
       }
 
-      // Bộ đếm Timeout Watchdog
+      // Bộ đếm Timeout Watchdog: Bổ sung padding khởi tạo container Docker trên Windows/WSL2
+      const watchdogTimeoutMs = isDocker
+        ? Math.max(tc.timeLimitMs + 8000, 10000)
+        : tc.timeLimitMs;
+
       const timer = setTimeout(() => {
         isTimedOut = true;
         killProcessTree(childProcess);
-      }, tc.timeLimitMs);
+      }, watchdogTimeoutMs);
 
       childProcess.stdout?.on('data', (d: Buffer) => {
         if (stdout.length + d.length > MAX_OUTPUT_BYTES) {

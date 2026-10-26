@@ -368,6 +368,25 @@ export const WizardStep3Solution: React.FC<WizardStep3SolutionProps> = ({
         />
       </div>
 
+      {!isExactTarget && totalCalculatedPoints > 0 && (
+        <div className="p-4 rounded-xl border border-amber-300 bg-amber-50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-amber-950 shadow-sm animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <span className="size-2.5 rounded-full bg-amber-500 animate-pulse" />
+            <span>
+              ⚠️ Tổng điểm testcase hiện tại là <strong className="text-rose-700">{totalCalculatedPoints.toFixed(2)}đ / 7.0đ</strong>. Cần đúng 7.0đ để chuyển sang Bước 4 (chừa 2đ Thuật toán + 1đ Clean Code cho AI).
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={handleScaleToTarget}
+            className="shrink-0 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-blue-500/20 transition cursor-pointer"
+          >
+            <Sparkles className="size-4" />
+            <span>⚡ Quy đổi ngay về 7.0đ</span>
+          </button>
+        </div>
+      )}
+
       <WizardNavFooter
         onBack={onBack}
         backLabel="Quay lại Bước 2"

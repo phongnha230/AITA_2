@@ -15,6 +15,7 @@ import { sampleCsd201Template, samplePrf192Template, samplePro192Template, Sampl
 import { buildJavaGradingRubric } from '../components/wizard/java-grading-rubric';
 import { buildReactGradingRubric } from '../components/wizard/react-grading-rubric';
 import { useTestcaseImport } from './useTestcaseImport';
+import { ROUTES } from '@/config/routes';
 
 const defaultReactStructureRequirements = 'Đánh giá cách tổ chức component, sử dụng props/state, hooks và dependency của effect; routing/context/store phải phù hợp phạm vi bài, có xử lý loading, error và empty state khi cần.';
 const defaultReactCleanCodeRequirements = 'Đánh giá naming, khả năng đọc hiểu, component không ôm quá nhiều trách nhiệm, tránh lặp logic, tránh hardcode không cần thiết và bảo đảm accessibility cơ bản.';
@@ -176,6 +177,75 @@ export function useCreateExamWizard() {
     setZipFilesContent({});
     setRemoveExistingStarter(Boolean(existingStarterPath));
   };
+
+  // Restore draft from localStorage if creating a new exam
+  useEffect(() => {
+    if (editId || typeof window === 'undefined') return;
+    try {
+      const savedDraft = localStorage.getItem('aita_exam_wizard_draft');
+      if (savedDraft) {
+        const draft = JSON.parse(savedDraft);
+        if (draft.title) setTitle(draft.title);
+        if (draft.description) setDescription(draft.description);
+        if (draft.courseId) setCourseId(draft.courseId);
+        if (draft.environment) setEnvironment(draft.environment);
+        if (draft.submissionType) setSubmissionType(draft.submissionType);
+        if (draft.durationMinutes) setDurationMinutes(draft.durationMinutes);
+        if (draft.accessCode) setAccessCode(draft.accessCode);
+        if (draft.activeStep) setActiveStep(draft.activeStep);
+        if (draft.solutionTitle) setSolutionTitle(draft.solutionTitle);
+        if (draft.solutionCode) setSolutionCode(draft.solutionCode);
+        if (draft.solutionFiles) setSolutionFiles(draft.solutionFiles);
+        if (draft.solutionZipName) setSolutionZipName(draft.solutionZipName);
+        if (draft.expectedComplexity) setExpectedComplexity(draft.expectedComplexity);
+        if (draft.expectedSpaceComplexity) setExpectedSpaceComplexity(draft.expectedSpaceComplexity);
+        if (draft.acceptedStrategiesText) setAcceptedStrategiesText(draft.acceptedStrategiesText);
+        if (draft.algorithmNotes) setAlgorithmNotes(draft.algorithmNotes);
+        if (draft.testCases && draft.testCases.length > 0) setTestCases(draft.testCases);
+        if (draft.zipEntries) setZipEntries(draft.zipEntries);
+        if (draft.zipFilesContent) setZipFilesContent(draft.zipFilesContent);
+      }
+    } catch (e) {
+      console.warn('Failed to restore draft from localStorage', e);
+    }
+  }, [editId]);
+
+  // Auto-save draft to localStorage whenever fields change
+  useEffect(() => {
+    if (editId || typeof window === 'undefined') return;
+    if (!title && !testCases.length && !solutionCode) return;
+    try {
+      const draft = {
+        title,
+        description,
+        courseId,
+        environment,
+        submissionType,
+        durationMinutes,
+        accessCode,
+        activeStep,
+        solutionTitle,
+        solutionCode,
+        solutionFiles,
+        solutionZipName,
+        expectedComplexity,
+        expectedSpaceComplexity,
+        acceptedStrategiesText,
+        algorithmNotes,
+        testCases,
+        zipEntries,
+        zipFilesContent,
+      };
+      localStorage.setItem('aita_exam_wizard_draft', JSON.stringify(draft));
+    } catch {
+      // Ignore quota errors
+    }
+  }, [
+    editId, title, description, courseId, environment, submissionType,
+    durationMinutes, accessCode, activeStep, solutionTitle, solutionCode,
+    solutionFiles, solutionZipName, expectedComplexity, expectedSpaceComplexity,
+    acceptedStrategiesText, algorithmNotes, testCases, zipEntries, zipFilesContent
+  ]);
 
   // Fetch courses; context deep-links must never silently fall back to another course.
   useEffect(() => {
@@ -539,6 +609,9 @@ export function useCreateExamWizard() {
     const validationError = validateStep(activeStep as 1 | 2 | 3);
     if (validationError) {
       setNavigationError(validationError);
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
       return;
     }
     setActiveStep(targetStep);
@@ -723,8 +796,11 @@ export function useCreateExamWizard() {
       }, { pdf: pdfUploadFile ?? undefined, starter: starterFile ?? undefined });
 
       setSubmitSuccess(true);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('aita_exam_wizard_draft');
+      }
       setTimeout(() => {
-        router.push('/exam-bank');
+        router.push(ROUTES.LECTURER.EXAM_BANK);
       }, 1500);
     } catch (error: unknown) {
       console.error('[CreateExamWizard] Failed to save assignment package', error);

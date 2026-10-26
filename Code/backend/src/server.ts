@@ -1,5 +1,11 @@
 import app from './app.js';
 import { env } from './infrastructure/config/env.js';
+
+// Global serialization for BigInt across server runtime
+(BigInt.prototype as unknown as { toJSON: () => number | string }).toJSON = function () {
+  const intVal = Number(this);
+  return Number.isSafeInteger(intVal) ? intVal : this.toString();
+};
 import { startGradingWorker, stopGradingWorker } from './infrastructure/queue/grading-worker.bootstrap.js';
 import { workspaceCleanupService } from './infrastructure/storage/workspace-cleanup.service.js';
 import {
