@@ -23,6 +23,16 @@ export const AddKeyModal: React.FC<AddKeyModalProps> = ({ open, onClose, onCreat
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const handleProviderChange = (provider: AiProvider) => {
+    if (provider === 'OPENAI') {
+      setForm((prev) => ({ ...prev, provider, dailyRequestLimit: 5000, rpmLimit: 500 }));
+    } else if (provider === 'GEMINI') {
+      setForm((prev) => ({ ...prev, provider, dailyRequestLimit: 1500, rpmLimit: 60 }));
+    } else {
+      setForm((prev) => ({ ...prev, provider }));
+    }
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -44,28 +54,63 @@ export const AddKeyModal: React.FC<AddKeyModalProps> = ({ open, onClose, onCreat
       <form onSubmit={submit} className="space-y-5">
         {error && <AlertBox message={error} />}
         <div className="grid gap-5 sm:grid-cols-2">
-          <FormField label="Provider">
-            <select value={form.provider} onChange={(e) => setForm({ ...form, provider: e.target.value as AiProvider })} className={inputClass}>
+          <FormField label="Nhà cung cấp (Provider)">
+            <select
+              value={form.provider}
+              onChange={(e) => handleProviderChange(e.target.value as AiProvider)}
+              className={inputClass}
+            >
               <option value="GEMINI">Google Gemini</option>
+              <option value="OPENAI">OpenAI</option>
             </select>
           </FormField>
           <FormField label="Tên gợi nhớ (alias)">
-            <Input required maxLength={100} value={form.keyAlias} onChange={(e) => setForm({ ...form, keyAlias: e.target.value })} placeholder="Key-05: Gemini 1.5 Pro" className="h-[42px]" />
+            <Input
+              required
+              maxLength={100}
+              value={form.keyAlias}
+              onChange={(e) => setForm({ ...form, keyAlias: e.target.value })}
+              placeholder={form.provider === 'OPENAI' ? 'Key-OpenAI: GPT-4o' : 'Key-Gemini: Gemini 1.5 Flash'}
+              className="h-[42px]"
+            />
           </FormField>
         </div>
         <FormField label="API Key" hint="Được mã hóa AES-256 trước khi lưu; chỉ hiển thị phần gợi ý cuối khóa.">
-          <Input required type="password" minLength={10} autoComplete="off" value={form.rawApiKey} onChange={(e) => setForm({ ...form, rawApiKey: e.target.value })} className="h-[42px] font-mono" />
+          <Input
+            required
+            type="password"
+            minLength={10}
+            autoComplete="off"
+            value={form.rawApiKey}
+            onChange={(e) => setForm({ ...form, rawApiKey: e.target.value })}
+            placeholder={form.provider === 'OPENAI' ? 'sk-...' : 'AIzaSy...'}
+            className="h-[42px] font-mono"
+          />
         </FormField>
         <div className="grid gap-5 sm:grid-cols-2">
           <FormField label="Giới hạn request / ngày">
-            <Input required type="number" min={1} value={form.dailyRequestLimit} onChange={(e) => setForm({ ...form, dailyRequestLimit: Number(e.target.value) })} className="h-[42px]" />
+            <Input
+              required
+              type="number"
+              min={1}
+              value={form.dailyRequestLimit}
+              onChange={(e) => setForm({ ...form, dailyRequestLimit: Number(e.target.value) })}
+              className="h-[42px]"
+            />
           </FormField>
-          <FormField label="Giới hạn RPM">
-            <Input required type="number" min={1} value={form.rpmLimit} onChange={(e) => setForm({ ...form, rpmLimit: Number(e.target.value) })} className="h-[42px]" />
+          <FormField label="Giới hạn RPM (Requests per minute)">
+            <Input
+              required
+              type="number"
+              min={1}
+              value={form.rpmLimit}
+              onChange={(e) => setForm({ ...form, rpmLimit: Number(e.target.value) })}
+              className="h-[42px]"
+            />
           </FormField>
         </div>
         <div className="flex justify-end gap-2 pt-2">
-          <Button onClick={onClose}>Hủy</Button>
+          <Button onClick={onClose} type="button">Hủy</Button>
           <Button type="submit" variant="primary" disabled={submitting}>
             {submitting ? 'Đang lưu...' : 'Thêm khóa'}
           </Button>

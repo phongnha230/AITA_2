@@ -41,7 +41,7 @@ export const KeysTable: React.FC<KeysTableProps> = ({ keys, total, allCount, pag
   return (
     <Card className="overflow-hidden p-0">
       {keys.length === 0 ? (
-        <EmptyState message="Chưa có khóa API nào trong kho." />
+        <EmptyState message={allCount > 0 ? 'Không tìm thấy khóa API nào phù hợp với bộ lọc.' : 'Chưa có khóa API nào trong kho.'} />
       ) : (
         <div className="overflow-x-auto">
           <Table className="min-w-[980px]">
