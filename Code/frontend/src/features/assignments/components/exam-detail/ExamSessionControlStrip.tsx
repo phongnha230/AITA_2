@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Clock, Plus, StopCircle, Radio, Users, Terminal } from 'lucide-react';
+import { Clock, Plus, StopCircle, Radio, Users, Terminal, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ROUTES } from '@/config/routes';
 import { assignmentService } from '../../services/assignment.service';
@@ -18,11 +18,23 @@ export const ExamSessionControlStrip: React.FC<ExamSessionControlStripProps> = (
   onRefresh,
 }) => {
   const [currentTime, setCurrentTime] = useState(() => Date.now());
-  const [optimisticDeadlineMs, setOptimisticDeadlineMs] = useState<number | null>(null);
+  const [optimisticDeadlineMs, setOptimisticDeadlineMs] = useState<number | null>(() =>
+    assignment.deadline ? new Date(assignment.deadline).getTime() : null
+  );
+  const [sessionStatus, setSessionStatus] = useState<string>(() => assignment.status);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [updatingAction, setUpdatingAction] = useState<number | 'CLOSE' | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  // Live timer tick every 1000ms
+  // Đồng bộ khi props assignment thay đổi từ server
+  useEffect(() => {
+    if (assignment.deadline) {
+      setOptimisticDeadlineMs(new Date(assignment.deadline).getTime());
+    }
+    setSessionStatus(assignment.status);
+  }, [assignment.deadline, assignment.status]);
+
+  // Bộ đếm thời gian theo thời gian thực (1 giây/lần)
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(Date.now());
@@ -43,19 +55,33 @@ export const ExamSessionControlStrip: React.FC<ExamSessionControlStripProps> = (
 
   const handleAdjustTime = async (extraMinutes: number) => {
     setIsUpdating(true);
+    setUpdatingAction(extraMinutes);
+    // Tính mốc gia hạn: nếu deadline cũ đã qua thì tính từ hiện tại (now)
     const baseMs = Math.max(Date.now(), effectiveDeadlineMs);
-    setOptimisticDeadlineMs(baseMs + extraMinutes * 60 * 1000);
+    const targetMs = baseMs + extraMinutes * 60 * 1000;
+    setOptimisticDeadlineMs(targetMs);
+    setSessionStatus('PUBLISHED');
+
     try {
       const res = await assignmentService.controlExamSession(assignment.id, 'EXTEND', extraMinutes);
       setFeedback(res.message || `Đã gia hạn +${extraMinutes} phút`);
+      if (res.deadline) {
+        setOptimisticDeadlineMs(new Date(res.deadline).getTime());
+      }
+      if (res.status) {
+        setSessionStatus(res.status);
+      }
       onRefresh?.();
-      setTimeout(() => setFeedback(null), 3000);
-    } catch (err) {
+      setTimeout(() => setFeedback(null), 4000);
+    } catch (err: unknown) {
       console.error('Lỗi gia hạn ca thi:', err);
       setFeedback('Không thể gia hạn thời gian.');
+      setOptimisticDeadlineMs(assignment.deadline ? new Date(assignment.deadline).getTime() : null);
+      setSessionStatus(assignment.status);
+      setTimeout(() => setFeedback(null), 3000);
     } finally {
       setIsUpdating(false);
-      setOptimisticDeadlineMs(null);
+      setUpdatingAction(null);
     }
   };
 
@@ -64,22 +90,35 @@ export const ExamSessionControlStrip: React.FC<ExamSessionControlStripProps> = (
       return;
     }
     setIsUpdating(true);
+    setUpdatingAction('CLOSE');
     setOptimisticDeadlineMs(Date.now());
+    setSessionStatus('CLOSED');
+
     try {
       const res = await assignmentService.controlExamSession(assignment.id, 'CLOSE');
       setFeedback(res.message || 'Đã đóng ca thi');
+      if (res.deadline) {
+        setOptimisticDeadlineMs(new Date(res.deadline).getTime());
+      }
+      if (res.status) {
+        setSessionStatus(res.status);
+      }
       onRefresh?.();
-      setTimeout(() => setFeedback(null), 3000);
-    } catch (err) {
+      setTimeout(() => setFeedback(null), 4000);
+    } catch (err: unknown) {
       console.error('Lỗi thu bài ca thi:', err);
+      setFeedback('Không thể đóng ca thi.');
+      setOptimisticDeadlineMs(assignment.deadline ? new Date(assignment.deadline).getTime() : null);
+      setSessionStatus(assignment.status);
+      setTimeout(() => setFeedback(null), 3000);
     } finally {
       setIsUpdating(false);
-      setOptimisticDeadlineMs(null);
+      setUpdatingAction(null);
     }
   };
 
-  const isLive = assignment.status === 'PUBLISHED' && secondsLeft > 0;
-  const isClosed = assignment.status === 'CLOSED' || secondsLeft === 0;
+  const isLive = sessionStatus === 'PUBLISHED' && secondsLeft > 0;
+  const isClosed = sessionStatus === 'CLOSED' || secondsLeft === 0;
 
   return (
     <div className="rounded-2xl border border-indigo-200/90 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-4 sm:p-5 text-white shadow-md space-y-3">
@@ -100,7 +139,7 @@ export const ExamSessionControlStrip: React.FC<ExamSessionControlStripProps> = (
                 {isLive ? 'Ca thi đang diễn ra (LIVE)' : isClosed ? 'Ca thi đã kết thúc' : 'Ca thi sắp bắt đầu'}
               </span>
               {feedback && (
-                <span className="rounded-md bg-emerald-500/20 px-2 py-0.5 text-xs font-bold text-emerald-300">
+                <span className="rounded-md bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 text-xs font-bold text-emerald-300 animate-in fade-in duration-200">
                   {feedback}
                 </span>
               )}
@@ -123,9 +162,13 @@ export const ExamSessionControlStrip: React.FC<ExamSessionControlStripProps> = (
             size="sm"
             disabled={isUpdating}
             onClick={() => handleAdjustTime(5)}
-            className="h-9 rounded-xl border-white/20 bg-white/10 hover:bg-white/20 text-white font-bold text-xs"
+            className="h-9 rounded-xl border-white/20 bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition active:scale-95 cursor-pointer"
           >
-            <Plus className="mr-1 size-3.5 text-indigo-300" />
+            {updatingAction === 5 ? (
+              <Loader2 className="mr-1.5 size-3.5 animate-spin text-indigo-300" />
+            ) : (
+              <Plus className="mr-1.5 size-3.5 text-indigo-300" />
+            )}
             +5 Phút
           </Button>
 
@@ -134,9 +177,13 @@ export const ExamSessionControlStrip: React.FC<ExamSessionControlStripProps> = (
             size="sm"
             disabled={isUpdating}
             onClick={() => handleAdjustTime(10)}
-            className="h-9 rounded-xl border-white/20 bg-white/10 hover:bg-white/20 text-white font-bold text-xs"
+            className="h-9 rounded-xl border-white/20 bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition active:scale-95 cursor-pointer"
           >
-            <Plus className="mr-1 size-3.5 text-indigo-300" />
+            {updatingAction === 10 ? (
+              <Loader2 className="mr-1.5 size-3.5 animate-spin text-indigo-300" />
+            ) : (
+              <Plus className="mr-1.5 size-3.5 text-indigo-300" />
+            )}
             +10 Phút
           </Button>
 
@@ -146,9 +193,13 @@ export const ExamSessionControlStrip: React.FC<ExamSessionControlStripProps> = (
               size="sm"
               disabled={isUpdating}
               onClick={handleCloseSession}
-              className="h-9 rounded-xl border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 font-bold text-xs"
+              className="h-9 rounded-xl border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 font-bold text-xs transition active:scale-95 cursor-pointer"
             >
-              <StopCircle className="mr-1 size-3.5 text-rose-400" />
+              {updatingAction === 'CLOSE' ? (
+                <Loader2 className="mr-1.5 size-3.5 animate-spin text-rose-300" />
+              ) : (
+                <StopCircle className="mr-1.5 size-3.5 text-rose-400" />
+              )}
               Thu bài ngay
             </Button>
           )}

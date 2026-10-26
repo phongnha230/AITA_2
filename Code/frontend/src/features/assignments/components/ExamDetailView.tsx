@@ -30,8 +30,8 @@ export const ExamDetailView: React.FC<ExamDetailViewProps> = ({ examId }) => {
   const [selectedTagFilter, setSelectedTagFilter] = useState<string>('ALL');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  const fetchExamDetail = useCallback(async () => {
-    setLoading(true);
+  const fetchExamDetail = useCallback(async (silent: boolean = false) => {
+    if (!silent) setLoading(true);
     setError(null);
     try {
       const data = await assignmentService.getAssignmentById(examId);
@@ -44,7 +44,7 @@ export const ExamDetailView: React.FC<ExamDetailViewProps> = ({ examId }) => {
       console.error('Lỗi khi tải chi tiết đề thi:', err);
       setError(getErrorMessage(err, 'Không thể tải chi tiết đề thi. Vui lòng thử lại sau.'));
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [examId]);
 
@@ -107,7 +107,7 @@ export const ExamDetailView: React.FC<ExamDetailViewProps> = ({ examId }) => {
       <ExamDetailHeaderBanner assignment={assignment} />
 
       {/* 2.5. LIVE SESSION CONTROL & COUNTDOWN STRIP */}
-      <ExamSessionControlStrip assignment={assignment} onRefresh={fetchExamDetail} />
+      <ExamSessionControlStrip assignment={assignment} onRefresh={() => fetchExamDetail(true)} />
 
 
       {/* 3. NAVIGATION TABS */}

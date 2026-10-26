@@ -17,6 +17,14 @@ import type { GradingRun } from '@/features/grading/types/grading-history.types'
 
 
 export const assignmentService = {
+  async downloadAssignmentFile(assignmentId: string, kind: 'pdf' | 'starter'): Promise<Blob> {
+    await this.ensureLecturerAuth();
+    const response = await api.get<Blob>(`/assignments/${encodeURIComponent(assignmentId)}/files/${kind}`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
   getAssignmentFileUrl(assignmentId: string, kind: 'pdf' | 'starter'): string {
     return `${api.defaults.baseURL}/assignments/${encodeURIComponent(assignmentId)}/files/${kind}`;
   },
@@ -382,7 +390,10 @@ export const assignmentService = {
       action,
       extraMinutes,
     });
-    return res.data?.data;
+    return {
+      message: res.data?.message || res.data?.data?.message || 'Cập nhật ca thi thành công',
+      ...(res.data?.data || {}),
+    };
   },
 };
 

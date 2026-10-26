@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Clock, Layers, Terminal, FileCode } from 'lucide-react';
+import { Clock, Layers, Terminal, FileCode, KeyRound } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import type { Assignment } from '../../types/assignment.types';
@@ -14,7 +14,7 @@ export const ExamDetailHeaderBanner: React.FC<ExamDetailHeaderBannerProps> = ({ 
   const isJava = assignment.environment === 'JAVA_JDK';
   const isPublished = assignment.status === 'PUBLISHED';
   const testCases = assignment.testCases || [];
-  const totalPoints = testCases.reduce((sum, tc) => sum + (tc.points || 0), 0);
+  const totalPoints = testCases.reduce((sum, tc) => sum + (Number(tc.points) || 0), 0);
 
   return (
     <Card className="rounded-3xl border-slate-200 shadow-2xs p-6 md:p-8 bg-white space-y-4">
@@ -35,6 +35,13 @@ export const ExamDetailHeaderBanner: React.FC<ExamDetailHeaderBannerProps> = ({ 
         >
           {isPublished ? '● ĐÃ XUẤT BẢN' : 'BẢN NHÁP'}
         </Badge>
+        {assignment.accessCode && (
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 font-mono text-xs font-bold shadow-2xs">
+            <KeyRound className="size-3.5 text-amber-600" />
+            <span>Mã mở đề:</span>
+            <span className="font-extrabold tracking-wider">{assignment.accessCode}</span>
+          </div>
+        )}
         {assignment.course && (
           <span className="text-xs text-slate-500 font-medium">
             {assignment.course.name} • {assignment.course.semester}
@@ -66,7 +73,7 @@ export const ExamDetailHeaderBanner: React.FC<ExamDetailHeaderBannerProps> = ({ 
           <div className="text-xs font-semibold text-slate-400">Quy mô Testcase</div>
           <div className="text-sm font-black text-slate-900 mt-0.5 flex items-center gap-1.5">
             <Layers className="size-4 text-indigo-600" />
-            <span>{testCases.length} Testcases • {totalPoints.toFixed(1)} pts</span>
+            <span>{testCases.length} Testcases • {Number(totalPoints).toFixed(1)} pts</span>
           </div>
         </div>
 

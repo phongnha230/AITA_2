@@ -31,7 +31,7 @@ export const ExamDetailTestcasesTab: React.FC<ExamDetailTestcasesTabProps> = ({
   copiedKey,
   onCopy,
 }) => {
-  const totalPoints = testCases.reduce((sum, tc) => sum + (tc.points || 0), 0);
+  const totalPoints = testCases.reduce((sum, tc) => sum + (Number(tc.points) || 0), 0);
   const hiddenCount = testCases.filter((tc) => tc.isHidden).length;
   const publicCount = testCases.length - hiddenCount;
 
@@ -96,7 +96,7 @@ export const ExamDetailTestcasesTab: React.FC<ExamDetailTestcasesTabProps> = ({
           </div>
           <div className="flex items-center gap-2">
             <span className="size-2.5 rounded-full bg-indigo-500" />
-            <span>Tổng thang điểm: <strong>{totalPoints.toFixed(1)} / {Number(functionalMaxScore).toFixed(1)} pts</strong></span>
+            <span>Tổng thang điểm: <strong>{Number(totalPoints).toFixed(1)} / {Number(functionalMaxScore).toFixed(1)} pts</strong></span>
           </div>
         </div>
 
@@ -164,7 +164,7 @@ export const ExamDetailTestcasesTab: React.FC<ExamDetailTestcasesTabProps> = ({
 
                   <div className="flex items-center gap-3 text-xs">
                     <span className="font-semibold text-slate-500">
-                      Điểm: <strong className="text-indigo-700 font-mono text-sm">{tc.points.toFixed(1)}</strong> pts
+                      Điểm: <strong className="text-indigo-700 font-mono text-sm">{Number(tc.points).toFixed(1)}</strong> pts
                     </span>
                     <span className="text-slate-300">•</span>
                     <span className="text-slate-500 font-mono text-xs flex items-center gap-1">

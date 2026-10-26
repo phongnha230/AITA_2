@@ -65,6 +65,7 @@ export interface StudentAssignment {
   createdAt: string;
   updatedAt: string;
   hasPdf?: boolean;
+  hasStarterCode?: boolean;
 }
 
 export type StudentExamTemporalStatus = 'UPCOMING' | 'OPEN' | 'PAUSED' | 'ENDED' | 'UNKNOWN';

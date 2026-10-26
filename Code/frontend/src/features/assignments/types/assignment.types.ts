@@ -106,6 +106,8 @@ export interface Assignment {
   allowZipSubmission: boolean;
   pdfFilePath?: string;
   starterCodePath?: string;
+  hasPdf?: boolean;
+  hasStarterCode?: boolean;
   status: AssignmentStatus;
   durationMinutes?: number | null;
   gradingVersion?: number;

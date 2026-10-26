@@ -193,6 +193,11 @@ export const studentService = {
     return response.data.data;
   },
 
+  async downloadExamStarterZip(id: string): Promise<Blob> {
+    const response = await api.get<Blob>(`/assignments/${encodeURIComponent(id)}/files/starter`, { responseType: 'blob' });
+    return response.data;
+  },
+
   async downloadExamPdf(id: string): Promise<Blob> {
     const response = await api.get<Blob>(`/assignments/${encodeURIComponent(id)}/files/pdf`, { responseType: 'blob' });
     return response.data;
