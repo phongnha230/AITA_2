@@ -53,22 +53,22 @@ export class HealthService implements IHealthService {
     }
     try {
       if (!env.USE_DOCKER_SANDBOX) throw new Error('Docker sandbox is disabled.');
-      await execFileAsync('docker', ['info'], { timeout: 3_000, windowsHide: true });
+      await execFileAsync('docker', ['version', '--format', '{{.Server.Version}}'], { timeout: 6_000, windowsHide: true });
       await execFileAsync('docker', ['image', 'inspect', env.PLAYWRIGHT_SANDBOX_IMAGE], {
-        timeout: 3_000,
+        timeout: 5_000,
         windowsHide: true,
       });
       await execFileAsync('docker', ['image', 'inspect', env.PLAYWRIGHT_CONTROL_IMAGE], {
-        timeout: 3_000,
+        timeout: 5_000,
         windowsHide: true,
       });
       await execFileAsync('docker', ['network', 'inspect', env.PLAYWRIGHT_SANDBOX_NETWORK], {
-        timeout: 3_000,
+        timeout: 5_000,
         windowsHide: true,
       });
       const proxyStatus = await execFileAsync('docker', [
         'inspect', '--format', '{{.State.Running}}', 'aita-playwright-egress-proxy',
-      ], { timeout: 3_000, windowsHide: true });
+      ], { timeout: 5_000, windowsHide: true });
       if (proxyStatus.stdout.trim() !== 'true') throw new Error('Playwright egress proxy is not running.');
     } catch (error) {
       snapshot.services.chromium = 'UNAVAILABLE';

@@ -28,17 +28,17 @@ export class SandboxController {
     let playwrightSandboxAvailable = false;
     if (env.USE_DOCKER_SANDBOX) {
       try {
-        await execFileAsync('docker', ['info'], { timeout: 3_000 });
+        await execFileAsync('docker', ['version', '--format', '{{.Server.Version}}'], { timeout: 6_000, windowsHide: true });
         dockerAvailable = true;
       } catch {
         dockerAvailable = false;
       }
       if (dockerAvailable) {
         try {
-          await execFileAsync('docker', ['image', 'inspect', env.PLAYWRIGHT_SANDBOX_IMAGE], { timeout: 3_000 });
-          await execFileAsync('docker', ['image', 'inspect', env.PLAYWRIGHT_CONTROL_IMAGE], { timeout: 3_000 });
-          await execFileAsync('docker', ['network', 'inspect', env.PLAYWRIGHT_SANDBOX_NETWORK], { timeout: 3_000 });
-          const proxyStatus = await execFileAsync('docker', ['inspect', '--format', '{{.State.Running}}', 'aita-playwright-egress-proxy'], { timeout: 3_000 });
+          await execFileAsync('docker', ['image', 'inspect', env.PLAYWRIGHT_SANDBOX_IMAGE], { timeout: 5_000, windowsHide: true });
+          await execFileAsync('docker', ['image', 'inspect', env.PLAYWRIGHT_CONTROL_IMAGE], { timeout: 5_000, windowsHide: true });
+          await execFileAsync('docker', ['network', 'inspect', env.PLAYWRIGHT_SANDBOX_NETWORK], { timeout: 5_000, windowsHide: true });
+          const proxyStatus = await execFileAsync('docker', ['inspect', '--format', '{{.State.Running}}', 'aita-playwright-egress-proxy'], { timeout: 5_000, windowsHide: true });
           playwrightSandboxAvailable = proxyStatus.stdout.trim() === 'true';
         } catch {
           playwrightSandboxAvailable = false;
@@ -59,17 +59,17 @@ export class SandboxController {
       let dockerAvailable = false;
       let playwrightSandboxAvailable = false;
       try {
-        await execFileAsync('docker', ['info'], { timeout: 3_000 });
+        await execFileAsync('docker', ['version', '--format', '{{.Server.Version}}'], { timeout: 6_000, windowsHide: true });
         dockerAvailable = true;
       } catch {
         dockerAvailable = false;
       }
       if (dockerAvailable) {
         try {
-          await execFileAsync('docker', ['image', 'inspect', env.PLAYWRIGHT_SANDBOX_IMAGE], { timeout: 3_000 });
-          await execFileAsync('docker', ['image', 'inspect', env.PLAYWRIGHT_CONTROL_IMAGE], { timeout: 3_000 });
-          await execFileAsync('docker', ['network', 'inspect', env.PLAYWRIGHT_SANDBOX_NETWORK], { timeout: 3_000 });
-          const proxyStatus = await execFileAsync('docker', ['inspect', '--format', '{{.State.Running}}', 'aita-playwright-egress-proxy'], { timeout: 3_000 });
+          await execFileAsync('docker', ['image', 'inspect', env.PLAYWRIGHT_SANDBOX_IMAGE], { timeout: 5_000, windowsHide: true });
+          await execFileAsync('docker', ['image', 'inspect', env.PLAYWRIGHT_CONTROL_IMAGE], { timeout: 5_000, windowsHide: true });
+          await execFileAsync('docker', ['network', 'inspect', env.PLAYWRIGHT_SANDBOX_NETWORK], { timeout: 5_000, windowsHide: true });
+          const proxyStatus = await execFileAsync('docker', ['inspect', '--format', '{{.State.Running}}', 'aita-playwright-egress-proxy'], { timeout: 5_000, windowsHide: true });
           playwrightSandboxAvailable = proxyStatus.stdout.trim() === 'true';
         } catch {
           playwrightSandboxAvailable = false;
@@ -151,7 +151,7 @@ export class SandboxController {
         throw new AppError('Chạy thử yêu cầu Docker Sandbox; chế độ local-native không được phép.', 503, 'SANDBOX_UNAVAILABLE');
       }
       try {
-        await execFileAsync('docker', ['info'], { timeout: 3_000 });
+        await execFileAsync('docker', ['version', '--format', '{{.Server.Version}}'], { timeout: 6_000, windowsHide: true });
       } catch {
         throw new AppError('Docker Sandbox hiện chưa sẵn sàng. Hãy thử lại sau.', 503, 'SANDBOX_UNAVAILABLE');
       }
