@@ -1,4 +1,4 @@
-import { Upload, FileSpreadsheet, Plus, Archive, X } from 'lucide-react';
+import { Upload, FileSpreadsheet, Plus, Archive, X, Sparkles } from 'lucide-react';
 import { AssignmentEnv, TestCase } from '../../types/assignment.types';
 import { TestcaseTable } from './TestcaseTable';
 import { WizardNavFooter } from './WizardNavFooter';
@@ -70,6 +70,22 @@ export const WizardStep3Solution: React.FC<WizardStep3SolutionProps> = ({
   const totalCalculatedPoints = testCases.reduce((acc, cur) => acc + (Number(cur.points) || 0), 0);
   const isExactTarget = Math.abs(totalCalculatedPoints - targetTestcaseMax) < 0.01;
   const uniqueQuestions = Array.from(new Set(testCases.map((tc) => tc.questionNumber || 'Q1')));
+
+  const handleScaleToTarget = () => {
+    if (testCases.length === 0 || totalCalculatedPoints === 0) return;
+    const factor = targetTestcaseMax / totalCalculatedPoints;
+    let accumulated = 0;
+    const updated = testCases.map((tc, index) => {
+      if (index === testCases.length - 1) {
+        const lastPoints = Math.round((targetTestcaseMax - accumulated) * 100) / 100;
+        return { ...tc, points: Math.max(0.01, lastPoints) };
+      }
+      const scaled = Math.round(Number(tc.points) * factor * 100) / 100;
+      accumulated += scaled;
+      return { ...tc, points: Math.max(0.01, scaled) };
+    });
+    setTestCases(updated);
+  };
 
   if (environment === 'REACT_JS') {
     return (
@@ -314,7 +330,17 @@ export const WizardStep3Solution: React.FC<WizardStep3SolutionProps> = ({
               </p>
             </div>
 
-            <div className="flex items-center gap-1.5 shrink-0">
+            <div className="flex items-center gap-2 shrink-0">
+              {!isExactTarget && totalCalculatedPoints > 0 && (
+                <button
+                  type="button"
+                  onClick={handleScaleToTarget}
+                  className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition"
+                >
+                  <Sparkles className="size-3.5" />
+                  <span>Quy đổi về 7.0đ</span>
+                </button>
+              )}
               {uniqueQuestions.map((q) => {
                 const qSum = testCases
                   .filter((tc) => (tc.questionNumber || 'Q1') === q)
