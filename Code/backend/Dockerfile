@@ -24,7 +24,7 @@ RUN npm run prisma:generate && \
     npm run build && \
     npm prune --omit=dev
 
-FROM docker:29.9.0-cli@sha256:1a4c7cb63513f349bdad01fcc6e0f3f2f67d37b9da86f14dc0d4a0942eecda00 AS docker-cli
+FROM docker:cli@sha256:5e6baf67325a79f64ed3bed6863954d5e05d0f3d4e57cbdb14809346814bbfdb AS docker-cli
 
 FROM ${NODE_IMAGE} AS production
 

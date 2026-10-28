@@ -1,0 +1,6 @@
+# Trivy ignore list for CI vulnerability scanning
+# CVE-2026-111943: Go crypto/x509 intermediate CA certificate verification flaw
+# The docker CLI binary in the backend image is solely used to communicate with
+# the local Docker daemon (/var/run/docker.sock) for isolated sandbox code execution.
+# It does not perform outbound TLS connections relying on untrusted intermediate CAs.
+CVE-2026-111943
