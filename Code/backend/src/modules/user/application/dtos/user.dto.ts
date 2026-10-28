@@ -28,7 +28,7 @@ export const AdminCreateUserSchema = z.object({
   fullName: z.string().min(2, 'Họ và tên tối thiểu 2 ký tự.').max(100),
   password: z.string().min(6, 'Mật khẩu tối thiểu 6 ký tự.').default('password123'),
   role: z.enum(['ADMIN', 'LECTURER', 'STUDENT'], {
-    required_error: 'Vui lòng chọn vai trò: ADMIN, LECTURER hoặc STUDENT',
+    message: 'Vui lòng chọn vai trò: ADMIN, LECTURER hoặc STUDENT',
   }),
   status: z.enum(['ACTIVE', 'SUSPENDED', 'PENDING_ACTIVATION']).default('ACTIVE'),
   avatarUrl: z.string().url().optional().nullable(),

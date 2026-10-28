@@ -5,7 +5,7 @@ export const CreateAssignmentSchema = z.object({
   title: z.string().min(2, 'Tiêu đề đề thi tối thiểu 2 ký tự').max(255),
   description: z.string().optional(),
   environment: z.enum(['C_GCC', 'JAVA_JDK', 'REACT_JS'], {
-    required_error: 'Vui lòng chọn môi trường: C_GCC, JAVA_JDK hoặc REACT_JS',
+    message: 'Vui lòng chọn môi trường: C_GCC, JAVA_JDK hoặc REACT_JS',
   }),
   submissionType: z.enum(['INDIVIDUAL', 'GROUP']).default('INDIVIDUAL'),
   startTime: z.coerce.date().default(() => new Date()),
@@ -123,7 +123,7 @@ export type SaveAssignmentPackageDto = z.infer<typeof SaveAssignmentPackageSchem
 
 export const ControlSessionSchema = z.object({
   action: z.enum(['EXTEND', 'CLOSE', 'START', 'PAUSE', 'RESUME', 'REOPEN', 'PUBLISH_GRADES'], {
-    required_error: 'Hành động điều khiển ca thi không hợp lệ.',
+    message: 'Hành động điều khiển ca thi không hợp lệ.',
   }),
   extraMinutes: z.coerce.number().int().positive().optional(),
   newAccessCode: z.string().trim().optional(),

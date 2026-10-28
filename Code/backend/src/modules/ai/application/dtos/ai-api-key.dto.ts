@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const CreateAiApiKeySchema = z.object({
   provider: z.enum(['GEMINI', 'OPENAI'], {
-    errorMap: () => ({ message: "Hệ thống hỗ trợ provider 'GEMINI' và 'OPENAI'" }),
+    message: "Hệ thống hỗ trợ provider 'GEMINI' và 'OPENAI'",
   }).default('GEMINI'),
   keyAlias: z.string().min(1, 'keyAlias không được để trống').max(100),
   rawApiKey: z.string().min(10, 'rawApiKey không hợp lệ'),

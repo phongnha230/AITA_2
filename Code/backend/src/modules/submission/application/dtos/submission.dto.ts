@@ -7,7 +7,7 @@ export const SubmitAssignmentSchema = z
     paperCode: z.string().max(50).optional(),
     accessCode: z.string().max(50).optional(),
     submissionChannel: z.enum(['ZIP_UPLOAD', 'GIT_COMMIT'], {
-      errorMap: () => ({ message: "submissionChannel phải là 'ZIP_UPLOAD' hoặc 'GIT_COMMIT'" }),
+      message: "submissionChannel phải là 'ZIP_UPLOAD' hoặc 'GIT_COMMIT'",
     }),
     gitRepoUrl: z.string().url('gitRepoUrl phải là một URL hợp lệ').optional(),
     gitCommitHash: z.string().regex(/^[a-f0-9]{7,40}$/i, 'gitCommitHash không hợp lệ').optional(),
