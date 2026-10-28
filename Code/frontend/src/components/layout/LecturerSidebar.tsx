@@ -4,17 +4,19 @@ import React from 'react';
 import Link from 'next/link';
 import {
   LayoutDashboard,
+  BookOpen,
   FileCode,
   Radio,
   Bot,
   LogOut,
   X,
-  Cpu,
+  Check,
+  GraduationCap,
   KeyRound,
+  Sparkles,
 } from 'lucide-react';
 import { type User } from '@/features/auth/services/auth.service';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
 import { ROUTES } from '@/config/routes';
 
 interface LecturerSidebarProps {
@@ -36,14 +38,20 @@ export const LecturerSidebar: React.FC<LecturerSidebarProps> = ({
   onOpenChangePassword,
   onLogout,
 }) => {
-  const isOverviewActive =
+  const isDashboardActive =
     pathname === ROUTES.LECTURER.DASHBOARD ||
-    pathname === ROUTES.LECTURER.COURSES ||
     pathname === '/dashboard' ||
-    pathname === '/courses' ||
     pathname === ROUTES.PUBLIC.HOME;
+
+  const isCoursesActive =
+    pathname === ROUTES.LECTURER.COURSES ||
+    pathname.startsWith('/lecturer/courses/') ||
+    pathname === '/courses' ||
+    pathname.startsWith('/courses/');
+
   const isExamBankActive =
     pathname.startsWith(ROUTES.LECTURER.EXAM_BANK) || pathname.startsWith('/exam-bank');
+
   const isLiveProctoringActive =
     pathname.startsWith(ROUTES.LECTURER.LIVE_PROCTORING) || pathname.startsWith('/live-proctoring');
 
@@ -55,6 +63,45 @@ export const LecturerSidebar: React.FC<LecturerSidebarProps> = ({
       .slice(-2)
       .map((w) => w[0]?.toUpperCase())
       .join('') || 'GV';
+
+  // 5 thanh điều hướng trên Taskbar
+  const NAV_ITEMS = [
+    {
+      href: ROUTES.LECTURER.DASHBOARD,
+      label: 'Tổng quan',
+      icon: LayoutDashboard,
+      isActive: isDashboardActive,
+      badge: null,
+    },
+    {
+      href: ROUTES.LECTURER.COURSES,
+      label: 'Quản lý khóa học',
+      icon: BookOpen,
+      isActive: isCoursesActive,
+      badge: null,
+    },
+    {
+      href: ROUTES.LECTURER.EXAM_BANK,
+      label: 'Ngân hàng đề & Testcase PE',
+      icon: FileCode,
+      isActive: isExamBankActive,
+      badge: 'PE',
+    },
+    {
+      href: ROUTES.LECTURER.LIVE_PROCTORING,
+      label: 'Quản lý ca thi',
+      icon: Radio,
+      isActive: isLiveProctoringActive,
+      badge: 'LIVE',
+    },
+    {
+      href: ROUTES.LECTURER.AI_TUTOR,
+      label: 'Cấu hình AI Tutor',
+      icon: Bot,
+      isActive: pathname.startsWith('/lecturer/ai-tutor'),
+      badge: 'AI',
+    },
+  ];
 
   return (
     <>
@@ -68,163 +115,156 @@ export const LecturerSidebar: React.FC<LecturerSidebarProps> = ({
         />
       )}
 
-      {/* Main Sidebar */}
+      {/* Main Sidebar - Clean White Theme synchronous with Student Portal */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between shrink-0 transform transition-transform duration-300 ease-in-out ${
-          isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        id="lecturer-navigation"
+        aria-label="Điều hướng Lecturer Portal"
+        className={`fixed lg:static inset-y-0 left-0 z-50 w-[264px] bg-white border-r border-slate-200 flex flex-col justify-between shrink-0 transform transition-transform duration-300 ease-in-out ${
+          isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'
         }`}
       >
-        <div className="p-5 flex flex-col min-h-0">
-          {/* Logo Brand */}
-          <div className="flex items-center justify-between pb-6 border-b border-slate-800">
+        <div className="p-4 sm:p-5 flex flex-col min-h-0">
+          {/* Logo Brand Header */}
+          <div className="flex h-14 items-center justify-between border-b border-slate-100 pb-4">
             <Link
               href={ROUTES.LECTURER.DASHBOARD}
               className="flex items-center gap-3 group"
               onClick={onClose}
             >
-              <div className="size-9 rounded-xl bg-indigo-600 flex items-center justify-center font-black text-white text-base shadow-lg shadow-indigo-500/20 group-hover:bg-indigo-500 transition">
-                AI
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm ring-2 ring-indigo-600/20 group-hover:bg-indigo-700 transition">
+                <GraduationCap className="size-5" />
               </div>
-              <div>
-                <span className="font-extrabold text-base tracking-tight text-white block group-hover:text-indigo-200 transition">
-                  AITA System
-                </span>
-                <span className="text-xs text-slate-400 font-medium">Cổng giảng viên</span>
+              <div className="min-w-0">
+                <p className="text-base font-extrabold tracking-tight text-slate-900 group-hover:text-indigo-600 transition">
+                  AITA PORTAL
+                </p>
+                <p className="text-xs font-semibold text-indigo-600">Lecturer Workspace</p>
               </div>
             </Link>
             <button
               aria-label="Đóng sidebar"
               onClick={onClose}
-              className="lg:hidden text-slate-400 hover:text-white p-1 rounded-lg"
+              className="lg:hidden text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition"
             >
               <X className="size-5" />
             </button>
           </div>
 
-          {/* Role Pill */}
-          <div className="my-4 px-3 py-2 rounded-lg bg-slate-800/80 border border-slate-700 flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-300">
-              Lecturer Portal
+          {/* Role Status Tag */}
+          <div className="my-4 px-3 py-2 rounded-xl bg-indigo-50/70 border border-indigo-100/80 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="size-2 rounded-full bg-indigo-600" />
+              <span className="text-xs font-bold text-indigo-900">Giảng viên phân công</span>
+            </div>
+            <span className="text-[11px] font-semibold text-indigo-600 bg-white px-2 py-0.5 rounded-md border border-indigo-200/60 shadow-2xs">
+              Giảng dạy
             </span>
-            <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
           </div>
 
-          {/* Navigation Links */}
-          <nav className="space-y-1.5 text-xs overflow-y-auto pr-1">
-            <Link
-              href={ROUTES.LECTURER.DASHBOARD}
-              onClick={onClose}
-              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl font-semibold transition text-left ${
-                isOverviewActive
-                  ? 'text-white bg-indigo-600 shadow-md shadow-indigo-600/30'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
-              }`}
-            >
-              <LayoutDashboard className="size-4 shrink-0" />
-              <span>Tổng quan khóa học</span>
-            </Link>
-
-            <Link
-              href={ROUTES.LECTURER.EXAM_BANK}
-              onClick={onClose}
-              className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl font-semibold transition text-left ${
-                isExamBankActive
-                  ? 'text-white bg-indigo-600 shadow-md shadow-indigo-600/30'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <FileCode className="size-4 shrink-0" />
-                <span>Ngân hàng đề & Testcase PE</span>
-              </div>
-              <span className="px-1.5 py-0.5 rounded text-xs font-mono bg-indigo-500/20 text-indigo-300">
-                DB
-              </span>
-            </Link>
-
-            <Link
-              href={ROUTES.LECTURER.LIVE_PROCTORING}
-              onClick={onClose}
-              className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl font-semibold transition text-left group ${
-                isLiveProctoringActive
-                  ? 'text-white bg-indigo-600 shadow-md shadow-indigo-600/30'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <Radio
-                  className={`size-4 shrink-0 ${
-                  isLiveProctoringActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'
+          {/* 5 Navigation Links on Taskbar */}
+          <div className="mt-1">
+            <p className="px-3 text-xs font-bold uppercase tracking-wider text-slate-400">
+              Menu Quản trị Giảng dạy
+            </p>
+            <nav aria-label="Điều hướng giảng viên" className="mt-2.5 space-y-1.5">
+              {NAV_ITEMS.map(({ href, label, icon: Icon, isActive, badge }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  prefetch={true}
+                  onClick={onClose}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`group flex min-h-11 items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 ${
+                    isActive
+                      ? 'bg-indigo-600 font-bold text-white shadow-sm shadow-indigo-600/30'
+                      : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 font-medium'
                   }`}
-                />
-                <span>Quản lý ca thi</span>
-              </div>
-            </Link>
+                >
+                  <Icon
+                    aria-hidden="true"
+                    className={`size-[18px] shrink-0 transition-colors ${
+                      isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-700'
+                    }`}
+                  />
+                  <span className="min-w-0 flex-1 truncate">{label}</span>
+                  {badge && !isActive && (
+                    <span
+                      className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                        badge === 'LIVE'
+                          ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+                          : 'bg-slate-100 text-slate-600'
+                      }`}
+                    >
+                      {badge}
+                    </span>
+                  )}
+                  {isActive && (
+                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-white/20 text-white">
+                      <Check aria-hidden="true" className="size-3" />
+                      <span className="sr-only">Trang hiện tại</span>
+                    </span>
+                  )}
+                </Link>
+              ))}
 
-            <button
-              onClick={onOpenAiConfig}
-              className="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition text-left group"
-            >
-              <Bot className="size-4 shrink-0 text-indigo-400 group-hover:scale-110 transition" />
-              <span>Cấu hình AI Tutor</span>
-            </button>
-          </nav>
+              
+            </nav>
+          </div>
         </div>
 
-        {/* Bottom Docker Sandbox Widget & Lecturer Profile */}
-        <div className="p-4 border-t border-slate-800 bg-slate-950/40 space-y-3">
-          {/* Docker Sandbox Widget */}
-          <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/60">
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-200">
-                <Cpu className="size-3.5 text-emerald-400" />
-                <span>Docker Sandbox</span>
+        {/* Bottom Profile & System Status Widget */}
+        <div className="p-4 border-t border-slate-100 bg-slate-50/60 space-y-3">
+          {/* AI Assistance Badge */}
+          <div className="p-2.5 rounded-xl bg-white border border-slate-200/80 shadow-2xs flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="size-6 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                <Sparkles className="size-3.5" />
               </div>
-              <span className="text-xs font-bold text-slate-300 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-700/60">
-                Chưa kiểm tra
-              </span>
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold text-slate-800">Socratic AI Grading</p>
+                <p className="text-[10px] text-slate-400">Gemini &amp; Sandbox Active</p>
+              </div>
             </div>
-            <div className="flex items-center justify-between text-xs text-slate-400">
-              <span>Chưa có trạng thái Docker trực tiếp</span>
-            </div>
+            <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
           </div>
 
-          {/* User Profile Box */}
+          {/* User Profile Card */}
           <div className="flex items-center justify-between pt-1">
-            <div className="flex items-center gap-3 min-w-0">
-              <Avatar className="size-9 rounded-xl bg-indigo-600 text-white font-black text-xs shrink-0 shadow">
-                <AvatarFallback className="bg-indigo-600 text-white font-black text-xs rounded-xl">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <Avatar className="size-9 rounded-xl bg-indigo-600 text-white font-black text-xs shrink-0 shadow-2xs ring-2 ring-indigo-600/10">
+                <AvatarFallback className="bg-indigo-600 text-white font-bold text-xs rounded-xl">
                   {userInitials}
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0">
-                <p className="text-xs font-bold text-white truncate">
-                  {currentUser?.fullName || 'Giảng viên AITA'}
+                <p className="text-xs font-bold text-slate-900 truncate">
+                  {currentUser?.fullName || 'Giảng viên'}
                 </p>
-                <p className="text-xs text-slate-400 font-mono truncate">
-                  {currentUser?.email || 'Chưa cập nhật email'}
+                <p className="text-[11px] text-slate-500 font-mono truncate">
+                  {currentUser?.email || 'lecturer@aita.edu.vn'}
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-0.5 shrink-0">
-              <Button
-                variant="ghost"
-                size="icon"
+
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                type="button"
                 onClick={onOpenChangePassword}
-                className="size-8 text-slate-400 hover:text-indigo-400 hover:bg-slate-800/80 transition"
+                className="inline-flex size-8 items-center justify-center rounded-lg text-slate-400 hover:bg-white hover:text-slate-700 hover:shadow-2xs border border-transparent hover:border-slate-200 transition"
                 title="Đổi mật khẩu"
+                aria-label="Đổi mật khẩu"
               >
-                <KeyRound className="size-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
+                <KeyRound className="size-3.5" />
+              </button>
+              <button
+                type="button"
                 onClick={onLogout}
-                className="size-8 text-slate-400 hover:text-rose-400 hover:bg-slate-800/80 transition"
+                className="inline-flex size-8 items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 border border-transparent hover:border-rose-100 transition"
                 title="Đăng xuất"
+                aria-label="Đăng xuất"
               >
-                <LogOut className="size-4" />
-              </Button>
+                <LogOut className="size-3.5" />
+              </button>
             </div>
           </div>
         </div>

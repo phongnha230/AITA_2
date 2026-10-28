@@ -359,17 +359,31 @@ export const assignmentService = {
     return data as ExamSession[];
   },
 
-  /**
+    /**
    * Lấy chi tiết dữ liệu giám sát phòng thi theo assignmentId
    */
-  async getProctoringData(assignmentId: string): Promise<{
-    session: ExamSession;
-    submissions: ExamSessionSubmission[];
-    unlockedStudents: ExamSessionStudentAccess[];
-  } | null> {
+  async getProctoringData(assignmentId: string): Promise<any | null> {
     await this.ensureLecturerAuth();
     const res = await api.get(`/assignments/${assignmentId}/proctoring`);
     return res.data?.data || null;
+  },
+
+  /**
+   * Lấy danh sách file mã nguồn nộp bài của sinh viên
+   */
+  async getSubmissionSourceFiles(submissionId: string): Promise<Array<{ name: string; path: string; content: string; size: number }>> {
+    await this.ensureLecturerAuth();
+    const res = await api.get(`/submissions/${encodeURIComponent(submissionId)}/source-files`);
+    return res.data?.data || [];
+  },
+
+  /**
+   * Lấy chi tiết bài nộp của sinh viên (test results, stdout, ai review)
+   */
+  async getSubmissionDetail(submissionId: string): Promise<any> {
+    await this.ensureLecturerAuth();
+    const res = await api.get(`/submissions/${encodeURIComponent(submissionId)}`);
+    return res.data?.data || res.data || null;
   },
 
   /**
@@ -377,8 +391,9 @@ export const assignmentService = {
    */
   async controlExamSession(
     assignmentId: string,
-    action: 'EXTEND' | 'CLOSE' | 'START' | 'PAUSE' | 'RESUME',
-    extraMinutes?: number
+    action: 'EXTEND' | 'CLOSE' | 'START' | 'PAUSE' | 'RESUME' | 'REOPEN' | 'PUBLISH_GRADES',
+    extraMinutes?: number,
+    newAccessCode?: string
   ): Promise<{
     message: string;
     deadline?: string;
@@ -389,11 +404,42 @@ export const assignmentService = {
     const res = await api.patch(`/assignments/${assignmentId}/session-control`, {
       action,
       extraMinutes,
+      newAccessCode,
     });
     return {
       message: res.data?.message || res.data?.data?.message || 'Cập nhật ca thi thành công',
       ...(res.data?.data || {}),
     };
   },
-};
 
+  /**
+   * Tải file .ZIP bài nộp của sinh viên về máy giảng viên
+   */
+  async downloadSubmissionZip(submissionId: string, filename?: string): Promise<void> {
+    await this.ensureLecturerAuth();
+    const res = await api.get(`/submissions/${encodeURIComponent(submissionId)}/download-zip`, {
+      responseType: 'blob',
+    });
+    const blob = new Blob([res.data], { type: 'application/zip' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename || `submission_${submissionId.slice(-6)}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  },
+
+  /**
+   * Giảng viên chấm điểm thủ công (Ghi đè điểm + lý do đánh giá)
+   */
+  async manualGradeSubmission(
+    submissionId: string,
+    data: { finalScore: number; reason: string }
+  ): Promise<any> {
+    await this.ensureLecturerAuth();
+    const res = await api.post(`/submissions/${encodeURIComponent(submissionId)}/manual-grade`, data);
+    return res.data?.data || res.data;
+  },
+};

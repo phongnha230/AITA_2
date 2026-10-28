@@ -11,6 +11,8 @@ export type TestExecutionStatus =
 export interface TestCaseInput {
   id: string;
   questionNo: string; // 'Q1', 'Q2', 'Q3', 'Q4'
+  label?: string;
+  subMethod?: string | null; // Tên hàm cụ thể (f1, f2, f3, tc1, tc2...)
   inputData: string; // Dữ liệu đầu vào bơm vào stdin hoặc ghi ra data.txt
   expectedOutput: string; // Dữ liệu đầu ra chuẩn của giảng viên
   outputFileName?: string | null; // Ví dụ: 'f1.txt' (dành cho môn CSD201)
@@ -26,6 +28,7 @@ export interface TestCaseInput {
 export interface TestCaseResult {
   testCaseId: string;
   questionNo: string;
+  subMethod?: string | null; // Tên hàm cụ thể trong file code (f1, f2, f3...)
   passed: boolean;
   status: TestExecutionStatus;
   actualOutput: string;

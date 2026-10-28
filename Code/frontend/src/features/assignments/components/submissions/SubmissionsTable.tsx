@@ -9,12 +9,14 @@ import {
   RefreshCw,
   Play,
   Bot,
+  Download,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { formatDateTime } from '@/lib/formatDate';
 import type { LecturerSubmission } from '../../types/assignment.types';
+import { assignmentService } from '../../services/assignment.service';
 
 interface SubmissionsTableProps {
   submissions: LecturerSubmission[];
@@ -86,13 +88,25 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
                               Mã đề: {sub.paperCode}
                             </span>
                           )}
+                          {sub.compileOutput?.includes('Không nộp bài') && (
+                            <div>
+                              <span className="text-[10px] font-bold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200 mt-1 inline-block">
+                                Không nộp bài khi hết giờ
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </td>
 
                     {/* Kênh nộp */}
                     <td className="p-4">
-                      {sub.submissionChannel === 'GIT_COMMIT' ? (
+                      {sub.compileOutput?.includes('Không nộp bài') ? (
+                        <div className="flex items-center gap-1.5 text-slate-500 font-medium">
+                          <span className="size-2 rounded-full bg-rose-500 shrink-0" />
+                          <span className="text-xs font-semibold text-rose-700">Quá hạn ca thi</span>
+                        </div>
+                      ) : sub.submissionChannel === 'GIT_COMMIT' ? (
                         <div className="flex items-center gap-1.5 text-slate-700 font-medium">
                           <Github className="size-4 text-slate-800 shrink-0" />
                           <span>Git Commit</span>
@@ -139,9 +153,15 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
                     {/* Final Score */}
                     <td className="p-4 text-center font-mono font-black text-sm">
                       {sub.finalScore !== null && sub.finalScore !== undefined ? (
-                        <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                          {sub.finalScore}
-                        </span>
+                        Number(sub.finalScore) === 0 ? (
+                          <span className="text-rose-700 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200">
+                            0.0
+                          </span>
+                        ) : (
+                          <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                            {sub.finalScore}
+                          </span>
+                        )
                       ) : (
                         <span className="text-slate-400">-</span>
                       )}

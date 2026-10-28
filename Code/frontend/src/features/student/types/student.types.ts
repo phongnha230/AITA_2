@@ -174,6 +174,7 @@ export interface StudentSubmissionDetail {
   assignmentId: string;
   userId: string;
   groupLabel?: string | null;
+  paperCode?: string | null;
   submissionChannel: string;
   zipFilePath?: string | null;
   zipFileSize?: number | null;
@@ -231,6 +232,26 @@ export interface StudentSubmissionDetail {
     matchedUserId?: string | null;
     activeDays: number;
   }>;
+}
+
+export interface StudentSubmissionListItem {
+  id: string;
+  assignmentId: string;
+  assignmentTitle: string;
+  courseCode: string;
+  courseName: string;
+  environment: string;
+  paperCode?: string | null;
+  attemptNo: number;
+  submissionChannel: string;
+  submittedAt: string;
+  status: string;
+  sandboxScore: number;
+  aiScore: number;
+  finalScore: number;
+  aiFeedback?: string | null;
+  timeComplexity?: string | null;
+  spaceComplexity?: string | null;
 }
 
 export interface RecentSubmissionItem {

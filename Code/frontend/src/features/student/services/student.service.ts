@@ -153,6 +153,26 @@ export const studentService = {
     return response.data.data;
   },
 
+  async getMySubmissions(): Promise<import('../types/student.types').StudentSubmissionListItem[]> {
+    try {
+      const response = await api.get<ApiResponse<import('../types/student.types').StudentSubmissionListItem[]>>('/submissions/my');
+      if (response.data?.data && Array.isArray(response.data.data)) {
+        return response.data.data;
+      }
+    } catch {
+      // Fallback to portfolio
+    }
+    try {
+      const portfolio = await studentService.getPortfolio();
+      return (portfolio.recentSubmissions || []).map((s) => ({
+        ...s,
+        attemptNo: 1,
+      }));
+    } catch {
+      return [];
+    }
+  },
+
   async getPortfolio(): Promise<import('../types/student.types').StudentPortfolioData> {
     const response = await api.get<ApiResponse<import('../types/student.types').StudentPortfolioData>>('/users/portfolio');
     if (!response.data.data) {

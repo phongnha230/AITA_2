@@ -73,6 +73,8 @@ export class SandboxService implements ISandboxService {
       return {
         id: testCase.id,
         questionNo,
+        label: testCase.label,
+        subMethod: (tcAny.subMethod as string) || null,
         inputData: testCase.stdinInput || testCase.inputFileContent || '',
         stdinInput: testCase.stdinInput,
         inputFileContent: testCase.inputFileContent,

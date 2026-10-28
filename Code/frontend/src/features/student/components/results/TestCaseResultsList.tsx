@@ -3,12 +3,12 @@
 import { useState } from 'react';
 import {
   AlertCircle,
+  AlertTriangle,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
   Clock,
   Cpu,
-  FileCheck2,
   HardDrive,
   XCircle,
 } from 'lucide-react';
@@ -24,6 +24,7 @@ function getVerdictInfo(verdict: string): { label: string; tone: string; icon: t
     case 'PASSED':
       return { label: 'Đạt (Passed)', tone: 'emerald', icon: CheckCircle2 };
     case 'FAILED':
+    case 'WRONG_ANSWER':
       return { label: 'Sai kết quả (Failed)', tone: 'rose', icon: XCircle };
     case 'TIME_LIMIT_EXCEEDED':
       return { label: 'Quá thời gian (TLE)', tone: 'amber', icon: Clock };
@@ -31,6 +32,8 @@ function getVerdictInfo(verdict: string): { label: string; tone: string; icon: t
       return { label: 'Quá bộ nhớ (MLE)', tone: 'amber', icon: HardDrive };
     case 'RUNTIME_ERROR':
       return { label: 'Lỗi thực thi (RTE)', tone: 'rose', icon: AlertCircle };
+    case 'COMPILE_ERROR':
+      return { label: 'Lỗi biên dịch (Compile Error)', tone: 'rose', icon: AlertCircle };
     default:
       return { label: norm || 'Chưa xác định', tone: 'slate', icon: AlertCircle };
   }
@@ -50,6 +53,7 @@ export function TestCaseResultsList({ testResults }: TestCaseResultsListProps) {
 
   const passedCount = testResults.filter((t) => t.verdict?.toUpperCase() === 'PASSED').length;
   const passRate = ((passedCount / testResults.length) * 100).toFixed(1);
+  const hasCompileError = testResults.some((t) => t.verdict?.toUpperCase() === 'COMPILE_ERROR');
 
   return (
     <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 shadow-elevated sm:p-7">
@@ -67,6 +71,18 @@ export function TestCaseResultsList({ testResults }: TestCaseResultsListProps) {
           </span>
         </div>
       </div>
+
+      {hasCompileError && (
+        <div className="mt-4 flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50/80 p-4 text-xs text-rose-900 shadow-2xs">
+          <AlertTriangle className="size-5 shrink-0 text-rose-600 mt-0.5" />
+          <div className="space-y-1">
+            <p className="font-bold text-rose-800 text-sm">Phát hiện Lỗi biên dịch (Compile Error)!</p>
+            <p className="text-rose-700 leading-relaxed">
+              Mã nguồn gặp lỗi cú pháp khi biên dịch bằng trình biên dịch (<code>javac</code> / <code>gcc</code>), dẫn đến không sinh được file thực thi. Toàn bộ các testcase của phần này bị tính <strong>0.00 điểm</strong>. Nhấn nút <strong>&quot;Chi tiết&quot;</strong> bên dưới hoặc mở mục <strong>&quot;Log biên dịch&quot;</strong> ở trên để xem dòng code cụ thể bị lỗi.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="mt-4 divide-y divide-slate-100">
         {testResults.map((tc, index) => {
@@ -155,7 +171,11 @@ export function TestCaseResultsList({ testResults }: TestCaseResultsListProps) {
                   )}
                   {tc.diffLog && (
                     <div>
-                      <p className="font-sans font-semibold text-slate-600">Diff Log so với chuẩn:</p>
+                      <p className="font-sans font-semibold text-slate-600">
+                        {tc.verdict?.toUpperCase() === 'COMPILE_ERROR'
+                          ? 'Chi tiết lỗi biên dịch (Compiler Error Log):'
+                          : 'Diff Log so với chuẩn:'}
+                      </p>
                       <pre className="mt-1 max-h-40 overflow-y-auto whitespace-pre-wrap rounded-lg bg-slate-900 p-2.5 text-rose-300 shadow-inner">
                         {tc.diffLog}
                       </pre>

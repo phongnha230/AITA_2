@@ -46,18 +46,68 @@ export class ControlSessionUseCase {
       };
     }
 
+    if (action === 'REOPEN') {
+      const duration = extraMinutes && extraMinutes > 0 ? extraMinutes : (existing.durationMinutes || 90);
+      const newDeadline = new Date(now.getTime() + duration * 60 * 1000);
+
+      const updatePayload: Record<string, unknown> = {
+        status: 'PUBLISHED',
+        startTime: now,
+        deadline: newDeadline,
+        durationMinutes: duration,
+        pausedAt: null,
+      };
+
+      if (dto.newAccessCode && dto.newAccessCode.trim()) {
+        updatePayload.accessCode = dto.newAccessCode.trim().toUpperCase();
+      }
+
+      const updated = await this.assignmentRepository.update(assignmentId, updatePayload as any);
+
+      // Xóa các bản ghi auto-zero do hết hạn ca trước đó để SV có thể thi và nộp lại
+      const clearedCount = await this.assignmentRepository.clearAutoZeroSubmissions(assignmentId);
+
+      const secondsLeft = Math.max(0, Math.round((newDeadline.getTime() - Date.now()) / 1000));
+
+      return {
+        message: `Đã mở lại ca thi thành công! Thời gian làm bài mới: ${duration} phút${clearedCount > 0 ? ` (Đã mở lại quyền nộp cho ${clearedCount} SV chưa nộp)` : ''}.`,
+        action: 'REOPEN',
+        status: updated.status,
+        deadline: updated.deadline,
+        secondsLeft,
+      };
+    }
+
     if (action === 'CLOSE') {
       const updated = await this.assignmentRepository.update(assignmentId, {
         status: 'CLOSED',
         deadline: now,
       });
 
+      const autoZeroCount = await this.assignmentRepository.finalizeUnsubmittedStudents(assignmentId);
+
       return {
-        message: 'Đã đóng ca thi và kết thúc thu bài thi thành công!',
+        message:
+          autoZeroCount > 0
+            ? `Đã đóng ca thi! Đã tự động chốt 0 điểm cho ${autoZeroCount} sinh viên không nộp bài.`
+            : 'Đã đóng ca thi và kết thúc thu bài thi thành công!',
         action: 'CLOSE',
         status: updated.status,
         deadline: updated.deadline,
         secondsLeft: 0,
+        autoZeroCount,
+      };
+    }
+
+    
+    if (action === 'PUBLISH_GRADES') {
+      const stats = await this.assignmentRepository.publishAllGrades(assignmentId);
+      return {
+        message: `Đã công bố điểm chính thức cho ${stats.publishedCount} bài thi! Điểm trung bình: ${stats.averageScore.toFixed(1)}/10.`,
+        action: 'PUBLISH_GRADES',
+        status: existing.status,
+        publishedCount: stats.publishedCount,
+        averageScore: stats.averageScore,
       };
     }
 

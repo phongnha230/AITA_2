@@ -325,22 +325,24 @@ export class JavaDockerRunner implements ISandboxRunner {
     // 3. Thực thi từng testcase
     const results: TestCaseResult[] = [];
     let passedCount = 0;
-    let totalScore = 0;
 
     for (const tc of testCases) {
       const qNo = tc.questionNo || 'Q1';
+      const subMethod = this.resolveSubMethod(tc);
       const comp = compilations.get(qNo);
 
       if (!comp || !comp.success) {
         results.push({
           testCaseId: tc.id,
           questionNo: tc.questionNo,
+          subMethod,
           passed: false,
           status: 'COMPILE_ERROR',
           actualOutput: '',
           expectedOutput: tc.expectedOutput,
           executionTimeMs: 0,
           memoryUsedKb: 0,
+          earnedScore: 0,
           errorMessage: comp?.compileError || `Không thể biên dịch câu hỏi ${qNo}`,
         });
         continue;
@@ -348,10 +350,54 @@ export class JavaDockerRunner implements ISandboxRunner {
 
       const qDir = questionDirs.get(qNo) || stagedFolderPath;
       const res = await this.runSingleTestCase(stagedFolderPath, qDir, tc, isDocker);
+      res.subMethod = subMethod;
       results.push(res);
       if (res.passed) {
         passedCount++;
-        totalScore += tc.score;
+      }
+    }
+
+    // 4. Cơ chế All-or-Nothing theo từng HÀM / Phương thức (FPT PE Java Rule):
+    // Trong PRO192 & CSD201, 1 câu hỏi có 1 file code nhưng chứa nhiều hàm nghiệp vụ (f1, f2, f3, tc1, tc2...).
+    // Mỗi hàm có bộ testcase kiểm thử độc lập.
+    // Sinh viên phải vượt qua 100% testcases của hàm đó mới được nhận trọn điểm của hàm đó.
+    // Nếu trượt bất kỳ testcase nào trong hàm đó, hàm đó sẽ nhận 0.00 điểm.
+    let totalScore = 0;
+
+    const methodGroups = new Map<string, TestCaseInput[]>();
+    for (const tc of testCases) {
+      const qNo = tc.questionNo || 'Q1';
+      const sub = this.resolveSubMethod(tc);
+      const groupKey = `${qNo}:${sub}`;
+      if (!methodGroups.has(groupKey)) {
+        methodGroups.set(groupKey, []);
+      }
+      methodGroups.get(groupKey)!.push(tc);
+    }
+
+    for (const [groupKey, gCases] of methodGroups.entries()) {
+      const gResults = results.filter((r) => {
+        const qNo = r.questionNo || 'Q1';
+        const sub = r.subMethod || 'default';
+        return `${qNo}:${sub}` === groupKey;
+      });
+
+      const isMethodFullPass =
+        gResults.length === gCases.length &&
+        gResults.every((r) => r.passed);
+
+      const gTotalMarks = gCases.reduce((sum, tc) => sum + tc.score, 0);
+
+      if (isMethodFullPass) {
+        totalScore += gTotalMarks;
+        for (const r of gResults) {
+          const matchedTc = gCases.find((tc) => tc.id === r.testCaseId);
+          r.earnedScore = matchedTc?.score ?? 0;
+        }
+      } else {
+        for (const r of gResults) {
+          r.earnedScore = 0;
+        }
       }
     }
 
@@ -642,6 +688,57 @@ export class JavaDockerRunner implements ISandboxRunner {
         });
       });
     });
+  }
+
+  /**
+   * Xác định tên hàm / phương thức nghiệp vụ tương ứng của testcase trong PRO192 / CSD201
+   */
+  public resolveSubMethod(tc: TestCaseInput): string {
+    // 1. Explicit subMethod field
+    if (tc.subMethod && tc.subMethod.trim()) {
+      return tc.subMethod.trim().toLowerCase();
+    }
+
+    // 2. outputFileName (ví dụ "f1.txt", "f2.txt" trong CSD201)
+    if (tc.outputFileName) {
+      const m = tc.outputFileName.match(/(f\d+)/i);
+      if (m) return m[1].toLowerCase();
+    }
+
+    // 3. label pattern dạng "Q3-f1-T1", "f2-T3", "Q4-f1-T2"
+    if (tc.label) {
+      const m = tc.label.match(/(?:Q\d+[-_])?(f\d+)/i);
+      if (m) return m[1].toLowerCase();
+    }
+
+    // 4. Dòng đầu tiên của stdin trong trường hợp TestHarness ("f1", "f2", "f3")
+    const rawInput = (tc.stdinInput || tc.inputData || '').trim();
+    const firstLine = rawInput.split('\n')[0]?.trim();
+    if (/^f[1-9]\b/i.test(firstLine)) {
+      return firstLine.toLowerCase();
+    }
+
+    // 5. Phân tích menu choice từ luồng stdin:
+    const lines = rawInput.split('\n').map((l) => l.trim()).filter(Boolean);
+    // CSD201 menu selection (dòng đơn "1", "2", "3", "4")
+    if (lines.length === 1 && /^[1-9]$/.test(lines[0])) {
+      return `f${lines[0]}`;
+    }
+    // PRO192 Q4: dòng đầu tiên là TC choice 1 hoặc 2
+    if ((tc.questionNo === 'Q4' || tc.label?.startsWith('Q4')) && lines.length >= 1 && /^[1-9]$/.test(lines[0])) {
+      return `f${lines[0]}`;
+    }
+    // PRO192 Q1: "name\nprice\n1" hoặc "name\nprice\n2\nnewPrice" -> dòng 3 (index 2) là TC choice
+    if ((tc.questionNo === 'Q1' || tc.label?.startsWith('Q1')) && lines.length >= 3 && /^[1-9]$/.test(lines[2])) {
+      return `tc${lines[2]}`;
+    }
+    // PRO192 Q2: "type\nprice\nweight\n1" -> dòng 4 (index 3) là TC choice
+    if ((tc.questionNo === 'Q2' || tc.label?.startsWith('Q2')) && lines.length >= 4 && /^[1-9]$/.test(lines[3])) {
+      return `tc${lines[3]}`;
+    }
+
+    // Fallback: gom theo cả câu nếu không phân tách được hàm
+    return 'default';
   }
 
   private getAllFiles(dir: string, ext: string): string[] {

@@ -272,6 +272,7 @@ export const LecturerSubmissionsView: React.FC<LecturerSubmissionsViewProps> = (
         onOpenChange={setIsDetailModalOpen}
         submission={selectedSubmission}
         renderStatusBadge={renderStatusBadge}
+        onSubmissionUpdated={loadData}
       />
     </div>
   );

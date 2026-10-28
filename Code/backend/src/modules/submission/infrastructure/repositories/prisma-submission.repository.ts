@@ -1,3 +1,6 @@
+import AdmZip from 'adm-zip';
+import fs from 'node:fs';
+import path from 'node:path';
 import { Prisma, PrismaClient } from '@prisma/client';
 import {
   ISubmissionRepository,
@@ -203,6 +206,237 @@ export class PrismaSubmissionRepository implements ISubmissionRepository {
     });
 
     return raw ? this.toDomain(raw) : null;
+  }
+
+  
+  async getSourceFiles(submissionId: string): Promise<Array<{ name: string; path: string; content: string; size: number }>> {
+    const submission = await this.prisma.submission.findUnique({
+      where: { id: submissionId },
+      select: { sourceSnapshotPath: true, zipFilePath: true, workspacePath: true },
+    });
+    if (!submission) return [];
+
+    const candidateZip = submission.sourceSnapshotPath || submission.zipFilePath;
+    if (candidateZip && fs.existsSync(candidateZip)) {
+      try {
+        const zip = new AdmZip(candidateZip);
+        const entries = zip.getEntries();
+        const results: Array<{ name: string; path: string; content: string; size: number }> = [];
+
+        for (const entry of entries) {
+          if (entry.isDirectory) continue;
+          const entryName = entry.entryName.replace(/\\/g, '/');
+          if (entryName.includes('__MACOSX') || entryName.includes('/.git/')) continue;
+          const ext = path.extname(entryName).toLowerCase();
+          if (['.exe', '.dll', '.so', '.class', '.o', '.obj', '.bin', '.out', '.zip', '.tar', '.gz'].includes(ext)) {
+            continue;
+          }
+          try {
+            const buffer = entry.getData();
+            if (buffer.length > 500 * 1024) continue;
+            results.push({
+              name: entry.name,
+              path: entryName,
+              content: buffer.toString('utf8'),
+              size: entry.header.size,
+            });
+          } catch {
+            // Ignore unreadable binary
+          }
+        }
+        if (results.length > 0) return results;
+      } catch (err) {
+        console.error('Lỗi khi đọc file nộp bài zip:', err);
+      }
+    }
+
+    if (submission.workspacePath && fs.existsSync(submission.workspacePath)) {
+      try {
+        const results: Array<{ name: string; path: string; content: string; size: number }> = [];
+        const readDirRecursive = (dir: string, baseDir: string): void => {
+          const entries = fs.readdirSync(dir, { withFileTypes: true });
+          for (const entry of entries) {
+            const fullPath = path.join(dir, entry.name);
+            const relPath = path.relative(baseDir, fullPath).replace(/\\/g, '/');
+            if (relPath.includes('__MACOSX') || relPath.includes('.git') || relPath.includes('node_modules')) continue;
+            if (entry.isDirectory()) {
+              readDirRecursive(fullPath, baseDir);
+            } else if (entry.isFile()) {
+              const ext = path.extname(entry.name).toLowerCase();
+              if (['.exe', '.dll', '.so', '.class', '.o', '.obj', '.bin', '.out', '.zip', '.tar', '.gz'].includes(ext)) {
+                continue;
+              }
+              const stats = fs.statSync(fullPath);
+              if (stats.size > 500 * 1024) continue;
+              try {
+                const fileContent = fs.readFileSync(fullPath, 'utf8');
+                results.push({
+                  name: entry.name,
+                  path: relPath,
+                  content: fileContent,
+                  size: stats.size,
+                });
+              } catch {
+                // Ignore binary read error
+              }
+            }
+          }
+        };
+        readDirRecursive(submission.workspacePath, submission.workspacePath);
+        if (results.length > 0) return results;
+      } catch (err) {
+        console.error('Lỗi khi đọc mã nguồn từ workspacePath:', err);
+      }
+    }
+
+    return [];
+  }
+
+  async getSubmissionZip(submissionId: string): Promise<{ type: 'url'; url: string } | { type: 'file'; path: string; filename: string } | { type: 'buffer'; buffer: Buffer; filename: string } | null> {
+    const submission = await this.prisma.submission.findUnique({
+      where: { id: submissionId },
+      select: {
+        id: true,
+        paperCode: true,
+        sourceSnapshotPath: true,
+        zipFilePath: true,
+        workspacePath: true,
+        user: { select: { fullName: true, email: true } },
+      },
+    });
+    if (!submission) return null;
+
+    const emailTag = (submission.user?.email || 'student').split('@')[0].replace(/[^a-zA-Z0-9_-]/g, '_');
+    const paperTag = submission.paperCode ? `_${submission.paperCode}` : '';
+    const filename = `${emailTag}${paperTag}_submission_${submission.id.slice(-6)}.zip`;
+
+    // 1. Remote URL (Cloudinary / CDN)
+    if (submission.zipFilePath && /^https?:\/\//i.test(submission.zipFilePath)) {
+      return { type: 'url', url: submission.zipFilePath };
+    }
+
+    // 2. Local zipFilePath
+    if (submission.zipFilePath && fs.existsSync(submission.zipFilePath)) {
+      return { type: 'file', path: submission.zipFilePath, filename };
+    }
+
+    // 3. Local sourceSnapshotPath
+    if (submission.sourceSnapshotPath && fs.existsSync(submission.sourceSnapshotPath)) {
+      return { type: 'file', path: submission.sourceSnapshotPath, filename };
+    }
+
+    // 4. Staged workspacePath (zip on the fly)
+    if (submission.workspacePath && fs.existsSync(submission.workspacePath)) {
+      try {
+        const zip = new AdmZip();
+        zip.addLocalFolder(submission.workspacePath);
+        return { type: 'buffer', buffer: zip.toBuffer(), filename };
+      } catch (err) {
+        console.error('Lỗi khi nén workspacePath:', err);
+      }
+    }
+
+    // 5. Fallback from getSourceFiles
+    const files = await this.getSourceFiles(submissionId);
+    if (files.length > 0) {
+      const zip = new AdmZip();
+      for (const f of files) {
+        zip.addFile(f.path, Buffer.from(f.content, 'utf8'));
+      }
+      return { type: 'buffer', buffer: zip.toBuffer(), filename };
+    }
+
+    return null;
+  }
+
+  async manualGrade(
+    submissionId: string,
+    lecturerId: string,
+    data: { finalScore: number; reason: string }
+  ): Promise<any> {
+    const submission = await this.prisma.submission.findUnique({
+      where: { id: submissionId },
+      include: {
+        assignment: { select: { id: true, title: true, courseId: true, course: { select: { lecturerId: true } } } },
+        participants: true,
+      },
+    });
+    if (!submission) throw new NotFoundError(`Bài nộp với ID: ${submissionId}`);
+
+    if (data.finalScore < 0 || data.finalScore > 10 || !Number.isFinite(data.finalScore)) {
+      throw new ValidationError('Điểm chấm thủ công phải nằm trong khoảng từ 0.0 đến 10.0.');
+    }
+    if (!data.reason?.trim()) {
+      throw new ValidationError('Vui lòng nhập lý do / nhận xét chấm bài thủ công.');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const updatedSubmission = await tx.submission.update({
+        where: { id: submissionId },
+        data: {
+          finalScore: data.finalScore,
+          status: 'GRADED',
+          gradedAt: new Date(),
+        },
+        include: {
+          user: { select: { id: true, fullName: true, email: true } },
+          assignment: { select: { id: true, title: true } },
+        },
+      });
+
+      if (submission.participants && submission.participants.length > 0) {
+        for (const p of submission.participants) {
+          await tx.submissionParticipant.update({
+            where: { id: p.id },
+            data: {
+              adjustedScore: data.finalScore,
+              adjustmentReason: `[Chấm thủ công] ${data.reason.trim()}`,
+              adjustedById: lecturerId,
+              adjustedAt: new Date(),
+            },
+          });
+          await tx.participantScoreAdjustment.create({
+            data: {
+              submissionParticipantId: p.id,
+              previousScore: p.adjustedScore ?? submission.finalScore,
+              adjustedScore: data.finalScore,
+              reason: `[Chấm thủ công] ${data.reason.trim()}`,
+              adjustedById: lecturerId,
+            },
+          });
+        }
+      }
+
+      const latestRun = await tx.gradingRun.findFirst({
+        where: { submissionId },
+        orderBy: { runNo: 'desc' },
+      });
+      const nextRunNo = (latestRun?.runNo ?? 0) + 1;
+
+      await tx.gradingRun.create({
+        data: {
+          submissionId,
+          runNo: nextRunNo,
+          status: 'PUBLISHED',
+          approvalMode: 'LECTURER_REVIEW',
+          snapshotJson: (latestRun?.snapshotJson as Prisma.InputJsonValue) ?? {},
+          reviewedById: lecturerId,
+          reviewedAt: new Date(),
+          reviewNote: data.reason.trim(),
+          completedAt: new Date(),
+          summaryJson: {
+            suggestedFinalScore: submission.finalScore !== null ? Number(submission.finalScore) : null,
+            publishedFinalScore: data.finalScore,
+            scoreAdjusted: true,
+            isManualOverride: true,
+            reason: data.reason.trim(),
+            lecturerId,
+          } as Prisma.InputJsonValue,
+        },
+      });
+
+      return updatedSubmission;
+    });
   }
 
   async findWithJobStatus(id: string): Promise<any | null> {
@@ -439,6 +673,62 @@ export class PrismaSubmissionRepository implements ISubmissionRepository {
     });
 
     return raw ? this.toDomain(raw) : null;
+  }
+
+  async findUserSubmissions(userId: string): Promise<any[]> {
+    const rawList = await this.prisma.submission.findMany({
+      where: {
+        OR: [
+          { userId, teamId: null },
+          { participants: { some: { userId } } },
+        ],
+      },
+      include: {
+        assignment: {
+          include: {
+            course: {
+              select: { id: true, code: true, name: true },
+            },
+          },
+        },
+        aiGradingResult: {
+          select: {
+            codeQualityFeedback: true,
+            detectedTimeComplexity: true,
+            detectedSpaceComplexity: true,
+            overallAiScore: true,
+          },
+        },
+        participants: {
+          where: { userId },
+          select: { adjustedScore: true, adjustmentReason: true },
+        },
+      },
+      orderBy: { submittedAt: 'desc' },
+    });
+
+    return rawList.map((s: any) => {
+      const effectiveScore = Number(s.participants?.[0]?.adjustedScore ?? s.finalScore ?? 0);
+      return {
+        id: s.id,
+        assignmentId: s.assignmentId,
+        assignmentTitle: s.assignment?.title || 'Bài tập / Đề thi',
+        courseCode: s.assignment?.course?.code || 'PE',
+        courseName: s.assignment?.course?.name || '',
+        environment: s.assignment?.environment || 'C_GCC',
+        paperCode: s.paperCode,
+        attemptNo: s.attemptNo ?? 1,
+        submissionChannel: s.submissionChannel,
+        submittedAt: s.submittedAt,
+        status: s.status,
+        sandboxScore: Number(s.sandboxScore ?? 0),
+        aiScore: Number(s.aiScore ?? 0),
+        finalScore: effectiveScore,
+        aiFeedback: s.aiGradingResult?.codeQualityFeedback ?? null,
+        timeComplexity: s.aiGradingResult?.detectedTimeComplexity ?? null,
+        spaceComplexity: s.aiGradingResult?.detectedSpaceComplexity ?? null,
+      };
+    });
   }
 
   async findByAssignmentId(assignmentId: string): Promise<any[]> {

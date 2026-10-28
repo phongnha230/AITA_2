@@ -13,6 +13,7 @@ import { RegradeSubmissionUseCase } from '../../application/use-cases/regrade-su
 import { GetGradingHistoryUseCase } from '../../application/use-cases/get-grading-history.use-case.js';
 import { ReviewGradingRunUseCase } from '../../application/use-cases/review-grading-run.use-case.js';
 import { NotFoundError } from '../../../../shared/domain/exceptions/app.error.js';
+import { ISubmissionRepository } from '../../domain/repositories/submission.repository.interface.js';
 
 
 export class SubmissionController {
@@ -25,7 +26,8 @@ export class SubmissionController {
     private readonly adjustParticipantScoreUseCase: AdjustParticipantScoreUseCase,
     private readonly regradeSubmissionUseCase: RegradeSubmissionUseCase,
     private readonly getGradingHistoryUseCase: GetGradingHistoryUseCase,
-    private readonly reviewGradingRunUseCase: ReviewGradingRunUseCase
+    private readonly reviewGradingRunUseCase: ReviewGradingRunUseCase,
+    private readonly submissionRepository?: ISubmissionRepository
   ) {}
 
   submitAssignment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -192,5 +194,62 @@ export class SubmissionController {
       });
       sendSuccess(res, result, 'Đã lưu duyệt điểm và công bố kết quả.');
     } catch (error) { next(error); }
+  };
+
+  getSourceFiles = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const files = this.submissionRepository ? await this.submissionRepository.getSourceFiles(id) : [];
+      sendSuccess(res, files, 'Danh sách mã nguồn bài nộp.');
+    } catch (error) { next(error); }
+  };
+
+  downloadSubmissionZip = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { id } = req.params;
+      if (!this.submissionRepository) {
+        throw new NotFoundError('Repository không sẵn sàng.');
+      }
+      const result = await this.submissionRepository.getSubmissionZip(id);
+      if (!result) {
+        throw new NotFoundError('Không tìm thấy tập tin bài nộp .ZIP trên hệ thống.');
+      }
+
+      if (result.type === 'url') {
+        res.redirect(result.url);
+        return;
+      }
+
+      if (result.type === 'file') {
+        res.download(result.path, result.filename);
+        return;
+      }
+
+      if (result.type === 'buffer') {
+        res.setHeader('Content-Type', 'application/zip');
+        res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+        res.setHeader('Content-Length', result.buffer.length);
+        res.send(result.buffer);
+        return;
+      }
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  manualGradeSubmission = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!req.user?.userId) throw new UnauthorizedError('Cần đăng nhập để chấm điểm thủ công.');
+      if (!this.submissionRepository) throw new NotFoundError('Repository không sẵn sàng.');
+      const { id } = req.params;
+      const { finalScore, reason } = req.body;
+      const result = await this.submissionRepository.manualGrade(id, req.user.userId, {
+        finalScore: Number(finalScore),
+        reason: String(reason || ''),
+      });
+      sendSuccess(res, result, 'Đã chấm bài thủ công và cập nhật điểm thành công.');
+    } catch (error) {
+      next(error);
+    }
   };
 }

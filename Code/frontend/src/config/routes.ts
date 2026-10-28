@@ -51,6 +51,7 @@ export const ROUTES = {
     EXAM_BANK_SUBMISSIONS: (examId: string | number) => `/lecturer/exam-bank/${examId}/submissions`,
     LIVE_PROCTORING: '/lecturer/live-proctoring',
     LIVE_PROCTORING_ROOM: (roomId: string | number) => `/lecturer/live-proctoring/${roomId}`,
+    AI_TUTOR: '/lecturer/ai-tutor',
   },
 
   // 5. STUDENT PORTAL (Sinh viên) - Prefix: /student

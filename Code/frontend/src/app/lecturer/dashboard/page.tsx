@@ -1,5 +1,5 @@
-import { LecturerDashboard } from '@/features/courses/components/LecturerDashboard';
+import { LecturerDashboardOverview } from '@/features/courses/components/LecturerDashboardOverview';
 
 export default function DashboardPage() {
-  return <LecturerDashboard />;
+  return <LecturerDashboardOverview />;
 }

@@ -122,10 +122,11 @@ export const SaveAssignmentPackageSchema = z.object({
 export type SaveAssignmentPackageDto = z.infer<typeof SaveAssignmentPackageSchema>;
 
 export const ControlSessionSchema = z.object({
-  action: z.enum(['EXTEND', 'CLOSE', 'START', 'PAUSE', 'RESUME'], {
+  action: z.enum(['EXTEND', 'CLOSE', 'START', 'PAUSE', 'RESUME', 'REOPEN', 'PUBLISH_GRADES'], {
     required_error: 'Hành động điều khiển ca thi không hợp lệ.',
   }),
   extraMinutes: z.coerce.number().int().positive().optional(),
+  newAccessCode: z.string().trim().optional(),
 });
 
 export type ControlSessionDto = z.infer<typeof ControlSessionSchema>;

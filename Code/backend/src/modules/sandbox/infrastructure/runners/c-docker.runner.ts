@@ -153,7 +153,6 @@ export class CDockerRunner implements ISandboxRunner {
     // 2. Chạy từng testcase
     const results: TestCaseResult[] = [];
     let passedCount = 0;
-    let totalScore = 0;
 
     for (const tc of testCases) {
       const qNo = tc.questionNo || 'Q1';
@@ -169,6 +168,7 @@ export class CDockerRunner implements ISandboxRunner {
           expectedOutput: tc.expectedOutput,
           executionTimeMs: 0,
           memoryUsedKb: 0,
+          earnedScore: 0,
           errorMessage: binaryInfo?.compileError || `Không thể biên dịch câu hỏi ${qNo}`,
         });
         continue;
@@ -183,7 +183,31 @@ export class CDockerRunner implements ISandboxRunner {
       results.push(res);
       if (res.passed) {
         passedCount++;
-        totalScore += tc.score;
+      }
+    }
+
+    // 3. Cơ chế All-or-Nothing theo từng câu (FPT PE Exam Rule):
+    // Sinh viên phải vượt qua 100% testcases của câu đó mới được tính điểm câu đó.
+    let totalScore = 0;
+    for (const qNo of questionNos) {
+      const qCases = testCases.filter((tc) => (tc.questionNo || 'Q1') === qNo);
+      const qResults = results.filter((r) => (r.questionNo || 'Q1') === qNo);
+      const isQuestionFullPass =
+        qResults.length === qCases.length &&
+        qResults.every((r) => r.passed);
+
+      const qTotalMarks = qCases.reduce((sum, tc) => sum + tc.score, 0);
+
+      if (isQuestionFullPass) {
+        totalScore += qTotalMarks;
+        for (const r of qResults) {
+          const matchedTc = qCases.find((tc) => tc.id === r.testCaseId);
+          r.earnedScore = matchedTc?.score ?? 0;
+        }
+      } else {
+        for (const r of qResults) {
+          r.earnedScore = 0;
+        }
       }
     }
 

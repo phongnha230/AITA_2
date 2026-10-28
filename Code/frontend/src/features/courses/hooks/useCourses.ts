@@ -9,10 +9,16 @@ import {
 import { courseService } from '../services/course.service';
 import { getErrorMessage } from '@/lib/errors';
 
+// In-memory cache để chuyển đổi giữa các tab taskbar lập tức trong 0ms
+let cachedCourses: Course[] = [];
+let cachedDashboardData: LecturerDashboardResponse | null = null;
+let lastFetchTimestamp = 0;
+const CACHE_TTL_MS = 60_000; // 60 giây cache nhanh
+
 export function useCourses() {
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [dashboardData, setDashboardData] = useState<LecturerDashboardResponse | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [courses, setCourses] = useState<Course[]>(cachedCourses);
+  const [dashboardData, setDashboardData] = useState<LecturerDashboardResponse | null>(cachedDashboardData);
+  const [loading, setLoading] = useState<boolean>(cachedCourses.length === 0);
   const [error, setError] = useState<string | null>(null);
 
   // Filters
@@ -20,8 +26,18 @@ export function useCourses() {
   const [selectedSemester, setSelectedSemester] = useState<string>('All');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'ARCHIVED'>('ALL');
 
-  const fetchCoursesAndDashboard = useCallback(async () => {
-    setLoading(true);
+  const fetchCoursesAndDashboard = useCallback(async (force = false) => {
+    const isCacheValid = Date.now() - lastFetchTimestamp < CACHE_TTL_MS;
+    if (!force && isCacheValid && cachedCourses.length > 0) {
+      setCourses(cachedCourses);
+      setDashboardData(cachedDashboardData);
+      setLoading(false);
+      return;
+    }
+
+    if (cachedCourses.length === 0) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const [coursesResult, dashboardResult] = await Promise.allSettled([
@@ -29,21 +45,20 @@ export function useCourses() {
         courseService.getLecturerDashboard(),
       ]);
       if (coursesResult.status === 'fulfilled') {
+        cachedCourses = coursesResult.value;
         setCourses(coursesResult.value);
       } else {
-        setCourses([]);
         setError('Không thể tải danh sách khóa học từ máy chủ.');
       }
 
       if (dashboardResult.status === 'fulfilled') {
+        cachedDashboardData = dashboardResult.value;
         setDashboardData(dashboardResult.value);
       } else {
-        setDashboardData(null);
         setError((currentError) => currentError ?? 'Không thể tải thống kê dashboard từ máy chủ.');
       }
+      lastFetchTimestamp = Date.now();
     } catch {
-      setCourses([]);
-      setDashboardData(null);
       setError('Đã xảy ra lỗi khi tải dữ liệu khóa học.');
     } finally {
       setLoading(false);
@@ -102,7 +117,8 @@ export function useCourses() {
   const createCourse = async (payload: CreateCoursePayload) => {
     try {
       const created = await courseService.createCourse(payload);
-      await fetchCoursesAndDashboard();
+      lastFetchTimestamp = 0; // Invalidate cache
+      await fetchCoursesAndDashboard(true);
       return created;
     } catch (err: unknown) {
       console.error('Không tạo được khóa học:', err);
@@ -113,7 +129,8 @@ export function useCourses() {
   const updateCourse = async (courseId: string, payload: UpdateCoursePayload) => {
     try {
       const updated = await courseService.updateCourse(courseId, payload);
-      await fetchCoursesAndDashboard();
+      lastFetchTimestamp = 0; // Invalidate cache
+      await fetchCoursesAndDashboard(true);
       return updated;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Lỗi cập nhật khóa học';
@@ -124,7 +141,8 @@ export function useCourses() {
   const deleteCourse = async (courseId: string) => {
     try {
       await courseService.deleteCourse(courseId);
-      await fetchCoursesAndDashboard();
+      lastFetchTimestamp = 0; // Invalidate cache
+      await fetchCoursesAndDashboard(true);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Lỗi xóa khóa học';
       throw new Error(message);
@@ -146,7 +164,7 @@ export function useCourses() {
     setSelectedSemester,
     statusFilter,
     setStatusFilter,
-    refreshCourses: fetchCoursesAndDashboard,
+    refreshCourses: () => fetchCoursesAndDashboard(true),
     createCourse,
     updateCourse,
     deleteCourse,

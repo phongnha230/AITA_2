@@ -243,7 +243,10 @@ class ServiceContainer {
     gradingDispatcher: this.gradingDispatcher,
   });
   public readonly getSubmissionStatusUseCase = new GetSubmissionStatusUseCase(this.submissionRepository);
-  public readonly getAssignmentSubmissionsUseCase = new GetAssignmentSubmissionsUseCase(this.submissionRepository);
+  public readonly getAssignmentSubmissionsUseCase = new GetAssignmentSubmissionsUseCase(
+    this.submissionRepository,
+    this.assignmentRepository
+  );
   public readonly getAllSubmissionsUseCase = new GetAllSubmissionsUseCase(this.submissionRepository);
   public readonly submitTeamAssignmentUseCase = new SubmitTeamAssignmentUseCase({
     submissionRepository: this.submissionRepository,

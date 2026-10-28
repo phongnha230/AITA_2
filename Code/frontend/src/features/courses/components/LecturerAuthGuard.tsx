@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, useRef, type ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { LoaderCircle, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { authService, type User } from '@/features/auth/services/auth.service';
@@ -13,18 +13,54 @@ interface LecturerAuthGuardProps {
 export function LecturerAuthGuard({ children }: LecturerAuthGuardProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
-  const [isChecking, setIsChecking] = useState<boolean>(true);
+
+  // Fast-hydration: Kiểm tra nhanh từ local storage để không bị chớp hay lag màn hình xác thực
+  const [isAuthorized, setIsAuthorized] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    const stored = authService.getStoredUser();
+    return stored?.role === 'LECTURER' || stored?.role === 'ADMIN';
+  });
+
+  const [isChecking, setIsChecking] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    const stored = authService.getStoredUser();
+    return !(stored?.role === 'LECTURER' || stored?.role === 'ADMIN');
+  });
+
   const [unauthorizedMessage, setUnauthorizedMessage] = useState<string | null>(null);
+  const hasVerifiedRef = useRef(false);
 
   useEffect(() => {
     let active = true;
     let redirectTimer: ReturnType<typeof setTimeout> | undefined;
 
+    // Nếu đã xác thực 1 lần trong phiên này rồi thì không cần gọi lại API mỗi lần đổi taskbar/route
+    if (hasVerifiedRef.current && isAuthorized) {
+      return;
+    }
+
     const checkAuth = async () => {
       if (typeof window === 'undefined') return;
 
-      // The backend is the source of truth for role and account status.
+      // Ưu tiên kiểm tra nhanh user lưu trữ
+      const storedUser = authService.getStoredUser();
+      if (storedUser) {
+        if (storedUser.role === 'LECTURER' || storedUser.role === 'ADMIN') {
+          setIsAuthorized(true);
+          setIsChecking(false);
+          hasVerifiedRef.current = true;
+          return;
+        } else if (storedUser.role === 'STUDENT') {
+          setUnauthorizedMessage('Tài khoản của bạn là Sinh viên. Trang này chỉ dành riêng cho Giảng viên.');
+          setIsChecking(false);
+          redirectTimer = setTimeout(() => {
+            if (active) window.location.replace(ROUTES.STUDENT.DASHBOARD);
+          }, 2000);
+          return;
+        }
+      }
+
+      // Nếu chưa có storedUser hoặc cần verify với backend
       const currentUser = await authService.getCurrentUser();
 
       if (!active) return;
@@ -36,7 +72,9 @@ export function LecturerAuthGuard({ children }: LecturerAuthGuardProps) {
       }
 
       if (currentUser.role === 'ADMIN') {
-        window.location.replace(ROUTES.ADMIN.DASHBOARD);
+        setIsAuthorized(true);
+        setIsChecking(false);
+        hasVerifiedRef.current = true;
         return;
       }
 
@@ -53,6 +91,7 @@ export function LecturerAuthGuard({ children }: LecturerAuthGuardProps) {
 
       setIsAuthorized(true);
       setIsChecking(false);
+      hasVerifiedRef.current = true;
     };
 
     checkAuth();
@@ -61,7 +100,8 @@ export function LecturerAuthGuard({ children }: LecturerAuthGuardProps) {
       active = false;
       if (redirectTimer) clearTimeout(redirectTimer);
     };
-  }, [pathname, router]);
+  }, [isAuthorized, pathname]);
+
 
   if (isChecking) {
     return (

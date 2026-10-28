@@ -82,6 +82,8 @@ export const LecturerShell: React.FC<LecturerShellProps> = ({ children }) => {
           onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
           pathname={pathname}
           onShowToast={showToast}
+          currentUser={currentUser}
+          onLogout={handleLogout}
         />
 
         <main className="flex-1 overflow-y-auto">

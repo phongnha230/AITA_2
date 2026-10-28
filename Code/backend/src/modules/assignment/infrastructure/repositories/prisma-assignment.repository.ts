@@ -611,5 +611,138 @@ export class PrismaAssignmentRepository implements IAssignmentRepository {
       orderBy: { createdAt: 'desc' },
     });
   }
+
+  async finalizeUnsubmittedStudents(assignmentId: string): Promise<number> {
+    const assignment = await this.prisma.assignment.findUnique({
+      where: { id: assignmentId },
+      select: {
+        id: true,
+        status: true,
+        deadline: true,
+      },
+    });
+
+    if (!assignment) return 0;
+
+    const isExpired =
+      assignment.status === 'CLOSED' ||
+      assignment.status === 'ARCHIVED' ||
+      Date.now() > assignment.deadline.getTime();
+
+    if (!isExpired) return 0;
+
+    // Lấy danh sách sinh viên đã mở ca thi (nhập passcode hợp lệ)
+    const accessGrants = await this.prisma.assignmentExamAccess.findMany({
+      where: { assignmentId },
+      select: { studentId: true },
+    });
+
+    if (accessGrants.length === 0) return 0;
+
+    // Lấy danh sách sinh viên đã nộp bài
+    const existingSubmissions = await this.prisma.submission.findMany({
+      where: { assignmentId },
+      select: { userId: true },
+    });
+
+    const submittedUserIds = new Set(existingSubmissions.map((s) => s.userId));
+    const unsubmittedStudentIds = accessGrants
+      .map((g) => g.studentId)
+      .filter((studentId) => !submittedUserIds.has(studentId));
+
+    if (unsubmittedStudentIds.length === 0) return 0;
+
+    let createdCount = 0;
+    const submittedTime =
+      assignment.deadline.getTime() < Date.now() ? assignment.deadline : new Date();
+
+    for (const studentId of unsubmittedStudentIds) {
+      try {
+        await this.prisma.submission.create({
+          data: {
+            assignmentId,
+            userId: studentId,
+            submissionChannel: 'ZIP_UPLOAD',
+            status: 'GRADED',
+            finalScore: 0.0,
+            sandboxScore: 0.0,
+            aiScore: 0.0,
+            algorithmScore: 0.0,
+            cleanCodeScore: 0.0,
+            compileSuccess: false,
+            compileOutput: 'Hết thời gian làm bài - Không nộp bài thi (0 điểm).',
+            submittedAt: submittedTime,
+            gradedAt: new Date(),
+            attemptNo: 1,
+          },
+        });
+        createdCount++;
+      } catch (err) {
+        const prismaError = err as { code?: string };
+        if (prismaError?.code !== 'P2002') {
+          console.error('[finalizeUnsubmittedStudents] Lỗi tạo bài nộp 0 điểm cho SV ' + studentId + ':', err);
+        }
+      }
+    }
+
+    return createdCount;
+  }
+
+  
+  async publishAllGrades(assignmentId: string): Promise<{ publishedCount: number; averageScore: number }> {
+    await this.finalizeUnsubmittedStudents(assignmentId);
+    const submissions = await this.prisma.submission.findMany({
+      where: { assignmentId },
+      select: { id: true, status: true, sandboxScore: true, aiScore: true, finalScore: true },
+    });
+
+    let totalScore = 0;
+    let publishedCount = 0;
+
+    await this.prisma.$transaction(async (tx) => {
+      for (const sub of submissions) {
+        let finalScore = sub.finalScore !== null ? Number(sub.finalScore) : null;
+        if (finalScore === null) {
+          finalScore = Math.min(10, Math.max(0, Number(sub.sandboxScore || 0) + Number(sub.aiScore || 0)));
+        }
+        totalScore += finalScore;
+        publishedCount++;
+
+        await tx.submission.update({
+          where: { id: sub.id },
+          data: {
+            status: 'GRADED',
+            finalScore,
+            gradedAt: new Date(),
+          },
+        });
+      }
+
+      await tx.gradingRun.updateMany({
+        where: {
+          submission: { assignmentId },
+          status: 'REVIEW_PENDING',
+        },
+        data: {
+          status: 'PUBLISHED',
+          reviewedAt: new Date(),
+        },
+      });
+    });
+
+    const averageScore = publishedCount > 0 ? totalScore / publishedCount : 0;
+    return { publishedCount, averageScore };
+  }
+
+  async clearAutoZeroSubmissions(assignmentId: string): Promise<number> {
+    const deleted = await this.prisma.submission.deleteMany({
+      where: {
+        assignmentId,
+        compileOutput: 'Hết thời gian làm bài - Không nộp bài thi (0 điểm).',
+      },
+    });
+    return deleted.count;
+  }
 }
+
 

@@ -66,6 +66,15 @@ router.post(
   requireSubmissionAccess,
   submissionController.regradeSubmission
 );
+router.post(
+  '/:id/manual-grade',
+  authenticateJWT,
+  authorizeRoles('LECTURER', 'ADMIN'),
+  requireSubmissionAccess,
+  submissionController.manualGradeSubmission
+);
+router.get('/:id/download-zip', authenticateJWT, requireSubmissionAccess, submissionController.downloadSubmissionZip);
+router.get('/:id/source-files', authenticateJWT, requireSubmissionAccess, submissionController.getSourceFiles);
 router.get('/:id', authenticateJWT, requireSubmissionAccess, submissionController.getSubmissionStatus);
 
 export default router;

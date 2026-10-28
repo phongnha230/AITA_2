@@ -117,6 +117,9 @@ export interface IAssignmentRepository {
   unlockExam(assignmentId: string, studentId: string, accessCode: string): Promise<ExamSessionStatus>;
   getExamSessionStatus(assignmentId: string, studentId: string): Promise<ExamSessionStatus>;
   hasStudentExamAccess(assignmentId: string, studentId: string): Promise<boolean>;
+  finalizeUnsubmittedStudents(assignmentId: string): Promise<number>;
+  clearAutoZeroSubmissions(assignmentId: string): Promise<number>;
+  publishAllGrades(assignmentId: string): Promise<{ publishedCount: number; averageScore: number }>;
 }
 
 export interface ExamSessionStatus {
