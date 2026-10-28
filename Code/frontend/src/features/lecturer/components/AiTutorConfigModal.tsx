@@ -185,45 +185,24 @@ export function AiTutorConfigModal({ open, onClose }: AiTutorConfigModalProps) {
             {isLoadingConfig && <p className="mt-1 text-xs text-slate-500">Đang tải cấu hình…</p>}
           </div>
 
-          {/* Mode selector */}
-          <div>
-            <p className="text-xs font-bold text-slate-700 mb-2">
-              Chế độ sư phạm (Pedagogical Socratic Policy)
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-              {[
-                {
-                  id: 'STRICT',
-                  title: 'Nghiêm ngặt',
-                  desc: 'Chỉ hỏi câu gợi mở, cấm tuyệt đối sinh mã mẫu',
-                },
-                {
-                  id: 'BALANCED',
-                  title: 'Cân bằng (Mặc định)',
-                  desc: 'Gợi mở lý thuyết + chỉ định vị trí lỗi cụ thể',
-                },
-                {
-                  id: 'LENIENT',
-                  title: 'Hỗ trợ nâng cao',
-                  desc: 'Cho phép sinh pseudo-code khung giải thuật',
-                },
-              ].map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  disabled={isConfigDisabled}
-                  onClick={() => setSocraticMode(item.id as 'STRICT' | 'BALANCED' | 'LENIENT')}
-                  className={`p-3 rounded-xl border text-left transition-colors ${
-                    socraticMode === item.id
-                      ? 'border-indigo-600 bg-indigo-50/50 ring-1 ring-indigo-600 shadow-xs'
-                      : 'border-slate-200 bg-white hover:bg-slate-50'
-                  }`}
-                >
-                  <p className="text-xs font-bold text-slate-900">{item.title}</p>
-                  <p className="text-xs text-slate-500 mt-1 leading-snug">{item.desc}</p>
-                </button>
-              ))}
+          {/* Unified All-in-One Learning Mode */}
+          <div className="rounded-xl border border-indigo-200/80 bg-gradient-to-r from-indigo-50/70 via-slate-50/50 to-emerald-50/50 p-3.5 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="flex size-6 items-center justify-center rounded-lg bg-indigo-600 text-white font-black text-2xs">
+                  3in1
+                </span>
+                <p className="text-xs font-bold text-slate-900">
+                  Cơ chế Học tập &amp; Chẩn đoán Lỗi Toàn diện (All-in-One)
+                </p>
+              </div>
+              <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-3xs font-bold text-emerald-700">
+                Tự động 3 bước
+              </span>
             </div>
+            <p className="text-2xs text-slate-600 leading-relaxed">
+              AI đồng hành cùng sinh viên sau khi có điểm thi: <strong>1. Soi lỗi testcase</strong> (Expected vs Actual) &rarr; <strong>2. Phân tích nguyên nhân gốc rễ</strong> &rarr; <strong>3. Đưa giải pháp &amp; Code sửa chuẩn Clean Code</strong>.
+            </p>
           </div>
 
           {/* Prompt Instruction */}

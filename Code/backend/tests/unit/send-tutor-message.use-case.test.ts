@@ -34,7 +34,7 @@ describe('SendTutorMessageUseCase configuration and safe context', () => {
     await useCase.execute('conversation-1', 'student-1', 'Tại sao sai?');
     const [prompt, options] = aiGeneration.executeWithKeyRotation.mock.calls[0] as [string, { systemInstruction: string; temperature: number }];
     expect(options.temperature).toBe(0.45);
-    expect(options.systemInstruction).toContain('pseudo-code ngắn');
+    expect(options.systemInstruction).toContain('Quy trình phản hồi chuẩn 3 bước');
     expect(options.systemInstruction).toContain('Gợi ý bằng pseudo-code.');
     expect(prompt).toContain('Calculate a sum.');
     expect(prompt).toContain('Linear pass');
@@ -61,6 +61,6 @@ describe('SendTutorMessageUseCase configuration and safe context', () => {
     const [prompt, options] = aiGeneration.executeWithKeyRotation.mock.calls[0] as [string, { systemInstruction: string }];
     expect(tutorRepository.getTutorAssignmentContext).not.toHaveBeenCalled();
     expect(prompt).not.toContain('UNTRUSTED_ASSIGNMENT_CONTEXT');
-    expect(options.systemInstruction).toContain('chỉ hỏi gợi mở');
+    expect(options.systemInstruction).toContain('Quy trình phản hồi chuẩn 3 bước');
   });
 });
