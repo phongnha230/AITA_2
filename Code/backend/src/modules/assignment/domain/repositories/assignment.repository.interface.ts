@@ -15,6 +15,7 @@ export type AssignmentDetailRecord = Prisma.AssignmentGetPayload<{
   include: {
     course: { select: { id: true; code: true; name: true; semester: true; lecturerId: true } };
     creator: { select: { id: true; fullName: true; email: true } };
+    submissions: { select: { userId: true; finalScore: true; compileOutput: true } };
     testCases: true;
     rubricRules: true;
     solutions: true;
@@ -51,6 +52,7 @@ export type ProctoringRoomRecord = Prisma.AssignmentGetPayload<{
       _count: { select: { enrollments: true } };
     } };
     creator: { select: { id: true; fullName: true; email: true } };
+    submissions: { select: { userId: true; finalScore: true; compileOutput: true } };
     _count: { select: { submissions: true; testCases: true; examAccessGrants: true } };
   };
 }>;

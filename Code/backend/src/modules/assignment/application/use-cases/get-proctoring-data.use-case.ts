@@ -19,9 +19,26 @@ function toSession(assignment: {
   durationMinutes: number | null;
   pausedAt?: Date | null;
   course: { id: string; code: string; name: string; semester: string; _count?: { enrollments: number } };
+  submissions?: Array<{ userId: string; finalScore: any; compileOutput: string | null }>;
   _count?: { submissions: number; examAccessGrants: number };
 }) {
   const state = deriveStatus(assignment.status, assignment.startTime, assignment.deadline);
+  let submittedStudents = assignment._count?.submissions ?? 0;
+  if (assignment.submissions && Array.isArray(assignment.submissions)) {
+    const validSubmitters = new Set<string>();
+    for (const sub of assignment.submissions) {
+      const isUnsubmittedZero = (
+        sub.finalScore !== null &&
+        Number(sub.finalScore) === 0 &&
+        (sub.compileOutput?.includes('Không nộp bài') ?? false)
+      );
+      if (!isUnsubmittedZero) {
+        validSubmitters.add(sub.userId);
+      }
+    }
+    submittedStudents = validSubmitters.size;
+  }
+
   return {
     id: assignment.id,
     assignmentId: assignment.id,
@@ -39,7 +56,7 @@ function toSession(assignment: {
     secondsLeft: state === 'PAUSED' ? null : Math.max(0, Math.round((assignment.deadline.getTime() - Date.now()) / 1000)),
     enrolledStudents: assignment.course._count?.enrollments ?? 0,
     unlockedStudents: assignment._count?.examAccessGrants ?? 0,
-    submittedStudents: assignment._count?.submissions ?? 0,
+    submittedStudents,
   };
 }
 

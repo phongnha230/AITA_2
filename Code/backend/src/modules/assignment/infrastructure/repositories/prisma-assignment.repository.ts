@@ -124,6 +124,13 @@ export class PrismaAssignmentRepository implements IAssignmentRepository {
             email: true,
           },
         },
+        submissions: {
+          select: {
+            userId: true,
+            finalScore: true,
+            compileOutput: true,
+          },
+        },
         testCases: {
           where: includeHiddenTests ? {} : { isHidden: false },
           orderBy: { orderIndex: 'asc' },
@@ -598,6 +605,13 @@ export class PrismaAssignmentRepository implements IAssignmentRepository {
             id: true,
             fullName: true,
             email: true,
+          },
+        },
+        submissions: {
+          select: {
+            userId: true,
+            finalScore: true,
+            compileOutput: true,
           },
         },
         _count: {
