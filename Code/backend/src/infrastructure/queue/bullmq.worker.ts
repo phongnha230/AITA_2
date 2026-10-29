@@ -437,26 +437,31 @@ async function markCompleted(
         );
     }
 
+    const jsonRecord = (value: unknown): Record<string, unknown> =>
+        typeof value === 'object' && value !== null ? value as Record<string, unknown> : {};
+    const rawSandbox = jsonRecord(sandboxResult);
+    const compileSuccess = rawSandbox.success !== false && rawSandbox.compileSuccess !== false;
+
     const snapshot = currentSubmission.gradingSnapshot as { assignment?: Record<string, unknown> } | null;
     const frozenAssignment = snapshot?.assignment;
+
     const aggregatedScores = aggregateGradingScores({
         sandboxScore: sandboxScore ?? Number(currentSubmission.sandboxScore ?? 0),
         aiScore: aiScore ?? Number(currentSubmission.aiScore ?? 0),
         algorithmScore: readNumberField(aiResult, ["algorithmScore"]) ?? Number(currentSubmission.algorithmScore ?? 0),
         cleanCodeScore: readNumberField(aiResult, ["cleanCodeScore"]) ?? Number(currentSubmission.cleanCodeScore ?? 0),
     }, {
-        gradingVersion: Number(frozenAssignment?.gradingVersion ?? currentSubmission.assignment.gradingVersion),
-        functionalMaxScore: Number(frozenAssignment?.functionalMaxScore ?? currentSubmission.assignment.functionalMaxScore),
-        algorithmMaxScore: Number(frozenAssignment?.algorithmMaxScore ?? currentSubmission.assignment.algorithmMaxScore),
-        cleanCodeMaxScore: Number(frozenAssignment?.cleanCodeMaxScore ?? currentSubmission.assignment.cleanCodeMaxScore),
+        gradingVersion: Number(currentSubmission.assignment.gradingVersion),
+        functionalMaxScore: Number(currentSubmission.assignment.functionalMaxScore),
+        algorithmMaxScore: Number(currentSubmission.assignment.algorithmMaxScore),
+        cleanCodeMaxScore: Number(currentSubmission.assignment.cleanCodeMaxScore),
+        compileSuccess,
     });
 
     const run = gradingRunId ? await prisma.gradingRun.findUnique({ where: { id: gradingRunId } }) : null;
     const approvalMode = run?.approvalMode ?? 'AUTO_PUBLISH';
     const submissionStatus = approvalMode === 'AUTO_PUBLISH' ? 'GRADED' : 'REVIEW_PENDING';
     const publishedScore = approvalMode === 'AUTO_PUBLISH' ? aggregatedScores.finalScore : null;
-    const jsonRecord = (value: unknown): Record<string, unknown> =>
-        typeof value === 'object' && value !== null ? value as Record<string, unknown> : {};
     const aiRecord = jsonRecord(aiResult);
     const aiGradingResult = jsonRecord(aiRecord.gradingResult);
     const sandboxRecord = {
