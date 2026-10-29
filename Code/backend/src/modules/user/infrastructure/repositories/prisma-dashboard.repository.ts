@@ -40,7 +40,7 @@ export class PrismaDashboardRepository implements IDashboardRepository {
       this.prisma.submission.count({ where: { status: 'GRADED' } }),
       this.prisma.submission.count({
         where: {
-          status: { in: ['PENDING', 'QUEUED', 'RUNNING_SANDBOX', 'RUNNING_AI'] },
+          status: { in: ['PENDING', 'QUEUED', 'RUNNING_SANDBOX', 'RUNNING_AI', 'REVIEW_PENDING'] },
         },
       }),
       this.prisma.submission.count({ where: { status: 'FAILED' } }),
@@ -389,6 +389,7 @@ export class PrismaDashboardRepository implements IDashboardRepository {
               include: {
                 user: { select: { id: true, fullName: true, email: true } },
               },
+              orderBy: { submittedAt: 'desc' },
             },
           },
         },
@@ -406,6 +407,15 @@ export class PrismaDashboardRepository implements IDashboardRepository {
     const allSubmissions: any[] = [];
     const assignmentsSummaryList: any[] = [];
 
+    const effectiveScore = (sub: any): number => {
+      if (sub.finalScore !== null && sub.finalScore !== undefined) {
+        return Number(sub.finalScore);
+      }
+      const machine = Number(sub.sandboxScore ?? 0);
+      const ai = Number(sub.aiScore ?? 0);
+      return Math.min(10, Math.max(0, machine + ai));
+    };
+
     const coursesOverview = courses.map((course: any) => {
       for (const enr of course.enrollments) {
         allStudentIdsSet.add(enr.studentId);
@@ -421,32 +431,18 @@ export class PrismaDashboardRepository implements IDashboardRepository {
         let assignmentScoreSum = 0;
         let assignmentGradedCount = 0;
 
+        // Group submissions by student to take only their latest submission for stats
+        const latestSubmissionsByStudent = new Map<string, any>();
         for (const sub of assignment.submissions) {
-          totalSubmissionsCount++;
-          courseSubmissionsCount++;
-
-          if (
-            sub.status === 'PENDING' ||
-            sub.status === 'QUEUED' ||
-            sub.status === 'RUNNING_SANDBOX' ||
-            sub.status === 'RUNNING_AI'
-          ) {
-            pendingGradingCount++;
+          const uid = sub.userId || sub.user?.id;
+          if (uid && !latestSubmissionsByStudent.has(uid)) {
+            latestSubmissionsByStudent.set(uid, sub);
           }
 
-          if (sub.status === 'GRADED' && sub.finalScore !== null) {
-            const score = Number(sub.finalScore);
-            totalGradedScoresSum += score;
-            totalGradedCount++;
-            courseScoreSum += score;
-            courseGradedCount++;
-            assignmentScoreSum += score;
-            assignmentGradedCount++;
-          }
-
+          const effScore = effectiveScore(sub);
           allSubmissions.push({
             id: sub.id,
-            studentId: sub.user?.id,
+            studentId: uid,
             studentName: sub.user?.fullName || 'N/A',
             studentEmail: sub.user?.email || 'N/A',
             assignmentId: assignment.id,
@@ -458,8 +454,39 @@ export class PrismaDashboardRepository implements IDashboardRepository {
             status: sub.status,
             sandboxScore: Number(sub.sandboxScore || 0),
             aiScore: Number(sub.aiScore || 0),
-            finalScore: Number(sub.finalScore || 0),
+            finalScore: effScore,
           });
+        }
+
+        const distinctSubmissions = Array.from(latestSubmissionsByStudent.values());
+        totalSubmissionsCount += distinctSubmissions.length;
+        courseSubmissionsCount += distinctSubmissions.length;
+
+        for (const sub of distinctSubmissions) {
+          const isPending =
+            sub.status === 'PENDING' ||
+            sub.status === 'QUEUED' ||
+            sub.status === 'RUNNING_SANDBOX' ||
+            sub.status === 'RUNNING_AI' ||
+            sub.status === 'REVIEW_PENDING';
+
+          if (isPending) {
+            pendingGradingCount++;
+          }
+
+          const isScored =
+            (sub.status === 'GRADED' && sub.finalScore !== null) ||
+            (sub.status === 'REVIEW_PENDING' && (sub.sandboxScore !== null || sub.finalScore !== null));
+
+          if (isScored) {
+            const score = effectiveScore(sub);
+            totalGradedScoresSum += score;
+            totalGradedCount++;
+            courseScoreSum += score;
+            courseGradedCount++;
+            assignmentScoreSum += score;
+            assignmentGradedCount++;
+          }
         }
 
         assignmentsSummaryList.push({
@@ -471,7 +498,7 @@ export class PrismaDashboardRepository implements IDashboardRepository {
           deadline: assignment.deadline,
           durationMinutes: assignment.durationMinutes,
           hasAccessCode: !!assignment.accessCode,
-          totalSubmissions: assignment.submissions.length,
+          totalSubmissions: distinctSubmissions.length,
           averageScore:
             assignmentGradedCount > 0
               ? Math.round((assignmentScoreSum / assignmentGradedCount) * 100) / 100

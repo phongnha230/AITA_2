@@ -22,6 +22,7 @@ import { ROUTES } from '@/config/routes';
 export const LecturerDashboardOverview: React.FC = () => {
   const {
     courses,
+    dashboardData,
     kpiMetrics,
     recentSubmissions,
     error,
@@ -80,6 +81,7 @@ export const LecturerDashboardOverview: React.FC = () => {
         courses={courses}
         kpiMetrics={kpiMetrics}
         recentSubmissions={recentSubmissions}
+        coursesOverview={dashboardData?.coursesOverview}
       />
 
       {/* 4. Thẻ lối tắt tiện ích nhanh */}

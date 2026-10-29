@@ -20,19 +20,31 @@ interface LecturerChartsSectionProps {
   courses: Course[];
   kpiMetrics: LecturerKpiMetrics;
   recentSubmissions?: LecturerDashboardRecentSubmission[];
+  coursesOverview?: Array<{
+    id: string;
+    code: string;
+    name: string;
+    totalStudents: number;
+    totalAssignments: number;
+    totalSubmissions: number;
+    averageScore: number;
+  }>;
 }
 
 export const LecturerChartsSection: React.FC<LecturerChartsSectionProps> = ({
   courses,
   kpiMetrics,
   recentSubmissions = [],
+  coursesOverview,
 }) => {
   // 1. Dữ liệu biểu đồ cột: Đối chiếu Bài nộp & Số lượng sinh viên theo từng môn học
-  const courseComparisonData: BarItem[] = courses.slice(0, 6).map((c) => {
-    const studentCount = c.enrollmentCount ?? c._count?.enrollments ?? c.enrollments?.length ?? 1;
-    const submissionsCount = c.assignments
-      ? c.assignments.reduce((sum, a) => sum + (a._count?.submissions ?? 0), 0)
-      : 0;
+  const courseComparisonData: BarItem[] = (
+    coursesOverview && coursesOverview.length > 0 ? coursesOverview : courses
+  ).slice(0, 6).map((c: any) => {
+    const studentCount = c.totalStudents ?? c.enrollmentCount ?? c._count?.enrollments ?? c.enrollments?.length ?? 1;
+    const submissionsCount = c.totalSubmissions ?? (c.assignments
+      ? c.assignments.reduce((sum: number, a: any) => sum + (a._count?.submissions ?? 0), 0)
+      : 0);
 
     return {
       label: c.code,
@@ -52,15 +64,24 @@ export const LecturerChartsSection: React.FC<LecturerChartsSectionProps> = ({
           { label: 'PRF192', value: 0, secondaryValue: 3, subLabel: 'C Basics' },
         ];
 
-  // 2. Dữ liệu biểu đồ tròn: Phổ điểm sinh viên
+  // 2. Dữ liệu biểu đồ tròn: Phổ điểm sinh viên (tính theo bài nộp mới nhất của từng sinh viên)
   let gradeExcellent = 0; // >= 8.5
   let gradeGood = 0;      // 7.0 - 8.4
   let gradePass = 0;      // 5.0 - 6.9
   let gradeFail = 0;      // < 5.0
 
-  if (recentSubmissions.length > 0) {
-    recentSubmissions.forEach((s) => {
-      const score = s.finalScore;
+  // Lọc lấy bài nộp mới nhất của từng sinh viên để phản ánh đúng học lực thí sinh
+  const latestByStudent = new Map<string, LecturerDashboardRecentSubmission>();
+  for (const s of recentSubmissions) {
+    if (s.studentId && !latestByStudent.has(s.studentId)) {
+      latestByStudent.set(s.studentId, s);
+    }
+  }
+  const scoredSubmissions = latestByStudent.size > 0 ? Array.from(latestByStudent.values()) : recentSubmissions;
+
+  if (scoredSubmissions.length > 0) {
+    scoredSubmissions.forEach((s) => {
+      const score = Number(s.finalScore ?? s.sandboxScore ?? 0);
       if (score >= 8.5) gradeExcellent++;
       else if (score >= 7.0) gradeGood++;
       else if (score >= 5.0) gradePass++;
@@ -86,12 +107,14 @@ export const LecturerChartsSection: React.FC<LecturerChartsSectionProps> = ({
 
   // Tổng số bài nộp tính từ các khóa học
   const pendingCount = kpiMetrics.pendingGradingCount ?? 0;
-  const totalSubmissions = courses.reduce((acc, c) => {
-    const subCount = c.assignments
-      ? c.assignments.reduce((sum, a) => sum + (a._count?.submissions ?? 0), 0)
-      : 0;
-    return acc + subCount;
-  }, 0);
+  const totalSubmissions = coursesOverview && coursesOverview.length > 0
+    ? coursesOverview.reduce((sum, c) => sum + (c.totalSubmissions ?? 0), 0)
+    : courses.reduce((acc, c) => {
+        const subCount = c.assignments
+          ? c.assignments.reduce((sum, a) => sum + (a._count?.submissions ?? 0), 0)
+          : 0;
+        return acc + subCount;
+      }, 0);
   const completedGrading = Math.max(0, totalSubmissions - pendingCount);
 
   const gradingProgressData: DonutSegment[] = [
@@ -233,13 +256,20 @@ export const LecturerChartsSection: React.FC<LecturerChartsSectionProps> = ({
         {/* Biểu đồ 2: Biểu đồ Donut phổ điểm sinh viên (5 cột) */}
         <Card className="p-5 xl:col-span-5 space-y-4 rounded-2xl border-slate-200 bg-white shadow-2xs flex flex-col justify-between">
           <div className="border-b border-slate-100 pb-3">
-            <h3 className="flex items-center gap-2 text-base font-extrabold text-slate-900">
-              <Award className="size-4 text-purple-600" />
-              Phân phổ Điểm Sinh viên Toàn khóa
-            </h3>
-            <p className="text-xs text-slate-500">
-              {recentSubmissions.length > 0
-                ? `Thống kê từ ${recentSubmissions.length} bài nộp được chấm điểm gần nhất`
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="flex items-center gap-2 text-base font-extrabold text-slate-900">
+                <Award className="size-4 text-purple-600" />
+                Phân phổ Điểm Sinh viên Toàn khóa
+              </h3>
+              {pendingCount > 0 ? (
+                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                  Dự kiến
+                </span>
+              ) : null}
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {scoredSubmissions.length > 0
+                ? `Thống kê từ ${scoredSubmissions.length} thí sinh nộp bài${pendingCount > 0 ? ' (Điểm máy sơ bộ - Chờ GV duyệt)' : ''}`
                 : 'Tỷ lệ điểm số sinh viên theo 4 dải phân loại học lực'}
             </p>
           </div>
@@ -247,7 +277,7 @@ export const LecturerChartsSection: React.FC<LecturerChartsSectionProps> = ({
           <div className="rounded-xl bg-slate-50/70 p-4 border border-slate-100 flex items-center justify-center">
             <DonutChart
               data={hasScoreData ? scoreSpectrumData : gradingProgressData}
-              centerLabel={hasScoreData ? 'Điểm TB' : 'Bài nộp'}
+              centerLabel={hasScoreData ? (pendingCount > 0 ? 'Điểm TB (Tạm tính)' : 'Điểm TB') : 'Bài nộp'}
               centerValue={
                 hasScoreData
                   ? kpiMetrics.averageScore !== null
@@ -262,10 +292,11 @@ export const LecturerChartsSection: React.FC<LecturerChartsSectionProps> = ({
 
           <div className="pt-1 text-xs text-slate-500 flex items-center justify-between">
             <span className="truncate">
-              Điểm TB toàn khóa: <strong>{kpiMetrics.averageScore ?? '—'} / 10</strong>
+              Điểm TB toàn khóa: <strong>{kpiMetrics.averageScore ?? '—'} / 10</strong>{' '}
+              {pendingCount > 0 && <span className="text-amber-600 font-semibold">(Tạm tính)</span>}
             </span>
-            <span className="font-semibold text-emerald-600">
-              {kpiMetrics.pendingGradingCount ? `${kpiMetrics.pendingGradingCount} bài cần duyệt` : 'Tất cả đã chấm'}
+            <span className={`font-semibold ${pendingCount > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
+              {pendingCount > 0 ? `${pendingCount} bài chờ duyệt` : 'Tất cả đã công bố'}
             </span>
           </div>
         </Card>

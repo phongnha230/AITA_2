@@ -85,17 +85,28 @@ export const CoursesOverviewKpis: React.FC<CoursesOverviewKpisProps> = ({ kpiMet
 
       {/* KPI 3: Điểm trung bình */}
       <Card className="bg-white p-5 rounded-2xl border-slate-200/90 shadow-2xs hover:shadow-xs transition flex flex-col justify-between relative overflow-hidden group">
-        <div className="absolute top-0 left-0 right-0 h-1 bg-emerald-500" />
+        <div className={`absolute top-0 left-0 right-0 h-1 ${kpiMetrics.pendingGradingCount && kpiMetrics.pendingGradingCount > 0 ? 'bg-amber-500' : 'bg-emerald-500'}`} />
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-xs font-bold text-slate-500 uppercase tracking-wider truncate">
               Điểm trung bình toàn khóa
             </p>
-            <h3 className="text-2xl font-black text-slate-900 mt-1">
-              {kpiMetrics.averageScore === null ? '—' : `${kpiMetrics.averageScore}/10`}
-            </h3>
+            <div className="flex items-baseline gap-2 mt-1">
+              <h3 className="text-2xl font-black text-slate-900">
+                {kpiMetrics.averageScore === null ? '—' : `${kpiMetrics.averageScore}/10`}
+              </h3>
+              {kpiMetrics.pendingGradingCount && kpiMetrics.pendingGradingCount > 0 ? (
+                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                  Tạm tính
+                </span>
+              ) : null}
+            </div>
           </div>
-          <div className="size-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100 shadow-xs shrink-0 group-hover:scale-105 transition-transform">
+          <div className={`size-10 rounded-xl flex items-center justify-center border shadow-xs shrink-0 group-hover:scale-105 transition-transform ${
+            kpiMetrics.pendingGradingCount && kpiMetrics.pendingGradingCount > 0
+              ? 'bg-amber-50 text-amber-600 border-amber-100'
+              : 'bg-emerald-50 text-emerald-600 border-emerald-100'
+          }`}>
             <CheckCircle2 className="size-5" />
           </div>
         </div>
@@ -104,13 +115,19 @@ export const CoursesOverviewKpis: React.FC<CoursesOverviewKpisProps> = ({ kpiMet
           <div className="w-24 h-7">
             <Sparkline
               values={[6.2, 6.8, 7.1, 7.5, kpiMetrics.averageScore || 7.8]}
-              color="#10b981"
+              color={kpiMetrics.pendingGradingCount && kpiMetrics.pendingGradingCount > 0 ? '#f59e0b' : '#10b981'}
               height={28}
               width={96}
             />
           </div>
-          <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
-            {kpiMetrics.averageScore && kpiMetrics.averageScore >= 7.0 ? 'Học lực Khá-Giỏi' : 'Đạt chuẩn'}
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded-md border ${
+            kpiMetrics.pendingGradingCount && kpiMetrics.pendingGradingCount > 0
+              ? 'text-amber-800 bg-amber-50 border-amber-200'
+              : 'text-emerald-700 bg-emerald-50 border-emerald-100'
+          }`}>
+            {kpiMetrics.pendingGradingCount && kpiMetrics.pendingGradingCount > 0
+              ? 'Chờ GV duyệt điểm'
+              : (kpiMetrics.averageScore && kpiMetrics.averageScore >= 7.0 ? 'Học lực Khá-Giỏi' : 'Đạt chuẩn')}
           </span>
         </div>
       </Card>
