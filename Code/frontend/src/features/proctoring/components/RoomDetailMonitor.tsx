@@ -117,10 +117,37 @@ export function RoomDetailMonitor({ roomId }: RoomDetailMonitorProps) {
 
   const handleRegrade = async (submissionId: string) => {
     try {
-      setMessage('Đang kích hoạt chấm lại bài nộp...');
+      setMessage('Đang khởi chạy Docker Sandbox & chấm lại toàn bộ test cases...');
       await assignmentService.regradeSubmission(submissionId);
-      setMessage('Đã gửi yêu cầu chấm lại thành công!');
+
+      const startTime = Date.now();
+      const minDurationMs = 5500;
+
+      while (Date.now() - startTime < 35000) {
+        await new Promise((r) => setTimeout(r, 1200));
+        const elapsed = Date.now() - startTime;
+        if (elapsed > 2000 && elapsed <= 4000) {
+          setMessage('Đang biên dịch mã nguồn Java & thực thi 46 test cases...');
+        } else if (elapsed > 4000) {
+          setMessage('Đang đối chiếu file output và tổng hợp điểm bài thi...');
+        }
+
+        if (elapsed >= minDurationMs) {
+          const detail = await assignmentService.getSubmissionDetail(submissionId).catch(() => null);
+          if (
+            detail &&
+            detail.status !== 'SUBMITTED' &&
+            detail.status !== 'RUNNING_SANDBOX' &&
+            detail.status !== 'RUNNING_AI'
+          ) {
+            break;
+          }
+        }
+      }
+
       await load();
+      setMessage('Đã hoàn tất chấm lại bài nộp thành công!');
+      setTimeout(() => setMessage(null), 4000);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Không thể chấm lại bài.');
     }

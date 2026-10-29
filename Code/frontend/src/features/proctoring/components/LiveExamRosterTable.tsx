@@ -15,6 +15,7 @@ import {
   Terminal,
   ExternalLink,
   FileArchive,
+  Loader2,
 } from 'lucide-react';
 import { assignmentService } from '@/features/assignments/services/assignment.service';
 import { Input } from '@/components/ui/input';
@@ -43,6 +44,7 @@ export const LiveExamRosterTable: React.FC<LiveExamRosterTableProps> = ({
   const [statusFilter, setStatusFilter] = useState<'ALL' | RoomStudentStatus>('ALL');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [regradingId, setRegradingId] = useState<string | null>(null);
+  const [downloadingZipId, setDownloadingZipId] = useState<string | null>(null);
 
   // Thống kê nhanh
   const stats = useMemo(() => {
@@ -452,6 +454,28 @@ export const LiveExamRosterTable: React.FC<LiveExamRosterTableProps> = ({
                               </p>
                             )}
                           </div>
+                        ) : sub && sub.sandboxScore !== null ? (
+                          <div>
+                            <span
+                              className={`font-mono text-sm font-black px-2.5 py-1 rounded-xl border ${
+                                Number(sub.sandboxScore) > 0
+                                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                  : 'bg-rose-50 text-rose-700 border-rose-200'
+                              }`}
+                              title="Điểm do máy chấm (Đang chờ giảng viên duyệt hoặc chốt điểm)"
+                            >
+                              {Number(sub.sandboxScore).toFixed(1)} đ
+                            </span>
+                            <p className="text-[10px] text-amber-600 font-medium mt-0.5">
+                              (Chờ duyệt)
+                            </p>
+                          </div>
+                        ) : sub && (sub.status === 'FAILED' || sub.compileSuccess === false) ? (
+                          <div>
+                            <span className="font-mono text-sm font-black px-2.5 py-1 rounded-xl border bg-rose-50 text-rose-700 border-rose-200">
+                              0.0 đ
+                            </span>
+                          </div>
                         ) : sub ? (
                           <span className="font-mono text-xs text-amber-600 font-bold bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-lg">
                             Đang chấm...
@@ -470,15 +494,27 @@ export const LiveExamRosterTable: React.FC<LiveExamRosterTableProps> = ({
                                 type="button"
                                 size="sm"
                                 variant="outline"
-                                onClick={() => {
-                                  const userTag = student.studentCode || student.email.split('@')[0] || 'sv';
-                                  assignmentService.downloadSubmissionZip(sub.id, `${userTag}_${sub.id.slice(-6)}.zip`);
+                                disabled={downloadingZipId === sub.id}
+                                onClick={async () => {
+                                  try {
+                                    setDownloadingZipId(sub.id);
+                                    const userTag = student.studentCode || student.email.split('@')[0] || 'sv';
+                                    await assignmentService.downloadSubmissionZip(sub.id, `${userTag}_${sub.id.slice(-6)}.zip`);
+                                  } catch (err: any) {
+                                    alert(err?.message || 'Không thể tải tập tin bài nộp .ZIP.');
+                                  } finally {
+                                    setDownloadingZipId(null);
+                                  }
                                 }}
                                 className="h-8 rounded-xl border-indigo-200 bg-white hover:bg-indigo-50 text-indigo-700 font-bold text-xs shadow-2xs gap-1 cursor-pointer"
                                 title="Tải tập tin bài nộp .ZIP của sinh viên về máy"
                               >
-                                <Download className="size-3 text-indigo-600" />
-                                <span>Tải .ZIP</span>
+                                {downloadingZipId === sub.id ? (
+                                  <Loader2 className="size-3 animate-spin text-indigo-600" />
+                                ) : (
+                                  <Download className="size-3 text-indigo-600" />
+                                )}
+                                <span>{downloadingZipId === sub.id ? 'Đang tải...' : 'Tải .ZIP'}</span>
                               </Button>
 
                               <Button
