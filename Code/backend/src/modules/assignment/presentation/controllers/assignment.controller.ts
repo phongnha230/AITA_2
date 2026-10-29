@@ -14,11 +14,12 @@ import { UnauthorizedError } from '../../../../shared/domain/exceptions/app.erro
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { Readable } from 'node:stream';
 import { SaveAssignmentPackageSchema } from '../../application/dtos/assignment.dto.js';
 import { SaveAssignmentPackageUseCase } from '../../application/use-cases/save-assignment-package.use-case.js';
 import { ExamSessionUseCase } from '../../application/use-cases/exam-session.use-case.js';
-import { removeAssignmentFile, resolveAssignmentFile, storeAssignmentFiles } from '../../infrastructure/storage/assignment-file.storage.js';
-import { ValidationError } from '../../../../shared/domain/exceptions/app.error.js';
+import { isRemoteUrl, removeAssignmentFile, resolveAssignmentFile, storeAssignmentFiles } from '../../infrastructure/storage/assignment-file.storage.js';
+import { AppError, NotFoundError, ValidationError } from '../../../../shared/domain/exceptions/app.error.js';
 
 export class AssignmentController {
   constructor(
@@ -110,9 +111,35 @@ export class AssignmentController {
       if (kind !== 'pdf' && kind !== 'starter') throw new ValidationError('Loại tệp không hợp lệ.');
       const accessCode = (req.query.accessCode as string) || (req.headers['x-access-code'] as string);
       const assignment = await this.getAssignmentDetailUseCase.execute(req.params.id, 'LECTURER', accessCode);
-      const relativePath = kind === 'pdf' ? assignment.pdfFilePath : assignment.starterCodePath;
-      if (typeof relativePath !== 'string' || !relativePath) throw new ValidationError('Đề thi chưa có tệp này.');
-      const absolutePath = resolveAssignmentFile(relativePath);
+      const targetPath = kind === 'pdf' ? assignment.pdfFilePath : assignment.starterCodePath;
+      if (typeof targetPath !== 'string' || !targetPath) throw new ValidationError('Đề thi chưa có tệp này.');
+      if (isRemoteUrl(targetPath)) {
+        try {
+          const response = await fetch(targetPath);
+          if (!response.ok) {
+            throw new NotFoundError(`Không thể tải tệp từ Cloudinary (mã lỗi phản hồi: ${response.status}).`);
+          }
+          if (kind === 'pdf') {
+            res.type('application/pdf').setHeader('Content-Disposition', 'inline; filename="exam-paper.pdf"');
+          } else {
+            res.type('application/zip').setHeader('Content-Disposition', 'attachment; filename="starter-code.zip"');
+          }
+          if (response.body) {
+            // @ts-ignore
+            Readable.fromWeb(response.body).pipe(res);
+          } else {
+            const buffer = Buffer.from(await response.arrayBuffer());
+            res.send(buffer);
+          }
+          return;
+        } catch (cloudErr: any) {
+          if (cloudErr instanceof AppError) throw cloudErr;
+          throw new AppError(`Lỗi kết nối khi tải tệp từ máy chủ lưu trữ: ${cloudErr.message}`, 502);
+        }
+      }
+
+      try {
+        const absolutePath = resolveAssignmentFile(targetPath);
       await fs.access(absolutePath);
       if (kind === 'pdf') {
         res.type('application/pdf').setHeader('Content-Disposition', 'inline; filename="exam-paper.pdf"');
@@ -123,6 +150,14 @@ export class AssignmentController {
         res.download(absolutePath, 'starter-code.zip', (error) => {
           if (error && !res.headersSent) next(error);
         });
+      }
+      } catch (fileErr: any) {
+        if (fileErr.code === 'ENOENT') {
+          throw new NotFoundError(
+            'Tệp đề thi không tìm thấy trên bộ nhớ cục bộ của máy chủ này (tệp được tạo ở máy khác trước khi nâng cấp Cloudinary). Vui lòng cập nhật lại đề thi.'
+          );
+        }
+        throw fileErr;
       }
     } catch (error) {
       next(error);

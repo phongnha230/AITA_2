@@ -23,7 +23,8 @@
     "test:tidb": "tsx scripts/test-tidb-only.ts",
     "rag:backfill": "tsx scripts/backfill-rag-index.ts",
     "rag:evaluate": "tsx scripts/evaluate-rag-retrieval.ts",
-    "ai:reencrypt-keys": "tsx scripts/reencrypt-ai-keys.ts"
+    "ai:reencrypt-keys": "tsx scripts/reencrypt-ai-keys.ts",
+    "migrate:files": "tsx scripts/migrate-assignments-to-cloud.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

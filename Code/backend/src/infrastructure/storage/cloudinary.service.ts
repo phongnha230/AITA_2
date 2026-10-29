@@ -134,6 +134,42 @@ export class CloudinaryService {
   }
 
   /**
+   * Trích xuất public_id từ URL Cloudinary
+   */
+  public extractPublicIdFromUrl(url: string): string | null {
+    if (!url || typeof url !== 'string') return null;
+    try {
+      const cleanUrl = url.split('?')[0];
+      const match = cleanUrl.match(/\/upload\/(?:v\d+\/)?(.+)$/);
+      if (!match || !match[1]) return null;
+      return decodeURIComponent(match[1]);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Xóa file trên Cloudinary bằng URL đầy đủ hoặc publicId
+   */
+  public async deleteByUrl(
+    urlOrPublicId: string,
+    resourceType: 'image' | 'raw' | 'video' = 'raw'
+  ): Promise<boolean> {
+    if (!this.isConfigured() || !urlOrPublicId) return false;
+    const publicId = urlOrPublicId.startsWith('http://') || urlOrPublicId.startsWith('https://')
+      ? this.extractPublicIdFromUrl(urlOrPublicId)
+      : urlOrPublicId;
+
+    if (!publicId) return false;
+    try {
+      return await this.deleteFile(publicId, resourceType);
+    } catch (err) {
+      console.warn(`[CloudinaryService] Không thể xóa file ${publicId}:`, err);
+      return false;
+    }
+  }
+
+  /**
    * Helper thực thi upload từ Buffer, đường dẫn filePath (string) hoặc Multer File
    */
   private async executeUpload(

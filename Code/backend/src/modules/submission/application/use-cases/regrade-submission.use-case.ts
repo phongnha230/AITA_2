@@ -1,3 +1,6 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { env } from '../../../../infrastructure/config/env.js';
 import { ISubmissionRepository } from '../../domain/repositories/submission.repository.interface.js';
 import { IAssignmentRepository } from '../../../assignment/domain/repositories/assignment.repository.interface.js';
 import { ICourseRepository } from '../../../course/domain/repositories/course.repository.interface.js';
@@ -17,6 +20,7 @@ export class RegradeSubmissionUseCase {
   ) {}
 
   async execute(submissionId: string, actor: { userId: string; role: string }) {
+    let tempDownloadedFile: string | null = null;
     try {
       if (actor.role !== 'ADMIN' && actor.role !== 'LECTURER') throw new ForbiddenError('Chỉ giảng viên hoặc admin mới được chấm lại.');
       const submission = await this.submissionRepository.findById(submissionId);
@@ -30,13 +34,43 @@ export class RegradeSubmissionUseCase {
       }
       const source = await this.submissionRepository.findSourceSnapshot(submissionId);
       if (!source) throw new ValidationError('Không còn bản lưu mã nguồn của bài nộp này để chấm lại.');
-      const staged = await this.artifactExtractor.extractAndStage(source.path, submissionId, assignment.maxFileSizeBytes);
+
+      let pathToStage = source.path;
+
+      // Nếu file snapshot local không tồn tại nhưng có file ZIP trên Cloudinary -> Tự động tải từ Cloudinary về làm bản tạm
+      if (!fs.existsSync(source.path)) {
+        if (submission.zipFilePath && /^https?:\/\//i.test(submission.zipFilePath)) {
+          const cloudRes = await fetch(submission.zipFilePath);
+          if (cloudRes.ok) {
+            const tempDir = path.resolve(env.UPLOAD_DIR, 'submissions-zip-tmp');
+            await fs.promises.mkdir(tempDir, { recursive: true });
+            tempDownloadedFile = path.join(tempDir, `regrade-${submissionId}-${Date.now()}.zip`);
+            const buffer = Buffer.from(await cloudRes.arrayBuffer());
+            await fs.promises.writeFile(tempDownloadedFile, buffer);
+            pathToStage = tempDownloadedFile;
+          }
+        }
+      }
+
+      if (!fs.existsSync(pathToStage)) {
+        throw new ValidationError('Không tìm thấy tệp mã nguồn bài nộp (cục bộ hoặc Cloud) để chấm lại.');
+      }
+
+      const staged = await this.artifactExtractor.extractAndStage(pathToStage, submissionId, assignment.maxFileSizeBytes);
       await this.submissionRepository.updateWorkspacePath(submissionId, staged.stagedPath);
       await this.gradingDispatcher.dispatch(submissionId, staged.stagedPath, actor.userId);
       return { submissionId, sourceSha256: source.sha256 };
     } catch (error) {
       logger.error('submission_regrade_failed', { submissionId, requestingUserId: actor.userId, stage: 'REGRADE', error });
       throw error;
+    } finally {
+      if (tempDownloadedFile) {
+        try {
+          await fs.promises.unlink(tempDownloadedFile);
+        } catch {
+          // Bỏ qua lỗi xóa file tạm
+        }
+      }
     }
   }
 }
