@@ -48,7 +48,7 @@ export class CDockerRunner implements ISandboxRunner {
   private async isDockerDaemonRunning(): Promise<boolean> {
     if (!env.USE_DOCKER_SANDBOX) return false;
     try {
-      await execAsync('docker ps', { timeout: 2000 });
+      await execAsync('docker ps', { timeout: 8000 });
       return true;
     } catch {
       return false;
@@ -186,28 +186,18 @@ export class CDockerRunner implements ISandboxRunner {
       }
     }
 
-    // 3. Cơ chế All-or-Nothing theo từng câu (FPT PE Exam Rule):
-    // Sinh viên phải vượt qua 100% testcases của câu đó mới được tính điểm câu đó.
+    // 3. Cơ chế chấm điểm: Partial Credit theo từng Test Case (Khuyến khích sinh viên):
+    // Sinh viên vượt qua testcase nào sẽ nhận trọn điểm của testcase đó (r.earnedScore = tc.score).
+    // Điểm tổng là tổng điểm các testcase vượt qua.
     let totalScore = 0;
-    for (const qNo of questionNos) {
-      const qCases = testCases.filter((tc) => (tc.questionNo || 'Q1') === qNo);
-      const qResults = results.filter((r) => (r.questionNo || 'Q1') === qNo);
-      const isQuestionFullPass =
-        qResults.length === qCases.length &&
-        qResults.every((r) => r.passed);
-
-      const qTotalMarks = qCases.reduce((sum, tc) => sum + tc.score, 0);
-
-      if (isQuestionFullPass) {
-        totalScore += qTotalMarks;
-        for (const r of qResults) {
-          const matchedTc = qCases.find((tc) => tc.id === r.testCaseId);
-          r.earnedScore = matchedTc?.score ?? 0;
-        }
+    for (const r of results) {
+      const matchedTc = testCases.find((tc) => tc.id === r.testCaseId);
+      if (r.passed) {
+        const earned = matchedTc?.score ?? 0;
+        r.earnedScore = earned;
+        totalScore += earned;
       } else {
-        for (const r of qResults) {
-          r.earnedScore = 0;
-        }
+        r.earnedScore = 0;
       }
     }
 

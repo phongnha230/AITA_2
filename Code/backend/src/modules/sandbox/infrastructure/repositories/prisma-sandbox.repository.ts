@@ -20,6 +20,7 @@ export class PrismaSandboxRepository implements ISandboxRepository {
         id: true,
         gradingSnapshot: true,
         zipFilePath: true,
+        sourceSnapshotPath: true,
         workspacePath: true,
         deployedUrl: true,
         paperCode: true,

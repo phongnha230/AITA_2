@@ -201,7 +201,7 @@ export class JavaDockerRunner implements ISandboxRunner {
   private async isDockerDaemonRunning(): Promise<boolean> {
     if (!env.USE_DOCKER_SANDBOX) return false;
     try {
-      await execAsync('docker ps', { timeout: 2000 });
+      await execAsync('docker ps', { timeout: 8000 });
       return true;
     } catch {
       return false;
@@ -271,11 +271,13 @@ export class JavaDockerRunner implements ISandboxRunner {
       const relQDir = path.relative(stagedFolderPath, qDir).replace(/\\/g, '/');
       const dockerWorkDir = relQDir ? `/app/${relQDir}` : '/app';
 
+      const javaDockerImage = process.env.JAVA_DOCKER_IMAGE || 'eclipse-temurin:17-alpine';
+
       const compileArgs = isDocker
         ? [
             'run', '--rm', '--network', 'none', '--cpus', '1.0', '--pids-limit', '50', '--cap-drop', 'ALL',
             '--security-opt', 'no-new-privileges', '-v', `${path.resolve(stagedFolderPath)}:/app`, '-w', dockerWorkDir,
-            'openjdk:17-alpine', 'javac', '-nowarn', '-encoding', 'UTF-8',
+            javaDockerImage, 'javac', '-nowarn', '-encoding', 'UTF-8',
             '-cp', './bin:./src:.:/app/bin',
             '-d', './bin',
             ...javaFiles.map((file) => `/app/${path.relative(stagedFolderPath, file).replace(/\\/g, '/')}`),
@@ -357,47 +359,18 @@ export class JavaDockerRunner implements ISandboxRunner {
       }
     }
 
-    // 4. Cơ chế All-or-Nothing theo từng HÀM / Phương thức (FPT PE Java Rule):
-    // Trong PRO192 & CSD201, 1 câu hỏi có 1 file code nhưng chứa nhiều hàm nghiệp vụ (f1, f2, f3, tc1, tc2...).
-    // Mỗi hàm có bộ testcase kiểm thử độc lập.
-    // Sinh viên phải vượt qua 100% testcases của hàm đó mới được nhận trọn điểm của hàm đó.
-    // Nếu trượt bất kỳ testcase nào trong hàm đó, hàm đó sẽ nhận 0.00 điểm.
+    // 4. Cơ chế chấm điểm: Partial Credit theo từng Test Case (Khuyến khích sinh viên):
+    // Sinh viên vượt qua testcase nào sẽ nhận trọn điểm của testcase đó (r.earnedScore = tc.score).
+    // Điểm tổng là tổng điểm các testcase vượt qua, không ép 0đ khi chỉ trượt một phần của hàm.
     let totalScore = 0;
-
-    const methodGroups = new Map<string, TestCaseInput[]>();
-    for (const tc of testCases) {
-      const qNo = tc.questionNo || 'Q1';
-      const sub = this.resolveSubMethod(tc);
-      const groupKey = `${qNo}:${sub}`;
-      if (!methodGroups.has(groupKey)) {
-        methodGroups.set(groupKey, []);
-      }
-      methodGroups.get(groupKey)!.push(tc);
-    }
-
-    for (const [groupKey, gCases] of methodGroups.entries()) {
-      const gResults = results.filter((r) => {
-        const qNo = r.questionNo || 'Q1';
-        const sub = r.subMethod || 'default';
-        return `${qNo}:${sub}` === groupKey;
-      });
-
-      const isMethodFullPass =
-        gResults.length === gCases.length &&
-        gResults.every((r) => r.passed);
-
-      const gTotalMarks = gCases.reduce((sum, tc) => sum + tc.score, 0);
-
-      if (isMethodFullPass) {
-        totalScore += gTotalMarks;
-        for (const r of gResults) {
-          const matchedTc = gCases.find((tc) => tc.id === r.testCaseId);
-          r.earnedScore = matchedTc?.score ?? 0;
-        }
+    for (const r of results) {
+      const matchedTc = testCases.find((tc) => tc.id === r.testCaseId);
+      if (r.passed) {
+        const earned = matchedTc?.score ?? 0;
+        r.earnedScore = earned;
+        totalScore += earned;
       } else {
-        for (const r of gResults) {
-          r.earnedScore = 0;
-        }
+        r.earnedScore = 0;
       }
     }
 
@@ -514,7 +487,7 @@ export class JavaDockerRunner implements ISandboxRunner {
           `${path.resolve(stagedFolderPath)}:/app`,
           '-w',
           dockerWorkDir,
-          'openjdk:17-alpine',
+          process.env.JAVA_DOCKER_IMAGE || 'eclipse-temurin:17-alpine',
           'java',
           '-Xmx256m',
           '-cp',

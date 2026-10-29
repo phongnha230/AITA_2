@@ -18,6 +18,7 @@ export interface SandboxTestCaseRecord {
 
 export interface SandboxSubmissionRecord {
   id: string;
+  sourceSnapshotPath?: string | null;
   zipFilePath: string | null;
   workspacePath: string | null;
   deployedUrl: string | null;

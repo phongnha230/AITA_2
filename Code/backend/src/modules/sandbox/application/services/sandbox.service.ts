@@ -1,4 +1,6 @@
 import fs from 'node:fs/promises';
+import path from 'node:path';
+import { env } from '../../../../infrastructure/config/env.js';
 import { SandboxRunnerFactory } from '../../infrastructure/sandbox-runner.factory.js';
 import { IArtifactExtractor } from '../../../submission/application/services/artifact-extractor.interface.js';
 import { SandboxExecutionSummary, TestCaseInput } from '../../domain/interfaces/sandbox-runner.interface.js';
@@ -35,28 +37,80 @@ export class SandboxService implements ISandboxService {
     gradingRunId?: string
   ): Promise<SandboxExecutionSummary> {
     const submission = await this.sandboxRepository.findSubmissionForGrading(submissionId);
-    const sourcePath = submission?.workspacePath ?? submission?.zipFilePath;
-    if (!submission || !sourcePath) {
-      throw new Error(`Không tìm thấy Submission hoặc workspace source rỗng: ${submissionId}`);
+    if (!submission) {
+      throw new Error(`Không tìm thấy Submission: ${submissionId}`);
     }
 
-    let executionFolderPath = sourcePath;
-    try {
-      const stat = await fs.stat(sourcePath);
-      if (stat.isFile() && sourcePath.toLowerCase().endsWith('.zip')) {
+    let executionFolderPath: string = submission.workspacePath || '';
+    let workspaceValid = false;
+
+    if (executionFolderPath) {
+      try {
+        const stat = await fs.stat(executionFolderPath);
+        if (stat.isDirectory()) {
+          workspaceValid = true;
+        }
+      } catch {
+        workspaceValid = false;
+      }
+    }
+
+    if (!workspaceValid) {
+      // Tự động khôi phục và giải nén từ tệp snapshot cục bộ hoặc Cloudinary
+      let localZipPath: string | null = null;
+      let tempDownloadedFile: string | null = null;
+
+      const candidates = [submission.sourceSnapshotPath, submission.zipFilePath].filter(Boolean) as string[];
+      for (const candidate of candidates) {
+        if (!/^https?:\/\//i.test(candidate)) {
+          try {
+            const stat = await fs.stat(candidate);
+            if (stat.isFile()) {
+              localZipPath = candidate;
+              break;
+            }
+          } catch {}
+        }
+      }
+
+      if (!localZipPath) {
+        const remoteUrl = candidates.find((c) => /^https?:\/\//i.test(c));
+        if (remoteUrl) {
+          try {
+            const cloudRes = await fetch(remoteUrl);
+            if (cloudRes.ok) {
+              const tempDir = path.resolve(env.UPLOAD_DIR || './uploads', 'submissions-zip-tmp');
+              await fs.mkdir(tempDir, { recursive: true });
+              tempDownloadedFile = path.join(tempDir, `sandbox-${submissionId}-${Date.now()}.zip`);
+              const buf = Buffer.from(await cloudRes.arrayBuffer());
+              await fs.writeFile(tempDownloadedFile, buf);
+              localZipPath = tempDownloadedFile;
+            }
+          } catch (cloudErr) {
+            console.error('Lỗi khi tải file zip từ cloud:', cloudErr);
+          }
+        }
+      }
+
+      if (!localZipPath) {
+        throw new Error(`Workspace của submission ${submissionId} không tồn tại và không tìm thấy file zip để phục hồi.`);
+      }
+
+      try {
         const stagingResult = await this.artifactExtractor.extractAndStage(
-          sourcePath,
+          localZipPath,
           submission.id,
           submission.assignment.maxFileSizeBytes
         );
         executionFolderPath = stagingResult.stagedPath;
         await this.sandboxRepository.updateWorkspacePath(submission.id, executionFolderPath);
+      } finally {
+        if (tempDownloadedFile) {
+          try {
+            await fs.unlink(tempDownloadedFile);
+          } catch {}
+        }
       }
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-        throw new Error(`Workspace của submission ${submissionId} không tồn tại.`);
-      }
-      throw error;
     }
 
     const allTestCases = submission.assignment.testCases;
@@ -91,6 +145,7 @@ export class SandboxService implements ISandboxService {
     const language = languageOverride || submission.assignment.environment || 'C_GCC';
     const runner = SandboxRunnerFactory.createRunner(language);
     const requireDocker = !WEB_RUNNER_LANGUAGES.has(language.trim().toUpperCase());
+    if (!executionFolderPath) throw new Error(`Không thể xác định thư mục workspace cho bài nộp: ${submissionId}`);
     const summary = await runner.execute(executionFolderPath, testCases, {
       targetBaseUrl: submission.deployedUrl ?? undefined,
       requireDocker,
