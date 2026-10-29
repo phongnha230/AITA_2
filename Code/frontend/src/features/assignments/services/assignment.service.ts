@@ -417,18 +417,33 @@ export const assignmentService = {
    */
   async downloadSubmissionZip(submissionId: string, filename?: string): Promise<void> {
     await this.ensureLecturerAuth();
-    const res = await api.get(`/submissions/${encodeURIComponent(submissionId)}/download-zip`, {
-      responseType: 'blob',
-    });
-    const blob = new Blob([res.data], { type: 'application/zip' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename || `submission_${submissionId.slice(-6)}.zip`;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
+    try {
+      const res = await api.get(`/submissions/${encodeURIComponent(submissionId)}/download-zip`, {
+        responseType: 'blob',
+      });
+      const blob = new Blob([res.data], { type: 'application/zip' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename || `submission_${submissionId.slice(-6)}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }, 150);
+    } catch (err: any) {
+      if (err.response?.data instanceof Blob) {
+        try {
+          const text = await err.response.data.text();
+          const json = JSON.parse(text);
+          throw new Error(json.message || json.error || 'Không thể tải file zip bài nộp.');
+        } catch (parseErr: any) {
+          if (parseErr.message && !parseErr.message.includes('JSON')) throw parseErr;
+        }
+      }
+      throw err;
+    }
   },
 
   /**

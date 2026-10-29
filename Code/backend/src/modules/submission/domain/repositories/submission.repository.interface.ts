@@ -21,7 +21,7 @@ export interface ISubmissionRepository {
   findById(id: string): Promise<Submission | null>;
   findWithJobStatus(id: string): Promise<any | null>;
   getSourceFiles(submissionId: string): Promise<Array<{ name: string; path: string; content: string; size: number }>>;
-  getSubmissionZip(submissionId: string): Promise<{ type: 'url'; url: string } | { type: 'file'; path: string; filename: string } | { type: 'buffer'; buffer: Buffer; filename: string } | null>;
+  getSubmissionZip(submissionId: string): Promise<{ type: 'url'; url: string; filename: string } | { type: 'file'; path: string; filename: string } | { type: 'buffer'; buffer: Buffer; filename: string } | null>;
   manualGrade(submissionId: string, lecturerId: string, data: { finalScore: number; reason: string }): Promise<any>;
   getGradingHistory(submissionId: string, requestingUserId: string, requestingUserRole: string): Promise<unknown[]>;
   getGradingEvidence(submissionId: string, runId: string, evidenceId: string, requestingUserId: string, requestingUserRole: string): Promise<{ path: string; mimeType: string } | null>;

@@ -356,7 +356,8 @@ class ServiceContainer {
     this.adjustParticipantScoreUseCase,
     this.regradeSubmissionUseCase,
     this.getGradingHistoryUseCase,
-    this.reviewGradingRunUseCase
+    this.reviewGradingRunUseCase,
+    this.submissionRepository
   );
   public readonly teamController = new TeamController(this.createTeamUseCase, this.manageTeamUseCase);
   public readonly aiGradingController = new AiGradingController(this.gradeSubmissionAiUseCase);

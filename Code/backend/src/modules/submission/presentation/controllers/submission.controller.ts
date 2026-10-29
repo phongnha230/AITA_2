@@ -216,6 +216,20 @@ export class SubmissionController {
       }
 
       if (result.type === 'url') {
+        try {
+          const remoteRes = await fetch(result.url);
+          if (remoteRes.ok) {
+            const arrayBuf = await remoteRes.arrayBuffer();
+            const buffer = Buffer.from(arrayBuf);
+            res.setHeader('Content-Type', 'application/zip');
+            res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+            res.setHeader('Content-Length', buffer.length);
+            res.send(buffer);
+            return;
+          }
+        } catch {
+          // Fallback to direct redirect if stream fetch fails
+        }
         res.redirect(result.url);
         return;
       }

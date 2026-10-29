@@ -216,40 +216,77 @@ export class PrismaSubmissionRepository implements ISubmissionRepository {
     });
     if (!submission) return [];
 
-    const candidateZip = submission.sourceSnapshotPath || submission.zipFilePath;
-    if (candidateZip && fs.existsSync(candidateZip)) {
-      try {
-        const zip = new AdmZip(candidateZip);
-        const entries = zip.getEntries();
-        const results: Array<{ name: string; path: string; content: string; size: number }> = [];
-
-        for (const entry of entries) {
-          if (entry.isDirectory) continue;
-          const entryName = entry.entryName.replace(/\\/g, '/');
-          if (entryName.includes('__MACOSX') || entryName.includes('/.git/')) continue;
-          const ext = path.extname(entryName).toLowerCase();
-          if (['.exe', '.dll', '.so', '.class', '.o', '.obj', '.bin', '.out', '.zip', '.tar', '.gz'].includes(ext)) {
-            continue;
-          }
-          try {
-            const buffer = entry.getData();
-            if (buffer.length > 500 * 1024) continue;
-            results.push({
-              name: entry.name,
-              path: entryName,
-              content: buffer.toString('utf8'),
-              size: entry.header.size,
-            });
-          } catch {
-            // Ignore unreadable binary
-          }
+    const extractFromZip = (zip: AdmZip) => {
+      const entries = zip.getEntries();
+      const results: Array<{ name: string; path: string; content: string; size: number }> = [];
+      for (const entry of entries) {
+        if (entry.isDirectory) continue;
+        const entryName = entry.entryName.replace(/\\/g, '/');
+        if (entryName.includes('__MACOSX') || entryName.includes('/.git/') || entryName.startsWith('.git/')) continue;
+        const ext = path.extname(entryName).toLowerCase();
+        if (['.exe', '.dll', '.so', '.class', '.o', '.obj', '.bin', '.out', '.zip', '.tar', '.gz'].includes(ext)) {
+          continue;
         }
-        if (results.length > 0) return results;
+        try {
+          const buffer = entry.getData();
+          if (buffer.length > 500 * 1024) continue;
+          results.push({
+            name: entry.name,
+            path: entryName,
+            content: buffer.toString('utf8'),
+            size: entry.header.size,
+          });
+        } catch {
+          // Ignore unreadable binary
+        }
+      }
+      results.sort((a, b) => {
+        const isSourceA = /\.(java|c|cpp|h|cs|py|js|ts)$/i.test(a.path);
+        const isSourceB = /\.(java|c|cpp|h|cs|py|js|ts)$/i.test(b.path);
+        if (isSourceA && !isSourceB) return -1;
+        if (!isSourceA && isSourceB) return 1;
+        const isKeyA = /(My.*|BSTree|Graph|List|Tree|Car|Song|Customer)\.java$/i.test(a.name);
+        const isKeyB = /(My.*|BSTree|Graph|List|Tree|Car|Song|Customer)\.java$/i.test(b.name);
+        if (isKeyA && !isKeyB) return -1;
+        if (!isKeyA && isKeyB) return 1;
+        return a.path.localeCompare(b.path);
+      });
+      return results;
+    };
+
+    // 1. Check local ZIP files on disk first
+    const localZips = [submission.sourceSnapshotPath, submission.zipFilePath].filter(
+      (p): p is string => Boolean(p && !/^https?:\/\//i.test(p) && fs.existsSync(p))
+    );
+    for (const localZip of localZips) {
+      try {
+        const zip = new AdmZip(localZip);
+        const files = extractFromZip(zip);
+        if (files.length > 0) return files;
       } catch (err) {
-        console.error('Lỗi khi đọc file nộp bài zip:', err);
+        console.error('Lỗi khi đọc file nộp bài zip cục bộ:', err);
       }
     }
 
+    // 2. Check remote ZIP (Cloudinary / CDN URLs)
+    const remoteUrls = [submission.zipFilePath, submission.sourceSnapshotPath].filter(
+      (p): p is string => Boolean(p && /^https?:\/\//i.test(p))
+    );
+    for (const url of remoteUrls) {
+      try {
+        const response = await fetch(url);
+        if (response.ok) {
+          const arrayBuffer = await response.arrayBuffer();
+          const zip = new AdmZip(Buffer.from(arrayBuffer));
+          const files = extractFromZip(zip);
+          if (files.length > 0) return files;
+        }
+      } catch (err) {
+        console.error('Lỗi khi tải và đọc remote zip file:', err);
+      }
+    }
+
+    // 3. Staged workspace directory
     if (submission.workspacePath && fs.existsSync(submission.workspacePath)) {
       try {
         const results: Array<{ name: string; path: string; content: string; size: number }> = [];
@@ -283,6 +320,17 @@ export class PrismaSubmissionRepository implements ISubmissionRepository {
           }
         };
         readDirRecursive(submission.workspacePath, submission.workspacePath);
+        results.sort((a, b) => {
+          const isSourceA = /\.(java|c|cpp|h|cs|py|js|ts)$/i.test(a.path);
+          const isSourceB = /\.(java|c|cpp|h|cs|py|js|ts)$/i.test(b.path);
+          if (isSourceA && !isSourceB) return -1;
+          if (!isSourceA && isSourceB) return 1;
+          const isKeyA = /(My.*|BSTree|Graph|List|Tree|Car|Song|Customer)\.java$/i.test(a.name);
+          const isKeyB = /(My.*|BSTree|Graph|List|Tree|Car|Song|Customer)\.java$/i.test(b.name);
+          if (isKeyA && !isKeyB) return -1;
+          if (!isKeyA && isKeyB) return 1;
+          return a.path.localeCompare(b.path);
+        });
         if (results.length > 0) return results;
       } catch (err) {
         console.error('Lỗi khi đọc mã nguồn từ workspacePath:', err);
@@ -292,7 +340,7 @@ export class PrismaSubmissionRepository implements ISubmissionRepository {
     return [];
   }
 
-  async getSubmissionZip(submissionId: string): Promise<{ type: 'url'; url: string } | { type: 'file'; path: string; filename: string } | { type: 'buffer'; buffer: Buffer; filename: string } | null> {
+  async getSubmissionZip(submissionId: string): Promise<{ type: 'url'; url: string; filename: string } | { type: 'file'; path: string; filename: string } | { type: 'buffer'; buffer: Buffer; filename: string } | null> {
     const submission = await this.prisma.submission.findUnique({
       where: { id: submissionId },
       select: {
@@ -311,21 +359,22 @@ export class PrismaSubmissionRepository implements ISubmissionRepository {
     const filename = `${emailTag}${paperTag}_submission_${submission.id.slice(-6)}.zip`;
 
     // 1. Remote URL (Cloudinary / CDN)
-    if (submission.zipFilePath && /^https?:\/\//i.test(submission.zipFilePath)) {
-      return { type: 'url', url: submission.zipFilePath };
+    const remoteUrl = [submission.zipFilePath, submission.sourceSnapshotPath].find(
+      (p) => Boolean(p && /^https?:\/\//i.test(p))
+    );
+    if (remoteUrl) {
+      return { type: 'url', url: remoteUrl, filename };
     }
 
-    // 2. Local zipFilePath
-    if (submission.zipFilePath && fs.existsSync(submission.zipFilePath)) {
-      return { type: 'file', path: submission.zipFilePath, filename };
+    // 2. Local zip file on disk
+    const localZip = [submission.sourceSnapshotPath, submission.zipFilePath].find(
+      (p) => Boolean(p && !/^https?:\/\//i.test(p) && fs.existsSync(p))
+    );
+    if (localZip) {
+      return { type: 'file', path: localZip, filename };
     }
 
-    // 3. Local sourceSnapshotPath
-    if (submission.sourceSnapshotPath && fs.existsSync(submission.sourceSnapshotPath)) {
-      return { type: 'file', path: submission.sourceSnapshotPath, filename };
-    }
-
-    // 4. Staged workspacePath (zip on the fly)
+    // 3. Staged workspacePath (zip on the fly)
     if (submission.workspacePath && fs.existsSync(submission.workspacePath)) {
       try {
         const zip = new AdmZip();
@@ -336,7 +385,7 @@ export class PrismaSubmissionRepository implements ISubmissionRepository {
       }
     }
 
-    // 5. Fallback from getSourceFiles
+    // 4. Fallback from getSourceFiles
     const files = await this.getSourceFiles(submissionId);
     if (files.length > 0) {
       const zip = new AdmZip();
@@ -823,13 +872,15 @@ export class PrismaSubmissionRepository implements ISubmissionRepository {
       select: {
         sourceSnapshotPath: true,
         sourceSnapshotHash: true,
+        zipFilePath: true,
         assignmentId: true,
         assignment: { select: { courseId: true, maxFileSizeBytes: true } },
       },
     });
-    if (!submission?.sourceSnapshotPath) return null;
+    const candidatePath = submission?.sourceSnapshotPath || submission?.zipFilePath;
+    if (!submission || !candidatePath) return null;
     return {
-      path: submission.sourceSnapshotPath,
+      path: candidatePath,
       sha256: submission.sourceSnapshotHash,
       assignmentId: submission.assignmentId,
       courseId: submission.assignment.courseId,
