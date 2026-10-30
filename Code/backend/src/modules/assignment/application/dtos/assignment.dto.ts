@@ -30,17 +30,25 @@ export const CreateAssignmentSchema = z.object({
     cleanCodeMaxScore: assignment.cleanCodeMaxScore ?? (isReact ? 1 : 0),
   };
 }).refine(
-  (assignment) => Math.abs(
-    assignment.functionalMaxScore + assignment.algorithmMaxScore + assignment.cleanCodeMaxScore - 10
-  ) < 0.001,
-  { message: 'Tổng điểm các phần phải bằng 10.' }
+  (assignment) => {
+    if (assignment.functionalMaxScore === 10) return true;
+    return Math.abs(
+      assignment.functionalMaxScore + assignment.algorithmMaxScore + assignment.cleanCodeMaxScore - 10
+    ) < 0.001;
+  },
+  { message: 'Tổng điểm các phần phải bằng 10 hoặc thang điểm chức năng là 10.0.' }
 ).refine(
-  (assignment) => assignment.gradingVersion !== 2 || (
-    assignment.functionalMaxScore === 7
-    && assignment.algorithmMaxScore === 2
-    && assignment.cleanCodeMaxScore === 1
-  ),
-  { message: 'Cấu hình chấm phiên bản 2 phải là 7 điểm chức năng, 2 điểm thuật toán và 1 điểm Clean Code.' }
+  (assignment) => {
+    if (assignment.gradingVersion !== 2) return true;
+    const isPenalty10Pt = assignment.functionalMaxScore === 10
+      && assignment.algorithmMaxScore === 2
+      && assignment.cleanCodeMaxScore === 1;
+    const isLegacy7Pt = assignment.functionalMaxScore === 7
+      && assignment.algorithmMaxScore === 2
+      && assignment.cleanCodeMaxScore === 1;
+    return isPenalty10Pt || isLegacy7Pt;
+  },
+  { message: 'Cấu hình chấm phiên bản 2 phải là 10 điểm chức năng (kèm phạt AI 2đ/1đ) hoặc 7 điểm chức năng.' }
 );
 
 export type CreateAssignmentDto = z.infer<typeof CreateAssignmentSchema>;

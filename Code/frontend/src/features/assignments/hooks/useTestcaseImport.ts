@@ -58,6 +58,7 @@ export function useTestcaseImport(
 ) {
   const [importModal, setImportModal] = useState(false);
   const [importType, setImportType] = useState<'json' | 'excel'>('json');
+  const [importMode, setImportMode] = useState<'replace' | 'append'>('replace');
   const [jsonText, setJsonText] = useState('');
   const [previewTestCases, setPreviewTestCases] = useState<TestCase[]>([]);
   const [importError, setImportError] = useState<string | null>(null);
@@ -104,11 +105,28 @@ export function useTestcaseImport(
 
       // If JSON is object with groups (like testcases.json), wrap into question format
       if (!Array.isArray(parsed) && isRecord(parsed) && Array.isArray(parsed.groups)) {
-        parsed = (parsed.groups as unknown[]).filter(isRecord).map((g, idx) => ({
-          questionNumber: `Q${idx + 1}`,
-          questionTitle: getText(g, 'title') ?? `Câu hỏi Q${idx + 1}`,
-          testCases: Array.isArray(g.cases) ? g.cases : [],
-        }));
+        parsed = (parsed.groups as unknown[]).filter(isRecord).map((g, idx) => {
+          const rawMarks = getText(g, 'marks', 'points', 'score');
+          const groupMarks = rawMarks ? (parseFloat(rawMarks.replace(/[^0-9.]/g, '')) || 1) : 1;
+          const cases = (Array.isArray(g.cases) ? g.cases : []).filter(isRecord);
+          const caseCount = cases.length || 1;
+          let acc = 0;
+          const casesWithPoints = cases.map((c, cIdx) => {
+            if (c.points !== undefined || c.score !== undefined) return c;
+            if (cIdx === caseCount - 1) {
+              const lastPts = Math.round((groupMarks - acc) * 100) / 100;
+              return { ...c, points: Math.max(0.01, lastPts) };
+            }
+            const pts = Math.round((groupMarks / caseCount) * 100) / 100;
+            acc += pts;
+            return { ...c, points: Math.max(0.01, pts) };
+          });
+          return {
+            questionNumber: `Q${idx + 1}`,
+            questionTitle: getText(g, 'title') ?? `Câu hỏi Q${idx + 1}`,
+            testCases: casesWithPoints,
+          };
+        });
       }
 
       if (Array.isArray(parsed)) {
@@ -150,11 +168,19 @@ export function useTestcaseImport(
   // Confirm import from preview table into main testcase list
   const handleConfirmImport = () => {
     if (previewTestCases.length === 0) return;
-    const reindexed = previewTestCases.map((tc, idx) => ({
-      ...tc,
-      orderIndex: testCases.length + idx + 1,
-    }));
-    setTestCases([...testCases, ...reindexed]);
+    if (importMode === 'replace' || testCases.length === 0) {
+      const reindexed = previewTestCases.map((tc, idx) => ({
+        ...tc,
+        orderIndex: idx + 1,
+      }));
+      setTestCases(reindexed);
+    } else {
+      const reindexed = previewTestCases.map((tc, idx) => ({
+        ...tc,
+        orderIndex: testCases.length + idx + 1,
+      }));
+      setTestCases([...testCases, ...reindexed]);
+    }
     setImportModal(false);
     setPreviewTestCases([]);
     setJsonText('');
@@ -164,6 +190,8 @@ export function useTestcaseImport(
     setImportModal(true);
     setPreviewTestCases([]);
     setImportError(null);
+    // Mặc định: nếu đã có testcase thì gợi ý ghi đè để tránh cộng dồn double testcases
+    setImportMode(testCases.length > 0 ? 'replace' : 'append');
   };
 
   const closeModal = () => {
@@ -176,6 +204,8 @@ export function useTestcaseImport(
     closeModal,
     importType,
     setImportType,
+    importMode,
+    setImportMode,
     jsonText,
     setJsonText,
     previewTestCases,

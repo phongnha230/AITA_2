@@ -575,8 +575,9 @@ export function useCreateExamWizard() {
       return 'Mỗi testcase cần có điểm lớn hơn 0.';
     }
     const functionalPoints = testCases.reduce((sum, testCase) => sum + Number(testCase.points), 0);
-    if (Math.abs(functionalPoints - 7) >= 0.01) {
-      return `Tổng điểm testcase phải bằng 7.0; hiện tại là ${functionalPoints.toFixed(2)}.`;
+    const expectedTarget = environment === 'REACT_JS' ? 7 : 10;
+    if (Math.abs(functionalPoints - expectedTarget) >= 0.01) {
+      return `Tổng điểm testcase phải bằng ${expectedTarget.toFixed(1)}; hiện tại là ${functionalPoints.toFixed(2)}.`;
     }
     if (environment === 'C_GCC' && testCases.some((testCase) => testCase.comparisonMode !== 'STDIO')) {
       return 'Testcase C hiện chỉ hỗ trợ so sánh STDIO.';
@@ -689,8 +690,9 @@ export function useCreateExamWizard() {
       return;
     }
     const functionalPoints = testCases.reduce((sum, testCase) => sum + (Number(testCase.points) || 0), 0);
-    if (Math.abs(functionalPoints - 7) >= 0.01) {
-      alert(`Tổng điểm test case phải bằng 7.0; hiện tại là ${functionalPoints.toFixed(2)}.`);
+    const expectedTarget = environment === 'REACT_JS' ? 7 : 10;
+    if (Math.abs(functionalPoints - expectedTarget) >= 0.01) {
+      alert(`Tổng điểm test case phải bằng ${expectedTarget.toFixed(1)}; hiện tại là ${functionalPoints.toFixed(2)}.`);
       setActiveStep(3);
       return;
     }
@@ -776,7 +778,7 @@ export function useCreateExamWizard() {
           accessCode: accessCode.trim(),
           status: editId ? assignmentStatus : 'PUBLISHED',
           gradingVersion: 2,
-          functionalMaxScore: 7,
+          functionalMaxScore: environment === 'REACT_JS' ? 7 : 10,
           algorithmMaxScore: 2,
           cleanCodeMaxScore: 1,
           gradingApprovalMode,

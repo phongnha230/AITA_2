@@ -34,10 +34,24 @@ export function SubmissionOverview({ submission }: { submission: LecturerSubmiss
 
 function SubmissionScores({ submission }: { submission: LecturerSubmission }) {
   const versionTwo = submission.assignment?.gradingVersion === 2;
+  const isPenaltyMode = Number(submission.assignment?.functionalMaxScore) === 10;
   return (
     <section aria-label="Điểm bài nộp" className={`grid ${versionTwo ? 'grid-cols-4' : 'grid-cols-3'} gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-center`}>
-      <ScoreItem label="Chức năng (Sandbox)" value={`${submission.sandboxScore ?? '-'} / ${submission.assignment?.functionalMaxScore ?? 8}`} />
-      {versionTwo ? (
+      <ScoreItem label="Chức năng (Sandbox)" value={`${submission.sandboxScore ?? '-'} / ${submission.assignment?.functionalMaxScore ?? 10}`} />
+      {isPenaltyMode ? (
+        <>
+          <ScoreItem
+            label="Trừ phạt Thuật toán / Gian lận"
+            value={submission.algorithmScore !== null && submission.algorithmScore !== undefined ? (Number(submission.algorithmScore) < 0 ? `${Number(submission.algorithmScore).toFixed(1)}đ` : '0.0đ (Chuẩn)') : '-'}
+            accent={Number(submission.algorithmScore) < 0 ? 'text-rose-700' : 'text-emerald-700'}
+          />
+          <ScoreItem
+            label="Trừ phạt Clean Code"
+            value={submission.cleanCodeScore !== null && submission.cleanCodeScore !== undefined ? (Number(submission.cleanCodeScore) < 0 ? `${Number(submission.cleanCodeScore).toFixed(1)}đ` : '0.0đ (Chuẩn)') : '-'}
+            accent={Number(submission.cleanCodeScore) < 0 ? 'text-amber-700' : 'text-emerald-700'}
+          />
+        </>
+      ) : versionTwo ? (
         <>
           <ScoreItem label={submission.assignment?.environment === 'REACT_JS' ? 'React Semantic' : 'Thuật toán'} value={`${submission.algorithmScore ?? '-'} / ${submission.assignment?.algorithmMaxScore ?? 2}`} />
           <ScoreItem label="Clean Code" value={`${submission.cleanCodeScore ?? '-'} / ${submission.assignment?.cleanCodeMaxScore ?? 1}`} />

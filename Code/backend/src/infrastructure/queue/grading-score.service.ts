@@ -40,6 +40,21 @@ export const aggregateGradingScores = (
   const sandboxScore = clampScore(inputs.sandboxScore, limits.functionalMaxScore);
   const algorithmScore = clampScore(inputs.algorithmScore, limits.algorithmMaxScore);
   const cleanCodeScore = clampScore(inputs.cleanCodeScore, limits.cleanCodeMaxScore);
+
+  // Cơ chế Strict PE (Penalty Mode): Thang chức năng tối đa 10.0đ, AI đóng vai trò Audit trừ điểm phạt nếu vi phạm
+  if (limits.functionalMaxScore === 10) {
+    const penaltyAlgorithm = limits.algorithmMaxScore - algorithmScore;
+    const penaltyCleanCode = limits.cleanCodeMaxScore - cleanCodeScore;
+    const totalPenalty = Math.max(0, penaltyAlgorithm + penaltyCleanCode);
+    return {
+      sandboxScore,
+      aiScore: totalPenalty > 0 ? -Number(totalPenalty.toFixed(2)) : 0,
+      algorithmScore: penaltyAlgorithm > 0 ? -Number(penaltyAlgorithm.toFixed(2)) : 0,
+      cleanCodeScore: penaltyCleanCode > 0 ? -Number(penaltyCleanCode.toFixed(2)) : 0,
+      finalScore: clampScore(sandboxScore - totalPenalty, 10),
+    };
+  }
+
   const isPureTestcaseExam = limits.algorithmMaxScore === 0 && limits.cleanCodeMaxScore === 0;
   const aiScore = isPureTestcaseExam
     ? 0

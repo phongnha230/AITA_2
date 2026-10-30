@@ -13,6 +13,9 @@ interface TestcaseImportModalProps {
   onClose: () => void;
   importType: 'json' | 'excel';
   setImportType: (val: 'json' | 'excel') => void;
+  importMode?: 'replace' | 'append';
+  setImportMode?: (val: 'replace' | 'append') => void;
+  existingCount?: number;
   jsonText: string;
   setJsonText: (val: string) => void;
   previewTestCases: TestCase[];
@@ -27,6 +30,9 @@ export const TestcaseImportModal: React.FC<TestcaseImportModalProps> = ({
   onClose,
   importType,
   setImportType,
+  importMode = 'replace',
+  setImportMode,
+  existingCount = 0,
   jsonText,
   setJsonText,
   previewTestCases,
@@ -114,6 +120,37 @@ export const TestcaseImportModal: React.FC<TestcaseImportModalProps> = ({
               Import file Excel / CSV
             </button>
           </div>
+
+          {/* Lựa chọn Ghi đè hay Nối thêm khi đã có testcase */}
+          {existingCount > 0 && setImportMode && (
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+              <span className="font-bold text-slate-700 shrink-0">Tùy chọn nạp:</span>
+              <div className="flex flex-wrap items-center gap-4">
+                <label className="flex items-center gap-1.5 cursor-pointer font-bold text-blue-800">
+                  <input
+                    type="radio"
+                    name="modalImportMode"
+                    value="replace"
+                    checked={importMode === 'replace'}
+                    onChange={() => setImportMode('replace')}
+                    className="accent-blue-600 size-3.5"
+                  />
+                  <span>Ghi đè (Thay thế {existingCount} testcases cũ - Khuyên dùng)</span>
+                </label>
+                <label className="flex items-center gap-1.5 cursor-pointer font-medium text-slate-600">
+                  <input
+                    type="radio"
+                    name="modalImportMode"
+                    value="append"
+                    checked={importMode === 'append'}
+                    onChange={() => setImportMode('append')}
+                    className="accent-blue-600 size-3.5"
+                  />
+                  <span>Nối thêm vào sau</span>
+                </label>
+              </div>
+            </div>
+          )}
 
           {importType === 'json' ? (
             <div>
@@ -267,7 +304,9 @@ export const TestcaseImportModal: React.FC<TestcaseImportModalProps> = ({
             disabled={previewTestCases.length === 0}
             className="px-5 py-2 rounded-xl text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-500/20 transition disabled:opacity-50"
           >
-            Xác nhận nạp {previewTestCases.length > 0 ? `(${previewTestCases.length} cases)` : ''} vào đề
+            {existingCount > 0 && importMode === 'replace'
+              ? `Xác nhận thay thế toàn bộ bằng ${previewTestCases.length} cases mới`
+              : `Xác nhận nạp ${previewTestCases.length > 0 ? `(${previewTestCases.length} cases)` : ''} vào đề`}
           </button>
         </div>
       </div>

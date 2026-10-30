@@ -169,6 +169,9 @@ export const CreateExamWizard: React.FC = () => {
           onClose={wizard.testcaseImport.closeModal}
           importType={wizard.testcaseImport.importType}
           setImportType={wizard.testcaseImport.setImportType}
+          importMode={wizard.testcaseImport.importMode}
+          setImportMode={wizard.testcaseImport.setImportMode}
+          existingCount={wizard.testCases.length}
           jsonText={wizard.testcaseImport.jsonText}
           setJsonText={wizard.testcaseImport.setJsonText}
           previewTestCases={wizard.testcaseImport.previewTestCases}

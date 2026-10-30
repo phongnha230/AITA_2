@@ -77,12 +77,31 @@ function FinalScoreCard({ submission }: SubmissionScoreOverviewProps) {
 
 function SandboxScoreCard({ submission }: SubmissionScoreOverviewProps) {
   const { displaySandbox } = parseScores(submission);
-  return <ScoreCard label="Điểm chức năng (Sandbox)" icon={<Cpu className="size-5" />}><div className="mt-3 flex items-baseline gap-2"><p className="text-3xl font-extrabold tabular-nums text-slate-900">{displaySandbox}</p><span className="text-xs text-slate-400">/ {submission.assignment?.functionalMaxScore ?? 8} điểm</span></div><p className="mt-2.5 text-xs text-slate-500">Chấm tự động theo điểm từng Test Case</p></ScoreCard>;
+  return <ScoreCard label="Điểm chức năng (Sandbox)" icon={<Cpu className="size-5" />}><div className="mt-3 flex items-baseline gap-2"><p className="text-3xl font-extrabold tabular-nums text-slate-900">{displaySandbox}</p><span className="text-xs text-slate-400">/ {submission.assignment?.functionalMaxScore ?? 10} điểm</span></div><p className="mt-2.5 text-xs text-slate-500">Chấm tự động theo điểm từng Test Case</p></ScoreCard>;
 }
 
 function AiScoreCard({ submission }: SubmissionScoreOverviewProps) {
   const { aiScore } = parseScores(submission);
+  const isPenaltyMode = Number(submission.assignment?.functionalMaxScore) === 10;
   const v2 = submission.assignment?.gradingVersion === 2;
+
+  if (isPenaltyMode) {
+    const isPenalized = aiScore !== null && aiScore < 0;
+    return (
+      <ScoreCard label="AI Giám sát & Trừ phạt" icon={<Bot className="size-5" />}>
+        <div className="mt-3 flex items-baseline gap-2">
+          <p className={`text-3xl font-extrabold tabular-nums ${isPenalized ? 'text-rose-600' : 'text-emerald-700'}`}>
+            {aiScore !== null ? (isPenalized ? `${aiScore.toFixed(1)}đ` : '0.0đ') : 'Đang duyệt'}
+          </p>
+          <span className="text-xs text-slate-400">{isPenalized ? 'điểm phạt' : 'chuẩn mực'}</span>
+        </div>
+        <p className="mt-2.5 text-xs text-slate-500">
+          {isPenalized ? 'Phát hiện vi phạm hardcode hoặc clean code' : 'Không có gian lận/hardcode, mã nguồn chuẩn'}
+        </p>
+      </ScoreCard>
+    );
+  }
+
   return <ScoreCard label={v2 ? 'Thuật toán + Clean Code' : 'AI Code Review'} icon={<Bot className="size-5" />}><div className="mt-3 flex items-baseline gap-2"><p className="text-3xl font-extrabold tabular-nums text-indigo-700">{aiScore?.toFixed(1) ?? 'Sẵn sàng'}</p>{aiScore !== null && <span className="text-xs text-slate-400">/ {v2 ? 3 : 2}</span>}</div><p className="mt-2.5 text-xs text-slate-500">{v2 ? `Thuật toán ${submission.algorithmScore ?? '--'}/2 • Clean Code ${submission.cleanCodeScore ?? '--'}/1` : 'Phân tích Big-O & góp ý (tham khảo)'}</p></ScoreCard>;
 }
 

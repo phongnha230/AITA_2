@@ -323,10 +323,10 @@ function ExamReviewOverview({ selectedCourse, environment, testCases, totalPoint
   const environmentLabels: Record<AssignmentEnv, string> = { C_GCC: 'C GCC 11', JAVA_JDK: 'Java JDK 21', REACT_JS: 'React + Playwright' };
   const scoreDescription = isReact
     ? '7.0đ Playwright + 2.0đ Cấu trúc React + 1.0đ Clean Code = 10.0đ'
-    : '7.0đ Chức năng + 2.0đ Thuật toán + 1.0đ Clean Code = 10.0đ';
+    : '10.0đ Chức năng (AI Giám sát & Trừ phạt)';
   const gradingDescription = isReact
     ? 'Playwright chấm tối đa 7 điểm trên URL deploy; AI chỉ đọc source chọn lọc để chấm 2 điểm cấu trúc React và 1 điểm Clean Code.'
-    : 'Sandbox chấm tối đa 7 điểm chức năng; AI đánh giá tối đa 2 điểm thuật toán và 1 điểm Clean Code.';
+    : 'Sandbox chấm 100% độ chính xác testcases chức năng (tối đa 10.0đ); AI chỉ đối sánh mã nguồn để trừ phạt nếu phát hiện gian lận hoặc hardcode.';
   return <>
     <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="flex items-center justify-between border-b border-slate-100 pb-3"><div className="flex items-center gap-2"><span className="size-2.5 rounded-full bg-blue-600" /><h2 className="text-sm font-extrabold text-slate-900">1. Rà Soát Tổng Thể Đề Thi Trước Khi Công Bố</h2></div><span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700">ĐỦ THÔNG TIN BẮT BUỘC</span></div>

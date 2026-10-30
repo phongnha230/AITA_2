@@ -1,4 +1,4 @@
-import { Upload, FileSpreadsheet, Plus, Archive, X, Sparkles } from 'lucide-react';
+import { Upload, FileSpreadsheet, Plus, Archive, X, Sparkles, Trash2 } from 'lucide-react';
 import { AssignmentEnv, TestCase } from '../../types/assignment.types';
 import { TestcaseTable } from './TestcaseTable';
 import { WizardNavFooter } from './WizardNavFooter';
@@ -66,25 +66,88 @@ export const WizardStep3Solution: React.FC<WizardStep3SolutionProps> = ({
   onNext,
 }) => {
   const isProCourse = courseCode.trim().toUpperCase() === 'PRO192';
-  const targetTestcaseMax = 7.0;
+  const targetTestcaseMax = 10.0;
   const totalCalculatedPoints = testCases.reduce((acc, cur) => acc + (Number(cur.points) || 0), 0);
   const isExactTarget = Math.abs(totalCalculatedPoints - targetTestcaseMax) < 0.01;
-  const uniqueQuestions = Array.from(new Set(testCases.map((tc) => tc.questionNumber || 'Q1')));
 
-  const handleScaleToTarget = () => {
-    if (testCases.length === 0 || totalCalculatedPoints === 0) return;
-    const factor = targetTestcaseMax / totalCalculatedPoints;
-    let accumulated = 0;
-    const updated = testCases.map((tc, index) => {
-      if (index === testCases.length - 1) {
-        const lastPoints = Math.round((targetTestcaseMax - accumulated) * 100) / 100;
-        return { ...tc, points: Math.max(0.01, lastPoints) };
+  // Gom nhóm testcase theo từng câu hỏi (Q1, Q2... Q10)
+  const questionMap = new Map<string, TestCase[]>();
+  testCases.forEach((tc) => {
+    const qKey = (tc.questionNumber ? String(tc.questionNumber).trim().toUpperCase() : 'Q1');
+    if (!questionMap.has(qKey)) {
+      questionMap.set(qKey, []);
+    }
+    questionMap.get(qKey)!.push(tc);
+  });
+  const uniqueQuestions = Array.from(questionMap.keys());
+
+  const hasSampleCases = testCases.some((tc) => /^TC\d+_Q\d+_/i.test(tc.label));
+  const hasJsonCases = testCases.some((tc) => /^Q\d+-T\d+/i.test(tc.label));
+
+  // Lọc bỏ các testcase mẫu cũ nếu đã có testcase từ JSON
+  const handlePurgeSampleCases = () => {
+    const onlyJsonCases = testCases
+      .filter((tc) => !/^TC\d+_Q\d+_/i.test(tc.label))
+      .map((tc, idx) => ({ ...tc, orderIndex: idx + 1 }));
+    setTestCases(onlyJsonCases);
+  };
+
+  // Chuẩn hóa điểm theo từng câu hỏi (ví dụ 10 câu -> mỗi câu đúng 1.0đ, tổng đúng 10.0đ)
+  const handleNormalizePointsByQuestion = () => {
+    if (testCases.length === 0) return;
+
+    // Nếu phát hiện bị lẫn cả testcase mẫu (TC1_Q1...) và testcase từ JSON (Q1-T1...), tự động loại bỏ testcase mẫu!
+    const effectiveCases = (hasSampleCases && hasJsonCases)
+      ? testCases.filter((tc) => !/^TC\d+_Q\d+_/i.test(tc.label))
+      : testCases;
+
+    const currentQuestionMap = new Map<string, TestCase[]>();
+    effectiveCases.forEach((tc) => {
+      const qKey = (tc.questionNumber ? String(tc.questionNumber).trim().toUpperCase() : 'Q1');
+      if (!currentQuestionMap.has(qKey)) {
+        currentQuestionMap.set(qKey, []);
       }
-      const scaled = Math.round(Number(tc.points) * factor * 100) / 100;
-      accumulated += scaled;
-      return { ...tc, points: Math.max(0.01, scaled) };
+      currentQuestionMap.get(qKey)!.push(tc);
     });
-    setTestCases(updated);
+    const currentUniqueQuestions = Array.from(currentQuestionMap.keys());
+
+    const qCount = currentUniqueQuestions.length || 1;
+    const baseTargetPerQ = Math.round((targetTestcaseMax / qCount) * 100) / 100;
+
+    let accumulatedTotalScore = 0;
+    const updatedTestCases: TestCase[] = [];
+    let globalIndex = 1;
+
+    currentUniqueQuestions.forEach((qKey, qIdx) => {
+      const qCases = currentQuestionMap.get(qKey) || [];
+      const caseCount = qCases.length;
+      if (caseCount === 0) return;
+
+      const isLastQ = qIdx === currentUniqueQuestions.length - 1;
+      const qTarget = isLastQ
+        ? Math.max(0.01, Math.round((targetTestcaseMax - accumulatedTotalScore) * 100) / 100)
+        : baseTargetPerQ;
+      accumulatedTotalScore += qTarget;
+
+      let accInQ = 0;
+      qCases.forEach((tc, cIdx) => {
+        let pts: number;
+        if (cIdx === caseCount - 1) {
+          pts = Math.round((qTarget - accInQ) * 100) / 100;
+        } else {
+          pts = Math.round((qTarget / caseCount) * 100) / 100;
+          accInQ += pts;
+        }
+        updatedTestCases.push({
+          ...tc,
+          orderIndex: globalIndex++,
+          questionNumber: qKey,
+          points: Math.max(0.01, pts),
+        });
+      });
+    });
+
+    setTestCases(updatedTestCases);
   };
 
   if (environment === 'REACT_JS') {
@@ -114,7 +177,7 @@ export const WizardStep3Solution: React.FC<WizardStep3SolutionProps> = ({
         <div>
           <span className="font-bold">Dữ liệu kiểm thử bảo mật của Giảng viên (Chỉ chạy trên Sandbox):</span>
           <p className="text-emerald-800/90 text-xs mt-0.5">
-            Testcase chiếm 7 điểm và được Sandbox chạy thật. AI dùng ZIP đáp án cùng các tiêu chí bên dưới để đề xuất điểm thuật toán/thiết kế (2 điểm) và Clean Code (1 điểm); không yêu cầu code giống đáp án.
+            Testcase chức năng chiếm trọn thang điểm 10.0đ và được Sandbox chạy thật. AI dùng ZIP đáp án cùng các tiêu chí bên dưới để audit phát hiện gian lận/hardcode và trừ điểm phạt nếu vi phạm.
           </p>
         </div>
       </div>
@@ -276,7 +339,7 @@ export const WizardStep3Solution: React.FC<WizardStep3SolutionProps> = ({
               <button
                 type="button"
                 onClick={onOpenImportModal}
-                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 flex items-center gap-1.5 shadow-2xs transition"
+                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 flex items-center gap-1.5 shadow-2xs transition cursor-pointer"
               >
                 <FileSpreadsheet className="size-3.5 text-amber-600" />
                 <span>Import cả bộ Testcase (JSON / CSV)</span>
@@ -285,10 +348,24 @@ export const WizardStep3Solution: React.FC<WizardStep3SolutionProps> = ({
               <button
                 type="button"
                 onClick={onAddBlankTestCase}
-                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 flex items-center gap-1.5 transition"
+                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 flex items-center gap-1.5 transition cursor-pointer"
               >
                 <Plus className="size-3.5" />
                 <span>Thêm 1 testcase</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm('Bạn có chắc chắn muốn xóa toàn bộ testcase để nạp lại từ đầu?')) {
+                    setTestCases([]);
+                  }
+                }}
+                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 flex items-center gap-1.5 transition cursor-pointer"
+                title="Xóa toàn bộ testcase trong bảng để import lại từ file JSON"
+              >
+                <Trash2 className="size-3.5 text-rose-600" />
+                <span>Xóa tất cả</span>
               </button>
             </div>
           )}
@@ -297,63 +374,106 @@ export const WizardStep3Solution: React.FC<WizardStep3SolutionProps> = ({
         {/* Standard: Strict PE Total Points Monitor & Question Breakdown */}
         {testCases.length > 0 && (
           <div
-            className={`p-4 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs ${
+            className={`p-4 rounded-xl border flex flex-col gap-3 text-xs transition ${
               isExactTarget
-                ? 'bg-emerald-50/80 border-emerald-200 text-emerald-900'
-                : 'bg-amber-50/80 border-amber-200 text-amber-900'
+                ? 'bg-emerald-50/80 border-emerald-200 text-emerald-950'
+                : totalCalculatedPoints > targetTestcaseMax
+                ? 'bg-rose-50/80 border-rose-200 text-rose-950'
+                : 'bg-amber-50/80 border-amber-200 text-amber-950'
             }`}
           >
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 font-bold">
-                <span
-                  className={`size-2.5 rounded-full ${
-                    isExactTarget ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'
-                  }`}
-                />
-                <span>
-                  Điểm chức năng: {totalCalculatedPoints.toFixed(1)} / 7.0 • Thuật toán: 2.0 • Clean Code: 1.0
-                </span>
-                {isExactTarget ? (
-                  <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold text-xs">
-                    ✓ Đủ 7.0đ chức năng
+            {/* Tầng 1: Trạng thái điểm & Các nút hành động */}
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={`size-2.5 rounded-full ${
+                      isExactTarget
+                        ? 'bg-emerald-500'
+                        : totalCalculatedPoints > targetTestcaseMax
+                        ? 'bg-rose-500 animate-pulse'
+                        : 'bg-amber-500 animate-pulse'
+                    }`}
+                  />
+                  <span className="text-sm font-extrabold text-slate-900">
+                    Thang điểm Khảo thí: 10.0đ
                   </span>
-                ) : (
-                  <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 font-bold text-xs">
-                    {totalCalculatedPoints < targetTestcaseMax
-                      ? `Thiếu ${(targetTestcaseMax - totalCalculatedPoints).toFixed(1)}đ Testcases`
-                      : `Dư ${(totalCalculatedPoints - targetTestcaseMax).toFixed(1)}đ Testcases`}
-                  </span>
+                  {isExactTarget ? (
+                    <span className="px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold text-xs">
+                      ✓ Đạt chuẩn 10.0đ ({uniqueQuestions.length} câu, mỗi câu {(10 / (uniqueQuestions.length || 1)).toFixed(1)}đ)
+                    </span>
+                  ) : totalCalculatedPoints > targetTestcaseMax ? (
+                    <span className="px-2.5 py-0.5 rounded-md bg-rose-100 text-rose-800 font-bold text-xs">
+                      ⚠️ Bị thừa testcase cũ (+{(totalCalculatedPoints - targetTestcaseMax).toFixed(2)}đ)
+                    </span>
+                  ) : (
+                    <span className="px-2.5 py-0.5 rounded-md bg-amber-100 text-amber-800 font-bold text-xs">
+                      ⚠️ Chưa đủ testcase (Thiếu {(targetTestcaseMax - totalCalculatedPoints).toFixed(2)}đ)
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-600">
+                  {uniqueQuestions.length} câu hỏi • Thang điểm chuẩn tối đa 10.0đ (mỗi câu 1.0đ) • AI Audit chỉ trừ phạt nếu phát hiện vi phạm/hardcode.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                {hasSampleCases && hasJsonCases && (
+                  <button
+                    type="button"
+                    onClick={handlePurgeSampleCases}
+                    className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+                    title="Xóa các testcase mẫu bị lẫn, chỉ giữ đúng 57 testcase từ file JSON"
+                  >
+                    <Trash2 className="size-3.5" />
+                    <span>Lọc bỏ testcase mẫu (Chỉ giữ file JSON)</span>
+                  </button>
+                )}
+
+                {!isExactTarget && (
+                  <button
+                    type="button"
+                    onClick={handleNormalizePointsByQuestion}
+                    className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+                    title="Chia đều điểm chuẩn theo từng câu hỏi: 10 câu = mỗi câu đúng 1.0đ"
+                  >
+                    <Sparkles className="size-3.5" />
+                    <span>✨ Chuẩn hóa 1.0đ / câu (Tổng 10.0đ)</span>
+                  </button>
                 )}
               </div>
-              <p className="text-xs text-slate-500">
-                {uniqueQuestions.length} câu hỏi • 7 điểm kiểm tra kết quả • 2 điểm thuật toán • 1 điểm Clean Code.
-              </p>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
-              {!isExactTarget && totalCalculatedPoints > 0 && (
-                <button
-                  type="button"
-                  onClick={handleScaleToTarget}
-                  className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition"
-                >
-                  <Sparkles className="size-3.5" />
-                  <span>Quy đổi về 7.0đ</span>
-                </button>
-              )}
-              {uniqueQuestions.map((q) => {
-                const qSum = testCases
-                  .filter((tc) => (tc.questionNumber || 'Q1') === q)
-                  .reduce((a, c) => a + (Number(c.points) || 0), 0);
-                return (
-                  <span
-                    key={String(q)}
-                    className="px-2 py-1 rounded-lg bg-white border border-slate-200 font-mono text-xs font-bold text-slate-800 shadow-2xs"
-                  >
-                    {q}: {qSum.toFixed(1)}đ
-                  </span>
-                );
-              })}
+            {/* Tầng 2: Lưới hiển thị chi tiết điểm theo từng câu hỏi (Không bị tràn/bóp méo) */}
+            <div className="pt-2.5 border-t border-slate-200/60">
+              <div className="text-[11px] font-bold text-slate-500 mb-1.5 flex items-center justify-between">
+                <span>PHÂN BỔ ĐIỂM THEO CÂU HỎI ({uniqueQuestions.length} câu):</span>
+                {!isExactTarget && (
+                  <span className="text-amber-700 font-semibold">Bấm nút "Chuẩn hóa" để tự động cân bằng 1.0đ cho mỗi câu</span>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {uniqueQuestions.map((q) => {
+                  const qCases = questionMap.get(q) || [];
+                  const qSum = qCases.reduce((a, c) => a + (Number(c.points) || 0), 0);
+                  const targetPerQ = 10 / (uniqueQuestions.length || 1);
+                  const isQExact = Math.abs(qSum - targetPerQ) < 0.05;
+                  return (
+                    <span
+                      key={String(q)}
+                      className={`px-2.5 py-1 rounded-lg font-mono text-xs font-bold border transition ${
+                        isQExact
+                          ? 'bg-white border-slate-200 text-slate-800 shadow-2xs'
+                          : qSum > targetPerQ + 0.05
+                          ? 'bg-rose-50 border-rose-300 text-rose-800'
+                          : 'bg-amber-50 border-amber-300 text-amber-800'
+                      }`}
+                    >
+                      {q}: {qSum.toFixed(2)}đ ({qCases.length} cases)
+                    </span>
+                  );
+                })}
+              </div>
             </div>
           </div>
         )}
@@ -371,18 +491,18 @@ export const WizardStep3Solution: React.FC<WizardStep3SolutionProps> = ({
       {!isExactTarget && totalCalculatedPoints > 0 && (
         <div className="p-4 rounded-xl border border-amber-300 bg-amber-50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-amber-950 shadow-sm animate-in fade-in">
           <div className="flex items-center gap-2">
-            <span className="size-2.5 rounded-full bg-amber-500 animate-pulse" />
+            <span className="size-2.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
             <span>
-              ⚠️ Tổng điểm testcase hiện tại là <strong className="text-rose-700">{totalCalculatedPoints.toFixed(2)}đ / 7.0đ</strong>. Cần đúng 7.0đ để chuyển sang Bước 4 (chừa 2đ Thuật toán + 1đ Clean Code cho AI).
+              ⚠️ Đề thi cần đạt chuẩn đúng <strong>10.0đ (10 câu, mỗi câu 1.0đ)</strong> trước khi chuyển sang Bước 4. Bấm nút bên cạnh để tự động làm sạch và cân bằng chuẩn 10.0đ.
             </span>
           </div>
           <button
             type="button"
-            onClick={handleScaleToTarget}
+            onClick={handleNormalizePointsByQuestion}
             className="shrink-0 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-blue-500/20 transition cursor-pointer"
           >
             <Sparkles className="size-4" />
-            <span>⚡ Quy đổi ngay về 7.0đ</span>
+            <span>⚡ Chuẩn hóa 1.0đ / câu (Tổng 10.0đ)</span>
           </button>
         </div>
       )}

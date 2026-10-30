@@ -39,8 +39,9 @@ export class UpdateAssignmentUseCase {
         .reduce((sum, rule) => sum + Number(rule.maxPoints), 0);
       const hasLegacyCriteria = rubricRules.some((rule) => rule.criterionType === 'GENERAL');
 
-      if (Math.abs(testcasePoints - 7) >= 0.01) {
-        throw new ValidationError('Không thể công bố đề: tổng điểm test case phải bằng 7.');
+      const expectedFunctionalPoints = Number(existing.functionalMaxScore ?? (existing.toJSON().gradingVersion === 2 ? 10 : 8));
+      if (Math.abs(testcasePoints - expectedFunctionalPoints) >= 0.01 && Math.abs(testcasePoints - 7) >= 0.01) {
+        throw new ValidationError(`Không thể công bố đề: tổng điểm test case phải bằng ${expectedFunctionalPoints}.`);
       }
       if (existing.environment === 'REACT_JS') {
         try {

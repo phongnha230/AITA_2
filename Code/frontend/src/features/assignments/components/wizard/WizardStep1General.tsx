@@ -187,18 +187,18 @@ export const WizardStep1General: React.FC<WizardStep1GeneralProps> = ({
           />
         </div>
 
-        {/* CHUẨN KHẢO THÍ: STRICT PE HYBRID GRADING (8.0đ + 2.0đ) */}
-        <div className="md:col-span-2 p-3.5 bg-gradient-to-br from-indigo-50/70 via-white to-white space-y-2">
+        {/* CHUẨN KHẢO THÍ: STRICT PE (10.0đ TESTCASES + AI AUDIT PENALTY) */}
+        <div className="md:col-span-2 p-3.5 bg-gradient-to-br from-indigo-50/70 via-white to-white space-y-2 rounded-xl border border-indigo-100">
           <div className="flex items-center justify-between">
             <span className="font-extrabold text-xs text-slate-900 flex items-center gap-1.5">
-              ⚖ Cơ chế Khảo thí Chuẩn: Strict PE (Hybrid Grading)
+              ⚖ Cơ chế Khảo thí Chuẩn: Strict PE (10.0đ Testcases + AI Audit)
             </span>
             <span className="text-xs font-bold text-indigo-700 bg-indigo-100/90 px-2.5 py-0.5 rounded-full border border-indigo-200">
-              7.0đ Chức năng + 2.0đ Thuật toán + 1.0đ Clean Code = 10.0đ
+              10.0đ Testcases chức năng • AI Audit trừ điểm phạt nếu vi phạm
             </span>
           </div>
           <p className="text-xs text-slate-500 leading-relaxed">
-            Sandbox chấm độ chính xác; AI đánh giá thuật toán và Clean Code theo rubric của đề.
+            Sandbox chấm 100% độ chính xác chức năng (tối đa 10.0đ). AI đóng vai trò giám sát, rà soát mã nguồn: không cộng điểm, chỉ trừ điểm phạt (Penalty) nếu phát hiện hardcode testcase hoặc vi phạm Clean Code.
           </p>
         </div>
       </div>
