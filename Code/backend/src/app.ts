@@ -27,20 +27,7 @@ const allowedOrigins = [
 // Security Headers — phải đặt trước mọi route
 app.use(helmet());
 
-// Global Rate Limiter: 300 request / 15 phút mỗi IP
-const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 300,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: {
-    success: false,
-    message: 'Quá nhiều yêu cầu từ địa chỉ IP này. Vui lòng thử lại sau 15 phút.',
-  },
-});
-app.use(globalLimiter);
-
-// Global Middlewares
+// Global Middlewares (CORS phải đặt trước rate limiter để mọi response lỗi 429 đều có header CORS)
 app.use(
   cors({
     origin: (origin, callback) => {
@@ -53,6 +40,20 @@ app.use(
     credentials: true,
   })
 );
+
+// Global Rate Limiter: Bỏ qua trong môi trường dev để không chặn live-proctoring polling và test runner
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: env.NODE_ENV === 'production' ? 5000 : 100000,
+  skip: (req) => env.NODE_ENV !== 'production' || req.path === '/api/v1/health',
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: 'Quá nhiều yêu cầu từ địa chỉ IP này. Vui lòng thử lại sau 15 phút.',
+  },
+});
+app.use(globalLimiter);
 app.use(cookieParser());
 app.use(enforceTrustedOrigin);
 app.use(express.json());

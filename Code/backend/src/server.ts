@@ -18,11 +18,19 @@ import { container } from './infrastructure/container/container.js';
 const PORT = env.PORT;
 
 // Khởi động BullMQ Grading Worker (Sandbox + AI Grader)
-try {
-  startGradingWorker();
-  startRagIndexingWorker(container.solutionVectorStore);
-} catch (err) {
-  logger.warn('worker_start_failed', { stage: 'SERVER_STARTUP', error: err });
+if (env.ENABLE_GRADING_WORKER) {
+  try {
+    startGradingWorker();
+    startRagIndexingWorker(container.solutionVectorStore);
+    logger.info('grading_worker_initialized', { stage: 'SERVER_STARTUP' });
+  } catch (err) {
+    logger.warn('worker_start_failed', { stage: 'SERVER_STARTUP', error: err });
+  }
+} else {
+  logger.info('grading_worker_disabled_by_env', {
+    stage: 'SERVER_STARTUP',
+    message: 'Grading worker is disabled via ENABLE_GRADING_WORKER=false (API-only mode)',
+  });
 }
 
 // Chạy dọn dẹp workspace cũ định kỳ (1 ngày 1 lần)

@@ -57,7 +57,22 @@ export function startGradingWorker() {
       }
 
       const isPurePE = (Number(sub?.assignment?.algorithmMaxScore ?? 0) + Number(sub?.assignment?.cleanCodeMaxScore ?? 0)) === 0;
-      const aiResult = await container.gradeSubmissionAiUseCase.execute(jobData.submissionId);
+      let aiResult: any = null;
+      try {
+        aiResult = await container.gradeSubmissionAiUseCase.execute(jobData.submissionId);
+      } catch (err: any) {
+        logger.warn('ai_grading_fallback_on_error', {
+          submissionId: jobData.submissionId,
+          error: err?.message || String(err),
+        });
+        return {
+          aiScore: 0,
+          algorithmScore: 0,
+          cleanCodeScore: 0,
+          codeQualityFeedback: 'AI Grader tạm thời bận hoặc chạm hạn ngạch API. Kết quả kiểm thử Docker Sandbox vẫn được ghi nhận đầy đủ.',
+          detectedTimeComplexity: null,
+        };
+      }
 
       if (isPurePE && aiResult) {
         return {

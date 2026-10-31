@@ -15,6 +15,12 @@ const envSchema = z.object({
   REDIS_HOST: z.string().default('localhost'),
   REDIS_PORT: z.coerce.number().default(6379),
   REDIS_PASSWORD: z.string().optional().default(''),
+  ENABLE_GRADING_WORKER: z.preprocess((val) => {
+    if (typeof val === 'string') {
+      return val.toLowerCase() === 'true' || val === '1';
+    }
+    return val === undefined ? true : Boolean(val);
+  }, z.boolean().default(true)),
 
   // Docker Sandbox
   USE_DOCKER_SANDBOX: z.preprocess((val) => {
