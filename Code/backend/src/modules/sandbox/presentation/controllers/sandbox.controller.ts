@@ -161,6 +161,38 @@ export class SandboxController {
       if (req.user?.role !== 'ADMIN' && course.lecturerId !== req.user?.userId) {
         throw new ForbiddenError('Bạn không có quyền chạy thử đề của khóa học này.');
       }
+      if (input.language === 'REACT_JS') {
+        if (!input.previewDeploymentUrl) {
+          throw new ValidationError('Chạy thử React/Web yêu cầu nhập URL preview deployment.');
+        }
+        await fs.mkdir(tempDir, { recursive: true });
+        const testCases: TestCaseInput[] = input.testCases.map((testCase, index) => {
+          const script = testCase.stdinInput ?? '';
+          return {
+            id: testCase.id ?? `dry-run-${index + 1}`,
+            questionNo: testCase.questionNo ?? 'Q1',
+            inputData: script,
+            expectedOutput: testCase.expectedStdout ?? '',
+            outputFileName: null,
+            timeLimitMs: testCase.timeLimitMs,
+            memoryLimitMb: Math.ceil(testCase.memoryLimitKb / 1024),
+            score: testCase.points,
+            stdinInput: script,
+            inputFileContent: null,
+            isHarness: Boolean(testCase.isHarness || testCase.kind === 'unit-list'),
+            kind: testCase.kind,
+          };
+        });
+
+        const runner = SandboxRunnerFactory.createRunner('REACT_JS');
+        const summary = await runner.execute(tempDir, testCases, {
+          targetBaseUrl: input.previewDeploymentUrl,
+          requireDocker: true,
+        });
+        sendSuccess(res, summary, 'Chạy thử React Playwright hoàn tất.');
+        return;
+      }
+
       if (input.language === 'C_GCC' && input.testCases.some((testCase) => testCase.comparisonMode !== 'STDIO')) {
         throw new ValidationError('Chạy thử C hiện chỉ hỗ trợ testcase STDIO.');
       }
@@ -178,7 +210,7 @@ export class SandboxController {
           const sourcePath = sourceFile.path.replace(/\\/g, '/');
           const segments = sourcePath.split('/');
           const extension = path.posix.extname(sourcePath).toLowerCase();
-          const allowedExtensions = isJava ? new Set(['.java']) : new Set(['.c', '.h']);
+          const allowedExtensions = isJava ? new Set(['.java', '.class']) : new Set(['.c', '.h']);
           if (
             sourcePath.startsWith('/') || /^[a-z]:/i.test(sourcePath)
             || segments.some((segment) => !segment || segment === '.' || segment === '..')
@@ -186,30 +218,38 @@ export class SandboxController {
           ) {
             throw new ValidationError(`Đường dẫn hoặc loại file mã nguồn không hợp lệ: ${sourceFile.path}`);
           }
-          totalSourceBytes += Buffer.byteLength(sourceFile.content, 'utf8');
-          if (totalSourceBytes > 1024 * 1024) throw new ValidationError('Tổng mã nguồn không được vượt quá 1 MiB.');
+          const isBinary = sourceFile.encoding === 'base64' || extension === '.class';
+          const fileBuffer = isBinary
+            ? Buffer.from(sourceFile.content, 'base64')
+            : Buffer.from(sourceFile.content, 'utf8');
+          totalSourceBytes += fileBuffer.byteLength;
+          if (totalSourceBytes > 10 * 1024 * 1024) throw new ValidationError('Tổng mã nguồn không được vượt quá 10 MiB.');
           const absolutePath = path.resolve(tempDir, ...segments);
           if (!absolutePath.startsWith(`${tempDir}${path.sep}`)) throw new ValidationError('Đường dẫn source vượt khỏi thư mục chạy thử.');
           await fs.mkdir(path.dirname(absolutePath), { recursive: true });
-          await fs.writeFile(absolutePath, sourceFile.content, { encoding: 'utf8', flag: 'wx' });
+          await fs.writeFile(absolutePath, fileBuffer, { flag: 'w' });
         }
       } else {
         await fs.writeFile(path.join(tempDir, isJava ? 'Main.java' : 'main.c'), input.sourceCode!, 'utf8');
       }
-      const testCases: TestCaseInput[] = input.testCases.map((testCase, index) => ({
-        id: testCase.id ?? `dry-run-${index + 1}`,
-        questionNo: testCase.questionNo ?? 'Q1',
-        inputData: testCase.comparisonMode === 'FILE_TO_FILE'
-          ? testCase.inputFileContent ?? ''
-          : testCase.stdinInput ?? '',
-        expectedOutput: testCase.comparisonMode === 'FILE_TO_FILE'
-          ? testCase.expectedFileContent ?? ''
-          : testCase.expectedStdout ?? '',
-        outputFileName: testCase.comparisonMode === 'FILE_TO_FILE' ? testCase.expectedFileName : null,
-        timeLimitMs: testCase.timeLimitMs,
-        memoryLimitMb: Math.ceil(testCase.memoryLimitKb / 1024),
-        score: testCase.points,
-      }));
+      const testCases: TestCaseInput[] = input.testCases.map((testCase, index) => {
+        const isFile = testCase.comparisonMode === 'FILE_TO_FILE';
+        const stdin = testCase.stdinInput ?? '';
+        return {
+          id: testCase.id ?? `dry-run-${index + 1}`,
+          questionNo: testCase.questionNo ?? 'Q1',
+          inputData: isFile ? testCase.inputFileContent ?? '' : stdin,
+          expectedOutput: isFile ? testCase.expectedFileContent ?? '' : testCase.expectedStdout ?? '',
+          outputFileName: isFile ? testCase.expectedFileName : null,
+          timeLimitMs: testCase.timeLimitMs,
+          memoryLimitMb: Math.ceil(testCase.memoryLimitKb / 1024),
+          score: testCase.points,
+          stdinInput: stdin,
+          inputFileContent: testCase.inputFileContent ?? null,
+          isHarness: Boolean(testCase.isHarness || testCase.kind === 'unit-list'),
+          kind: testCase.kind,
+        };
+      });
       const summary = await SandboxRunnerFactory.createRunner(input.language).execute(tempDir, testCases, { requireDocker: true });
       sendSuccess(res, summary, 'Chạy thử Sandbox hoàn tất.');
     } catch (error) {
