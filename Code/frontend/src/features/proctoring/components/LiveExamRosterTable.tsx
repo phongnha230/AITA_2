@@ -279,6 +279,19 @@ export const LiveExamRosterTable: React.FC<LiveExamRosterTableProps> = ({
                   const isZero = student.roomStatus === 'EXPIRED_ZERO';
                   const isInRoom = student.roomStatus === 'IN_ROOM';
                   const isNotJoined = student.roomStatus === 'NOT_JOINED';
+                  const isSandboxRunning = Boolean(
+                    sub && (
+                      sub.status === 'PENDING' ||
+                      sub.status === 'SUBMITTED' ||
+                      sub.status === 'RUNNING_SANDBOX' ||
+                      (sub.sandboxScore === null &&
+                        sub.status !== 'FAILED' &&
+                        sub.status !== 'GRADED' &&
+                        sub.status !== 'REVIEW_PENDING' &&
+                        sub.compileSuccess !== false)
+                    )
+                  );
+                  const isAiRunning = Boolean(sub && sub.status === 'RUNNING_AI');
 
                   return (
                     <tr
@@ -409,27 +422,40 @@ export const LiveExamRosterTable: React.FC<LiveExamRosterTableProps> = ({
                       {/* Tiến độ Test */}
                       <td className="py-3 px-4">
                         {sub ? (
-                          <div>
-                            <div className="flex items-center gap-1.5 font-mono text-xs font-bold">
-                              <span
-                                className={
-                                  sub.passedTestCases === (sub.totalTestCases || totalTestCases) && sub.passedTestCases > 0
-                                    ? 'text-emerald-600'
-                                    : sub.passedTestCases > 0
-                                    ? 'text-amber-600'
-                                    : 'text-rose-600'
-                                }
-                              >
-                                {sub.passedTestCases} / {sub.totalTestCases || totalTestCases}
-                              </span>
-                              <span className="text-[11px] text-slate-400 font-sans font-normal">tests</span>
+                          isSandboxRunning ? (
+                            <div className="flex items-center gap-1.5 font-mono text-xs text-amber-600 font-bold">
+                              <Loader2 className="size-3 animate-spin text-amber-500" />
+                              <span>Đang chạy test...</span>
                             </div>
-                            {sub.compileSuccess === false && (
-                              <span className="inline-block mt-0.5 text-[10px] font-bold text-rose-600 bg-rose-50 border border-rose-200 px-1.5 py-0.2 rounded">
-                                Lỗi Compile
-                              </span>
-                            )}
-                          </div>
+                          ) : (
+                            <div>
+                              <div className="flex items-center gap-1.5 font-mono text-xs font-bold">
+                                <span
+                                  className={
+                                    sub.passedTestCases === (sub.totalTestCases || totalTestCases) && sub.passedTestCases > 0
+                                      ? 'text-emerald-600'
+                                      : sub.passedTestCases > 0
+                                      ? 'text-amber-600'
+                                      : 'text-rose-600'
+                                  }
+                                >
+                                  {sub.passedTestCases} / {sub.totalTestCases || totalTestCases}
+                                </span>
+                                <span className="text-[11px] text-slate-400 font-sans font-normal">tests</span>
+                                {isAiRunning && (
+                                  <span className="inline-flex items-center gap-1 text-[10px] text-cyan-600 bg-cyan-50 border border-cyan-200 px-1.5 py-0.2 rounded font-sans">
+                                    <Loader2 className="size-2.5 animate-spin" /> AI đang duyệt
+                                  </span>
+                                )}
+                              </div>
+                              {/* Badge lỗi compile (chỉ hiện khi thực sự không pass test nào do compile fail) */}
+                              {sub.compileSuccess === false && (sub.passedTestCases ?? 0) === 0 && (
+                                <span className="inline-block mt-0.5 text-[10px] font-bold text-rose-600 bg-rose-50 border border-rose-200 px-1.5 py-0.2 rounded">
+                                  Lỗi Compile
+                                </span>
+                              )}
+                            </div>
+                          )
                         ) : (
                           <span className="text-slate-400">—</span>
                         )}
@@ -437,49 +463,78 @@ export const LiveExamRosterTable: React.FC<LiveExamRosterTableProps> = ({
 
                       {/* Điểm số */}
                       <td className="py-3 px-4 text-center">
-                        {sub && sub.finalScore !== null ? (
-                          <div>
-                            <span
-                              className={`font-mono text-sm font-black px-2.5 py-1 rounded-xl border ${
-                                Number(sub.finalScore) > 0
-                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                  : 'bg-rose-50 text-rose-700 border-rose-200'
-                              }`}
-                            >
-                              {Number(sub.finalScore).toFixed(1)} đ
-                            </span>
-                            {sub.sandboxScore !== null && sub.aiScore !== null && Number(sub.aiScore) > 0 && (
-                              <p className="text-[10px] text-slate-400 font-mono mt-0.5">
-                                (Máy: {Number(sub.sandboxScore).toFixed(1)} + AI: {Number(sub.aiScore).toFixed(1)})
+                        {sub ? (
+                          isSandboxRunning ? (
+                            <div className="inline-flex items-center gap-1.5 font-mono text-xs text-amber-600 font-bold bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-xl shadow-2xs">
+                              <Loader2 className="size-3 animate-spin text-amber-500" />
+                              <span>Đang chấm...</span>
+                            </div>
+                          ) : sub.compileSuccess === false && (sub.passedTestCases ?? 0) === 0 && Number(sub.sandboxScore ?? 0) === 0 ? (
+                            <div>
+                              <span className="font-mono text-sm font-black px-2.5 py-1 rounded-xl border bg-rose-50 text-rose-700 border-rose-200">
+                                0.0 đ
+                              </span>
+                              <p className="text-[10px] text-rose-600 font-bold mt-0.5">
+                                (Lỗi Compile)
                               </p>
-                            )}
-                          </div>
-                        ) : sub && sub.sandboxScore !== null ? (
-                          <div>
-                            <span
-                              className={`font-mono text-sm font-black px-2.5 py-1 rounded-xl border ${
-                                Number(sub.sandboxScore) > 0
-                                  ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                  : 'bg-rose-50 text-rose-700 border-rose-200'
-                              }`}
-                              title="Điểm do máy chấm (Đang chờ giảng viên duyệt hoặc chốt điểm)"
-                            >
-                              {Number(sub.sandboxScore).toFixed(1)} đ
-                            </span>
-                            <p className="text-[10px] text-amber-600 font-medium mt-0.5">
-                              (Chờ duyệt)
-                            </p>
-                          </div>
-                        ) : sub && (sub.status === 'FAILED' || sub.compileSuccess === false) ? (
-                          <div>
-                            <span className="font-mono text-sm font-black px-2.5 py-1 rounded-xl border bg-rose-50 text-rose-700 border-rose-200">
-                              0.0 đ
-                            </span>
-                          </div>
-                        ) : sub ? (
-                          <span className="font-mono text-xs text-amber-600 font-bold bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-lg">
-                            Đang chấm...
-                          </span>
+                            </div>
+                          ) : sub.status === 'GRADED' && sub.finalScore !== null ? (
+                            <div>
+                              <span
+                                className={`font-mono text-sm font-black px-2.5 py-1 rounded-xl border ${
+                                  Number(sub.finalScore) > 0
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                    : 'bg-rose-50 text-rose-700 border-rose-200'
+                                }`}
+                              >
+                                {Number(sub.finalScore).toFixed(1)} đ
+                              </span>
+                              {sub.sandboxScore !== null && sub.aiScore !== null && Number(sub.aiScore) > 0 && (
+                                <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+                                  (Máy: {Number(sub.sandboxScore).toFixed(1)} + AI: {Number(sub.aiScore).toFixed(1)})
+                                </p>
+                              )}
+                            </div>
+                          ) : sub.sandboxScore !== null ? (
+                            <div>
+                              <span
+                                className={`font-mono text-sm font-black px-2.5 py-1 rounded-xl border ${
+                                  Number(sub.sandboxScore) > 0
+                                    ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                    : 'bg-rose-50 text-rose-700 border-rose-200'
+                                }`}
+                                title="Điểm do máy chấm (Đang chờ giảng viên duyệt hoặc chốt điểm)"
+                              >
+                                {Number(sub.sandboxScore).toFixed(1)} đ
+                              </span>
+                              <p className="text-[10px] text-amber-600 font-medium mt-0.5">
+                                (Chờ duyệt)
+                              </p>
+                            </div>
+                          ) : sub.status === 'FAILED' ? (
+                            <div>
+                              <span className="font-mono text-sm font-black px-2.5 py-1 rounded-xl border bg-rose-50 text-rose-700 border-rose-200">
+                                0.0 đ
+                              </span>
+                              <p className="text-[10px] text-rose-600 font-bold mt-0.5">
+                                (Lỗi hệ thống)
+                              </p>
+                            </div>
+                          ) : sub.finalScore !== null ? (
+                            <div>
+                              <span
+                                className={`font-mono text-sm font-black px-2.5 py-1 rounded-xl border ${
+                                  Number(sub.finalScore) > 0
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                    : 'bg-rose-50 text-rose-700 border-rose-200'
+                                }`}
+                              >
+                                {Number(sub.finalScore).toFixed(1)} đ
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )
                         ) : (
                           <span className="text-slate-400">—</span>
                         )}

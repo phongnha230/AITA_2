@@ -69,9 +69,10 @@ export function RoomDetailMonitor({ roomId }: RoomDetailMonitorProps) {
       const result = await assignmentService.getProctoringData(roomId);
       if (!result) throw new Error('Không tìm thấy dữ liệu ca thi.');
       setData(result);
-    } catch (cause) {
-      console.error('Không tải được chi tiết ca thi:', cause);
-      setError(cause instanceof Error ? cause.message : 'Không tải được ca thi.');
+    } catch (cause: any) {
+      const msg = cause?.response?.data?.message || cause?.message || 'Không tải được ca thi.';
+      console.warn('Không tải được chi tiết ca thi:', msg);
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -123,7 +124,7 @@ export function RoomDetailMonitor({ roomId }: RoomDetailMonitorProps) {
       const startTime = Date.now();
       const minDurationMs = 5500;
 
-      while (Date.now() - startTime < 35000) {
+      while (Date.now() - startTime < 65000) {
         await new Promise((r) => setTimeout(r, 1200));
         const elapsed = Date.now() - startTime;
         if (elapsed > 2000 && elapsed <= 4000) {
@@ -456,6 +457,7 @@ export function RoomDetailMonitor({ roomId }: RoomDetailMonitorProps) {
         onOpenChange={setIsLogDrawerOpen}
         student={selectedStudentForLog}
         assignmentId={roomId}
+        testCases={testCases}
         onRefresh={() => void load()}
       />
 

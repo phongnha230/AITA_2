@@ -83,7 +83,14 @@ export class GetProctoringDataUseCase {
       studentCode: submission.user.studentCode,
       status: submission.status,
       submittedAt: submission.submittedAt,
-      score: submission.finalScore === null ? null : Number(submission.finalScore),
+      score:
+        submission.compileSuccess === false && (!submission.testResults || submission.testResults.filter((t) => t.verdict === 'PASSED').length === 0)
+          ? 0
+          : submission.status === 'GRADED' && submission.finalScore !== null
+          ? Number(submission.finalScore)
+          : submission.sandboxScore !== null
+          ? Number(submission.sandboxScore)
+          : null,
       compileOutput: submission.compileOutput ?? null,
     }));
 
@@ -169,7 +176,12 @@ export class GetProctoringDataUseCase {
           submittedAt: sub.submittedAt,
           sandboxScore: sub.sandboxScore !== null ? Number(sub.sandboxScore) : null,
           aiScore: sub.aiScore !== null ? Number(sub.aiScore) : null,
-          finalScore: sub.finalScore !== null ? Number(sub.finalScore) : null,
+          // finalScore = 0.00 (Prisma @default) khi status chưa GRADED → coi là null (chưa duyệt)
+          finalScore:
+            sub.finalScore !== null &&
+            (sub.status === 'GRADED' || Number(sub.finalScore) > 0)
+              ? Number(sub.finalScore)
+              : null,
           compileSuccess: sub.compileSuccess,
           compileOutput: sub.compileOutput,
           passedTestCases,
