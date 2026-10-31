@@ -96,18 +96,28 @@ export function RecentSubmissionsList({ onSelectSubmission }: RecentSubmissionsL
                 </div>
 
                 <div className="text-right shrink-0">
-                  <div className={`text-lg font-black leading-none ${isPassed ? 'text-emerald-600' : 'text-rose-600'}`}>
-                    {score.toFixed(1)}
-                  </div>
-                  <span className="text-xs font-semibold text-slate-400 uppercase">Điểm tổng</span>
+                  {sub.status === 'GRADED' ? (
+                    <>
+                      <div className={`text-lg font-black leading-none ${isPassed ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        {score.toFixed(1)}
+                      </div>
+                      <span className="text-xs font-semibold text-slate-400 uppercase">Điểm tổng</span>
+                    </>
+                  ) : (
+                    <span className="inline-flex rounded-full bg-amber-50 px-2.5 py-0.5 text-2xs font-bold text-amber-700 border border-amber-200">
+                      Chờ duyệt
+                    </span>
+                  )}
                 </div>
               </div>
 
               <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2.5 text-xs">
                 <div className="flex items-center gap-3 text-slate-500 text-xs">
-                  <span>Sandbox: <strong className="text-slate-700">{sub.sandboxScore ?? 0}đ</strong></span>
-                  <span>•</span>
-                  <span>AI: <strong className="text-indigo-600">{sub.aiScore ?? 0}đ</strong></span>
+                  {sub.status === 'GRADED' ? (
+                    <span>Sandbox: <strong className="text-slate-700">{sub.sandboxScore ?? 0}đ</strong></span>
+                  ) : (
+                    <span className="text-amber-600 font-medium">Chưa công bố điểm</span>
+                  )}
                 </div>
                 <span className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 group-hover:translate-x-0.5 transition-transform">
                   Xem chi tiết <ArrowRight size={13} />

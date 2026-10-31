@@ -60,7 +60,7 @@ function SubmissionError({ message }: { message: string | null }) {
 }
 
 function SubmitFooter({ form }: { form: SubmitExamFormState }) {
-  return <DialogFooter className="gap-2 pt-2 sm:gap-0"><Button type="button" variant="outline" onClick={form.handleReset} disabled={form.isSubmitting} className="h-10 rounded-lg text-xs">Hủy bỏ</Button><Button type="submit" disabled={form.isSubmitDisabled} className="h-10 rounded-lg bg-indigo-600 text-xs font-semibold text-white hover:bg-indigo-700">{form.isSubmitting ? <><LoaderCircle className="mr-1.5 size-3.5 animate-spin" /><span>Đang gửi bài &amp; xếp hàng chấm...</span></> : <><Send className="mr-1.5 size-3.5" /><span>{form.assignment.submissionType === 'GROUP' ? 'Nộp bài nhóm' : 'Xác nhận Nộp bài'}</span></>}</Button></DialogFooter>;
+  return <DialogFooter className="gap-2 pt-2 sm:gap-0"><Button type="button" variant="outline" onClick={form.handleReset} disabled={form.isSubmitting} className="h-10 rounded-lg text-xs">Hủy bỏ</Button><Button type="submit" disabled={form.isSubmitDisabled} className="h-10 rounded-lg bg-indigo-600 text-xs font-semibold text-white hover:bg-indigo-700">{form.isSubmitting ? <><LoaderCircle className="mr-1.5 size-3.5 animate-spin" /><span>Đang nộp bài...</span></> : <><Send className="mr-1.5 size-3.5" /><span>{form.assignment.submissionType === 'GROUP' ? 'Nộp bài nhóm' : 'Xác nhận Nộp bài'}</span></>}</Button></DialogFooter>;
 }
 
 function SubmissionForm({ form }: { form: SubmitExamFormState }) {
@@ -77,7 +77,7 @@ function SubmissionChannelSwitcher({ form }: { form: SubmitExamFormState }) {
 }
 
 function SubmissionContent({ form }: { form: SubmitExamFormState }) {
-  return <div className="space-y-4"><SubmissionChannelSwitcher form={form} />{form.successSubmissionId ? <div className="space-y-3 py-6 text-center"><div className="mx-auto flex size-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-600"><CheckCircle2 size={28} /></div><div><p className="text-base font-bold text-slate-900">Bài đã được xếp hàng chấm</p><p className="mt-1 text-xs text-slate-500">Đang chuyển sang màn hình theo dõi tiến trình chấm bài...</p></div></div> : <SubmissionForm form={form} />}</div>;
+  return <div className="space-y-4"><SubmissionChannelSwitcher form={form} />{form.successSubmissionId ? <div className="space-y-3 py-6 text-center"><div className="mx-auto flex size-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-600"><CheckCircle2 size={28} /></div><div><p className="text-base font-bold text-slate-900">Nộp bài thành công</p><p className="mt-1 text-xs text-slate-500">Bài làm của bạn đã được ghi nhận vào hệ thống.</p></div></div> : <SubmissionForm form={form} />}</div>;
 }
 
 interface SubmitExamModalProps {

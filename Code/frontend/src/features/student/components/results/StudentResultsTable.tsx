@@ -82,12 +82,12 @@ export function StudentResultsTable({
   // Overall Statistics
   const stats = useMemo(() => {
     const total = submissions.length;
-    if (total === 0) return { total: 0, avgScore: '0', passRate: 0, passedCount: 0 };
+    if (total === 0) return { total: 0, avgScore: '--', passRate: 0, passedCount: 0 };
 
     const graded = submissions.filter((s) => s.status === 'GRADED');
     const passed = graded.filter((s) => Number(s.finalScore ?? 0) >= 5.0);
     const sumScore = graded.reduce((acc, cur) => acc + Number(cur.finalScore ?? 0), 0);
-    const avgScore = graded.length > 0 ? (sumScore / graded.length).toFixed(1) : '0';
+    const avgScore = graded.length > 0 ? (sumScore / graded.length).toFixed(1) : '--';
     const passRate = graded.length > 0 ? Math.round((passed.length / graded.length) * 100) : 0;
 
     return {
@@ -337,8 +337,7 @@ export function StudentResultsTable({
                             </span>
                           ) : isGrading ? (
                             <span className="inline-flex items-center gap-1 rounded-xl bg-blue-50 px-2.5 py-0.5 text-2xs font-bold text-blue-700 border border-blue-200">
-                              <RefreshCw className="size-3 animate-spin text-blue-600" />
-                              Đang chấm
+                              Đã nộp bài
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 rounded-xl bg-slate-100 px-2.5 py-0.5 text-2xs font-semibold text-slate-600">
@@ -346,11 +345,19 @@ export function StudentResultsTable({
                             </span>
                           )}
 
-                          <div className="flex items-center gap-1.5 text-3xs text-slate-400 font-mono">
-                            <span>Sandbox: <strong className="text-slate-600">{sub.sandboxScore ?? 0}</strong></span>
-                            <span>|</span>
-                            <span>AI: <strong className="text-blue-600">{sub.aiScore ?? 0}</strong></span>
-                          </div>
+                          {isGraded ? (
+                            <div className="flex items-center gap-1.5 text-3xs text-slate-400 font-mono">
+                              <span>Sandbox: <strong className="text-slate-600">{sub.sandboxScore != null ? sub.sandboxScore : '--'}</strong></span>
+                            </div>
+                          ) : isPendingReview ? (
+                            <span className="text-3xs text-amber-600 font-medium">
+                              Chưa công bố
+                            </span>
+                          ) : isGrading ? (
+                            <span className="text-3xs text-blue-500 font-medium">
+                              Đang chấm
+                            </span>
+                          ) : null}
                         </div>
                       </td>
 

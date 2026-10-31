@@ -13,7 +13,6 @@ import {
 } from 'lucide-react';
 import { useStudentSubmission } from '../../hooks/useStudentSubmission';
 import { StudentPageHeading } from '../shared/StudentPageHeading';
-import { GradingLifecycleProgress } from './GradingLifecycleProgress';
 import { SubmissionScoreOverview } from './SubmissionScoreOverview';
 import { TestCaseResultsList } from './TestCaseResultsList';
 import { AiRubricFeedbackCard } from './AiRubricFeedbackCard';
@@ -97,11 +96,22 @@ function SubmissionResultDetails({
 
       {submission.status === 'REVIEW_PENDING' && (
         <div role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          Hệ thống đã chấm xong và đang chờ giảng viên xem xét, công bố điểm. Điểm đề xuất và testcase ẩn sẽ chưa hiển thị trong thời gian này.
+          Hệ thống đã nhận bài và đang chờ giảng viên xem xét, công bố điểm. Điểm đề xuất và testcase ẩn sẽ chưa hiển thị trong thời gian này.
         </div>
       )}
 
-      <GradingLifecycleProgress gradingJob={gradingJob} submissionStatus={submission.status} isPolling={isPolling} isStreaming={isStreaming} />
+      {submission.sandboxScore === null && submission.status !== 'FAILED' && submission.status !== 'REVIEW_PENDING' && (
+        <div role="status" className="flex items-center gap-3 rounded-2xl border border-blue-200 bg-blue-50/70 p-4 text-xs sm:text-sm text-blue-900 shadow-2xs">
+          <FileCheck2 className="size-5 shrink-0 text-blue-600" />
+          <div>
+            <p className="font-bold">Bài làm đã được ghi nhận thành công</p>
+            <p className="text-xs text-blue-700/90 mt-0.5">
+              Hệ thống đã lưu bài thi của bạn. Kết quả sẽ được công bố sau khi ca thi kết thúc hoặc khi giảng viên chốt điểm.
+            </p>
+          </div>
+        </div>
+      )}
+
       <SubmissionScoreOverview submission={submission} />
       <TestCaseResultsList testResults={submission.testResults ?? []} />
       <AiRubricFeedbackCard aiGradingResult={submission.aiGradingResult} submissionId={submission.id} />

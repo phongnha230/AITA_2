@@ -35,15 +35,19 @@ function getRank(score: number | null): { label: string; tone: string } {
 }
 
 function parseScores(submission: StudentSubmissionDetail) {
-  const finalScore = submission.finalScore != null ? Number(submission.finalScore) : null;
-  const sandboxScore = submission.sandboxScore != null ? Number(submission.sandboxScore) : null;
-  const aiScore = submission.aiScore != null ? Number(submission.aiScore) : null;
-  const rank = getRank(finalScore);
+  const isPending = submission.status === 'REVIEW_PENDING';
+  const isGraded = submission.status === 'GRADED';
+  const finalScore = isGraded && submission.finalScore != null ? Number(submission.finalScore) : null;
+  const sandboxScore = isGraded && submission.sandboxScore != null ? Number(submission.sandboxScore) : null;
+  const aiScore = isGraded && submission.aiScore != null ? Number(submission.aiScore) : null;
+  const rank = isPending
+    ? { label: 'Chờ duyệt điểm', tone: 'amber' }
+    : getRank(finalScore);
   const rankClass = RANK_BADGE_STYLES[rank.tone] || RANK_BADGE_STYLES.slate;
   const activeScore = sandboxScore ?? finalScore;
-  const displaySandbox = activeScore != null ? activeScore.toFixed(1) : '--';
+  const displaySandbox = isGraded && activeScore != null ? activeScore.toFixed(1) : '--';
 
-  return { finalScore, aiScore, rank, rankClass, displaySandbox };
+  return { finalScore, aiScore, rank, rankClass, displaySandbox, isPending, isGraded };
 }
 
 const CompileStatusIndicator: React.FC<{ status: boolean | null }> = ({ status }) => {
@@ -76,8 +80,18 @@ function FinalScoreCard({ submission }: SubmissionScoreOverviewProps) {
 }
 
 function SandboxScoreCard({ submission }: SubmissionScoreOverviewProps) {
-  const { displaySandbox } = parseScores(submission);
-  return <ScoreCard label="Điểm chức năng (Sandbox)" icon={<Cpu className="size-5" />}><div className="mt-3 flex items-baseline gap-2"><p className="text-3xl font-extrabold tabular-nums text-slate-900">{displaySandbox}</p><span className="text-xs text-slate-400">/ {submission.assignment?.functionalMaxScore ?? 10} điểm</span></div><p className="mt-2.5 text-xs text-slate-500">Chấm tự động theo điểm từng Test Case</p></ScoreCard>;
+  const { displaySandbox, isPending } = parseScores(submission);
+  return (
+    <ScoreCard label="Điểm chức năng (Sandbox)" icon={<Cpu className="size-5" />}>
+      <div className="mt-3 flex items-baseline gap-2">
+        <p className="text-3xl font-extrabold tabular-nums text-slate-900">{displaySandbox}</p>
+        <span className="text-xs text-slate-400">/ {submission.assignment?.functionalMaxScore ?? 10} điểm</span>
+      </div>
+      <p className="mt-2.5 text-xs text-slate-500">
+        {isPending ? 'Đang chờ giảng viên duyệt và công bố' : 'Chấm tự động theo điểm từng Test Case'}
+      </p>
+    </ScoreCard>
+  );
 }
 
 function AiScoreCard({ submission }: SubmissionScoreOverviewProps) {
@@ -114,6 +128,7 @@ function CompilerOutput({ output }: { output: string }) {
 }
 
 export function SubmissionScoreOverview({ submission }: SubmissionScoreOverviewProps) {
-  const [showLogs, setShowLogs] = useState(false);
+  // Tự động bung log biên dịch nếu bài nộp bị lỗi compile để sinh viên thấy ngay lý do
+  const [showLogs, setShowLogs] = useState(submission.compileSuccess === false);
   return <section className="space-y-4"><div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"><FinalScoreCard submission={submission} /><SandboxScoreCard submission={submission} /><AiScoreCard submission={submission} /><CompilationScoreCard submission={submission} showLogs={showLogs} onToggleLogs={() => setShowLogs((visible) => !visible)} /></div>{showLogs && submission.compileOutput && <CompilerOutput output={submission.compileOutput} />}</section>;
 }
