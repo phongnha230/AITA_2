@@ -86,6 +86,18 @@ export class Assignment {
     return this.props.allowZipSubmission;
   }
 
+  get functionalMaxScore(): number | undefined {
+    return this.props.functionalMaxScore;
+  }
+
+  get algorithmMaxScore(): number | undefined {
+    return this.props.algorithmMaxScore;
+  }
+
+  get cleanCodeMaxScore(): number | undefined {
+    return this.props.cleanCodeMaxScore;
+  }
+
   get status(): AssignmentStatus {
     return this.props.status;
   }

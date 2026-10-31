@@ -176,6 +176,8 @@ export class PrismaSubmissionRepository implements ISubmissionRepository {
           deployedUrl: data.deployedUrl ?? null,
           workspacePath: data.workspacePath ?? null,
           status: 'PENDING',
+          finalScore: null,
+          sandboxScore: null,
           gradingSnapshot: gradingSnapshot as unknown as Prisma.InputJsonValue,
           participants: data.participants?.length
             ? { create: data.participants.map((participant) => ({ ...participant })) }

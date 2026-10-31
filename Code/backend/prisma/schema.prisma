@@ -197,8 +197,8 @@ model AssignmentSolution {
   isActive                Boolean             @default(true) @map("is_active")
   sourceCode              String              @map("source_code") @db.LongText
   title                   String              @db.VarChar(200)
-  expectedTimeComplexity  String?             @map("expected_time_complexity") @db.VarChar(100)
-  expectedSpaceComplexity String?             @map("expected_space_complexity") @db.VarChar(100)
+  expectedTimeComplexity  String?             @map("expected_time_complexity") @db.VarChar(500)
+  expectedSpaceComplexity String?             @map("expected_space_complexity") @db.VarChar(500)
   acceptedStrategies      Json?               @map("accepted_strategies")
   algorithmNotes          String?             @map("algorithm_notes") @db.LongText
   updatedAt               DateTime            @updatedAt @map("updated_at")

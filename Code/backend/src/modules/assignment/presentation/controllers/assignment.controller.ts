@@ -68,7 +68,12 @@ export class AssignmentController {
       }
       const parsed = SaveAssignmentPackageSchema.safeParse(payloadValue);
       if (!parsed.success) {
-        throw new ValidationError('Thông tin đề thi không hợp lệ.', parsed.error.flatten());
+        console.error('[AssignmentController] saveAssignmentPackage validation error:', JSON.stringify(parsed.error.format(), null, 2));
+        const details = parsed.error.issues.map((err) => ({
+          field: err.path.join('.'),
+          message: err.message,
+        }));
+        throw new ValidationError('Thông tin đề thi không hợp lệ.', details);
       }
 
       const isUpdate = Boolean(req.params.id);

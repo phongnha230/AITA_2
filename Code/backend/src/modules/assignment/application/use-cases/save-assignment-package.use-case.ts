@@ -37,10 +37,20 @@ export class SaveAssignmentPackageUseCase {
       throw new ForbiddenError('Bạn không có quyền tạo đề thi trong khóa học này.');
     }
 
-    const functionalPoints = dto.testCases.reduce((sum, testCase) => sum + testCase.points, 0);
+    let functionalPoints = dto.testCases.reduce((sum, testCase) => sum + testCase.points, 0);
     const rubricPoints = dto.rubricRules.reduce((sum, rule) => sum + rule.maxPoints, 0);
+
+    // Auto-adjust micro floating-point rounding deviations (e.g., 9.98 or 10.02)
+    const pointDiff = dto.assignment.functionalMaxScore - functionalPoints;
+    if (Math.abs(pointDiff) <= 0.05 && Math.abs(pointDiff) > 0.000001 && dto.testCases.length > 0) {
+      const lastTc = dto.testCases[dto.testCases.length - 1];
+      lastTc.points = Number((lastTc.points + pointDiff).toFixed(2));
+      functionalPoints = dto.assignment.functionalMaxScore;
+    }
+
     if (Math.abs(functionalPoints - dto.assignment.functionalMaxScore) > 0.01) {
-      throw new ValidationError(`Tổng điểm testcase phải bằng ${dto.assignment.functionalMaxScore}.`);
+      console.error(`[SaveAssignmentPackageUseCase] Point mismatch: functionalPoints=${functionalPoints}, expected=${dto.assignment.functionalMaxScore}`);
+      throw new ValidationError(`Tổng điểm testcase phải bằng ${dto.assignment.functionalMaxScore}. Hiện tại tổng điểm các testcase là ${functionalPoints.toFixed(2)}.`);
     }
     if (dto.assignment.environment === 'REACT_JS') {
       for (const testCase of dto.testCases) {

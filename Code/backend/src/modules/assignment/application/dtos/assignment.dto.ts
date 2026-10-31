@@ -109,9 +109,9 @@ export const UpsertSolutionSchema = z.object({
   title: z.string().min(1, 'Tiêu đề đáp án mẫu không được rỗng'),
   sourceCode: z.string().min(1, 'Mã nguồn đáp án mẫu không được rỗng'),
   explanation: z.string().optional(),
-  expectedTimeComplexity: z.string().trim().max(100).optional(),
-  expectedSpaceComplexity: z.string().trim().max(100).optional(),
-  acceptedStrategies: z.array(z.string().trim().min(1).max(100)).max(20).optional(),
+  expectedTimeComplexity: z.string().trim().max(500).optional(),
+  expectedSpaceComplexity: z.string().trim().max(500).optional(),
+  acceptedStrategies: z.array(z.string().trim().min(1).max(500)).max(20).optional(),
   algorithmNotes: z.string().trim().max(4_000).optional(),
 });
 
