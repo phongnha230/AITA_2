@@ -139,6 +139,7 @@ export const CreateExamWizard: React.FC = () => {
         <WizardStep4Review
           selectedCourse={wizard.selectedCourse}
           environment={wizard.environment}
+          solutionFiles={wizard.solutionFiles}
           testCases={wizard.testCases}
           totalPoints={wizard.totalPoints}
           durationMinutes={wizard.durationMinutes}
@@ -150,6 +151,10 @@ export const CreateExamWizard: React.FC = () => {
           dryRunResult={wizard.dryRunResult}
           dryRunError={wizard.dryRunError}
           onDryRun={wizard.handleDryRun}
+          previewDeploymentUrl={wizard.previewDeploymentUrl}
+          onPreviewDeploymentUrlChange={wizard.setPreviewDeploymentUrl}
+          referenceRepositoryUrl={wizard.referenceRepositoryUrl}
+          onReferenceRepositoryUrlChange={wizard.setReferenceRepositoryUrl}
           isSubmitting={wizard.isSubmitting}
           onSaveToDatabase={wizard.handleSaveToDatabase}
           onBack={() => wizard.setActiveStep(3)}

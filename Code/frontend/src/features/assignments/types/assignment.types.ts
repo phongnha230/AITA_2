@@ -51,6 +51,9 @@ export interface TestCase {
   inputFileContent?: string | null;
   expectedFileName?: string | null;
   expectedFileContent?: string | null;
+  isHarness?: boolean;
+  kind?: string;
+  subMethod?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }

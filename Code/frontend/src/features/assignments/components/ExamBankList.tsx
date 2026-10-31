@@ -194,7 +194,11 @@ export const ExamBankList: React.FC = () => {
           {filtered.map((item) => {
             const isPublished = item.status === 'PUBLISHED';
             const isJava = item.environment === 'JAVA_JDK';
-            const testcaseCount = item.testCases ? item.testCases.length : 0;
+            const testcaseCount = item._count?.testCases ?? item.testCases?.length ?? 0;
+            const durationMinutes = item.durationMinutes
+              ?? (item.startTime && item.deadline
+                  ? Math.max(1, Math.round((new Date(item.deadline).getTime() - new Date(item.startTime).getTime()) / 60000))
+                  : 90);
 
             return (
               <Card
@@ -257,7 +261,7 @@ export const ExamBankList: React.FC = () => {
                         <span>Thời lượng nộp bài:</span>
                       </span>
                       <span className="font-bold text-slate-800 text-xs">
-                        120 phút
+                        {durationMinutes} phút
                       </span>
                     </div>
                   </div>

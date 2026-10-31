@@ -14,19 +14,8 @@ export function LecturerAuthGuard({ children }: LecturerAuthGuardProps) {
   const router = useRouter();
   const pathname = usePathname();
 
-  // Fast-hydration: Kiểm tra nhanh từ local storage để không bị chớp hay lag màn hình xác thực
-  const [isAuthorized, setIsAuthorized] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    const stored = authService.getStoredUser();
-    return stored?.role === 'LECTURER' || stored?.role === 'ADMIN';
-  });
-
-  const [isChecking, setIsChecking] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return true;
-    const stored = authService.getStoredUser();
-    return !(stored?.role === 'LECTURER' || stored?.role === 'ADMIN');
-  });
-
+  const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
+  const [isChecking, setIsChecking] = useState<boolean>(true);
   const [unauthorizedMessage, setUnauthorizedMessage] = useState<string | null>(null);
   const hasVerifiedRef = useRef(false);
 

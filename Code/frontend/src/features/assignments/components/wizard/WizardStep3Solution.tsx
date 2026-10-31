@@ -268,7 +268,7 @@ export const WizardStep3Solution: React.FC<WizardStep3SolutionProps> = ({
                 <div className="flex min-w-0 items-center gap-2 text-sm font-bold text-blue-900">
                   <Archive className="size-4 shrink-0" />
                   <span className="truncate">{solutionZipName || 'Đáp án hiện có'}</span>
-                  <span className="shrink-0 text-xs font-medium text-slate-500">({solutionFiles.length} file mã nguồn)</span>
+                  <span className="shrink-0 text-xs font-medium text-slate-500">({solutionFiles.length} file mã nguồn &amp; bytecode)</span>
                 </div>
                 <button type="button" onClick={onRemoveSolutionZip} className="flex items-center gap-1 rounded-lg border border-rose-200 bg-white px-2.5 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-50">
                   <X className="size-3.5" /> Gỡ ZIP
@@ -286,7 +286,7 @@ export const WizardStep3Solution: React.FC<WizardStep3SolutionProps> = ({
               <button type="button" onClick={onRemoveSolutionZip} className="shrink-0 rounded-lg border border-rose-200 bg-white px-2.5 py-1.5 font-bold text-rose-700 hover:bg-rose-50">Gỡ đáp án</button>
             </div>
           ) : (
-            <p className="text-xs text-slate-600">Chưa tải đáp án. ZIP cần có file {environment === 'JAVA_JDK' ? '.java' : '.c hoặc .h'}; có thể chứa nhiều file và thư mục.</p>
+            <p className="text-xs text-slate-600">Chưa tải đáp án. ZIP cần có file {environment === 'JAVA_JDK' ? '.java, .class' : '.c hoặc .h'}; có thể chứa nhiều file và thư mục.</p>
           )}
         </div>
 

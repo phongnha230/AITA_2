@@ -20,7 +20,8 @@ import { ROUTES } from '@/config/routes';
 const defaultReactStructureRequirements = 'Đánh giá cách tổ chức component, sử dụng props/state, hooks và dependency của effect; routing/context/store phải phù hợp phạm vi bài, có xử lý loading, error và empty state khi cần.';
 const defaultReactCleanCodeRequirements = 'Đánh giá naming, khả năng đọc hiểu, component không ôm quá nhiều trách nhiệm, tránh lặp logic, tránh hardcode không cần thiết và bảo đảm accessibility cơ bản.';
 const solutionFileMarker = '// === AITA SOLUTION FILE: ';
-const serializeSolutionFiles = (files: Array<{ path: string; content: string }>): string => files
+const serializeSolutionFiles = (files: Array<{ path: string; content: string; encoding?: 'utf8' | 'base64' }>): string => files
+  .filter((f) => !f.encoding || f.encoding === 'utf8')
   .map(({ path: filePath, content }) => `${solutionFileMarker}${filePath} ===\n${content}`)
   .join('\n\n');
 const parseSolutionFiles = (sourceCode: string): Array<{ path: string; content: string }> => {
@@ -116,7 +117,7 @@ export function useCreateExamWizard() {
   // 4. Solution Code State
   const [solutionTitle, setSolutionTitle] = useState('');
   const [solutionCode, setSolutionCode] = useState('');
-  const [solutionFiles, setSolutionFiles] = useState<Array<{ path: string; content: string }>>([]);
+  const [solutionFiles, setSolutionFiles] = useState<Array<{ path: string; content: string; encoding?: 'utf8' | 'base64' }>>([]);
   const [solutionZipName, setSolutionZipName] = useState('');
   const [expectedComplexity, setExpectedComplexity] = useState('');
   const [expectedSpaceComplexity, setExpectedSpaceComplexity] = useState('');
@@ -136,6 +137,8 @@ export function useCreateExamWizard() {
   const [dryRunRunning, setDryRunRunning] = useState(false);
   const [dryRunResult, setDryRunResult] = useState<DryRunExecutionSummary | null>(null);
   const [dryRunError, setDryRunError] = useState<string | null>(null);
+  const [previewDeploymentUrl, setPreviewDeploymentUrl] = useState<string>('');
+  const [referenceRepositoryUrl, setReferenceRepositoryUrl] = useState<string>('');
 
   // Submitting state
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -393,14 +396,31 @@ export function useCreateExamWizard() {
           throw new Error('Chọn file ZIP đáp án nhỏ hơn 25 MiB.');
         }
         const zip = await JSZip.loadAsync(file, { checkCRC32: true });
-        const allowedExtensions = environment === 'JAVA_JDK' ? ['.java'] : ['.c', '.h'];
-        const sources: Array<{ path: string; content: string }> = [];
+        const allowedExtensions = environment === 'JAVA_JDK' ? ['.java', '.class'] : ['.c', '.h'];
+        const sources: Array<{ path: string; content: string; encoding?: 'utf8' | 'base64' }> = [];
         let totalBytes = 0;
         const zipEntries = Object.values(zip.files);
         if (zipEntries.length > 5_000) throw new Error('ZIP đáp án không được vượt quá 5.000 file và thư mục.');
-        for (const entry of zipEntries) {
-          if (entry.dir) continue;
-          const normalizedPath = entry.name.replace(/\\/g, '/');
+
+        // Tự động nhận diện thư mục bao bọc ngoài cùng (vd: "submission_10of10/") để strip
+        const fileEntries = zipEntries.filter((e) => !e.dir);
+        let commonPrefix = '';
+        if (fileEntries.length > 0) {
+          const firstPath = fileEntries[0].name.replace(/\\/g, '/');
+          const firstSlashIndex = firstPath.indexOf('/');
+          if (firstSlashIndex !== -1) {
+            const candidate = firstPath.slice(0, firstSlashIndex + 1);
+            if (fileEntries.every((e) => e.name.replace(/\\/g, '/').startsWith(candidate))) {
+              commonPrefix = candidate;
+            }
+          }
+        }
+
+        for (const entry of fileEntries) {
+          let normalizedPath = entry.name.replace(/\\/g, '/');
+          if (commonPrefix && normalizedPath.startsWith(commonPrefix)) {
+            normalizedPath = normalizedPath.slice(commonPrefix.length);
+          }
           const segments = normalizedPath.split('/');
           if (normalizedPath.startsWith('/') || /^[a-z]:/i.test(normalizedPath) || segments.includes('..')) {
             throw new Error(`Đường dẫn file không hợp lệ trong ZIP: ${entry.name}`);
@@ -408,10 +428,12 @@ export function useCreateExamWizard() {
           if (segments.some((segment) => segment === '__MACOSX' || segment === '.DS_Store' || segment.startsWith('._'))) continue;
           const extension = normalizedPath.slice(normalizedPath.lastIndexOf('.')).toLowerCase();
           if (!allowedExtensions.includes(extension)) continue;
-          const content = await entry.async('string');
-          totalBytes += new TextEncoder().encode(content).byteLength;
-          if (totalBytes > 1024 * 1024) throw new Error('Tổng mã nguồn trong ZIP không được vượt quá 1 MiB.');
-          sources.push({ path: normalizedPath, content });
+
+          const isBinary = extension === '.class';
+          const content = isBinary ? await entry.async('base64') : await entry.async('string');
+          totalBytes += isBinary ? Math.ceil((content.length * 3) / 4) : new TextEncoder().encode(content).byteLength;
+          if (totalBytes > 10 * 1024 * 1024) throw new Error('Tổng mã nguồn trong ZIP không được vượt quá 10 MiB.');
+          sources.push({ path: normalizedPath, content, encoding: isBinary ? 'base64' : 'utf8' });
           if (sources.length > 100) throw new Error('ZIP đáp án không được vượt quá 100 file mã nguồn.');
         }
         if (sources.length === 0) {
@@ -420,7 +442,8 @@ export function useCreateExamWizard() {
         sources.sort((first, second) => first.path.localeCompare(second.path));
         setSolutionFiles(sources);
         setSolutionZipName(file.name);
-        setSolutionCode(serializeSolutionFiles(sources));
+        const textSources = sources.filter((s) => !s.path.endsWith('.class'));
+        setSolutionCode(serializeSolutionFiles(textSources));
         setSolutionTitle((current) => current || `Bài giải mẫu: ${file.name}`);
       } catch (error) {
         console.error('[CreateExamWizard] Failed to read reference solution ZIP', { fileName: file.name, error });
@@ -627,12 +650,53 @@ export function useCreateExamWizard() {
       setDryRunError(validationError);
       return;
     }
+    if (
+      environment === 'JAVA_JDK' &&
+      solutionFiles.length > 0 &&
+      !solutionFiles.some((f) => f.path.endsWith('Main.class') || f.path.endsWith('Main.java'))
+    ) {
+      setDryRunError(
+        'Phát hiện bản nháp đáp án chưa có Main.class (do lưu từ phiên trước khi cập nhật nạp bytecode). Vui lòng bấm "Quay lại Bước 3" và chọn lại file submission_10of10.zip để hệ thống trích xuất đầy đủ 26 file mã nguồn và bytecode .class.'
+      );
+      return;
+    }
     setDryRunRunning(true);
     setDryRunResult(null);
     setDryRunError(null);
     try {
       if (environment === 'REACT_JS') {
-        setDryRunError('Chạy thử React/Web cần preview URL; hiện tại chỉ chạy thật cho C/Java.');
+        const trimmedUrl = previewDeploymentUrl.trim();
+        if (!trimmedUrl) {
+          setDryRunError('Vui lòng nhập Vercel / Preview Deployment URL mẫu của bạn để chạy thử.');
+          return;
+        }
+        if (!courseId) {
+          setDryRunError('Vui lòng chọn khóa học trước khi chạy thử.');
+          return;
+        }
+        if (testCases.length === 0) {
+          setDryRunError('Chưa có luồng kiểm thử Playwright nào để chạy thử.');
+          return;
+        }
+        const result = await assignmentService.runDryRun({
+          courseId,
+          language: 'REACT_JS',
+          previewDeploymentUrl: trimmedUrl,
+          referenceRepositoryUrl: referenceRepositoryUrl.trim() || undefined,
+          testCases: testCases.map((testCase) => ({
+            id: testCase.id,
+            questionNo: String(testCase.questionNumber ?? 'Q1'),
+            stdinInput: testCase.stdinInput,
+            expectedStdout: testCase.expectedStdout,
+            comparisonMode: 'STDIO',
+            timeLimitMs: Number(testCase.timeLimitMs) || 15_000,
+            memoryLimitKb: Number(testCase.memoryLimitKb) || 262_144,
+            points: Number(testCase.points) || 0,
+            isHarness: testCase.isHarness,
+            kind: testCase.kind,
+          })),
+        });
+        setDryRunResult(result);
         return;
       }
       if (!courseId || !solutionCode.trim()) {
@@ -656,6 +720,8 @@ export function useCreateExamWizard() {
           timeLimitMs: Number(testCase.timeLimitMs) || 1500,
           memoryLimitKb: Number(testCase.memoryLimitKb) || 262144,
           points: Number(testCase.points) || 0,
+          isHarness: testCase.isHarness,
+          kind: testCase.kind,
         })),
       });
       setDryRunResult(result);
@@ -730,7 +796,19 @@ export function useCreateExamWizard() {
         starterFile = new File([zipBlob], starterZipFile.name, { type: 'application/zip' });
       }
 
-      const solution = solutionCode.trim() ? {
+      const solution = environment === 'REACT_JS'
+        ? (referenceRepositoryUrl.trim() || solutionCode.trim() ? {
+            title: solutionTitle || 'Repository bài giải mẫu React (Reference)',
+            sourceCode: solutionCode.trim() || JSON.stringify({
+              referenceRepositoryUrl: referenceRepositoryUrl.trim(),
+              previewDeploymentUrl: previewDeploymentUrl.trim() || undefined,
+            }),
+            explanation: referenceRepositoryUrl.trim()
+              ? `Repository tham chiếu chuẩn của giảng viên: ${referenceRepositoryUrl.trim()}`
+              : 'Mã nguồn bài giải mẫu React.',
+            algorithmNotes: previewDeploymentUrl.trim() ? `Vercel Preview URL: ${previewDeploymentUrl.trim()}` : undefined,
+          } : undefined)
+        : (solutionCode.trim() ? {
           title: solutionTitle || 'Mã nguồn bài giải mẫu',
           sourceCode: solutionCode,
           explanation: `Mã giải mẫu tham chiếu chuẩn. Độ phức tạp thuật toán kỳ vọng: ${expectedComplexity}.`,
@@ -741,7 +819,7 @@ export function useCreateExamWizard() {
             .map((strategy) => strategy.trim())
             .filter(Boolean),
           algorithmNotes: algorithmNotes.trim() || undefined,
-        } : undefined;
+        } : undefined);
 
       const rubricRules: RubricRuleInput[] = environment === 'REACT_JS'
         ? buildReactGradingRubric(reactStructureRequirements, reactCleanCodeRequirements)
@@ -783,13 +861,20 @@ export function useCreateExamWizard() {
           cleanCodeMaxScore: 1,
           gradingApprovalMode,
         },
-        testCases: testCases.map((testCase, index) => ({
-          ...testCase,
-          orderIndex: index + 1,
-          points: Number(testCase.points) || 1,
-          timeLimitMs: Number(testCase.timeLimitMs) || 1500,
-          memoryLimitKb: Number(testCase.memoryLimitKb) || 262144,
-        })),
+        testCases: testCases.map((testCase, index) => {
+          const rawPts = Number(testCase.points);
+          const points = Number.isFinite(rawPts) && rawPts > 0 ? Number(rawPts.toFixed(4)) : 1;
+          const timeLimitMs = Math.round(Number(testCase.timeLimitMs)) || 1500;
+          const memoryLimitKb = Math.round(Number(testCase.memoryLimitKb)) || 262144;
+          return {
+            ...testCase,
+            orderIndex: index + 1,
+            label: testCase.label?.trim() || `TC_${index + 1}`,
+            points,
+            timeLimitMs,
+            memoryLimitKb,
+          };
+        }),
         solution,
         removeSolution: Boolean(editId && !solution),
         rubricRules,
@@ -806,7 +891,26 @@ export function useCreateExamWizard() {
       }, 1500);
     } catch (error: unknown) {
       console.error('[CreateExamWizard] Failed to save assignment package', error);
-      setSubmitError(error instanceof Error ? error.message : 'Lỗi khi lưu đề thi vào CSDL');
+      const axiosError = error as { response?: { data?: { message?: string; error?: { details?: unknown }; details?: unknown } } };
+      const serverMessage = axiosError?.response?.data?.message;
+      const details = axiosError?.response?.data?.error?.details || axiosError?.response?.data?.details;
+      let detailedMsg = serverMessage || (error instanceof Error ? error.message : 'Lỗi khi lưu đề thi vào CSDL');
+
+      if (Array.isArray(details) && details.length > 0) {
+        const issueList = details
+          .map((item: any) => `${item.field || 'Trường'}: ${item.message || String(item)}`)
+          .join('; ');
+        detailedMsg += ` [Chi tiết: ${issueList}]`;
+      } else if (details && typeof details === 'object') {
+        const fieldErrors = (details as { fieldErrors?: Record<string, string[]> }).fieldErrors;
+        if (fieldErrors && Object.keys(fieldErrors).length > 0) {
+          const issueList = Object.entries(fieldErrors)
+            .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : String(msgs)}`)
+            .join('; ');
+          detailedMsg += ` [Chi tiết: ${issueList}]`;
+        }
+      }
+      setSubmitError(detailedMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -891,6 +995,10 @@ export function useCreateExamWizard() {
     dryRunRunning,
     dryRunResult,
     dryRunError,
+    previewDeploymentUrl,
+    setPreviewDeploymentUrl,
+    referenceRepositoryUrl,
+    setReferenceRepositoryUrl,
     isSubmitting,
     submitError,
     submitSuccess,

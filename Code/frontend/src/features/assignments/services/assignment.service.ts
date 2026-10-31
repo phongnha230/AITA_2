@@ -120,9 +120,11 @@ export const assignmentService = {
 
   async runDryRun(payload: {
     courseId: string;
-    language: 'C_GCC' | 'JAVA_JDK';
+    language: 'C_GCC' | 'JAVA_JDK' | 'REACT_JS';
+    previewDeploymentUrl?: string;
+    referenceRepositoryUrl?: string;
     sourceCode?: string;
-    sourceFiles?: Array<{ path: string; content: string }>;
+    sourceFiles?: Array<{ path: string; content: string; encoding?: 'utf8' | 'base64' }>;
     testCases: Array<{
       id?: string;
       questionNo?: string;
@@ -131,10 +133,12 @@ export const assignmentService = {
       inputFileContent?: string | null;
       expectedFileName?: string | null;
       expectedFileContent?: string | null;
-      comparisonMode: 'STDIO' | 'FILE_TO_FILE';
+      comparisonMode?: 'STDIO' | 'FILE_TO_FILE';
       timeLimitMs: number;
       memoryLimitKb: number;
       points: number;
+      isHarness?: boolean;
+      kind?: string;
     }>;
   }): Promise<DryRunExecutionSummary> {
     await this.ensureLecturerAuth();

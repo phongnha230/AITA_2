@@ -11,12 +11,14 @@ import {
   XCircle,
   Clock,
   Search,
+  Sparkles,
 } from 'lucide-react';
 import { AssignmentEnv, Course, DryRunExecutionSummary, TestCase } from '../../types/assignment.types';
 
 interface WizardStep4ReviewProps {
   selectedCourse?: Course;
   environment: AssignmentEnv;
+  solutionFiles?: Array<{ path: string }>;
   testCases: TestCase[];
   totalPoints: number;
   durationMinutes: number;
@@ -31,12 +33,127 @@ interface WizardStep4ReviewProps {
   isSubmitting: boolean;
   onSaveToDatabase: () => void;
   onBack: () => void;
+  previewDeploymentUrl?: string;
+  onPreviewDeploymentUrlChange?: (url: string) => void;
+  referenceRepositoryUrl?: string;
+  onReferenceRepositoryUrlChange?: (url: string) => void;
 }
 
-function DryRunModeDetails({ isReact, testCases, totalPoints, dryRunRunning, onDryRun }: Pick<WizardStep4ReviewProps, 'testCases' | 'totalPoints' | 'dryRunRunning' | 'onDryRun'> & { isReact: boolean }) {
-  if (isReact) return <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4 text-xs text-indigo-900"><p className="font-bold">Đã cấu hình {testCases.length} luồng, tổng {totalPoints.toFixed(1)} điểm chức năng.</p><p className="mt-1 leading-5 text-indigo-700">Kịch bản thật sẽ chạy khi sinh viên nộp URL deploy. Hệ thống không mô phỏng pass và không tự suy đoán thao tác giao diện.</p></div>;
+function DryRunModeDetails({
+  isReact,
+  testCases,
+  totalPoints,
+  dryRunRunning,
+  onDryRun,
+  solutionFiles,
+  environment,
+  previewDeploymentUrl,
+  onPreviewDeploymentUrlChange,
+  referenceRepositoryUrl,
+  onReferenceRepositoryUrlChange,
+}: Pick<WizardStep4ReviewProps, 'testCases' | 'totalPoints' | 'dryRunRunning' | 'onDryRun' | 'solutionFiles' | 'environment' | 'previewDeploymentUrl' | 'onPreviewDeploymentUrlChange' | 'referenceRepositoryUrl' | 'onReferenceRepositoryUrlChange'> & { isReact: boolean }) {
+  if (isReact) {
+    return (
+      <div className="space-y-4">
+        <div className="rounded-xl border border-indigo-200 bg-indigo-50/80 p-4 text-xs text-indigo-900">
+          <div className="flex items-center gap-2 font-bold text-indigo-800">
+            <Sparkles className="size-4 shrink-0 text-indigo-600" />
+            <span>Chạy thử kịch bản Playwright thật trên URL Preview</span>
+          </div>
+          <p className="mt-1 leading-5 text-indigo-700">
+            Hệ thống sẽ khởi chạy Chromium trong Docker sandbox để thực thi tuần tự {testCases.length} luồng kiểm thử giao diện (tổng {totalPoints.toFixed(1)}đ) trên URL deploy mẫu của giảng viên.
+          </p>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <label htmlFor="preview-deployment-url" className="block text-xs font-bold text-slate-700">
+              URL Deploy mẫu (Vercel / Netlify / Render) <span className="text-rose-500">*</span>
+            </label>
+            <input
+              id="preview-deployment-url"
+              type="url"
+              value={previewDeploymentUrl || ''}
+              onChange={(e) => onPreviewDeploymentUrlChange?.(e.target.value)}
+              placeholder="https://my-shopping-cart-sample.vercel.app"
+              className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
+            <p className="text-[11px] text-slate-500">
+              Dùng để chạy thử 7.0 điểm kịch bản giao diện Playwright trong Docker.
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
+            <label htmlFor="reference-repository-url" className="block text-xs font-bold text-slate-700">
+              Link GitHub Repository mẫu (Reference Solution)
+            </label>
+            <input
+              id="reference-repository-url"
+              type="url"
+              value={referenceRepositoryUrl || ''}
+              onChange={(e) => onReferenceRepositoryUrlChange?.(e.target.value)}
+              placeholder="https://github.com/lecturer/fer201-shopping-cart"
+              className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
+            <p className="text-[11px] text-slate-500">
+              Lưu vào đề thi làm đáp án chuẩn để AI đối chiếu cấu trúc và clean code.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 pt-1">
+          <button
+            type="button"
+            onClick={onDryRun}
+            disabled={dryRunRunning || !previewDeploymentUrl?.trim() || testCases.length === 0}
+            className="flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white shadow-sm shadow-indigo-500/20 transition hover:bg-indigo-700 disabled:opacity-50"
+          >
+            <Play className={`size-3.5 ${dryRunRunning ? 'animate-spin' : ''}`} />
+            <span>{dryRunRunning ? 'Playwright đang chạy trong Docker...' : 'Chạy thử kịch bản Playwright (7.0đ)'}</span>
+          </button>
+          {!previewDeploymentUrl?.trim() && (
+            <span className="text-[11px] text-amber-600 font-medium">
+              * Nhập URL Deploy mẫu ở trên để bật nút chạy thử.
+            </span>
+          )}
+        </div>
+
+        {dryRunRunning && (
+          <div className="flex items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 p-2.5 text-[11px] text-indigo-900 animate-pulse">
+            <span>⏳ Playwright đang khởi tạo Chromium trong Docker, tải trang web và thực thi các thao tác UI. Quá trình có thể mất 15–30 giây...</span>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const isJavaMissingMain = environment === 'JAVA_JDK'
+    && (solutionFiles?.length ?? 0) > 0
+    && !solutionFiles?.some((f) => f.path.endsWith('Main.class') || f.path.endsWith('Main.java'));
+
+  const hasJavaClassFiles = environment === 'JAVA_JDK'
+    && (solutionFiles?.length ?? 0) > 0
+    && solutionFiles?.some((f) => f.path.endsWith('.class'));
+
   return <>
     <p className="text-xs text-slate-500">Chạy mã giải tham chiếu trong Docker sandbox trên toàn bộ {testCases.length} testcase. Kết quả phản ánh lần chạy thực tế; Docker chưa sẵn sàng thì hệ thống sẽ báo lỗi và không chạy trên máy chủ.</p>
+    {isJavaMissingMain && (
+      <div className="rounded-xl border border-amber-300 bg-amber-50 p-3.5 text-xs text-amber-900 space-y-1">
+        <div className="flex items-center gap-2 font-bold text-amber-800">
+          <AlertTriangle className="size-4 shrink-0 text-amber-600" />
+          <span>Bản lưu nháp chưa có bytecode Main.class</span>
+        </div>
+        <p>
+          Danh sách file đáp án đang nạp từ bản nháp cũ của trình duyệt chưa có file bytecode <code>Main.class</code>. Vui lòng bấm <strong>&quot;Quay lại Bước 3&quot;</strong> và tải lại file <strong>submission_10of10.zip</strong> để cập nhật đầy đủ 26 file mã nguồn và bytecode.
+        </p>
+      </div>
+    )}
+    {!isJavaMissingMain && hasJavaClassFiles && (
+      <div className="flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-[11px] font-semibold text-emerald-800">
+        <CheckCircle2 className="size-3.5 text-emerald-600 shrink-0" />
+        <span>Đã nạp đầy đủ {solutionFiles?.length} file đáp án (bao gồm Main.class và các bytecode interfaces)</span>
+      </div>
+    )}
     <button type="button" onClick={onDryRun} disabled={dryRunRunning || testCases.length === 0} className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-sm shadow-emerald-500/20 transition hover:bg-emerald-700 disabled:opacity-50"><Play className={`size-3.5 ${dryRunRunning ? 'animate-spin' : ''}`} /><span>{dryRunRunning ? 'Đang chạy mã trong Docker...' : 'Chạy thử trong Docker'}</span></button>
     {dryRunRunning && (
       <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-[11px] text-amber-900 animate-pulse">
@@ -46,8 +163,7 @@ function DryRunModeDetails({ isReact, testCases, totalPoints, dryRunRunning, onD
   </>;
 }
 
-function DryRunOutput({ isReact, dryRunError, dryRunResult, testCases }: Pick<WizardStep4ReviewProps, 'dryRunError' | 'dryRunResult' | 'testCases'> & { isReact: boolean }) {
-  if (isReact) return null;
+function DryRunOutput({ dryRunError, dryRunResult, testCases }: Pick<WizardStep4ReviewProps, 'dryRunError' | 'dryRunResult' | 'testCases'>) {
   return <>
     {dryRunError && <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">{dryRunError}</div>}
     {dryRunResult && <DryRunResultCard result={dryRunResult} testCases={testCases} />}
@@ -305,16 +421,41 @@ function DryRunResultCard({ result, testCases }: { result: DryRunExecutionSummar
   );
 }
 
-function DryRunPanel({ environment, testCases, totalPoints, dryRunRunning, dryRunResult, dryRunError, onDryRun }: Pick<WizardStep4ReviewProps, 'environment' | 'testCases' | 'totalPoints' | 'dryRunRunning' | 'dryRunResult' | 'dryRunError' | 'onDryRun'>) {
+function DryRunPanel({
+  environment,
+  solutionFiles,
+  testCases,
+  totalPoints,
+  dryRunRunning,
+  dryRunResult,
+  dryRunError,
+  onDryRun,
+  previewDeploymentUrl,
+  onPreviewDeploymentUrlChange,
+  referenceRepositoryUrl,
+  onReferenceRepositoryUrlChange,
+}: Pick<WizardStep4ReviewProps, 'environment' | 'solutionFiles' | 'testCases' | 'totalPoints' | 'dryRunRunning' | 'dryRunResult' | 'dryRunError' | 'onDryRun' | 'previewDeploymentUrl' | 'onPreviewDeploymentUrlChange' | 'referenceRepositoryUrl' | 'onReferenceRepositoryUrlChange'>) {
   const isReact = environment === 'REACT_JS';
-  const heading = isReact ? '2. Xác nhận kịch bản chấm FER201' : '2. Kiểm Thử Sandbox Đối Sánh (Dry Run)';
+  const heading = isReact ? '2. Kiểm Thử Giao Diện Playwright (Live Dry Run)' : '2. Kiểm Thử Sandbox Đối Sánh (Dry Run)';
   return <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
     <div className="flex items-center justify-between border-b border-slate-100 pb-3">
       <div className="flex items-center gap-2"><span className="size-2.5 rounded-full bg-emerald-600" /><h2 className="text-sm font-extrabold text-slate-900">{heading}</h2></div>
-      <span className="text-xs font-medium text-slate-400">{isReact ? 'Không chạy giả khi chưa có URL deploy của bài nộp' : 'Chạy mã giải với các testcase'}</span>
+      <span className="text-xs font-medium text-slate-400">{isReact ? 'Chạy thử kịch bản với URL deploy mẫu của giảng viên' : 'Chạy mã giải với các testcase'}</span>
     </div>
-    <DryRunModeDetails isReact={isReact} testCases={testCases} totalPoints={totalPoints} dryRunRunning={dryRunRunning} onDryRun={onDryRun} />
-    <DryRunOutput isReact={isReact} dryRunError={dryRunError} dryRunResult={dryRunResult} testCases={testCases} />
+    <DryRunModeDetails
+      isReact={isReact}
+      environment={environment}
+      solutionFiles={solutionFiles}
+      testCases={testCases}
+      totalPoints={totalPoints}
+      dryRunRunning={dryRunRunning}
+      onDryRun={onDryRun}
+      previewDeploymentUrl={previewDeploymentUrl}
+      onPreviewDeploymentUrlChange={onPreviewDeploymentUrlChange}
+      referenceRepositoryUrl={referenceRepositoryUrl}
+      onReferenceRepositoryUrlChange={onReferenceRepositoryUrlChange}
+    />
+    <DryRunOutput dryRunError={dryRunError} dryRunResult={dryRunResult} testCases={testCases} />
   </div>;
 }
 
@@ -348,6 +489,7 @@ function ExamReviewOverview({ selectedCourse, environment, testCases, totalPoint
 export const WizardStep4Review: React.FC<WizardStep4ReviewProps> = ({
   selectedCourse,
   environment,
+  solutionFiles,
   testCases,
   totalPoints,
   durationMinutes,
@@ -359,6 +501,10 @@ export const WizardStep4Review: React.FC<WizardStep4ReviewProps> = ({
   dryRunResult,
   dryRunError,
   onDryRun,
+  previewDeploymentUrl,
+  onPreviewDeploymentUrlChange,
+  referenceRepositoryUrl,
+  onReferenceRepositoryUrlChange,
   isSubmitting,
   onSaveToDatabase,
   onBack,
@@ -367,7 +513,20 @@ export const WizardStep4Review: React.FC<WizardStep4ReviewProps> = ({
     <div className="space-y-6 animate-in fade-in duration-200">
       <ExamReviewOverview selectedCourse={selectedCourse} environment={environment} testCases={testCases} totalPoints={totalPoints} durationMinutes={durationMinutes} title={title} description={description} gradingApprovalMode={gradingApprovalMode} onGradingApprovalModeChange={onGradingApprovalModeChange} />
 
-      <DryRunPanel environment={environment} testCases={testCases} totalPoints={totalPoints} dryRunRunning={dryRunRunning} dryRunResult={dryRunResult} dryRunError={dryRunError} onDryRun={onDryRun} />
+      <DryRunPanel
+        environment={environment}
+        solutionFiles={solutionFiles}
+        testCases={testCases}
+        totalPoints={totalPoints}
+        dryRunRunning={dryRunRunning}
+        dryRunResult={dryRunResult}
+        dryRunError={dryRunError}
+        onDryRun={onDryRun}
+        previewDeploymentUrl={previewDeploymentUrl}
+        onPreviewDeploymentUrlChange={onPreviewDeploymentUrlChange}
+        referenceRepositoryUrl={referenceRepositoryUrl}
+        onReferenceRepositoryUrlChange={onReferenceRepositoryUrlChange}
+      />
 
       <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
         <button
