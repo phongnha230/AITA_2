@@ -31,9 +31,11 @@ Hệ thống có 3 Actors chính và 2 System Actors (Ngoại vi):
    - Giám sát hàng đợi chấm bài (**GradingJob**), xem log lỗi hệ thống, cấu hình tham số Sandbox.
 
 4. **External System Actors:**
-   - **Docker Sandbox Service:** Tiến trình container cô lập thực thi và bắt stdout/stderr của code.
-   - **AI Providers (OpenAI / Gemini API):** Cung cấp dịch vụ mô hình ngôn ngữ chấm bài và giải thích lỗi.
-   - **GitHub / GitLab API:** Cung cấp dữ liệu commit, branch, pull request của sinh viên.
+   - **Docker Sandbox Service:** Tiến trình container cô lập thực thi và bắt stdout/stderr của code C/Java (`gcc:alpine`, `openjdk:17-alpine`).
+   - **Playwright Headless Browser Sandbox:** Container Chromium chạy riêng biệt qua egress proxy cô lập, tự động hóa tương tác kiểm thử giao diện và API trên các ứng dụng Web triển khai trên Vercel.
+   - **AI Providers (OpenAI / Gemini API):** Cung cấp dịch vụ mô hình ngôn ngữ chấm bài và giải thích lỗi logic.
+   - **GitHub / GitLab API & Git Ingestion:** Cung cấp dữ liệu commit, branch, pull request và trích xuất chỉ số đóng góp cá nhân của sinh viên.
+   - **Vercel Hosting Platform:** Nền tảng đích chứa ứng dụng Web của sinh viên được kiểm thử tự động.
 
 ---
 
@@ -72,25 +74,38 @@ Hệ thống có 3 Actors chính và 2 System Actors (Ngoại vi):
   - Khi sinh viên hỏi về testcase bị sai, RAG nạp ngữ cảnh giải thích ý đồ testcase và phương pháp giải chuẩn của đề bài.
   - Giới hạn quy tắc sư phạm (Socratic method): **AI dùng đáp án mẫu làm căn cứ để bắt bệnh logic, chỉ ra điểm nghẽn (bottleneck) và gợi ý hướng tư duy sửa lỗi, tuyệt đối không đưa code giải hộ.**
 - **FR8: Đo lường Đóng góp qua Git API (Git Analytics & Anti-Free-Riding)**
-  - Thu thập lịch sử commit từ Git API theo repository URL của nhóm.
-  - Tính toán các chỉ số: Số lượng commit, dòng code thêm/xóa (LOC additions/deletions), timeline đóng góp của từng sinh viên.
-  - Cảnh báo thành viên có mức độ đóng góp lệch chuẩn bất thường.
+  - Thu thập lịch sử commit từ Git Repository theo URL dự án nhóm.
+  - Tính toán các chỉ số: Số lượng commit, dòng code thêm/xóa (LOC additions/deletions), timeline đóng góp của từng thành viên (`git_contributors`).
+  - Hệ thống tự động phát hiện và cảnh báo "Free-Rider" (thành viên không có đóng góp hoặc đóng góp lệch chuẩn bất thường), hỗ trợ giảng viên điều chỉnh điểm cá nhân (`participant_score_adjustments`).
+- **FR9: Tự động Kiểm thử Ứng dụng Web bằng Playwright Sandbox (Automated Web E2E Testing)**
+  - Tiếp nhận URL triển khai thực tế trên Vercel từ sinh viên/nhóm.
+  - Khởi tạo container Playwright Headless Chromium chạy qua egress proxy cô lập.
+  - Thực thi các bài test tự động: kiểm tra giao diện render, kiểm tra tương tác DOM, response HTTP status code, và chụp screenshot bằng chứng lưu vào hệ thống.
+- **FR10: Quản lý Ca thi & Giám thị Trực tiếp (Live Proctoring & Exam Access Control)**
+  - Giảng viên cấu hình mã truy cập ca thi (`AssignmentExamAccess`: mật khẩu đề thi, khung giờ mở/đóng ca thi).
+  - Sinh viên bắt buộc nhập đúng mã mở đề mới được phép xem đề và bắt đầu làm bài.
+  - Màn hình giám thị thời gian thực (`/lecturer/live-proctoring` & `/proctoring/rooms`): Giảng viên theo dõi danh sách sinh viên đang online trong phòng thi, thời gian nộp bài, và trạng thái bài làm trực tiếp.
+- **FR11: Hệ thống Lưu vết Đa chặng & Bằng chứng Minh bạch (Multi-Stage Audit Trail & Evidences)**
+  - Tách bạch mỗi lượt chấm thành các chuỗi thực thi rõ ràng: `GradingRun` $\to$ `GradingRunStage` (`STAGING`, `SANDBOX_EXECUTION`, `AI_EVALUATION`).
+  - Lưu trữ chi tiết `GradingEvidence`: stdout/stderr compiler, file diff, ảnh chụp màn hình Playwright, raw prompt và phản hồi từ LLM, phục vụ phúc khảo minh bạch 100%.
 
 ### 2.2. Yêu cầu Phi chức năng (Non-Functional Requirements - NFRs)
 
-- **NFR1 - Bảo mật (Security):**
-  - Tuyệt đối không cho phép code của sinh viên truy cập file hệ thống của máy chủ hoặc gọi API ra ngoài internet (ngăn chặn fork-bomb, socket scan, file leak).
-  - Khóa API LLM được mã hóa và ẩn hoàn toàn phía backend, không để lộ ra client.
+- **NFR1 - Bảo mật Đa Tầng (Multi-Tier Security & Anti-SSRF):**
+  - **Lá chắn chống SSRF (`deployed-url.validator.ts`):** Phân giải DNS và thẩm định nghiêm ngặt URL Vercel trước khi kích hoạt Playwright. Chặn đứng 100% các dải IP nội bộ RFC 1918 (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), địa chỉ Loopback (`127.0.0.1`, `localhost`), Link-local (`169.254.169.254` AWS IMDS metadata) và non-standard ports.
+  - **Cô lập Sandbox:** Docker C/Java chạy `--network none`, cgroups giới hạn 256MB RAM và timeout 2s cứng (chống fork-bomb, socket scan, file leak). Playwright chạy trong container riêng biệt kết nối qua egress proxy kiểm soát.
+  - **Bảo vệ Hệ thống & API:** Tích hợp `helmet`, `cors` với cơ chế kiểm tra `enforceTrustedOrigin`, rate-limiting đa tầng (`globalLimiter`, `authLimiter`, `submissionLimiter`). Khóa API LLM được mã hóa và lưu tại CSDL backend, không bao giờ lộ về client.
 - **NFR2 - Hiệu năng & Khả năng mở rộng (Performance & Scalability):**
   - Sử dụng hàng đợi Redis Queue (BullMQ) để xử lý bất đồng bộ các `GradingJob`.
   - Hỗ trợ xử lý ít nhất 50 bài nộp đồng thời mà không làm sập API Server chính.
   - Thời gian phản hồi API chuẩn < 300ms (ngoại trừ thời gian đợi sandbox và LLM).
-- **NFR3 - Độ tin cậy (Reliability):**
+- **NFR3 - Độ tin cậy & Khả năng phục hồi (Reliability & Fault Tolerance):**
   - Cơ chế tự động retry đối với các job AI thất bại do rate-limit (tối đa 3 lần với exponential backoff).
-  - Hệ thống ghi log chi tiết lỗi cho từng `GradingJob`.
+  - Thuật toán xoay vòng khóa API (Round-Robin Key Rotator) bảo đảm tính sẵn sàng cao khi một key chạm hạn mức quota.
+  - Hệ thống ghi log chi tiết lỗi cho từng `GradingJob` và từng `GradingRunStage`.
 - **NFR4 - Trải nghiệm người dùng (Usability):**
   - Giao diện Web Next.js hiện đại, cập nhật trạng thái chấm bài thời gian thực (Real-time polling hoặc SSE).
-  - Hiển thị cú pháp code (Syntax highlighting), diff code trực quan.
+  - Hiển thị cú pháp code (Syntax highlighting), diff code trực quan, hiển thị bằng chứng ảnh chụp Playwright và chat trợ giảng Socratic trực quan.
 
 ---
 
@@ -99,75 +114,100 @@ Hệ thống có 3 Actors chính và 2 System Actors (Ngoại vi):
 ### 3.1. Danh sách Use Cases Tổng quát
 - **Nhóm 1 - Xác thực & Quản trị:**
   - UC01: Đăng nhập / Đăng ký / Đổi mật khẩu
-  - UC02: Quản lý người dùng & phân quyền (Admin)
-  - UC03: Quản lý kho AI API Keys & giám sát Quota (Admin)
-- **Nhóm 2 - Quản lý Đào tạo:**
+  - UC02: Quản lý người dùng & phân quyền RBAC (Admin)
+  - UC03: Quản lý kho AI API Keys, giám sát Quota & xoay vòng key (Admin)
+- **Nhóm 2 - Quản lý Đào tạo & Ca thi:**
   - UC04: Tạo và quản lý Khóa học / Lớp học (Lecturer)
-  - UC05: Tạo và quản lý Bài tập (Lecturer)
+  - UC05: Tạo và quản lý Bài tập / Đề thi PE (Lecturer)
   - UC06: Cấu hình Test Cases & Rubric Rules (Lecturer)
-- **Nhóm 3 - Nộp bài & Đánh giá:**
-  - UC07: Nộp bài tập lập trình (Student)
-  - UC08: Xử lý hàng đợi chấm bài `GradingJob` (System - Background Worker)
-  - UC09: Chạy kiểm thử trong Docker Sandbox (System)
-  - UC10: Đánh giá mã nguồn ngữ nghĩa bằng AI (System)
-  - UC11: Xem kết quả & Báo cáo chấm bài (Student, Lecturer)
-- **Nhóm 4 - Tương tác & Phân tích:**
-  - UC12: Hỏi đáp trợ giảng AI Tutor về bài nộp (Student)
-  - UC13: Xem Dashboard phân tích đóng góp Git nhóm (Lecturer, Student)
+  - UC07: Cấu hình Ca thi, mã mở khóa & Giám thị trực tiếp (Live Proctoring - Lecturer)
+- **Nhóm 3 - Nộp bài & Đánh giá (Dual-Engine):**
+  - UC08: Nộp bài thi lập trình PE cá nhân qua file ZIP (Student)
+  - UC09: Nộp đồ án nhóm Web qua GitHub Repo & Vercel Deployment URL (Student)
+  - UC10: Xử lý hàng đợi chấm bài `GradingJob` & Lưu vết Audit Trail đa chặng (System - Background Worker)
+  - UC11: Chạy kiểm thử code C/Java trong Docker Sandbox (System)
+  - UC12: Tự động kiểm thử giao diện & API Web qua Playwright Browser Sandbox (System)
+  - UC13: Đánh giá mã nguồn ngữ nghĩa bằng AI RAG (System)
+  - UC14: Xem kết quả & Báo cáo chấm bài đa chiều (Student, Lecturer)
+- **Nhóm 4 - Tương tác & Phân tích Nâng cao:**
+  - UC15: Hỏi đáp trợ giảng AI Tutor Socratic với ngữ cảnh RAG (Student)
+  - UC16: Dashboard phân tích đóng góp Git & Cảnh báo Free-Rider (Lecturer, Student)
 
 ---
 
-### 3.2. Đặc tả Chi tiết 3 Use Case Trọng Tâm
+### 3.2. Đặc tả Chi tiết 5 Use Case Trọng Tâm
 
-#### USE CASE UC07: Nộp bài tập lập trình
-- **Actor chính:** Student
-- **Tiền điều kiện (Pre-conditions):** Sinh viên đã đăng nhập và đang trong thời hạn cho phép nộp bài (`now <= deadline`).
+#### USE CASE UC07: Cấu hình Ca thi, Mã mở khóa & Giám thị trực tiếp (Live Proctoring)
+- **Actor chính:** Lecturer, Student
+- **Tiền điều kiện:** Giảng viên đã tạo đề thi PE và thiết lập ca thi (`AssignmentExamAccess`).
 - **Luồng sự kiện chính (Main Flow):**
-  1. Sinh viên truy cập trang chi tiết bài tập trên Web Next.js.
-  2. Hệ thống hiển thị thông tin bài tập, danh sách test case mẫu và bảng tiêu chí Rubric.
-  3. Sinh viên chọn phương thức nộp:
-     - Cách A: Tải lên file ZIP chứa source code.
-     - Cách B: Nhập link Git Repository và Commit Hash.
-  4. Sinh viên nhấn nút "Submit Assignment".
-  5. Backend Express.js tiếp nhận request:
-     - Kiểm tra tính hợp lệ của file / git repo.
-     - Tạo bản ghi mới trong bảng `submissions` với trạng thái `PENDING`.
-     - Tạo bản ghi `grading_jobs` với mức ưu tiên `priority = 2` (Medium).
+  1. Giảng viên mở giao diện `/lecturer/live-proctoring`, bật trạng thái kích hoạt ca thi (`status = ACTIVE`), đặt mã truy cập (ví dụ: `PE2026-PRO192`) và thời lượng làm bài.
+  2. Sinh viên đăng nhập vào hệ thống, truy cập màn hình `/student/exams`. Đề thi hiển thị trạng thái `LOCKED`.
+  3. Sinh viên nhập mã mở khóa do Giám thị cung cấp tại phòng thi.
+  4. Backend xác thực mã đối chiếu với `AssignmentExamAccess`: nếu chính xác, sinh viên được cấp quyền truy cập đề thi và WebSocket/SSE kết nối vào phòng thi trực tiếp (`/proctoring/rooms`).
+  5. Màn hình Giám thị hiển thị danh sách thí sinh đã kết nối, trạng thái đang làm bài, thời gian còn lại và phát hiện thí sinh nộp bài thời gian thực.
+
+---
+
+#### USE CASE UC08: Nộp bài thi lập trình PE cá nhân qua file ZIP (Engine 1)
+- **Actor chính:** Student
+- **Tiền điều kiện:** Sinh viên đã mở khóa ca thi và đang trong thời hạn cho phép nộp bài (`now <= deadline`).
+- **Luồng sự kiện chính (Main Flow):**
+  1. Sinh viên truy cập trang chi tiết bài thi trên Web Next.js.
+  2. Sinh viên kéo thả file nén `.zip` chứa source code bài làm (C hoặc Java) vào khung Dropzone.
+  3. Sinh viên nhấn nút "Submit Assignment".
+  4. Backend Express.js tiếp nhận request qua `multer`:
+     - Kiểm tra định dạng zip, kích thước tối đa 50MB.
+     - Trích xuất file, lọc sạch rác hệ điều hành (`__MACOSX`, `.DS_Store`, `Thumbs.db`).
+     - Tự động nhận diện cấu trúc C (file đơn lẻ) hoặc Java (`Q1..Q4`).
+     - Tạo bản ghi mới trong bảng `submissions` (Status: `PENDING`), `grading_jobs` (Priority: 2 - Medium).
      - Đẩy job vào hàng đợi Redis Queue (BullMQ).
-  6. Hệ thống trả về `submissionId` và điều hướng sinh viên sang trang theo dõi tiến độ chấm bài trực tiếp.
+  5. Hệ thống trả về `submissionId` và chuyển sang màn hình theo dõi tiến độ thời gian thực.
 - **Hậu điều kiện (Post-conditions):** Bài nộp được ghi nhận, một job chấm bài mới được đưa vào queue chờ xử lý.
 
 ---
 
-#### USE CASE UC08: Xử lý Hàng đợi & Chấm bài tự động (E2E Core Flow)
-- **Actor chính:** System (Background Worker / Redis Queue)
-- **Tiền điều kiện:** Có ít nhất một `GradingJob` ở trạng thái `QUEUED` trong hàng đợi.
+#### USE CASE UC09: Nộp đồ án nhóm Web qua GitHub & Vercel URL (Engine 2)
+- **Actor chính:** Student (Đại diện nhóm)
+- **Tiền điều kiện:** Nhóm sinh viên đã tạo `Team`, có kho Git Repository chứa code Web và link ứng dụng đã triển khai trên Vercel.
 - **Luồng sự kiện chính (Main Flow):**
-  1. Worker lấy `GradingJob` có độ ưu tiên cao nhất ra khỏi hàng đợi.
-  2. Cập nhật trạng thái `grading_jobs.status = RUNNING_SANDBOX`.
-  3. Worker gọi **Docker Sandbox Engine**:
-     - Gắn thư mục mã nguồn bài nộp vào Docker Container tương ứng (chạy ở chế độ isolated).
-     - Biên dịch code (nếu là Java, C#, C++).
-     - Duyệt qua từng `TestCase`: nạp input, bắt output, đo thời gian chạy và dung lượng RAM.
-     - Lưu kết quả từng test vào bảng `submission_test_results`.
-  4. Nếu code vượt qua bước biên dịch:
-     - Cập nhật trạng thái `grading_jobs.status = RUNNING_AI`.
-     - **RAG Retrieval:** Tìm kiếm các testcases bị FAILED/TLE/MLE $\to$ Lấy ý đồ testcase (`rationale`) và đoạn code đáp án chuẩn tương ứng từ Vector DB.
-     - Gọi **AI PromptTemplate Engine**: Lắp ráp mã nguồn + tiêu chí `RubricRule` + Ngữ cảnh RAG thành prompt chuẩn.
-     - Lấy một API key khả dụng từ bảng `AiApiKey` (qua thuật toán Round-Robin).
-     - Gửi prompt đến LLM API (OpenAI / Gemini).
-     - Parse JSON kết quả trả về từ LLM (gồm điểm thành phần, lỗi logic, gợi ý sửa), lưu vào bảng `ai_grading_results`.
-  5. **Tính toán Tổng Điểm (Composite Final Score):**
-     - $\text{Final Score} = \text{Điểm Testcase Sandbox} + \text{Điểm AI Rubric (đối chiếu RAG)}$.
-  6. Cập nhật trạng thái `submissions.total_score`, `submissions.status = GRADED` và `grading_jobs.status = COMPLETED`.
-  7. Bắn thông báo thời gian thực về Frontend Next.js để cập nhật giao diện người dùng.
-- **Luồng ngoại lệ (Alternative / Error Flow):**
-  - *Nếu Sandbox lỗi / Runtime Exception:* Lưu chi tiết log lỗi vào `grading_jobs.error_log`, đánh dấu test case thất bại.
-  - *Nếu LLM API bị quá tải / Rate-limit:* Tự động tăng `retry_count`, chuyển sang `AiApiKey` kế tiếp và đẩy job lại vào queue với độ ưu tiên cao.
+  1. Sinh viên truy cập màn hình nộp đồ án nhóm trên Next.js.
+  2. Sinh viên nhập: Link GitHub Repository (kèm nhánh/commit hash) và Link Vercel Deployment URL.
+  3. Sinh viên nhấn nút "Submit Group Project".
+  4. Backend Express.js kích hoạt **Lá chắn Bảo mật SSRF (`deployed-url.validator.ts`)**:
+     - Phân giải DNS của URL Vercel.
+     - Kiểm tra và chặn đứng nếu IP đích nằm trong dải IP nội bộ RFC 1918, localhost, link-local metadata (169.254.169.254).
+     - Nếu không an toàn: Từ chối ngay với mã lỗi `400 Bad Request: Disallowed Target Address`.
+  5. Nếu URL hợp lệ:
+     - Kích hoạt `GitIngestionService`: Clone repo, bóc tách toàn bộ git log commits, thống kê số dòng thêm/xóa của từng bạn, lưu vào `git_contributors`.
+     - Tạo bản ghi `submissions` (Loại: `GROUP_PROJECT`), đẩy job vào Redis Queue cho Playwright Runner.
+  6. Trả về mã bài nộp và hiển thị sơ bộ bảng đóng góp Git của các thành viên.
 
 ---
 
-#### USE CASE UC12: Hỏi đáp Trợ giảng AI Tutor với Ngữ cảnh RAG
+#### USE CASE UC10: Xử lý Hàng đợi & Chấm bài tự động (Dual-Engine E2E Core Flow)
+- **Actor chính:** System (Background Worker / Redis Queue)
+- **Tiền điều kiện:** Có ít nhất một `GradingJob` ở trạng thái `QUEUED` trong hàng đợi.
+- **Luồng sự kiện chính (Main Flow):**
+  1. Worker lấy `GradingJob` ra khỏi hàng đợi Redis BullMQ, khởi tạo chuỗi lưu vết `GradingRun`.
+  2. **Stage 1 - STAGING (`GradingRunStage`):** Chuẩn bị không gian làm việc hoặc lấy target metadata.
+  3. **Stage 2 - EXECUTION:** Dựa vào loại bài nộp, kích hoạt Runner tương ứng:
+     - **Nếu là PE Exam (C/Java):** Gọi Docker Sandbox cô lập (`--network none`, 256MB RAM, timeout 2s cứng). Chạy các testcase, đo thời gian/RAM, bắt stdout/file-diff.
+     - **Nếu là Web Project (Vercel):** Gọi Container Playwright Chromium qua egress proxy. Tự động tương tác Web, kiểm tra UI/API, chụp screenshots làm bằng chứng `GradingEvidence`.
+  4. **Stage 3 - AI EVALUATION (RAG Semantic Assessment):**
+     - Truy xuất Ý đồ Testcase/Rubrics bị Fail từ ChromaDB Vector Store.
+     - Lắp ráp Prompt chuẩn qua `PromptBuilder` kết hợp với Barem đáp án mẫu.
+     - Lấy API Key qua xoay vòng Round-Robin, gọi LLM (Gemini/OpenAI).
+     - Parse JSON kết quả nhận xét và điểm Rubric.
+  5. **Tính toán Tổng Điểm & Kết thúc:**
+     - Lưu đầy đủ bằng chứng `GradingEvidence` (compiler logs, screenshots, AI rationale).
+     - $\text{Final Score} = \text{Điểm Thực thi Sandbox} + \text{Điểm AI Rubric}$.
+     - Cập nhật `submissions.status = GRADED`, `grading_jobs.status = COMPLETED`, `GradingRun.status = SUCCESS`.
+     - Bắn tín hiệu WebSocket/SSE thông báo cập nhật kết quả lên Frontend.
+
+---
+
+#### USE CASE UC15: Hỏi đáp Trợ giảng AI Tutor với Ngữ cảnh RAG Socratic
 - **Actor chính:** Student
 - **Tiền điều kiện:** Bài tập đã được chấm xong ít nhất 1 lần và sinh viên có thắc mắc về lỗi hoặc nhận xét của AI.
 - **Luồng sự kiện chính:**
